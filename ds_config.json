@@ -1,0 +1,22 @@
+{
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu" :"auto",
+    "gradient_accumulation_steps": "auto",
+    "gradient_clipping": 1.0,
+    "bf16": {
+        "enabled": "auto"
+    },
+    "zero_optimization": {
+        "stage": 3,
+        "overlap_comm": true,
+        "stage3_gather_16bit_weights_on_model_save": true
+    },
+    "flops_profiler": {
+        "enabled": false,
+        "profile_step": 1,
+        "module_depth": -1,
+        "top_modules": 1,
+        "detailed": true,
+        "output_file": null
+    }
+}
