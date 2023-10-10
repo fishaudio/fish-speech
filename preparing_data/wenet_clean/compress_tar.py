@@ -30,6 +30,8 @@ def chunked_tarring(rank, file_list, base_folder, output_folder, chunk_size=1024
 
             chunk_count += 1
             total_size = 0
+
+            buffer.close()
             buffer = io.BytesIO()
             tar = tarfile.open(fileobj=buffer, mode="w")
 
