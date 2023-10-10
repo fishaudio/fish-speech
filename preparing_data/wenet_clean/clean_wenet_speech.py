@@ -1,20 +1,20 @@
 import json
-from pathlib import Path
+import os
 import subprocess
+import tempfile
+import time
+from pathlib import Path
 
 import librosa
 import soundfile as sf
 import torch
 import torchaudio
 from fish_audio_preprocess.utils.separate_audio import (
-    separate_audio,
-    merge_tracks,
     init_model,
+    merge_tracks,
+    separate_audio,
 )
 from tqdm import tqdm
-import time
-import os
-import tempfile
 
 rank = int(os.environ.get("SLURM_PROCID", 0))
 world_size = int(os.environ.get("SLURM_NTASKS", 1))
@@ -75,7 +75,9 @@ def main():
             )
             # Make it 2 channels
             audio = torch.cat([audio, audio], dim=0)
-            tracks = separate_audio(demucs, audio, shifts=1, num_workers=0, progress=False)
+            tracks = separate_audio(
+                demucs, audio, shifts=1, num_workers=0, progress=False
+            )
             audio = merge_tracks(tracks, filter=["vocals"])[0]
             vocals, sr = (
                 torchaudio.functional.resample(

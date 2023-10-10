@@ -1,8 +1,10 @@
-from pathlib import Path
+import random
 import subprocess
 from multiprocessing import Pool, cpu_count
+from pathlib import Path
+
 from tqdm import tqdm
-import random
+
 
 def convert_to_flac(src_file_path):
     dst_file_path = src_file_path.with_suffix(".flac")
@@ -10,7 +12,17 @@ def convert_to_flac(src_file_path):
 
     try:
         subprocess.check_call(
-            ["ffmpeg", "-y", "-i", str(src_file_path), "-acodec", "flac", "-threads", "0", str(dst_file_path)],
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(src_file_path),
+                "-acodec",
+                "flac",
+                "-threads",
+                "0",
+                str(dst_file_path),
+            ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -33,13 +45,15 @@ if __name__ == "__main__":
     fail_counter = 0
 
     with Pool(processes=cpu_count(), maxtasksperchild=100) as pool:
-        with tqdm(pool.imap_unordered(convert_to_flac, wav_files), total=len(wav_files)) as pbar:
+        with tqdm(
+            pool.imap_unordered(convert_to_flac, wav_files), total=len(wav_files)
+        ) as pbar:
             for success in pbar:
                 if success:
                     success_counter += 1
                 else:
                     fail_counter += 1
-            
+
             pbar.set_description(f"Success: {success_counter}, Fail: {fail_counter}")
 
     print(f"Successfully converted: {success_counter}")
