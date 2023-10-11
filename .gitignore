@@ -1,3 +1,5 @@
 .pgx.*
 .pdm-python
 /speech_lm.egg-info
+__pycache__
+/results

@@ -1,0 +1,6 @@
+paths:
+  run_dir: results/pretrain
+
+hydra:
+  run:
+    dir: ${paths.run_dir}

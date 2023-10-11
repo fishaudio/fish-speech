@@ -12,10 +12,12 @@ dependencies = [
     "torchaudio>=2.1.0",
     "transformers>=4.34.0",
     "datasets>=2.14.5",
-    "accelerate>=0.23.0",
     "bitsandbytes>=0.41.1",
     "peft>=0.5.0",
-    "omegaconf>=2.3.0",
+    "deepspeed>=0.11.1",
+    "lightning>=2.0.9.post0",
+    "hydra-core>=1.3.2",
+    "pyrootutils>=1.0.4",
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
