@@ -1,39 +1,35 @@
 import random
-from transformers import AutoTokenizer
-from datasets import load_dataset, interleave_datasets, IterableDataset
-from functools import lru_cache
-from torch.utils.data import DataLoader
+from functools import partial
+
+from datasets import IterableDataset, interleave_datasets, load_dataset
 from datasets.distributed import split_dataset_by_node
 from torch.distributed import get_rank, get_world_size, is_initialized
 
 
-@lru_cache(maxsize=1)
-def get_tokenizer():
-    return AutoTokenizer.from_pretrained("fishaudio/speech-lm-300m", revision="init")
-
-def encode(examples):
+def encode(examples, tokenizer, max_length=512):
     # Random choice a 512 token window for each example
     texts = []
     for text in examples["text"]:
-        if len(text) <= 512:
+        if len(text) <= max_length:
             texts.append(text)
         else:
-            start = random.randint(0, len(text) - 512)
-            texts.append(text[start : start + 512])
-    
-    data = get_tokenizer()(
-        texts, 
-        truncation=True, 
-        padding="max_length",
-        max_length=512,
-    )
-    data["labels"] = data["input_ids"].copy()
-    data["labels"][data["attention_mask"] == 0] = -100
+            start = random.randint(0, len(text) - max_length)
+            texts.append(text[start : start + max_length])
 
+    data = tokenizer(
+        texts,
+        truncation=True,
+        padding="max_length",
+        max_length=max_length,
+        return_tensors="pt",
+    )
+    data["labels"] = data["input_ids"].clone()
+    data["labels"][data["attention_mask"] == 0] = -100
+    print(data["input_ids"].shape)
     return data
 
 
-def build_dataset():
+def build_dataset(tokenizer, max_length=512):
     en_dataset = load_dataset("uonlp/CulturaX", "en", split="train", streaming=True)
     ja_dataset = load_dataset("uonlp/CulturaX", "ja", split="train", streaming=True)
     zh_dataset = load_dataset("uonlp/CulturaX", "zh", split="train", streaming=True)
@@ -47,13 +43,15 @@ def build_dataset():
         multilingual_dataset = split_dataset_by_node(
             multilingual_dataset,
             rank=get_rank(),
-            num_replicas=get_world_size(),
+            world_size=get_world_size(),
         )
 
     multilingual_dataset = multilingual_dataset.shuffle(seed=42, buffer_size=10000)
 
     multilingual_dataset = multilingual_dataset.map(
-        encode, batched=True, remove_columns=multilingual_dataset.column_names
+        partial(encode, tokenizer=tokenizer, max_length=max_length),
+        batched=True,
+        remove_columns=multilingual_dataset.column_names,
     )
 
     return multilingual_dataset

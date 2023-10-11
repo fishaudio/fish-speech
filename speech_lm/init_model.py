@@ -1,4 +1,4 @@
-from transformers import LlamaModel, LlamaConfig, AutoTokenizer
+from transformers import AutoTokenizer, LlamaConfig, LlamaModel
 
 # reuse the tokenizer from the llama
 model_type = "meta-llama/Llama-2-7b-hf"

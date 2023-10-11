@@ -1,9 +1,10 @@
-import tarfile
-from pathlib import Path
-from tqdm import tqdm
 import io
 import random
+import tarfile
 from multiprocessing import Process
+from pathlib import Path
+
+from tqdm import tqdm
 
 
 def chunked_tarring(rank, file_list, base_folder, output_folder, chunk_size=1024**3):
@@ -25,7 +26,9 @@ def chunked_tarring(rank, file_list, base_folder, output_folder, chunk_size=1024
 
             # write the buffer to disk
             buffer.seek(0)
-            with open(output_folder / f"chunk-{rank:03d}-{chunk_count:04d}.tar", "wb") as f:
+            with open(
+                output_folder / f"chunk-{rank:03d}-{chunk_count:04d}.tar", "wb"
+            ) as f:
                 f.write(buffer.read())
 
             chunk_count += 1
@@ -42,14 +45,14 @@ def chunked_tarring(rank, file_list, base_folder, output_folder, chunk_size=1024
 
         if saved_count % 1000 == 0:
             print(f"Rank {rank}: {saved_count}/{len(file_list)}")
-        
+
         saved_count += 1
 
     tar.close()
     buffer.seek(0)
     with open(output_folder / f"chunk-{rank:03d}-{chunk_count:04d}.tar", "wb") as f:
         f.write(buffer.read())
-    
+
     print(f"Rank {rank}: {saved_count}/{len(file_list)}")
 
 
@@ -72,7 +75,10 @@ if __name__ == "__main__":
         if i == num_workers - 1:
             end = len(file_list)
 
-        p = Process(target=chunked_tarring, args=(i, file_list[start:end], base_folder, output_folder))
+        p = Process(
+            target=chunked_tarring,
+            args=(i, file_list[start:end], base_folder, output_folder),
+        )
         p.start()
         processes.append(p)
 

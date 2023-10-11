@@ -1,6 +1,66 @@
 paths:
   run_dir: results/pretrain
+  checkpoint_dir: ${paths.run_dir}/checkpoints
 
 hydra:
   run:
     dir: ${paths.run_dir}
+
+trainer:
+  _target_: lightning.fabric.Fabric
+  accelerator: gpu
+  strategy: ddp
+  devices: auto
+  precision: bf16-mixed
+  loggers:
+    - _target_: pytorch_lightning.loggers.TensorBoardLogger
+      save_dir: ${paths.run_dir}
+      name: tensorboard
+      version: null
+
+model:
+  _target_: transformers.AutoModelForCausalLM.from_pretrained
+  pretrained_model_name_or_path: fishaudio/speech-lm-300m
+  revision: init
+
+tokenizer:
+  _target_: transformers.AutoTokenizer.from_pretrained
+  pretrained_model_name_or_path: fishaudio/speech-lm-300m
+  revision: init
+
+# Say we want a 3 trillion seen token schedule
+# 3e12 / 1024 / 512 / 8 = 715255
+schedule:
+  max_length: 1024
+  batch_size: 512
+  max_steps: 715255
+  save_every: 2000
+
+dataloader:
+  _target_: torch.utils.data.DataLoader
+  dataset: 
+    _target_: speech_lm.dataset.build_dataset
+    tokenizer: ${tokenizer}
+    max_length: ${schedule.max_length}
+  batch_size: ${schedule.batch_size}
+  num_workers: 4
+  collate_fn:
+    _target_: transformers.DataCollatorWithPadding
+    tokenizer: ${tokenizer}
+    max_length: ${schedule.max_length}
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 3e-4
+  weight_decay: 0.1
+  betas: [0.9, 0.95]
+  eps: 1e-5
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.LambdaLR
+  lr_lambda:
+    _target_: speech_lm.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+    _partial_: true
+    num_warmup_steps: 2000
+    num_training_steps: ${schedule.max_steps}
+    final_lr_ratio: 0.1
