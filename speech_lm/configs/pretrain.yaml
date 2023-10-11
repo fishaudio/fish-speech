@@ -48,10 +48,7 @@ dataloader:
   batch_size: ${schedule.micro_batch_size}
   num_workers: 4
   collate_fn:
-    _target_: transformers.DataCollatorWithPadding
-    tokenizer: ${tokenizer}
-    max_length: ${schedule.max_length}
-    padding: max_length
+    _target_: transformers.DefaultDataCollator
 
 optimizer:
   _target_: torch.optim.AdamW
