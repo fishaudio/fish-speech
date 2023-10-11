@@ -1,1 +1,3 @@
 .pgx.*
+.pdm-python
+/speech_lm.egg-info

@@ -1,0 +1,30 @@
+
+[project]
+name = "speech-lm"
+version = "0.0.1"
+description = ""
+authors = [
+    {name = "Lengyue", email = "lengyue@lengyue.me"},
+]
+dependencies = [
+    "torch>=2.1.0",
+    "torchvision>=0.16.0",
+    "torchaudio>=2.1.0",
+    "transformers>=4.34.0",
+    "datasets>=2.14.5",
+    "accelerate>=0.23.0",
+    "bitsandbytes>=0.41.1",
+    "peft>=0.5.0",
+    "omegaconf>=2.3.0",
+]
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[tool.setuptools]
+py-modules = ["speech_lm"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=23.9.1",
+    "isort>=5.12.0",
+]
