@@ -13,10 +13,10 @@ trainer:
   devices: auto
   precision: bf16-mixed
   loggers:
-    - _target_: pytorch_lightning.loggers.TensorBoardLogger
-      save_dir: ${paths.run_dir}
-      name: tensorboard
-      version: null
+    _target_: pytorch_lightning.loggers.TensorBoardLogger
+    save_dir: ${paths.run_dir}
+    name: tensorboard
+    version: null
 
 model:
   _target_: transformers.AutoModelForCausalLM.from_pretrained
@@ -32,9 +32,12 @@ tokenizer:
 # 3e12 / 1024 / 512 / 8 = 715255
 schedule:
   max_length: 1024
-  batch_size: 16
+  batch_size: 512
+  micro_batch_size: 2
   max_steps: 715255
-  save_every: 2000
+  save_interval: 2000
+  gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
+  clip_grad_norm: 1.0
 
 dataloader:
   _target_: torch.utils.data.DataLoader
@@ -42,7 +45,7 @@ dataloader:
     _target_: speech_lm.dataset.build_dataset
     tokenizer: ${tokenizer}
     max_length: ${schedule.max_length}
-  batch_size: ${schedule.batch_size}
+  batch_size: ${schedule.micro_batch_size}
   num_workers: 4
   collate_fn:
     _target_: transformers.DataCollatorWithPadding
