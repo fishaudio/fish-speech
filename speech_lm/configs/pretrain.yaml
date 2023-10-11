@@ -48,6 +48,7 @@ dataloader:
     _target_: transformers.DataCollatorWithPadding
     tokenizer: ${tokenizer}
     max_length: ${schedule.max_length}
+    padding: max_length
 
 optimizer:
   _target_: torch.optim.AdamW
