@@ -32,7 +32,7 @@ tokenizer:
 # 3e12 / 1024 / 512 / 8 = 715255
 schedule:
   max_length: 1024
-  batch_size: 512
+  batch_size: 16
   max_steps: 715255
   save_every: 2000
 

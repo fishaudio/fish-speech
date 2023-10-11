@@ -8,6 +8,7 @@ from lightning.fabric import Fabric
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 from transformers.utils import is_flash_attn_available
+from transformers import LlamaForCausalLM
 
 # Allow TF32 on Ampere GPUs
 torch.set_float32_matmul_precision("high")
@@ -24,11 +25,11 @@ log = RankedLogger(__name__, rank_zero_only=True)
 
 
 def train(
-    model,
-    optimizer,
-    scheduler,
-    dataloader,
-    global_step,
+    model: LlamaForCausalLM,
+    optimizer: torch.optim.Optimizer,
+    scheduler: torch.optim.lr_scheduler._LRScheduler,
+    dataloader: torch.utils.data.DataLoader,
+    global_step: int,
     fabric: Fabric,
     cfg: DictConfig,
 ):
@@ -37,16 +38,17 @@ def train(
 
     while global_step < cfg.schedule.max_steps:
         for batch in dataloader:
-            print(batch)
-            # batch = fabric.setup_batch(batch)
-            # loss = model(**batch).loss
-            # loss.backward()
-            # optimizer.step()
-            # scheduler.step()
-            # optimizer.zero_grad()
-            # global_step += 1
-            # bar.update(1)
-            # bar.set_postfix({"loss": loss.item()})
+            # Train loop
+            optimizer.zero_grad()
+            loss = model(**batch).loss
+            fabric.backward(loss)
+            optimizer.step()
+            scheduler.step()
+
+            fabric.log_dict({
+                "train/loss": loss,
+                "train/lr": optimizer.param_groups[0]["lr"],
+            }, step=global_step)
 
             global_step += 1
             bar.update(1)
@@ -71,15 +73,14 @@ def main(cfg: DictConfig):
     log.info(f"Config: \n{OmegaConf.to_yaml(cfg)}")
 
     if is_flash_attn_available() is False:
-        raise RuntimeError(
-            "Flash attention is not available, training will be aborted."
-        )
+        log.warning("Flash attention is not available, using default attention")
 
     fabric: Fabric = hydra.utils.instantiate(cfg.trainer)
     fabric.launch()
     log.info(f"Fabric: {fabric}")
 
     model = hydra.utils.instantiate(cfg.model)
+    log.info(f"Model: {repr(model)}")
 
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     freeze_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)

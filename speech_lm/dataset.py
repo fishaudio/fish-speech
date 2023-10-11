@@ -25,7 +25,7 @@ def encode(examples, tokenizer, max_length=512):
     )
     data["labels"] = data["input_ids"].clone()
     data["labels"][data["attention_mask"] == 0] = -100
-    print(data["input_ids"].shape)
+
     return data
 
 
