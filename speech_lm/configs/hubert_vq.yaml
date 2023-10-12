@@ -34,7 +34,7 @@ model:
 schedule:
   batch_size: 32
   micro_batch_size: 32
-  max_steps: 100000
+  max_steps: 10000
   save_interval: 2000
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
   clip_grad_norm: 1.0
@@ -63,5 +63,5 @@ scheduler:
   lr_lambda:
     _target_: speech_lm.scheduler.get_cosine_schedule_with_warmup_lr_lambda
     _partial_: true
-    num_warmup_steps: 2000
+    num_warmup_steps: 1000
     num_training_steps: ${schedule.max_steps}
