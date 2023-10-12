@@ -3,3 +3,5 @@
 /speech_lm.egg-info
 __pycache__
 /results
+/data
+/*.test.sh
