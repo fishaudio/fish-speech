@@ -6,8 +6,8 @@ import torch
 from lightning.fabric import Fabric
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
-from transformers.utils import is_flash_attn_available
 from transformers import LlamaForCausalLM
+from transformers.utils import is_flash_attn_available
 
 # Allow TF32 on Ampere GPUs
 torch.set_float32_matmul_precision("high")
@@ -47,7 +47,9 @@ def train(
 
             # Train one step
             with fabric.no_backward_sync(model, enabled=is_accumulating):
-                loss = model(**batch).loss
+                outputs = model(**batch)
+                loss = outputs.loss
+                metrics = getattr(outputs, "metrics", {})
                 fabric.backward(loss)
 
             if is_accumulating:
@@ -68,6 +70,7 @@ def train(
                     "train/loss": loss,
                     "train/lr": optimizer.param_groups[0]["lr"],
                     "train/grad_norm": grad_norm,
+                    **{f"train/{k}": v for k, v in metrics.items()},
                 },
                 step=global_step,
             )

@@ -1,11 +1,12 @@
-import librosa
-from torch.utils.data import Dataset
 from pathlib import Path
+
+import librosa
 import torch
+from torch.utils.data import Dataset
 
 
 class HubertVQDataset(Dataset):
-    def __init__(self, filelist):
+    def __init__(self, filelist: str):
         super().__init__()
 
         self.files = Path(filelist).read_text().splitlines()
@@ -20,35 +21,39 @@ class HubertVQDataset(Dataset):
         return wav
 
 
-def collate_fn(batch):
-    # -> {"input_values": ..., "attention_mask": ...}
-    max_length = max([len(x) for x in batch])
+class HubertVQCollator:
+    @staticmethod
+    def __call__(batch):
+        # -> {"input_values": ..., "attention_mask": ...}
+        max_length = max([len(x) for x in batch])
 
-    input_values = []
-    attention_mask = []
+        input_values = []
+        attention_mask = []
 
-    for x in batch:
-        x_length = len(x)
-        x = torch.nn.functional.pad(x, (0, max_length - x_length))
-        mask = torch.ones_like(x)
-        mask[x_length:] = 0
+        for x in batch:
+            x_length = len(x)
+            x = torch.nn.functional.pad(x, (0, max_length - x_length))
+            mask = torch.ones_like(x)
+            mask[x_length:] = 0
 
-        input_values.append(x)
-        attention_mask.append(mask)
+            input_values.append(x)
+            attention_mask.append(mask)
 
-    input_values = torch.stack(input_values)
-    attention_mask = torch.stack(attention_mask)
+        input_values = torch.stack(input_values)
+        attention_mask = torch.stack(attention_mask)
 
-    return {"input_values": input_values, "attention_mask": attention_mask}
+        return {"input_values": input_values, "attention_mask": attention_mask}
 
 
 if __name__ == "__main__":
+    import soundfile as sf
     from torch.utils.data import DataLoader
     from transformers import HubertForCTC, Wav2Vec2Processor
-    import soundfile as sf
 
     dataset = HubertVQDataset("libritts-r.filelist")
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, collate_fn=collate_fn)
+    dataloader = DataLoader(
+        dataset, batch_size=16, shuffle=True, collate_fn=HubertVQCollator()
+    )
     hubert = HubertForCTC.from_pretrained("facebook/hubert-large-ls960-ft")
     processor = Wav2Vec2Processor.from_pretrained("facebook/hubert-large-ls960-ft")
     hubert.eval()

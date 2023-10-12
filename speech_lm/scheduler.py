@@ -1,5 +1,6 @@
 import math
 
+
 def get_cosine_schedule_with_warmup_lr_lambda(
     current_step: int,
     *,
@@ -16,5 +17,6 @@ def get_cosine_schedule_with_warmup_lr_lambda(
     )
 
     return max(
-        final_lr_ratio, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
+        final_lr_ratio,
+        0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)),
     )
