@@ -31,4 +31,7 @@ WORKDIR /exp
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt && pip3 install encodec --no-deps
 
+COPY . .
+RUN pip3 install -e .
+
 CMD /bin/zsh

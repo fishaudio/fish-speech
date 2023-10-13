@@ -1,25 +1,22 @@
 from pathlib import Path
 
 import hydra
-import pyrootutils
 import torch
 from lightning.fabric import Fabric
+from natsort import natsorted
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 from transformers import LlamaForCausalLM
 from transformers.utils import is_flash_attn_available
-from natsort import natsorted
+
+from speech_lm.logger import RankedLogger
 
 # Allow TF32 on Ampere GPUs
 torch.set_float32_matmul_precision("high")
 torch.backends.cudnn.allow_tf32 = True
 
-# register eval resolver and root
-pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+# register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
-
-# flake8: noqa: E402
-from speech_lm.logger import RankedLogger
 
 log = RankedLogger(__name__, rank_zero_only=True)
 

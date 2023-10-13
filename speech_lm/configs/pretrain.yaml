@@ -39,16 +39,27 @@ schedule:
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
   clip_grad_norm: 1.0
 
+dataset:
+  _target_: datasets.interleave_datasets
+  datasets:
+    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+      lang: 'en'
+    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+      lang: 'zh'
+    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+      lang: 'ja'
+  probabilities: [0.4, 0.3, 0.3]
+  seed: 42
+
 dataloader:
   _target_: torch.utils.data.DataLoader
-  dataset: 
-    _target_: speech_lm.dataset.build_dataset
-    tokenizer: ${tokenizer}
-    max_length: ${schedule.max_length}
+  dataset: ${dataset}
   batch_size: ${schedule.micro_batch_size}
   num_workers: 4
   collate_fn:
-    _target_: transformers.DefaultDataCollator
+    _target_: speech_lm.datasets.cultura_x.CulutreXCollator
+    tokenizer: ${tokenizer}
+    max_length: ${schedule.max_length}
 
 optimizer:
   _target_: torch.optim.AdamW
