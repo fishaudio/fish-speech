@@ -40,7 +40,7 @@ schedule:
   clip_grad_norm: 1.0
 
 dataset:
-  _target_: datasets.interleave_datasets
+  _target_: speech_lm.datasets.cultura_x.InterleaveDataset
   datasets:
     - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
       lang: 'en'
