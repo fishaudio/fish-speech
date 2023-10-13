@@ -29,6 +29,6 @@ RUN pip3 install --upgrade pip && \
 # Project Env
 WORKDIR /exp
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r requirements.txt && pip3 install encodec --no-deps
 
 CMD /bin/zsh
