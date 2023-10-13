@@ -9,8 +9,34 @@ hydra:
 trainer:
   _target_: lightning.fabric.Fabric
   accelerator: gpu
-  strategy: ddp
-  devices: auto
+  strategy:
+    _target_: lightning.fabric.strategies.FSDPStrategy
+    sync_module_states: true
+    use_orig_params: true
+    cpu_offload: false
+    mixed_precision:
+      _target_: torch.distributed.fsdp.MixedPrecision
+      param_dtype: 
+        _target_: hydra.utils.get_object
+        path: torch.bfloat16
+      reduce_dtype:
+        _target_: hydra.utils.get_object
+        path: torch.bfloat16
+      buffer_dtype:
+        _target_: hydra.utils.get_object
+        path: torch.bfloat16
+      cast_forward_inputs: true
+    sharding_strategy: SHARD_GRAD_OP
+    auto_wrap_policy:
+      _target_: torch.distributed.fsdp.wrap.transformer_auto_wrap_policy
+      _partial_: true
+      transformer_layer_cls:
+        - _target_: hydra.utils.get_class
+          path: transformers.models.llama.modeling_llama.LlamaDecoderLayer
+    activation_checkpointing_policy: ${trainer.strategy.auto_wrap_policy}
+    state_dict_type: full
+  num_nodes: 1
+  devices: 8
   precision: bf16-mixed
   loggers:
     _target_: pytorch_lightning.loggers.TensorBoardLogger
@@ -32,10 +58,11 @@ tokenizer:
 # 3e12 / 1024 / 512 / 8 = 715255
 schedule:
   max_length: 1024
-  batch_size: 512
-  micro_batch_size: 2
+  batch_size: 512  # 128 * 4 = 512
+  micro_batch_size: 64
   max_steps: 715255
   save_interval: 2000
+  log_interval: 10
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
   clip_grad_norm: 1.0
 
