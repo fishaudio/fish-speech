@@ -117,6 +117,9 @@ def main(cfg: DictConfig):
     log.info(f"Optimizer: {optimizer}")
     log.info(f"Scheduler: {scheduler}")
 
+    log.info(f"Setup fabric model & dataset")
+    model, optimizer, scheduler = fabric.setup(model, optimizer, scheduler)
+
     # Build state
     global_step = 0
 
@@ -140,9 +143,6 @@ def main(cfg: DictConfig):
         )
         global_step = remainder["global_step"]
         log.info(f"Restored global step: {global_step}")
-
-    log.info(f"Setup fabric model & dataset")
-    model, optimizer, scheduler = fabric.setup(model, optimizer, scheduler)
 
     train_dataloader = hydra.utils.instantiate(cfg.dataloader)
     log.info(f"Dataloader: {train_dataloader}")

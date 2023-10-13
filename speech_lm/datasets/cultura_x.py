@@ -67,8 +67,8 @@ class CulturaXDataset(IterableDataset):
         for filename in files:
             try:
                 yield from self.parse_data(filename)
-            except:
-                log.exception(f"Failed to parse {filename}")
+            except Exception as e:
+                log.exception(f"Failed to parse {filename}: {e}")
 
     def parse_data(self, filename: str):
         url = f"https://huggingface.co/datasets/uonlp/CulturaX/resolve/main/{filename}"
