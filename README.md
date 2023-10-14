@@ -12,4 +12,7 @@ pip3 install -r requirements.txt
 
 # Install flash-attn
 MAX_JOBS=4 pip install flash-attn --no-build-isolation
+
+# Install speech-llm
+pip3 install -e .
 ```
