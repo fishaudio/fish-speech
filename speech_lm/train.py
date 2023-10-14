@@ -122,6 +122,7 @@ def train(
             trackers["model_time"].append(time.time() - model_begin_time)
 
             if is_accumulating:
+                last_batch_time = time.time()
                 continue
 
             # Check all trackers has the same length
