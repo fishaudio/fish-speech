@@ -43,7 +43,7 @@ dataset:
   _target_: speech_lm.datasets.hubert_vq.HubertVQDataset
   filelist: libritts-r.filelist
 
-dataloader:
+train_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${dataset}
   batch_size: ${schedule.micro_batch_size}

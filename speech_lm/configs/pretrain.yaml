@@ -78,7 +78,7 @@ dataset:
   probabilities: [0.4, 0.3, 0.3]
   seed: 42
 
-dataloader:
+train_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${dataset}
   batch_size: ${schedule.micro_batch_size}
