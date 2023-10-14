@@ -116,7 +116,6 @@ def train(
                 # Update trackers
                 trackers["loss"].append(float(loss))
                 trackers["lr"].append(float(optimizer.param_groups[0]["lr"]))
-                trackers["grad_norm"].append(float(grad_norm))
                 for k, v in metrics.items():
                     trackers[f"metrics/{k}"].append(float(v))
 
@@ -127,13 +126,16 @@ def train(
 
             # Check all trackers has the same length
             assert (
-                len(set(len(v) for v in trackers.values())) == 1
+                len(set(len(v) for k, v in trackers.items() if k != "grad_norm")) == 1
             ), "Trackers has ambiguous length"
 
             # Perform gradient clipping
             grad_norm = fabric.clip_gradients(
                 model, optimizer, max_norm=cfg.schedule.clip_grad_norm, norm_type=2.0
             )
+
+            # We can't average gradients across multiple steps
+            trackers["grad_norm"].append(float(grad_norm))
 
             # Update
             optimizer.step()
@@ -163,11 +165,14 @@ def train(
 
                 log.info(
                     f"[{global_step}/{cfg.schedule.max_steps}] "
-                    + f"step time: {step_time:.2f}s "
-                    + f"ETA: {timedelta(round(eta))}s "
+                    + f"step_time: {step_time:.2f}s "
+                    + f"ETA: {timedelta(seconds=round(eta))}s "
                     f"lr: {optimizer.param_groups[0]['lr']:.2e} "
                     + " ".join(additional_info)
                 )
+
+                # Reset trackers
+                trackers = defaultdict(list)
 
                 start_time = time.time()
 
@@ -183,13 +188,16 @@ def train(
                 )
 
             if (
-                global_step % cfg.schedule.eval_interval == 0
+                getattr(cfg.schedule, "eval_interval", None) is not None
+                and global_step % cfg.schedule.eval_interval == 0
                 and valid_dataloader is not None
             ):
-                valid(model, valid_dataloader, fabric, global_step, cfg)
+                valid(model, valid_dataloader, global_step, fabric, cfg)
 
             if global_step >= cfg.schedule.max_steps:
                 break
+
+            last_batch_time = time.time()
 
 
 @hydra.main(version_base="1.3", config_path="./configs", config_name="pretrain.yaml")
@@ -248,8 +256,8 @@ def main(cfg: DictConfig):
     log.info(f"Train Dataloader: {train_dataloader}")
 
     valid_dataloader = None
-    if getattr(train_dataloader, "valid_dataloader", None) is not None:
-        valid_dataloader = hydra.utils.instantiate(train_dataloader.valid_dataloader)
+    if getattr(cfg, "valid_dataloader", None) is not None:
+        valid_dataloader = hydra.utils.instantiate(cfg.valid_dataloader)
         log.info(f"Valid Dataloader: {valid_dataloader}")
 
     train_dataloader = fabric.setup_dataloaders(train_dataloader)
