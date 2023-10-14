@@ -116,9 +116,7 @@ def train(
                 # Update trackers
                 trackers["loss"].append(float(loss))
                 trackers["lr"].append(float(optimizer.param_groups[0]["lr"]))
-                trackers["grad_norm"].append(
-                    trackers.get("grad_norm", 0) + float(grad_norm)
-                )
+                trackers["grad_norm"].append(float(grad_norm))
                 for k, v in metrics.items():
                     trackers[f"metrics/{k}"].append(float(v))
 
