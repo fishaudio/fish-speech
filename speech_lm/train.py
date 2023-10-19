@@ -138,7 +138,6 @@ def train(
                 optimizer,
                 max_norm=cfg.schedule.clip_grad_norm,
                 norm_type=2.0,
-                error_if_nonfinite=False,
             )
 
             # We can't average gradients across multiple steps
