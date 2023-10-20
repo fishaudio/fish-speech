@@ -153,8 +153,7 @@ def train(
 
             fabric.log_dict(
                 {
-                    f"train/{k}": sum(v[-accumulate_steps:])
-                    / len(v[-accumulate_steps:])
+                    f"train/{k}": float(v[-1])
                     for k, v in trackers.items()
                 },
                 step=global_step,
