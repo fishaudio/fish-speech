@@ -37,7 +37,7 @@ def get_whisper_processor():
     return WhisperProcessor.from_pretrained("openai/whisper-medium")
 
 
-def transcribe_batch(files: list[str]):
+def transcribe_batch(files: list[str], language: str):
     wavs = [load_audio(file, 16000) for file in files]
     total_time = sum([len(wav) for wav in wavs]) / 16000
     wavs = [pad_or_trim(wav) for wav in wavs]
@@ -45,17 +45,32 @@ def transcribe_batch(files: list[str]):
     wavs = torch.from_numpy(np.stack(wavs)).float().cuda()
     mels = log_mel_spectrogram(wavs).cuda()
     model = get_whisper_model()
+    processor = get_whisper_processor()
+    forced_decoder_ids = processor.get_decoder_prompt_ids(
+        language=language, task="transcribe"
+    )
 
     with torch.no_grad():
         outputs = model.generate(
             input_features=mels,
             max_length=448,
             do_sample=False,
+            forced_decoder_ids=forced_decoder_ids,
         )
 
-    processor = get_whisper_processor()
+    outputs = outputs.cpu().tolist()
+
+    # Remove EOS token
+    for output in outputs:
+        while output[-1] in [
+            processor.tokenizer.pad_token_id,
+            processor.tokenizer.eos_token_id,
+        ]:
+            output.pop()
+        output.append(processor.tokenizer.eos_token_id)
+
     transcriptions = processor.batch_decode(outputs, skip_special_tokens=False)
-    tokens = [",".join(map(str, line.cpu().tolist())) for line in outputs]
+    tokens = [",".join(map(str, line)) for line in outputs]
     transcriptions = [
         f"{token}\t{transcription}"
         for token, transcription in zip(tokens, transcriptions)
@@ -69,7 +84,8 @@ def transcribe_batch(files: list[str]):
 @click.option("--rank", default=0)
 @click.option("--world-size", default=1)
 @click.option("--num-workers", default=1)
-def main(folder: str, rank: int, world_size: int, num_workers: int):
+@click.option("--language", default="english")
+def main(folder: str, rank: int, world_size: int, num_workers: int, language: str):
     global RANK_STR
 
     if num_workers > 1 and world_size != num_workers:
@@ -93,6 +109,8 @@ def main(folder: str, rank: int, world_size: int, num_workers: int):
                 str(i),
                 "--world-size",
                 str(num_workers),
+                "--language",
+                language,
                 folder,
             ]
             processes.append(
@@ -132,7 +150,7 @@ def main(folder: str, rank: int, world_size: int, num_workers: int):
 
     for n_batch, idx in enumerate(range(0, len(files), 64)):
         batch = files[idx : idx + 64]
-        trascriptions, batch_time = transcribe_batch(batch)
+        trascriptions, batch_time = transcribe_batch(batch, language)
         total_time += batch_time
         processed_files += len(batch)
 
