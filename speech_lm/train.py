@@ -138,7 +138,12 @@ def train(
                 optimizer,
                 max_norm=cfg.schedule.clip_grad_norm,
                 norm_type=2.0,
+                error_if_nonfinite=True,
             )
+
+            if torch.isnan(grad_norm) or torch.isinf(grad_norm):
+                log.warning(f"Gradient norm is {grad_norm}, skipping update")
+                optimizer.zero_grad()
 
             # We can't average gradients across multiple steps
             trackers["grad_norm"].append(float(grad_norm))

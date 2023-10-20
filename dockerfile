@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y git curl build-essential ffmpeg libsm6 
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install s5cmd
-RUN curl -L https://github.com/peak/s5cmd/releases/download/v2.1.0-beta.1/s5cmd_2.1.0-beta.1_Linux-64bit.tar.gz | tar xvz -C /tmp && \
+RUN curl -L https://github.com/peak/s5cmd/releases/download/v2.2.0/s5cmd_2.2.0_Linux-64bit.tar.gz | tar xvz -C /tmp && \
     mv /tmp/s5cmd /usr/local/bin/s5cmd && s5cmd --help
 
 # Install code server and zsh
