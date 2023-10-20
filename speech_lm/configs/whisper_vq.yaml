@@ -43,7 +43,7 @@ schedule:
   save_interval: 2000
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
   clip_grad_norm: 2.0
-  log_interval: 10
+  log_interval: 50
   eval_interval: 2000
 
 train_dataloader:
@@ -52,7 +52,11 @@ train_dataloader:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
     filelist: filelists/whisper-vq.train.filelist
   batch_size: ${schedule.micro_batch_size}
-  num_workers: 8
+  num_workers: 16
+  prefetch_factor: 4
+  pin_memory: true
+  persistent_workers: true
+  shuffle: true
   collate_fn:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
 
@@ -62,7 +66,10 @@ valid_dataloader:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
     filelist: filelists/whisper-vq.test.filelist
   batch_size: 32
-  num_workers: 4
+  num_workers: 8
+  prefetch_factor: 4
+  pin_memory: true
+  shuffle: false
   collate_fn:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
 
