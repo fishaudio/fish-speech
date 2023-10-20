@@ -6,3 +6,4 @@ __pycache__
 /data
 /*.test.sh
 *.filelist
+filelists

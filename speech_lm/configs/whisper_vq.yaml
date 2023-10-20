@@ -1,5 +1,5 @@
 paths:
-  run_dir: results/hubert-vq
+  run_dir: results/whisper-vq
   checkpoint_dir: ${paths.run_dir}/checkpoints
 
 hydra:
@@ -23,25 +23,35 @@ trainer:
     version: null
 
 model:
-  _target_: speech_lm.models.hubert_vq.HubertVQDistill
-  model_name_or_path: facebook/hubert-large-ls960-ft
-  vq_layer: -4
+  _target_: speech_lm.models.whisper_vq.WhisperVQ
+  model_name_or_path: "openai/whisper-medium"
+
+  # Quantization
+  codebook_dim: 32
   codebook_size: 4096
-  trainable_layers_before_vq: 2
-  trainable_layers_after_vq: 2
-  vq_loss_weight: 1.0
+  codebook_decay: 0.9
+  threshold_ema_dead_code: 0
+  use_cosine_similarity: true
+  downsample: true
+
+  # Attention
+  post_attention_depth: 2
 
 schedule:
-  batch_size: 32
-  micro_batch_size: 32
-  max_steps: 10000
+  batch_size: 64
+  micro_batch_size: 64
+  max_steps: 1000000
   save_interval: 2000
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
-  clip_grad_norm: 1.0
+  clip_grad_norm: 2.0
 
-dataset:
-  _target_: speech_lm.datasets.hubert_vq.HubertVQDataset
-  filelist: libritts-r.filelist
+train_dataset:
+  _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
+  filelist: filelists/whisper-vq.train.train.filelist
+
+valid_dataset:
+  _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
+  filelist: filelists/whisper-vq.train.test.filelist
 
 train_dataloader:
   _target_: torch.utils.data.DataLoader
@@ -49,7 +59,15 @@ train_dataloader:
   batch_size: ${schedule.micro_batch_size}
   num_workers: 4
   collate_fn:
-    _target_: speech_lm.datasets.hubert_vq.HubertVQCollator
+    _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
+
+valid_dataloader:
+  _target_: torch.utils.data.DataLoader
+  dataset: ${dataset}
+  batch_size: ${schedule.micro_batch_size}
+  num_workers: 4
+  collate_fn:
+    _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
 
 optimizer:
   _target_: torch.optim.AdamW

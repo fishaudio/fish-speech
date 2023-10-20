@@ -5,12 +5,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import CrossEntropyLoss
-from transformers.generation.logits_process import WhisperTimeStampLogitsProcessor
 from transformers.modeling_outputs import BaseModelOutput
 from transformers.models.whisper.modeling_whisper import (
-    WHISPER_INPUTS_DOCSTRING,
-    WHISPER_START_DOCSTRING,
     WhisperAttention,
     WhisperConfig,
     WhisperDecoder,
@@ -19,22 +15,10 @@ from transformers.models.whisper.modeling_whisper import (
     WhisperEncoderLayer,
     WhisperForConditionalGeneration,
     WhisperModel,
-    WhisperPreTrainedModel,
-    _dynamic_time_warping,
-    _median_filter,
-    shift_tokens_right,
 )
-from transformers.models.whisper.tokenization_whisper import TASK_IDS, TO_LANGUAGE_CODE
-from transformers.utils import (
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    logging,
-    replace_return_docstrings,
-)
+from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
-
-_CONFIG_FOR_DOC = "WhisperConfig"
 
 
 class FlashWhisperAttention(WhisperAttention):

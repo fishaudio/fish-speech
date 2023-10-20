@@ -37,7 +37,7 @@ tokenizer:
 # This is a 300 billion seen token schedule
 schedule:
   max_length: 1024
-  batch_size: 64  # 128 * 4 = 512
+  batch_size: 128  # 128 * 4 = 512
   micro_batch_size: 8
   max_steps: 100000
   save_interval: 5000

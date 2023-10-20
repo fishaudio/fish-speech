@@ -5,7 +5,7 @@ import librosa
 import torch
 from torch.utils.data import Dataset
 from transformers import WhisperProcessor
-from whisper.audio import load_audio, log_mel_spectrogram, pad_or_trim
+from whisper.audio import HOP_LENGTH, load_audio, log_mel_spectrogram, pad_or_trim
 
 
 class WhisperVQDataset(Dataset):
@@ -25,9 +25,14 @@ class WhisperVQDataset(Dataset):
     def __getitem__(self, idx):
         file = self.files[idx]
         wav = load_audio(file)
+        wav_length = wav.shape[-1]
+        mel_length = wav_length // HOP_LENGTH + 1
+
         wav = pad_or_trim(wav)
         wav = torch.from_numpy(wav).float()
         input_features = log_mel_spectrogram(wav)
+        mel_mask = torch.zeros(input_features.shape[1], dtype=torch.float)
+        mel_mask[:mel_length] = 1
 
         input_ids = file.with_suffix(".whisper.txt").read_text().strip().split("\t")[0]
         input_ids = [int(x) for x in input_ids.split(",")]
@@ -45,6 +50,7 @@ class WhisperVQDataset(Dataset):
             "input_values": wav,
             "input_features": input_features,
             "input_ids": input_ids,
+            "mel_mask": mel_mask,
         }
 
 
@@ -61,6 +67,7 @@ class WhisperVQCollator:
         decoder_attention_mask = []
         decoder_input_ids = []
         input_features = torch.stack([x["input_features"] for x in batch])
+        encoder_attention_mask = torch.stack([x["mel_mask"] for x in batch])
 
         for data in batch:
             values_length = data["input_values"].shape[-1]
@@ -90,6 +97,7 @@ class WhisperVQCollator:
         return {
             "input_values": torch.stack(input_values),
             "input_features": input_features,
+            "encoder_attention_mask": encoder_attention_mask,
             "decoder_input_ids": decoder_input_ids[:, :-1],
             "decoder_attention_mask": decoder_attention_mask[:, :-1],
             "labels": labels[:, 1:],
