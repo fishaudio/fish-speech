@@ -142,7 +142,7 @@ def main(folder: str, rank: int, world_size: int, num_workers: int):
 
         # Write to file
         for file, transcription in zip(batch, trascriptions):
-            Path(file).with_suffix(".whisper.txt").write_text(transcription)
+            Path(file).with_suffix(".whisper.txt").write_text(transcription, encoding="utf-8")
 
     logger.info(
         f"{RANK_STR}Finished processing {len(files)} files, {total_time / 3600:.2f} hours of audio"
