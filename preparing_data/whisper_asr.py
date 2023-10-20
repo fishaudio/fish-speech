@@ -1,21 +1,22 @@
 # This file is used to convert the audio files to text files using the Whisper model.
 # It's mainly used to generate the training data for the VQ model.
 
-import torch
-import click
-import time
-from transformers import WhisperProcessor
-from speech_lm.models.flash_whisper import FlashWhisperForConditionalGeneration
-from functools import lru_cache
-from loguru import logger
-import subprocess as sp
 import os
-import torch
+import subprocess as sp
+import time
+from datetime import timedelta
+from functools import lru_cache
 from pathlib import Path
 from random import Random
-from datetime import timedelta
-from whisper.audio import log_mel_spectrogram, load_audio, pad_or_trim
+
+import click
 import numpy as np
+import torch
+from loguru import logger
+from transformers import WhisperProcessor
+from whisper.audio import load_audio, log_mel_spectrogram, pad_or_trim
+
+from speech_lm.models.flash_whisper import FlashWhisperForConditionalGeneration
 
 RANK_STR = ""
 
@@ -53,7 +54,12 @@ def transcribe_batch(files: list[str]):
         )
 
     processor = get_whisper_processor()
-    transcriptions = processor.batch_decode(outputs, skip_special_tokens=True)
+    transcriptions = processor.batch_decode(outputs, skip_special_tokens=False)
+    tokens = [",".join(map(str, line.cpu().tolist())) for line in outputs]
+    transcriptions = [
+        f"{token}\t{transcription}"
+        for token, transcription in zip(tokens, transcriptions)
+    ]
 
     return transcriptions, total_time
 
@@ -142,7 +148,13 @@ def main(folder: str, rank: int, world_size: int, num_workers: int):
 
         # Write to file
         for file, transcription in zip(batch, trascriptions):
-            Path(file).with_suffix(".whisper.txt").write_text(transcription, encoding="utf-8")
+            Path(file).with_suffix(".whisper.txt").write_text(
+                transcription, encoding="utf-8"
+            )
+
+        # Stop if total time is more than 1000 / world_size hours
+        if total_time > 1000 / world_size * 3600:
+            break
 
     logger.info(
         f"{RANK_STR}Finished processing {len(files)} files, {total_time / 3600:.2f} hours of audio"
