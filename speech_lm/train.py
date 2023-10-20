@@ -211,7 +211,7 @@ def train(
             last_batch_time = time.time()
 
 
-@hydra.main(version_base="1.3", config_path="./configs", config_name="pretrain.yaml")
+@hydra.main(version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml")
 def main(cfg: DictConfig):
     log.info(f"Config: \n{OmegaConf.to_yaml(cfg)}")
 
