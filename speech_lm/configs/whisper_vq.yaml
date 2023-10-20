@@ -50,7 +50,7 @@ train_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
-    filelist: filelists/whisper-vq.train.train.filelist
+    filelist: filelists/whisper-vq.train.filelist
   batch_size: ${schedule.micro_batch_size}
   num_workers: 8
   collate_fn:
@@ -60,7 +60,7 @@ valid_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
-    filelist: filelists/whisper-vq.train.test.filelist
+    filelist: filelists/whisper-vq.test.filelist
   batch_size: 32
   num_workers: 4
   collate_fn:
