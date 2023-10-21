@@ -38,7 +38,7 @@ model:
 
 schedule:
   batch_size: 64
-  micro_batch_size: 64
+  micro_batch_size: 32
   max_steps: 10000
   save_interval: 2000
   gradient_accumulation_steps: "${eval: ${schedule.batch_size} // ${schedule.micro_batch_size}}"
@@ -65,7 +65,7 @@ valid_dataloader:
   dataset:
     _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
     filelist: filelists/whisper-vq.test.filelist
-  batch_size: 32
+  batch_size: 16
   num_workers: 8
   prefetch_factor: 4
   pin_memory: true
