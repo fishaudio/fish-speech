@@ -107,17 +107,27 @@ class WhisperVQCollator:
 if __name__ == "__main__":
     import soundfile as sf
     from torch.utils.data import DataLoader
+    from transformers import GenerationConfig
 
     from speech_lm.models.flash_whisper import FlashWhisperForConditionalGeneration
+    from speech_lm.models.whisper_vq import WhisperVQ
 
-    dataset = WhisperVQDataset("test.filelist")
+    dataset = WhisperVQDataset("filelists/whisper-vq.test.filelist")
     dataloader = DataLoader(
         dataset, batch_size=4, shuffle=True, collate_fn=WhisperVQCollator()
     )
-    whisper = FlashWhisperForConditionalGeneration.from_pretrained(
-        "openai/whisper-medium"
-    )
-    whisper.eval()
+    # whisper = FlashWhisperForConditionalGeneration.from_pretrained(
+    #     "openai/whisper-medium"
+    # )
+    # whisper.eval()
+    our_whisper = WhisperVQ()
+    whisper = our_whisper.whisper
+    our_whisper.eval()
+
+    state_dict = torch.load(
+        "results/whisper-vq/checkpoints/step_10000.ckpt", map_location="cpu"
+    )["model"]
+    our_whisper.load_state_dict(state_dict, strict=True)
     # whisper.cuda()
 
     for batch in dataloader:
@@ -142,16 +152,30 @@ if __name__ == "__main__":
         sf.write("test.wav", batch["input_values"][0].cpu().numpy(), 16000)
 
         # Calculate loss
-        encoder_outputs = whisper.model.encoder(
-            batch["input_features"],
+        # encoder_outputs = whisper.model.encoder(
+        #     batch["input_features"],
+        # )
+        encoder_outputs = our_whisper.decode(
+            our_whisper.encode(
+                batch["input_features"],
+            )[0]
         )
 
-        decoder_outputs = whisper(
-            encoder_outputs=encoder_outputs,
-            decoder_input_ids=batch["decoder_input_ids"],
-            decoder_attention_mask=batch["decoder_attention_mask"],
-            labels=batch["labels"],
+        decoder_outputs = whisper.generate(
+            # decoder_input_ids=batch["decoder_input_ids"],
+            # decoder_attention_mask=batch["decoder_attention_mask"],
+            # labels=batch["labels"],
+            # generation_config=GenerationConfig(
+            #     encoder_outputs=(encoder_outputs,)
+            # ),
+            encoder_outputs,
+            max_length=448,
+            do_sample=False,
+            # forced_decoder_ids=batch["decoder_input_ids"][:, :4]
+            forced_decoder_ids=dataset.processor.get_decoder_prompt_ids(
+                language="english", task="transcribe"
+            ),
         )
 
-        print(decoder_outputs.loss)
+        print("Our transcript:", dataset.processor.batch_decode(decoder_outputs))
         break

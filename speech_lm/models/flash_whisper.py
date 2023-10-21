@@ -175,6 +175,14 @@ class FlashWhisperEncoder(WhisperEncoder):
             return_dict (`bool`, *optional*):
                 Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
         """
+
+        # If we receive the output of input feature directly, just return it
+        if input_features.shape[-2:] == (1500, 1024):
+            if not return_dict:
+                return (input_features,)
+
+            return BaseModelOutput(last_hidden_state=input_features)
+
         output_attentions = (
             output_attentions
             if output_attentions is not None

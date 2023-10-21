@@ -100,7 +100,9 @@ def train(
 
             # Accumulate gradients
             accumulate_steps += 1
-            is_accumulating = accumulate_steps < cfg.schedule.gradient_accumulation_steps
+            is_accumulating = (
+                accumulate_steps < cfg.schedule.gradient_accumulation_steps
+            )
 
             # Train one step
             with fabric.no_backward_sync(model, enabled=is_accumulating):
@@ -207,7 +209,9 @@ def train(
             last_batch_time = time.time()
 
 
-@hydra.main(version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml")
+@hydra.main(
+    version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml"
+)
 def main(cfg: DictConfig):
     log.info(f"Config: \n{OmegaConf.to_yaml(cfg)}")
 
