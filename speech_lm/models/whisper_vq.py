@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from vector_quantize_pytorch import VectorQuantize
 
-from speech_lm.models.flash_whisper import (
+from speech_lm.modules.flash_whisper import (
     FlashWhisperEncoderLayer,
     FlashWhisperForConditionalGeneration,
 )
