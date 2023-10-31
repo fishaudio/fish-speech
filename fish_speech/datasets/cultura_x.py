@@ -12,7 +12,7 @@ from torch.distributed import get_rank, get_world_size, is_initialized
 from torch.utils.data import IterableDataset, get_worker_info
 from transformers import AutoTokenizer
 
-from speech_lm.utils.braceexpand import braceexpand
+from fish_speech.utils.braceexpand import braceexpand
 
 SUBSETS = {
     "en": "en_part_{00000..03071}",
@@ -157,7 +157,7 @@ class InterleaveDataset(IterableDataset):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    from speech_lm.datasets.wenet_vq import WenetVQDataset
+    from fish_speech.datasets.wenet_vq import WenetVQDataset
 
     dataset_en = CulturaXDataset("en")
     dataset_ja = CulturaXDataset("ja")

@@ -1,6 +1,6 @@
 .pgx.*
 .pdm-python
-/speech_lm.egg-info
+/fish_speech.egg-info
 __pycache__
 /results
 /data

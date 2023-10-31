@@ -13,7 +13,7 @@ from tqdm import tqdm
 from transformers import LlamaForCausalLM
 from transformers.utils import is_flash_attn_available
 
-from speech_lm.logger import RankedLogger
+from fish_speech.logger import RankedLogger
 
 # Allow TF32 on Ampere GPUs
 torch.set_float32_matmul_precision("high")

@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from vector_quantize_pytorch import VectorQuantize
 
-from speech_lm.modules.flash_whisper import (
+from fish_speech.modules.flash_whisper import (
     FlashWhisperEncoderLayer,
     FlashWhisperForConditionalGeneration,
 )
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
     from transformers import WhisperProcessor
 
-    from speech_lm.datasets.whisper_vq import WhisperVQCollator, WhisperVQDataset
+    from fish_speech.datasets.whisper_vq import WhisperVQCollator, WhisperVQDataset
 
     processor = WhisperProcessor.from_pretrained("openai/whisper-medium")
     model = WhisperVQ()

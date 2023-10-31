@@ -22,7 +22,7 @@ trainer:
     version: null
 
 model:
-  _target_: speech_lm.models.whisper_vq.WhisperVQ
+  _target_: fish_speech.models.whisper_vq.WhisperVQ
   model_name_or_path: "openai/whisper-medium"
 
   # Quantization
@@ -49,7 +49,7 @@ schedule:
 train_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset:
-    _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
+    _target_: fish_speech.datasets.whisper_vq.WhisperVQDataset
     filelist: filelists/whisper-vq.train.filelist
   batch_size: ${schedule.micro_batch_size}
   num_workers: 16
@@ -58,12 +58,12 @@ train_dataloader:
   persistent_workers: true
   shuffle: true
   collate_fn:
-    _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
+    _target_: fish_speech.datasets.whisper_vq.WhisperVQCollator
 
 valid_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset:
-    _target_: speech_lm.datasets.whisper_vq.WhisperVQDataset
+    _target_: fish_speech.datasets.whisper_vq.WhisperVQDataset
     filelist: filelists/whisper-vq.test.filelist
   batch_size: 16
   num_workers: 8
@@ -71,7 +71,7 @@ valid_dataloader:
   pin_memory: true
   shuffle: false
   collate_fn:
-    _target_: speech_lm.datasets.whisper_vq.WhisperVQCollator
+    _target_: fish_speech.datasets.whisper_vq.WhisperVQCollator
 
 optimizer:
   _target_: torch.optim.AdamW
@@ -83,7 +83,7 @@ optimizer:
 scheduler:
   _target_: torch.optim.lr_scheduler.LambdaLR
   lr_lambda:
-    _target_: speech_lm.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+    _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
     _partial_: true
     num_warmup_steps: 1000
     num_training_steps: ${schedule.max_steps}

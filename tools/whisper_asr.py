@@ -16,7 +16,7 @@ from loguru import logger
 from transformers import WhisperProcessor
 from whisper.audio import load_audio, log_mel_spectrogram, pad_or_trim
 
-from speech_lm.modules.flash_whisper import FlashWhisperForConditionalGeneration
+from fish_speech.modules.flash_whisper import FlashWhisperForConditionalGeneration
 
 RANK_STR = ""
 

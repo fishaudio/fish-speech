@@ -43,15 +43,15 @@ schedule:
   clip_grad_norm: 1.0
 
 train_dataset:
-  _target_: speech_lm.datasets.cultura_x.InterleaveDataset
+  _target_: fish_speech.datasets.cultura_x.InterleaveDataset
   datasets:
-    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+    - _target_: fish_speech.datasets.cultura_x.CulturaXDataset
       lang: 'en'
-    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+    - _target_: fish_speech.datasets.cultura_x.CulturaXDataset
       lang: 'zh'
-    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+    - _target_: fish_speech.datasets.cultura_x.CulturaXDataset
       lang: 'ja'
-    - _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+    - _target_: fish_speech.datasets.cultura_x.CulturaXDataset
       repo: fishaudio/wenet-vq
       files:
         - data/train-00000-of-00018-b5a82c6054c6acca.parquet
@@ -81,21 +81,21 @@ train_dataloader:
   batch_size: ${schedule.micro_batch_size}
   num_workers: 8
   collate_fn:
-    _target_: speech_lm.datasets.cultura_x.CulutreXCollator
+    _target_: fish_speech.datasets.cultura_x.CulutreXCollator
     tokenizer: ${tokenizer}
     max_length: ${schedule.max_length}
 
 valid_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset:
-    _target_: speech_lm.datasets.cultura_x.CulturaXDataset
+    _target_: fish_speech.datasets.cultura_x.CulturaXDataset
     repo: fishaudio/wenet-vq
     files:
       - data/test-00000-of-00001-685250c116f5d321.parquet
   batch_size: ${schedule.micro_batch_size}
   num_workers: 1
   collate_fn:
-    _target_: speech_lm.datasets.cultura_x.CulutreXCollator
+    _target_: fish_speech.datasets.cultura_x.CulutreXCollator
     tokenizer: ${tokenizer}
     max_length: ${schedule.max_length}
 
@@ -109,7 +109,7 @@ optimizer:
 scheduler:
   _target_: torch.optim.lr_scheduler.LambdaLR
   lr_lambda:
-    _target_: speech_lm.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+    _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
     _partial_: true
     num_warmup_steps: 2000
     num_training_steps: ${schedule.max_steps}
