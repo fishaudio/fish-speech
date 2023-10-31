@@ -47,7 +47,7 @@ class TextToSemantic(L.LightningModule):
         correct = indices.eq(batch["labels"].unsqueeze(-1)).sum()
         accuracy = correct / batch["labels"].numel()
         self.log(
-            f"{stage}/accuracy",
+            f"{stage}/top_5_accuracy",
             accuracy,
             on_step=True,
             on_epoch=False,

@@ -17,7 +17,7 @@ trainer:
   devices: 8
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
-    static_graph: true
+
   precision: bf16-mixed
 
   # disable validation by epoch end
@@ -43,11 +43,8 @@ callbacks:
     auto_insert_metric_name: false
 
   model_summary:
-    _target_: lightning.pytorch.callbacks.RichModelSummary
+    _target_: lightning.pytorch.callbacks.ModelSummary
     max_depth: 2 # the maximum depth of layer nesting that the summary will include
-
-  rich_progress_bar:
-    _target_: lightning.pytorch.callbacks.RichProgressBar
 
   learning_rate_monitor:
     _target_: lightning.pytorch.callbacks.LearningRateMonitor
