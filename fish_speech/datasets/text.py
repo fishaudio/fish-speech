@@ -1,51 +1,55 @@
 import random
 from dataclasses import dataclass
-from logging import getLogger
+from itertools import chain
 from random import Random
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
-import pandas as pd
 import pyarrow.parquet as pq
 from datasets.download.streaming_download_manager import xopen
+from huggingface_hub import HfApi
+from lightning import LightningDataModule
 from torch.distributed import get_rank, get_world_size, is_initialized
-from torch.utils.data import IterableDataset, get_worker_info
+from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from transformers import AutoTokenizer
 
+from fish_speech.utils import RankedLogger
 from fish_speech.utils.braceexpand import braceexpand
 
-SUBSETS = {
-    "en": "en_part_{00000..03071}",
-    "zh": "zh_part_{00000..00319}",
-    "ja": "ja_part_{00000..00159}",
-}
-
-log = getLogger(__name__)
+log = RankedLogger(__name__, rank_zero_only=True)
 
 
-class CulturaXDataset(IterableDataset):
+class TextDataset(IterableDataset):
     def __init__(
         self,
-        lang: Optional[str] = None,
+        files: Optional[Union[list[str], str]] = None,
+        prefix: Optional[str] = None,
         seed: int = 42,
         parquet_batch_size: int = 10000,
         repo: str = "uonlp/CulturaX",
-        files: Optional[list[str]] = None,
     ):
         super().__init__()
 
-        self.lang = lang
         self.seed = seed
         self.parquet_batch_size = parquet_batch_size
         self.repo = repo
 
-        if self.lang is not None:
-            files = sorted(list(braceexpand(f"{lang}/{SUBSETS[lang]}.parquet")))
+        if files is None and prefix is None:
+            raise ValueError("Either files or prefix must be specified")
+
+        if prefix is not None:
+            files = HfApi().list_repo_files(repo, repo_type="dataset")
+            files = [f for f in files if f.startswith(prefix)]
+            log.info(f"Found {len(files)} files in {repo} with prefix {prefix}")
         else:
-            files = list(files)
+            if isinstance(files, str):
+                files = [files]
+
+            files = list(chain.from_iterable(map(braceexpand, files)))
+            log.info(f"Expanded {len(files)} files in {repo}")
 
         # Get sharded files
-        self.files = files
+        self.files = sorted(files)
         Random(seed).shuffle(self.files)
 
     def get_data_splits(self, files):
@@ -100,7 +104,7 @@ class CulturaXDataset(IterableDataset):
 
 
 @dataclass
-class CulutreXCollator:
+class TextDataCollator:
     tokenizer: AutoTokenizer
     max_length: int = 512
 
@@ -154,16 +158,68 @@ class InterleaveDataset(IterableDataset):
                 yield next(dataset_iterators[dataset_idx])
 
 
+class TextDataModule(LightningDataModule):
+    def __init__(
+        self,
+        train_dataset: Union[TextDataset, InterleaveDataset],
+        val_dataset: Optional[Union[TextDataset, InterleaveDataset]] = None,
+        batch_size: int = 32,
+        tokenizer: AutoTokenizer = None,
+        max_length: int = 1024,
+        num_workers: int = 4,
+    ):
+        super().__init__()
+
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
+        self.batch_size = batch_size
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.num_workers = num_workers
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            collate_fn=TextDataCollator(self.tokenizer, self.max_length),
+            num_workers=self.num_workers,
+        )
+
+    def val_dataloader(self):
+        if self.val_dataset is None:
+            return None
+
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            collate_fn=TextDataCollator(self.tokenizer, self.max_length),
+            num_workers=self.num_workers,
+        )
+
+
 if __name__ == "__main__":
-    from torch.utils.data import DataLoader
+    dm = TextDataModule(
+        InterleaveDataset(
+            datasets=[
+                TextDataset(
+                    prefix="en/en_part_",
+                ),
+                TextDataset(
+                    prefix="zh/zh_part_",
+                ),
+                TextDataset(
+                    prefix="ja/ja_part_",
+                ),
+            ],
+            probabilities=[0.8, 0.1, 0.1],
+        ),
+        TextDataset(
+            files="ja/ja_part_{00000..00159}",
+        ),
+        batch_size=2,
+        tokenizer=AutoTokenizer.from_pretrained("bert-base-multilingual-cased"),
+    )
 
-    from fish_speech.datasets.wenet_vq import WenetVQDataset
-
-    dataset_en = CulturaXDataset("en")
-    dataset_ja = CulturaXDataset("ja")
-    dataset_wenet = WenetVQDataset()
-    dataset = InterleaveDataset([dataset_en, dataset_wenet], [0.5, 0.5])
-    collator = CulutreXCollator(AutoTokenizer.from_pretrained("gpt2"))
-
-    for batch in DataLoader(dataset, batch_size=4, collate_fn=collator, num_workers=4):
+    for batch in dm.train_dataloader():
         print(batch)
+        break

@@ -10,7 +10,7 @@ class RankedLogger(logging.LoggerAdapter):
     def __init__(
         self,
         name: str = __name__,
-        rank_zero_only: bool = False,
+        rank_zero_only: bool = True,
         extra: Optional[Mapping[str, object]] = None,
     ) -> None:
         """Initializes a multi-GPU-friendly python command line logger that logs on all processes
