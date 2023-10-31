@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 from datasets.download.streaming_download_manager import xopen
 from huggingface_hub import HfApi
 from lightning import LightningDataModule
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed import get_rank, get_world_size, is_initialized
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from transformers import AutoTokenizer
@@ -39,7 +40,9 @@ class TextDataset(IterableDataset):
 
         if prefix is not None:
             files = HfApi().list_repo_files(repo, repo_type="dataset")
-            files = [f for f in files if f.startswith(prefix)]
+            files = [
+                f for f in files if f.startswith(prefix) and f.endswith(".parquet")
+            ]
             log.info(f"Found {len(files)} files in {repo} with prefix {prefix}")
         else:
             if isinstance(files, str):
@@ -162,7 +165,7 @@ class TextDataModule(LightningDataModule):
     def __init__(
         self,
         train_dataset: Union[TextDataset, InterleaveDataset],
-        val_dataset: Optional[Union[TextDataset, InterleaveDataset]] = None,
+        val_dataset: Union[TextDataset, InterleaveDataset],
         batch_size: int = 32,
         tokenizer: AutoTokenizer = None,
         max_length: int = 1024,
@@ -186,9 +189,6 @@ class TextDataModule(LightningDataModule):
         )
 
     def val_dataloader(self):
-        if self.val_dataset is None:
-            return None
-
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
