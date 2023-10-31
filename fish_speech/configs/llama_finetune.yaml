@@ -27,14 +27,14 @@ train_dataset:
     - _target_: fish_speech.datasets.text.TextDataset
       prefix: 'ja/'
     - _target_: fish_speech.datasets.text.TextDataset
-      repo: fishaudio/wenet-vq
+      repo: fishaudio/cn-hubert-25hz-vq
       prefix: 'data/train'
   probabilities: [0.2, 0.2, 0.2, 0.4]
   seed: 42
 
 val_dataset:
   _target_: fish_speech.datasets.text.TextDataset
-  repo: fishaudio/wenet-vq
+  repo: fishaudio/cn-hubert-25hz-vq
   prefix: 'data/test'
 
 data:
