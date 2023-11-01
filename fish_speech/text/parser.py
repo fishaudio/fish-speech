@@ -148,7 +148,13 @@ def parse_unknown_segment(text, order):
         else:
             detected_language = None
 
-            for language in order:
+            _order = order.copy()
+            if last_language is not None:
+                # Prioritize the last language
+                _order.remove(last_language)
+                _order.insert(0, last_language)
+
+            for language in _order:
                 for start, end in language_unicode_range_map[language]:
                     if start <= ord(char) <= end:
                         detected_language = language
@@ -208,5 +214,7 @@ if __name__ == "__main__":
     )
     print(segments)
 
-    ids = segments_to_ids(segments)
-    print(ids)
+    segments = parse_text_to_segments(
+        "毕业然后复活卡b站推荐bug加流量。Hugging face, BGM 声音很大吗？那我改一下Ё。君の虜になってしまえばきっと"  # noqa: E501
+    )
+    print(segments)

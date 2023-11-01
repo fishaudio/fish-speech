@@ -52,7 +52,7 @@ symbols_to_id = {s: i for i, s in enumerate(symbols)}
 language_id_map = {pad: 0, "ZH": 1, "JP": 2, "EN": 3}
 language_unicode_range_map = {
     "ZH": [(0x4E00, 0x9FFF)],
-    "JP": [(0x3040, 0x309F), (0x30A0, 0x30FF), (0x31F0, 0x31FF)],
+    "JP": [(0x4E00, 0x9FFF), (0x3040, 0x309F), (0x30A0, 0x30FF), (0x31F0, 0x31FF)],
     "EN": [(0x0000, 0x007F)],
 }
 num_languages = len(language_id_map.keys())
