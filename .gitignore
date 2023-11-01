@@ -7,3 +7,4 @@ __pycache__
 /*.test.sh
 *.filelist
 filelists
+/fish_speech/text/cmudict_cache.pickle
