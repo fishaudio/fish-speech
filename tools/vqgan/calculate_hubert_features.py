@@ -35,7 +35,7 @@ logger.add(sys.stderr, format=logger_format)
 
 @lru_cache(maxsize=1)
 def get_hubert_model():
-    model = HubertModel.from_pretrained("TencentGameMate/chinese-hubert-large")
+    model = HubertModel.from_pretrained("TencentGameMate/chinese-hubert-base")
     model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model = model.half()
     model.eval()
@@ -58,7 +58,7 @@ def process_batch(files: list[Path]):
         wav = torchaudio.functional.resample(wav.cuda(), sr, 16000)[0]
 
         if len(wav) > sr * 60:
-            continue
+            wav = wav[: sr * 60]
 
         wavs.append(wav)
         total_time += len(wav) / sr
@@ -73,8 +73,8 @@ def process_batch(files: list[Path]):
 
     for i, wav in enumerate(wavs):
         attention_mask[i, len(wav) :] = 0
+        feature_lengths.append(int(len(wav) / 320))
         wavs[i] = torch.nn.functional.pad(wav, (0, max_length - len(wav)), "constant")
-        feature_lengths.append(int(len(wav) / sr * 50))
 
     wavs = torch.stack(wavs, dim=0).half()
     attention_mask = attention_mask.cuda()
@@ -86,7 +86,7 @@ def process_batch(files: list[Path]):
     # Save to disk
     outputs = outputs.last_hidden_state.cpu().numpy()
 
-    for file, length, feature in zip(files, feature_lengths, outputs):
+    for file, length, feature, wav in zip(files, feature_lengths, outputs, wavs):
         feature = feature[:length]
 
         # (T, 1024)

@@ -12,17 +12,13 @@ trainer:
   precision: 32
   max_steps: 1_000_000
 
-# Dataset Configuration
-tokenizer:
-  _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/speech-lm-300m
-  revision: text-pretrain-10k
+sample_rate: 32000
 
 # Dataset Configuration
 train_dataset:
-  - _target_: fish_speech.datasets.text.TextDataset
-    repo: fishaudio/cn-hubert-25hz-vq
-    prefix: 'data/train'
+  _target_: fish_speech.datasets.vqgan.VQGANDataset
+  filelist: data/test.filelist
+  sample_rate: ${sample_rate}
 
 val_dataset:
   _target_: fish_speech.datasets.text.TextDataset
@@ -42,9 +38,10 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
 
   encoder:
-    _target_: fish_speech.models.modules.VQEncoder
+    _target_: fish_speech.models.vqgan.modules.VQEncoder
     in_channels: 1024
     channels: 192
+    num_mels: 128
     num_heads: 2
     num_feature_layers: 2
     num_speaker_layers: 4
@@ -54,7 +51,7 @@ model:
     freeze_vq: false
 
   generator:
-    _target_: fish_speech.models.modules.Generator
+    _target_: fish_speech.models.vqgan.modules.Generator
     initial_channel: 192
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
@@ -67,11 +64,11 @@ model:
     upsample_kernel_sizes: [16, 16, 8, 2, 2]
 
   discriminator:
-    _target_: fish_speech.models.modules.EnsembleDiscriminator
+    _target_: fish_speech.models.vqgan.modules.EnsembleDiscriminator
 
   mel_transform:
-    _target_: fish_speech.models.spectrogram.LogMelSpectrogram
-    sample_rate: 32000
+    _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
+    sample_rate: ${sample_rate}
     n_fft: 2048
     hop_length: 640
     win_length: 2048
@@ -93,8 +90,7 @@ model:
       num_warmup_steps: 2000
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
-  
-  # Restore from old checkpoint
-  generator_ckpt: results/hubert-vq-pretrain/rcell/G_23000.pth
-  discriminator_ckpt: results/hubert-vq-pretrain/rcell/D_23000.pth
-  kmeans_ckpt: results/hubert-vq-pretrain/rcell/kmeans_23000.pth
+
+# Resume from rcell's checkpoint
+ckpt_path: results/hubert-vq-pretrain/rcell/ckpt_23000_pl.pth
+resume_weights_only: true

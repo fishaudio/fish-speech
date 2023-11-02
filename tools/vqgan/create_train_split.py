@@ -10,10 +10,14 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 @click.command()
 @click.argument("root", type=click.Path(exists=True, path_type=Path))
 def main(root):
-    files = list_files(root, AUDIO_EXTENSIONS, recursive=True, show_progress=True)
+    files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
     print(f"Found {len(files)} files")
 
-    files = [str(file) for file in tqdm(files) if file.with_suffix(".npy").exists()]
+    files = [
+        str(file.relative_to(root))
+        for file in tqdm(files)
+        if file.with_suffix(".npy").exists()
+    ]
     print(f"Found {len(files)} files with features")
 
     Random(42).shuffle(files)

@@ -2,11 +2,11 @@ import math
 from dataclasses import dataclass
 
 import torch
+from encodec.quantization.core_vq import VectorQuantization
 from torch import nn
 from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
-from vector_quantize_pytorch import VectorQuantize
 
 from fish_speech.models.vqgan.utils import convert_pad_shape, get_padding, init_weights
 
@@ -24,6 +24,7 @@ class VQEncoder(nn.Module):
         self,
         in_channels: int = 1024,
         channels: int = 192,
+        num_mels: int = 128,
         num_heads: int = 2,
         num_feature_layers: int = 2,
         num_speaker_layers: int = 4,
@@ -38,10 +39,12 @@ class VQEncoder(nn.Module):
         down_sample = 2 if input_downsample else 1
 
         self.vq_in = nn.Linear(in_channels * down_sample, in_channels)
-        self.vq = VectorQuantize(
+        self.vq = VectorQuantization(
             dim=in_channels,
             codebook_size=code_book_size,
             threshold_ema_dead_code=2,
+            kmeans_init=True,
+            kmeans_iters=50,
         )
 
         self.feature_in = nn.Linear(in_channels, channels)
@@ -62,7 +65,7 @@ class VQEncoder(nn.Module):
 
         # Speaker Encoder
         self.speaker_query = nn.Parameter(torch.randn(1, 1, channels))
-        self.speaker_in = nn.Linear(in_channels * down_sample, channels)
+        self.speaker_in = nn.Linear(num_mels, channels)
         self.speaker_blocks = nn.ModuleList(
             [
                 TransformerBlock(
@@ -99,8 +102,9 @@ class VQEncoder(nn.Module):
             for p in self.vq_in.parameters():
                 p.requires_grad = False
 
-    def forward(self, x, key_padding_mask=None):
-        # (batch, seq_len, channels)
+    def forward(self, x, mels, key_padding_mask=None):
+        # x: (batch, seq_len, channels)
+        # x: (batch, seq_len, 128)
 
         if self.input_downsample and key_padding_mask is not None:
             key_padding_mask = key_padding_mask[:, ::2]
@@ -119,6 +123,11 @@ class VQEncoder(nn.Module):
 
         features, _, loss = self.vq(features, mask=~key_padding_mask)
 
+        if self.input_downsample:
+            features = F.interpolate(
+                features.transpose(1, 2), scale_factor=2
+            ).transpose(1, 2)
+
         features = self.feature_in(features)
         for block in self.feature_blocks:
             features = block(features, key_padding_mask=key_padding_mask)
@@ -129,7 +138,7 @@ class VQEncoder(nn.Module):
             [self.speaker_query.expand(speaker.shape[0], -1, -1), speaker], dim=1
         )
         for block in self.speaker_blocks:
-            speaker = block(speaker)
+            speaker = block(mels, key_padding_mask=key_padding_mask)
 
         # Mix
         x = features + speaker[:, :1]
@@ -794,13 +803,3 @@ class EnsembleDiscriminator(nn.Module):
             fmap_gs.append(fmap_g)
 
         return y_d_rs, y_d_gs, fmap_rs, fmap_gs
-
-
-if __name__ == "__main__":
-    vq = VQEncoder()
-    x = torch.randn(1, 90, 1024)
-    key_padding_mask = torch.zeros(1, 90).bool()
-    key_padding_mask[:, 67:] = True
-
-    output = vq(x, key_padding_mask=key_padding_mask)
-    print(output)

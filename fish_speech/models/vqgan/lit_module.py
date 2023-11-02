@@ -26,6 +26,7 @@ class VQGAN(L.LightningModule):
 
         # Generator and discriminators
         # Compile generator so that snake can save memory
+        self.encoder = encoder
         self.generator = generator
         self.discriminator = discriminator
         self.mel_transform = mel_transform
