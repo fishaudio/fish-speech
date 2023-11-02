@@ -18,19 +18,9 @@ tokenizer:
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.text.InterleaveDataset
-  datasets:
-    - _target_: fish_speech.datasets.text.TextDataset
-      prefix: 'en/'
-    - _target_: fish_speech.datasets.text.TextDataset
-      prefix: 'zh/'
-    - _target_: fish_speech.datasets.text.TextDataset
-      prefix: 'ja/'
-    - _target_: fish_speech.datasets.text.TextDataset
-      repo: fishaudio/cn-hubert-25hz-vq
-      prefix: 'data/train'
-  probabilities: [0.2, 0.2, 0.2, 0.4]
-  seed: 42
+  - _target_: fish_speech.datasets.text.TextDataset
+    repo: fishaudio/cn-hubert-25hz-vq
+    prefix: 'data/train'
 
 val_dataset:
   _target_: fish_speech.datasets.text.TextDataset
