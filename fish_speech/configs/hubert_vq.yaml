@@ -1,0 +1,100 @@
+defaults:
+  - base
+  - _self_
+
+project: hubert_vq
+
+# Lightning Trainer
+trainer:
+  accumulate_grad_batches: 2
+  gradient_clip_val: 1000.0  # For safety
+  gradient_clip_algorithm: 'norm'
+  precision: 32
+  max_steps: 1_000_000
+
+# Dataset Configuration
+tokenizer:
+  _target_: transformers.AutoTokenizer.from_pretrained
+  pretrained_model_name_or_path: fishaudio/speech-lm-300m
+  revision: text-pretrain-10k
+
+# Dataset Configuration
+train_dataset:
+  - _target_: fish_speech.datasets.text.TextDataset
+    repo: fishaudio/cn-hubert-25hz-vq
+    prefix: 'data/train'
+
+val_dataset:
+  _target_: fish_speech.datasets.text.TextDataset
+  repo: fishaudio/cn-hubert-25hz-vq
+  prefix: 'data/test'
+
+data:
+  _target_: fish_speech.datasets.text.TextDataModule
+  train_dataset: ${train_dataset}
+  val_dataset: ${val_dataset}
+  num_workers: 4
+  batch_size: 8
+  tokenizer: ${tokenizer}
+
+# Model Configuration
+model:
+  _target_: fish_speech.models.vqgan.VQGAN
+
+  encoder:
+    _target_: fish_speech.models.modules.VQEncoder
+    in_channels: 1024
+    channels: 192
+    num_heads: 2
+    num_feature_layers: 2
+    num_speaker_layers: 4
+    num_mixin_layers: 4
+    input_downsample: true
+    code_book_size: 2048
+    freeze_vq: false
+
+  generator:
+    _target_: fish_speech.models.modules.Generator
+    initial_channel: 192
+    resblock: "1"
+    resblock_kernel_sizes: [3, 7, 11]
+    resblock_dilation_sizes: 
+      - [1, 3, 5]
+      - [1, 3, 5]
+      - [1, 3, 5]
+    upsample_rates: [10, 8, 2, 2, 2]
+    upsample_initial_channel: 512
+    upsample_kernel_sizes: [16, 16, 8, 2, 2]
+
+  discriminator:
+    _target_: fish_speech.models.modules.EnsembleDiscriminator
+
+  mel_transform:
+    _target_: fish_speech.models.spectrogram.LogMelSpectrogram
+    sample_rate: 32000
+    n_fft: 2048
+    hop_length: 640
+    win_length: 2048
+    n_mels: 128
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 1e-4
+    betas: [0.8, 0.99]
+    eps: 1e-5
+
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.LambdaLR
+    _partial_: true
+    lr_lambda:
+      _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+      _partial_: true
+      num_warmup_steps: 2000
+      num_training_steps: ${trainer.max_steps}
+      final_lr_ratio: 0.05
+  
+  # Restore from old checkpoint
+  generator_ckpt: results/hubert-vq-pretrain/rcell/G_23000.pth
+  discriminator_ckpt: results/hubert-vq-pretrain/rcell/D_23000.pth
+  kmeans_ckpt: results/hubert-vq-pretrain/rcell/kmeans_23000.pth

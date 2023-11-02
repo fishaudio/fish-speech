@@ -145,8 +145,8 @@ def main(folder: str, num_workers: int):
     begin_time = time.time()
     processed_files = 0
 
-    for n_batch, idx in enumerate(range(0, len(files), 64)):
-        batch = files[idx : idx + 64]
+    for n_batch, idx in enumerate(range(0, len(files), 32)):
+        batch = files[idx : idx + 32]
         batch_time = process_batch(batch)
         total_time += batch_time
         processed_files += len(batch)

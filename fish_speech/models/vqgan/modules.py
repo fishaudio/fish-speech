@@ -8,11 +8,7 @@ from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 from vector_quantize_pytorch import VectorQuantize
 
-from fish_speech.models.hubert_vq.utils import (
-    convert_pad_shape,
-    get_padding,
-    init_weights,
-)
+from fish_speech.models.vqgan.utils import convert_pad_shape, get_padding, init_weights
 
 LRELU_SLOPE = 0.1
 
@@ -603,7 +599,6 @@ class Generator(nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
-        gin_channels=0,
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
@@ -638,13 +633,8 @@ class Generator(nn.Module):
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
         self.ups.apply(init_weights)
 
-        if gin_channels != 0:
-            self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
-
-    def forward(self, x, g=None):
+    def forward(self, x):
         x = self.conv_pre(x)
-        if g is not None:
-            x = x + self.cond(g)
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)

@@ -5,53 +5,26 @@ import librosa
 import torch
 from torch.utils.data import Dataset
 from transformers import WhisperProcessor
-from whisper.audio import HOP_LENGTH, load_audio, log_mel_spectrogram, pad_or_trim
 
 
-class WhisperVQDataset(Dataset):
+class VQGANDataset(Dataset):
     def __init__(
-        self, filelist: str, model_name_or_path: str = "openai/whisper-medium"
+        self,
+        filelist: str,
+        sample_rate: int = 32000,
     ):
         super().__init__()
 
-        self.files = [
-            Path(line.strip()) for line in Path(filelist).read_text().splitlines()
-        ]
-        self.processor = WhisperProcessor.from_pretrained(model_name_or_path)
+        filelist = Path(filelist)
+        root = filelist.parent
+
+        self.files = [root / line.strip() for line in filelist.read_text().splitlines()]
 
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, idx):
         file = self.files[idx]
-        wav = load_audio(file)
-        wav_length = wav.shape[-1]
-        mel_length = wav_length // HOP_LENGTH + 1
-
-        wav = pad_or_trim(wav)
-        wav = torch.from_numpy(wav).float()
-        input_features = log_mel_spectrogram(wav)
-        mel_mask = torch.zeros(input_features.shape[1], dtype=torch.float)
-        mel_mask[:mel_length] = 1
-
-        input_ids = file.with_suffix(".whisper.txt").read_text().strip().split("\t")[0]
-        input_ids = [int(x) for x in input_ids.split(",")]
-
-        while input_ids[-1] in [
-            self.processor.tokenizer.pad_token_id,
-            self.processor.tokenizer.eos_token_id,
-        ]:
-            input_ids.pop()
-
-        input_ids.append(self.processor.tokenizer.eos_token_id)
-        input_ids = torch.tensor(input_ids, dtype=torch.long)
-
-        return {
-            "input_values": wav,
-            "input_features": input_features,
-            "input_ids": input_ids,
-            "mel_mask": mel_mask,
-        }
 
 
 @dataclass
