@@ -30,6 +30,8 @@ dependencies = [
     "jieba",
     "g2p_en",
     "pyopenjtalk",
+    "wandb",
+    "tensorboard",
 ]
 
 [build-system]

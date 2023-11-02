@@ -38,12 +38,14 @@ class VQEncoder(nn.Module):
         # Feature Encoder
         down_sample = 2 if input_downsample else 1
 
-        self.vq_in = nn.Linear(in_channels * down_sample, in_channels)
+        self.vq_in = nn.Conv1d(
+            in_channels, in_channels, kernel_size=down_sample, stride=down_sample
+        )
         self.vq = VectorQuantization(
             dim=in_channels,
             codebook_size=code_book_size,
             threshold_ema_dead_code=2,
-            kmeans_init=True,
+            kmeans_init=False,
             kmeans_iters=50,
         )
 
@@ -78,7 +80,7 @@ class VQEncoder(nn.Module):
         )
 
         # Final Mixer
-        self.mixer_in = nn.ModuleList(
+        self.mixer_blocks = nn.ModuleList(
             [
                 TransformerBlock(
                     channels,
@@ -102,47 +104,61 @@ class VQEncoder(nn.Module):
             for p in self.vq_in.parameters():
                 p.requires_grad = False
 
-    def forward(self, x, mels, key_padding_mask=None):
+    def forward(
+        self, x, mels, key_padding_mask=None, mels_key_padding_mask=None
+    ) -> VQEncoderOutput:
         # x: (batch, seq_len, channels)
-        # x: (batch, seq_len, 128)
+        # mels: (batch, seq_len, 128)
 
-        if self.input_downsample and key_padding_mask is not None:
-            key_padding_mask = key_padding_mask[:, ::2]
+        assert key_padding_mask.size(1) == x.size(
+            1
+        ), f"key_padding_mask shape {key_padding_mask.size()} does not match features shape {features.size()}"
 
-        # Merge Channels
-        if self.input_downsample:
-            feature_0, feature_1 = x[:, ::2], x[:, 1::2]
-            min_len = min(feature_0.size(1), feature_1.size(1))
-            x = torch.cat([feature_0[:, :min_len], feature_1[:, :min_len]], dim=2)
+        assert mels_key_padding_mask.size(1) == mels.size(
+            1
+        ), f"mels_key_padding_mask shape {mels_key_padding_mask.size()} does not match mels shape {mels.size()}"
 
         # Encode Features
-        features = self.vq_in(x)
-        assert key_padding_mask.size(1) == features.size(
-            1
-        ), f"key_padding_mask shape {key_padding_mask.size()} is not (batch_size, seq_len)"
-
-        features, _, loss = self.vq(features, mask=~key_padding_mask)
+        features = self.vq_in(x.transpose(1, 2))
+        features, _, loss = self.vq(features)
+        features = features.transpose(1, 2)
 
         if self.input_downsample:
             features = F.interpolate(
                 features.transpose(1, 2), scale_factor=2
             ).transpose(1, 2)
 
+        # Shape may change due to downsampling, let's cut it to the same size
+        if features.shape[1] != key_padding_mask.shape[1]:
+            assert abs(features.shape[1] - key_padding_mask.shape[1]) <= 1
+            min_len = min(features.shape[1], key_padding_mask.shape[1])
+            features = features[:, :min_len]
+            key_padding_mask = key_padding_mask[:, :min_len]
+
         features = self.feature_in(features)
         for block in self.feature_blocks:
             features = block(features, key_padding_mask=key_padding_mask)
 
         # Encode Speaker
-        speaker = self.speaker_in(x)
+        speaker = self.speaker_in(mels)
         speaker = torch.cat(
             [self.speaker_query.expand(speaker.shape[0], -1, -1), speaker], dim=1
         )
+        mels_key_padding_mask = torch.cat(
+            [
+                torch.ones(
+                    speaker.shape[0], 1, dtype=torch.bool, device=speaker.device
+                ),
+                mels_key_padding_mask,
+            ],
+            dim=1,
+        )
         for block in self.speaker_blocks:
-            speaker = block(mels, key_padding_mask=key_padding_mask)
+            speaker = block(speaker, key_padding_mask=mels_key_padding_mask)
 
         # Mix
         x = features + speaker[:, :1]
-        for block in self.mixer_in:
+        for block in self.mixer_blocks:
             x = block(x, key_padding_mask=key_padding_mask)
 
         return VQEncoderOutput(
@@ -350,7 +366,7 @@ class RelativeAttention(nn.Module):
             assert key_padding_mask.size() == (
                 batch_size,
                 seq_len,
-            ), f"key_padding_mask shape {key_padding_mask.size()} is not (batch_size, seq_len)"
+            ), f"key_padding_mask shape {key_padding_mask.size()} does not match x shape {x.size()}"
             assert (
                 key_padding_mask.dtype == torch.bool
             ), f"key_padding_mask dtype {key_padding_mask.dtype} is not bool"

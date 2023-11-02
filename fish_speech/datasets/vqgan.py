@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import librosa
 import numpy as np
 import torch
 from lightning import LightningDataModule
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 
 class VQGANDataset(Dataset):
@@ -78,12 +79,14 @@ class VQGANDataModule(LightningDataModule):
         batch_size: int = 32,
         hop_length: int = 640,
         num_workers: int = 4,
+        val_batch_size: Optional[int] = None,
     ):
         super().__init__()
 
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.batch_size = batch_size
+        self.val_batch_size = val_batch_size or batch_size
         self.hop_length = hop_length
         self.num_workers = num_workers
 
@@ -106,8 +109,6 @@ class VQGANDataModule(LightningDataModule):
 
 
 if __name__ == "__main__":
-    from torch.utils.data import DataLoader
-
     dataset = VQGANDataset("data/LibriTTS_R/vq_train_filelist.txt")
     dataloader = DataLoader(
         dataset, batch_size=4, shuffle=False, collate_fn=VQGANCollator()

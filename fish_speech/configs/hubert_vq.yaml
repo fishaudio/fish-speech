@@ -6,42 +6,49 @@ project: hubert_vq
 
 # Lightning Trainer
 trainer:
-  accumulate_grad_batches: 2
-  gradient_clip_val: 1000.0  # For safety
-  gradient_clip_algorithm: 'norm'
-  precision: 32
+  accelerator: gpu
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    static_graph: true
+  precision: 16-mixed
   max_steps: 1_000_000
 
 sample_rate: 32000
+hop_length: 640
+num_mels: 128
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/test.filelist
+  filelist: data/vq_train_filelist.txt
   sample_rate: ${sample_rate}
 
 val_dataset:
-  _target_: fish_speech.datasets.text.TextDataset
-  repo: fishaudio/cn-hubert-25hz-vq
-  prefix: 'data/test'
+  _target_: fish_speech.datasets.vqgan.VQGANDataset
+  filelist: data/vq_val_filelist.txt
+  sample_rate: ${sample_rate}
 
 data:
-  _target_: fish_speech.datasets.text.TextDataModule
+  _target_: fish_speech.datasets.vqgan.VQGANDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
   batch_size: 8
-  tokenizer: ${tokenizer}
+  val_batch_size: 4
+  hop_length: ${hop_length}
 
 # Model Configuration
 model:
   _target_: fish_speech.models.vqgan.VQGAN
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  segment_size: 20480
 
   encoder:
     _target_: fish_speech.models.vqgan.modules.VQEncoder
     in_channels: 1024
     channels: 192
-    num_mels: 128
+    num_mels: ${num_mels}
     num_heads: 2
     num_feature_layers: 2
     num_speaker_layers: 4
@@ -70,9 +77,9 @@ model:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}
     n_fft: 2048
-    hop_length: 640
+    hop_length: ${hop_length}
     win_length: 2048
-    n_mels: 128
+    n_mels: ${num_mels}
 
   optimizer:
     _target_: torch.optim.AdamW
