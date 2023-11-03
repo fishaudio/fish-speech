@@ -94,6 +94,16 @@ REMOVE_UNKNOWN_SYMBOL_REGEX = re.compile(
 )
 
 
+def clean_text(text):
+    # Clean the text
+    text = text.strip()
+    # Replace all chinese symbols with their english counterparts
+    text = REPLACE_SYMBOL_REGEX.sub(lambda x: SYMBOLS_MAPPING[x.group()], text)
+    text = REMOVE_UNKNOWN_SYMBOL_REGEX.sub("", text)
+
+    return text
+
+
 def parse_text_to_segments(text, order=None):
     """
     Parse the text and return a list of segments.
@@ -108,12 +118,7 @@ def parse_text_to_segments(text, order=None):
     order = [language.upper() for language in order]
     assert all(language in language_id_map for language in order)
 
-    # Clean the text
-    text = text.strip()
-    # Replace all chinese symbols with their english counterparts
-    text = REPLACE_SYMBOL_REGEX.sub(lambda x: SYMBOLS_MAPPING[x.group()], text)
-    text = REMOVE_UNKNOWN_SYMBOL_REGEX.sub("", text)
-
+    text = clean_text(text)
     texts = re.split(r"(<.*?>)", text)
     texts = [text for text in texts if text.strip() != ""]
 
@@ -123,7 +128,9 @@ def parse_text_to_segments(text, order=None):
         if text.startswith("<") and text.endswith(">") and text[1] != "/":
             current_language = text[1:-1]
             # The following line should be updated later
-            assert current_language.upper() in language_id_map
+            assert (
+                current_language.upper() in language_id_map
+            ), f"Unknown language: {current_language}"
             stack.append(current_language)
         elif text.startswith("</") and text.endswith(">"):
             language = stack.pop()
@@ -132,7 +139,9 @@ def parse_text_to_segments(text, order=None):
         elif stack:
             segments.append(Segment(text, stack[-1]))
         else:
-            segments.extend(parse_unknown_segment(text, order))
+            segments.extend(
+                [i for i in parse_unknown_segment(text, order) if len(i.phones) > 0]
+            )
 
     return segments
 
@@ -210,11 +219,11 @@ def g2p(text, order=None):
 
 if __name__ == "__main__":
     segments = parse_text_to_segments(
-        "毕业然后复活卡b站推荐bug<zh>加流量。<en>Hugging face, B GM</en>声音很大吗</zh>？那我改一下Ё。 <jp>君の虜になってしまえばきっと</jp>"  # noqa: E501
+        "测试一下 Hugging face, BGM声音很大吗？那我改一下. <jp>世界、こんにちは。</jp>"  # noqa: E501
     )
     print(segments)
 
     segments = parse_text_to_segments(
-        "毕业然后复活卡b站推荐bug加流量。Hugging face, BGM 声音很大吗？那我改一下Ё。君の虜になってしまえばきっと"  # noqa: E501
+        "测试一下 Hugging face, BGM声音很大吗？那我改一下. 世界、こんにちは。"  # noqa: E501
     )
     print(segments)
