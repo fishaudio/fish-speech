@@ -11,12 +11,15 @@ trainer:
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
     static_graph: true
-  precision: 16-mixed
+  precision: 32
   max_steps: 1_000_000
+  val_check_interval: 1000
 
 sample_rate: 32000
 hop_length: 640
 num_mels: 128
+n_fft: 2048
+win_length: 2048
 
 # Dataset Configuration
 train_dataset:
@@ -31,7 +34,7 @@ val_dataset:
   filelist: data/vq_val_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  slice_frames: null
+  slice_frames: 256
 
 data:
   _target_: fish_speech.datasets.vqgan.VQGANDataModule
@@ -48,22 +51,45 @@ model:
   hop_length: ${hop_length}
   segment_size: 20480
 
-  encoder:
-    _target_: fish_speech.models.vqgan.modules.VQEncoder
+  semantic_encoder:
+    _target_: fish_speech.models.vqgan.modules.SemanticEncoder
     in_channels: 1024
-    channels: 192
-    num_mels: ${num_mels}
+    hidden_channels: 384
+    out_channels: 192
     num_heads: 2
-    num_feature_layers: 2
-    num_speaker_layers: 4
-    num_mixin_layers: 4
+    num_layers: 8
     input_downsample: true
     code_book_size: 2048
     freeze_vq: false
+    gin_channels: ${model.speaker_encoder.out_channels}
+
+  posterior_encoder:
+    _target_: fish_speech.models.vqgan.modules.PosteriorEncoder
+    in_channels: "${eval: '${n_fft} // 2 + 1'}"
+    hidden_channels: 192
+    out_channels: 192
+    gin_channels: ${model.speaker_encoder.out_channels}
+  
+  speaker_encoder:
+    _target_: fish_speech.models.vqgan.modules.SpeakerEncoder
+    in_channels: ${num_mels}
+    hidden_channels: 192
+    out_channels: 512
+
+  # flow:
+  #   _target_: fish_speech.models.vqgan.modules.ResidualCouplingBlock
+  #   channels: 192
+  #   hidden_channels: 192
+  #   kernel_size: 5
+  #   dilation_rate: 1
+  #   n_layers: 4
+  #   n_flows: 4
+  #   gin_channels: ${model.speaker_encoder.out_channels}
 
   generator:
     _target_: fish_speech.models.vqgan.modules.Generator
     initial_channel: 192
+    gin_channels: ${model.speaker_encoder.out_channels}
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
     resblock_dilation_sizes: 
@@ -80,9 +106,9 @@ model:
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}
-    n_fft: 2048
+    n_fft: ${n_fft}
     hop_length: ${hop_length}
-    win_length: 2048
+    win_length: ${win_length}
     n_mels: ${num_mels}
 
   optimizer:

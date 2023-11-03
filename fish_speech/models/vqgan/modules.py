@@ -6,7 +6,8 @@ from encodec.quantization.core_vq import VectorQuantization
 from torch import nn
 from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
-from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
+from torch.nn.utils.parametrizations import spectral_norm, weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 from fish_speech.models.vqgan.utils import (
     convert_pad_shape,
@@ -18,24 +19,138 @@ from fish_speech.models.vqgan.utils import (
 LRELU_SLOPE = 0.1
 
 
+class ResidualCouplingBlock(nn.Module):
+    def __init__(
+        self,
+        channels,
+        hidden_channels,
+        kernel_size: int = 5,
+        dilation_rate: int = 1,
+        n_layers: int = 4,
+        n_flows: int = 4,
+        gin_channels: int = 512,
+    ):
+        super().__init__()
+        self.channels = channels
+        self.hidden_channels = hidden_channels
+        self.kernel_size = kernel_size
+        self.dilation_rate = dilation_rate
+        self.n_layers = n_layers
+        self.n_flows = n_flows
+        self.gin_channels = gin_channels
+
+        self.flows = nn.ModuleList()
+        for i in range(n_flows):
+            self.flows.append(
+                ResidualCouplingLayer(
+                    channels,
+                    hidden_channels,
+                    kernel_size,
+                    dilation_rate,
+                    n_layers,
+                    gin_channels=gin_channels,
+                    mean_only=True,
+                )
+            )
+            self.flows.append(Flip())
+
+    def forward(self, x, x_mask, g=None, reverse=False):
+        if not reverse:
+            for flow in self.flows:
+                x, _ = flow(x, x_mask, g=g, reverse=reverse)
+        else:
+            for flow in reversed(self.flows):
+                x = flow(x, x_mask, g=g, reverse=reverse)
+        return x
+
+
+class Flip(nn.Module):
+    def forward(self, x, *args, reverse=False, **kwargs):
+        x = torch.flip(x, [1])
+        if not reverse:
+            logdet = torch.zeros(x.size(0)).to(dtype=x.dtype, device=x.device)
+            return x, logdet
+        else:
+            return x
+
+
+class ResidualCouplingLayer(nn.Module):
+    def __init__(
+        self,
+        channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        p_dropout=0,
+        gin_channels=0,
+        mean_only=False,
+    ):
+        assert channels % 2 == 0, "channels should be divisible by 2"
+        super().__init__()
+        self.channels = channels
+        self.hidden_channels = hidden_channels
+        self.kernel_size = kernel_size
+        self.dilation_rate = dilation_rate
+        self.n_layers = n_layers
+        self.half_channels = channels // 2
+        self.mean_only = mean_only
+
+        self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
+        self.enc = WaveNet(
+            hidden_channels,
+            kernel_size,
+            dilation_rate,
+            n_layers,
+            p_dropout=p_dropout,
+            gin_channels=gin_channels,
+        )
+        self.post = nn.Conv1d(hidden_channels, self.half_channels * (2 - mean_only), 1)
+        self.post.weight.data.zero_()
+        self.post.bias.data.zero_()
+
+    def forward(self, x, x_mask, g=None, reverse=False):
+        x0, x1 = torch.split(x, [self.half_channels] * 2, 1)
+        h = self.pre(x0) * x_mask
+        h = self.enc(h, x_mask, g=g)
+        stats = self.post(h) * x_mask
+        if not self.mean_only:
+            m, logs = torch.split(stats, [self.half_channels] * 2, 1)
+        else:
+            m = stats
+            logs = torch.zeros_like(m)
+
+        if not reverse:
+            x1 = m + x1 * torch.exp(logs) * x_mask
+            x = torch.cat([x0, x1], 1)
+            logdet = torch.sum(logs, [1, 2])
+            return x, logdet
+        else:
+            x1 = (x1 - m) * torch.exp(-logs) * x_mask
+            x = torch.cat([x0, x1], 1)
+            return x
+
+
 @dataclass
-class VQEncoderOutput:
+class SemanticEncoderOutput:
     loss: torch.Tensor
     mean: torch.Tensor
     logs: torch.Tensor
+    z: torch.Tensor
 
 
-class VQEncoder(nn.Module):
+class SemanticEncoder(nn.Module):
     def __init__(
         self,
         in_channels: int = 1024,
-        channels: int = 384,
+        hidden_channels: int = 384,
         out_channels: int = 192,
         num_heads: int = 2,
         num_layers: int = 8,
         input_downsample: bool = True,
         code_book_size: int = 2048,
         freeze_vq: bool = False,
+        gin_channels: int = 512,
     ):
         super().__init__()
 
@@ -54,16 +169,17 @@ class VQEncoder(nn.Module):
         )
 
         # Init weights of in_proj to mimic the effect of avg pooling
-        torch.nn.init.normal_(
+        nn.init.normal_(
             self.in_proj.weight, mean=1 / (down_sample * in_channels), std=0.01
         )
         self.in_proj.bias.data.zero_()
 
-        self.feature_in = nn.Linear(in_channels, channels)
+        self.feature_in = nn.Linear(in_channels, hidden_channels)
+        self.g_in = nn.Conv1d(gin_channels, hidden_channels, 1)
         self.blocks = nn.ModuleList(
             [
                 TransformerBlock(
-                    channels,
+                    hidden_channels,
                     num_heads,
                     window_size=4,
                     window_heads_share=True,
@@ -75,7 +191,7 @@ class VQEncoder(nn.Module):
             ]
         )
 
-        self.out_proj = nn.Linear(channels, out_channels * 2)
+        self.out_proj = nn.Linear(hidden_channels, out_channels * 2)
 
         self.input_downsample = input_downsample
 
@@ -86,7 +202,7 @@ class VQEncoder(nn.Module):
             for p in self.vq_in.parameters():
                 p.requires_grad = False
 
-    def forward(self, x, key_padding_mask=None) -> VQEncoderOutput:
+    def forward(self, x, key_padding_mask=None, g=None) -> SemanticEncoderOutput:
         # x: (batch, seq_len, channels)
 
         assert key_padding_mask.size(1) == x.size(
@@ -100,7 +216,7 @@ class VQEncoder(nn.Module):
 
         if self.input_downsample:
             features = F.interpolate(
-                features.transpose(1, 2), scale_factor=2
+                features.transpose(1, 2), scale_factor=2, mode="nearest"
             ).transpose(1, 2)
 
         # Shape may change due to downsampling, let's cut it to the same size
@@ -111,6 +227,9 @@ class VQEncoder(nn.Module):
             key_padding_mask = key_padding_mask[:, :min_len]
 
         features = self.feature_in(features)
+        g = self.g_in(g).transpose(1, 2)
+        features = features + g
+
         for block in self.blocks:
             features = block(features, key_padding_mask=key_padding_mask)
 
@@ -118,10 +237,11 @@ class VQEncoder(nn.Module):
         stats = torch.masked_fill(stats, key_padding_mask.unsqueeze(1), 0)
         mean, logs = torch.chunk(stats, 2, dim=1)
 
-        return VQEncoderOutput(
+        return SemanticEncoderOutput(
             loss=loss,
             mean=mean,
             logs=logs,
+            z=mean + torch.randn_like(mean) * torch.exp(logs) * 0.5,
         )
 
 
@@ -173,8 +293,9 @@ class WaveNet(nn.Module):
             else:
                 res_skip_channels = hidden_channels
 
-            res_skip_layer = torch.nn.Conv1d(hidden_channels, res_skip_channels, 1)
-            res_skip_layer = torch.nn.utils.weight_norm(res_skip_layer, name="weight")
+            res_skip_layer = weight_norm(
+                nn.Conv1d(hidden_channels, res_skip_channels, 1), name="weight"
+            )
             self.res_skip_layers.append(res_skip_layer)
 
     def forward(self, x, x_mask, g=None):
@@ -205,13 +326,13 @@ class WaveNet(nn.Module):
 
         return output * x_mask
 
-    def remove_weight_norm(self):
+    def remove_parametrizations(self):
         if self.gin_channels != 0:
-            torch.nn.utils.remove_weight_norm(self.cond_layer)
+            nn.utils.remove_parametrizations(self.cond_layer)
         for l in self.in_layers:
-            torch.nn.utils.remove_weight_norm(l)
+            nn.utils.remove_parametrizations(l)
         for l in self.res_skip_layers:
-            torch.nn.utils.remove_weight_norm(l)
+            nn.utils.remove_parametrizations(l)
 
 
 @dataclass
@@ -270,26 +391,26 @@ class SpeakerEncoder(nn.Module):
     def __init__(
         self,
         in_channels: int = 128,
-        channels: int = 192,
+        hidden_channels: int = 192,
         out_channels: int = 512,
         num_heads: int = 2,
         num_layers: int = 4,
     ) -> None:
         super().__init__()
 
-        self.query = nn.Parameter(torch.randn(1, 1, channels))
-        self.in_proj = nn.Linear(in_channels, channels)
+        self.query = nn.Parameter(torch.randn(1, 1, hidden_channels))
+        self.in_proj = nn.Linear(in_channels, hidden_channels)
         self.blocks = nn.ModuleList(
             [
                 TransformerBlock(
-                    channels,
+                    hidden_channels,
                     num_heads,
                     use_relative_attn=False,
                 )
                 for _ in range(num_layers)
             ]
         )
-        self.out_proj = nn.Linear(channels, out_channels)
+        self.out_proj = nn.Linear(hidden_channels, out_channels)
 
     def forward(self, mels, mels_key_padding_mask=None):
         x = self.in_proj(mels)
@@ -305,10 +426,9 @@ class SpeakerEncoder(nn.Module):
         for block in self.blocks:
             x = block(x, key_padding_mask=mels_key_padding_mask)
 
-        x = x[:, :1]
-        x = self.out_proj(x)
+        x = self.out_proj(x[:, 0])
 
-        return x.transpose(1, 2)
+        return x
 
 
 class TransformerBlock(nn.Module):
@@ -616,7 +736,7 @@ class RelativeAttention(nn.Module):
         return torch.unsqueeze(torch.unsqueeze(-torch.log1p(torch.abs(diff)), 0), 0)
 
 
-class ResBlock1(torch.nn.Module):
+class ResBlock1(nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super(ResBlock1, self).__init__()
         self.convs1 = nn.ModuleList(
@@ -706,14 +826,14 @@ class ResBlock1(torch.nn.Module):
             x = x * x_mask
         return x
 
-    def remove_weight_norm(self):
+    def remove_parametrizations(self):
         for l in self.convs1:
-            remove_weight_norm(l)
+            remove_parametrizations(l)
         for l in self.convs2:
-            remove_weight_norm(l)
+            remove_parametrizations(l)
 
 
-class ResBlock2(torch.nn.Module):
+class ResBlock2(nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super(ResBlock2, self).__init__()
         self.convs = nn.ModuleList(
@@ -753,9 +873,9 @@ class ResBlock2(torch.nn.Module):
             x = x * x_mask
         return x
 
-    def remove_weight_norm(self):
+    def remove_parametrizations(self):
         for l in self.convs:
-            remove_weight_norm(l)
+            remove_parametrizations(l)
 
 
 class Generator(nn.Module):
@@ -768,6 +888,7 @@ class Generator(nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
+        gin_channels,
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
@@ -802,8 +923,12 @@ class Generator(nn.Module):
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
         self.ups.apply(init_weights)
 
-    def forward(self, x):
+        self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
+
+    def forward(self, x, g=None):
         x = self.conv_pre(x)
+        if g is not None:
+            g = self.cond(g)
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)
@@ -821,12 +946,12 @@ class Generator(nn.Module):
 
         return x
 
-    def remove_weight_norm(self):
+    def remove_parametrizations(self):
         print("Removing weight norm...")
         for l in self.ups:
-            remove_weight_norm(l)
+            remove_parametrizations(l)
         for l in self.resblocks:
-            l.remove_weight_norm()
+            l.remove_parametrizations()
 
 
 class DiscriminatorP(nn.Module):
