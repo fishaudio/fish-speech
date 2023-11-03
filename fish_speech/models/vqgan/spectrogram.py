@@ -96,9 +96,12 @@ class LogMelSpectrogram(nn.Module):
     def decompress(self, x: Tensor) -> Tensor:
         return torch.exp(x)
 
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.spectrogram(x)
-        x = self.mel_scale(x)
+    def forward(self, x: Tensor, return_linear: bool = False) -> Tensor:
+        linear = self.spectrogram(x)
+        x = self.mel_scale(linear)
         x = self.compress(x)
+
+        if return_linear:
+            return x, self.compress(linear)
 
         return x

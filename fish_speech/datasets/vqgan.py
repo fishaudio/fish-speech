@@ -40,9 +40,6 @@ class VQGANDataset(Dataset):
         audio, _ = librosa.load(file, sr=self.sample_rate, mono=True)
         features = np.load(file.with_suffix(".npy"))  # (T, 1024)
 
-        if len(audio) % self.hop_length != 0:
-            audio = np.pad(audio, (0, self.hop_length - (len(audio) % self.hop_length)))
-
         # Slice audio and features
         if self.slice_frames is not None and features.shape[0] > self.slice_frames:
             start = np.random.randint(0, features.shape[0] - self.slice_frames)
@@ -50,6 +47,14 @@ class VQGANDataset(Dataset):
             audio = audio[
                 start * self.hop_length : (start + self.slice_frames) * self.hop_length
             ]
+
+        if len(audio) < len(features) * self.hop_length:
+            audio = np.pad(
+                audio,
+                (0, len(features) * self.hop_length - len(audio)),
+                mode="constant",
+                constant_values=0,
+            )
 
         return {
             "audio": torch.from_numpy(audio),

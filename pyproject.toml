@@ -25,6 +25,7 @@ dependencies = [
     "librosa>=0.10.1",
     "vector-quantize-pytorch>=1.9.18",
     "rich>=13.5.3",
+    "gradio>=4.0.0",
     "cn2an",
     "pypinyin",
     "jieba",
