@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 import lightning.pytorch as pl
 import torch
@@ -32,6 +32,9 @@ def grad_norm(
         parameters = [parameters]
 
     grads = [p.grad for p in parameters if p.grad is not None]
+    if len(grads) == 0:
+        return None
+
     first_device = grads[0].device
     grouped_grads: dict[
         tuple[torch.device, torch.dtype], list[list[Tensor]]
@@ -54,15 +57,22 @@ class GradNormMonitor(Callback):
     Callback that computes the gradient norm of the model parameters.
     """
 
-    def __init__(self, norm_type: float = 2.0, logging_interval: str = "step") -> None:
+    def __init__(
+        self,
+        norm_type: float = 2.0,
+        logging_interval: str = "step",
+        sub_module: Optional[str] = None,
+    ) -> None:
         """
         Args:
             norm_type (float): type of the used p-norm.
             logging_interval (str): "step" or "epoch".
         """
         super().__init__()
+
         self.norm_type = norm_type
         self.logging_interval = logging_interval
+        self.sub_module = sub_module
 
     def on_after_backward(self, trainer: Trainer, model: LightningModule) -> None:
         """
@@ -73,13 +83,20 @@ class GradNormMonitor(Callback):
             model (LightningModule): The current lightningModule
         """
 
-        grad_norm_val = grad_norm(model.parameters(), self.norm_type)
+        lightning_model = model
 
-        model_name = model.__class__.__name__.lower()
+        path = ""
+        if self.sub_module is not None:
+            model = getattr(model, self.sub_module)
+            path = f"/{self.sub_module}"
+
+        grad_norm_val = grad_norm(model.parameters(), self.norm_type)
+        if grad_norm_val is None:
+            return
 
         on_step = self.logging_interval == "step"
-        model.log(
-            f"train/{model_name}/grad_norm",
+        lightning_model.log(
+            f"train{path}/grad_norm",
             grad_norm_val,
             on_step=on_step,
             on_epoch=not on_step,

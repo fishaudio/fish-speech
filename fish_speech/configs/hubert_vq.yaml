@@ -7,6 +7,7 @@ project: hubert_vq
 # Lightning Trainer
 trainer:
   accelerator: gpu
+  devices: 4
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
     static_graph: true
@@ -22,20 +23,23 @@ train_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
   filelist: data/vq_train_filelist.txt
   sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  slice_frames: 32
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
   filelist: data/vq_val_filelist.txt
   sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  slice_frames: null
 
 data:
   _target_: fish_speech.datasets.vqgan.VQGANDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 32
   val_batch_size: 4
-  hop_length: ${hop_length}
 
 # Model Configuration
 model:
@@ -94,9 +98,13 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 2000
+      num_warmup_steps: 0
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
+
+callbacks:
+  grad_norm_monitor:
+    sub_module: generator
 
 # Resume from rcell's checkpoint
 ckpt_path: results/hubert-vq-pretrain/rcell/ckpt_23000_pl.pth

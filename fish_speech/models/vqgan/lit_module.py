@@ -123,10 +123,14 @@ class VQGAN(L.LightningModule):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
         features, feature_lengths = batch["features"], batch["feature_lengths"]
 
+        audios = audios.float()
+        features = features.float()
+
         with torch.no_grad():
             gt_mels = self.mel_transform(audios).transpose(1, 2)
             key_padding_mask = sequence_mask(feature_lengths)
             mels_key_padding_mask = sequence_mask(audio_lengths // self.hop_length)
+            audio_masks = sequence_mask(audio_lengths)[:, None]
 
             assert abs(gt_mels.shape[1] - mels_key_padding_mask.shape[1]) <= 1
             gt_mel_length = min(gt_mels.shape[1], mels_key_padding_mask.shape[1])
@@ -138,6 +142,29 @@ class VQGAN(L.LightningModule):
             features = features[:, :gt_feature_length]
             key_padding_mask = key_padding_mask[:, :gt_feature_length]
 
+        audios = audios[:, None, :]
+
+        # # Get slice of audio
+        # if audios.shape[-1] > self.segment_size:
+        #     start = torch.randint(
+        #         0, audios.shape[-1] - self.segment_size, (1,), device=audios.device
+        #     ).item()
+        #     start = start // self.hop_length * self.hop_length
+
+        #     audios = audios[:, :, start : start + self.segment_size]
+        #     audio_masks = sequence_mask(audio_lengths)[
+        #         :, None, start : start + self.segment_size
+        #     ]
+
+        #     mel_start = start // self.hop_length
+        #     mel_size = self.segment_size // self.hop_length
+        #     gt_mels = gt_mels[:, mel_start : mel_start + mel_size]
+        #     mels_key_padding_mask = mels_key_padding_mask[
+        #         :, mel_start : mel_start + mel_size
+        #     ]
+
+        #     features = features[:, :, mel_start : mel_start + mel_size]
+
         # Generator
         encoded = self.encoder(
             x=features,
@@ -147,30 +174,15 @@ class VQGAN(L.LightningModule):
         )
 
         features = encoded.features
-        audios = audios[:, None, :]
-
-        # Get slice of audio
-        if audios.shape[-1] > self.segment_size:
-            start = torch.randint(
-                0, audios.shape[-1] - self.segment_size, (1,), device=audios.device
-            ).item()
-            start = start // self.hop_length * self.hop_length
-
-            audios = audios[:, :, start : start + self.segment_size]
-            audio_masks = sequence_mask(audio_lengths)[
-                :, None, start : start + self.segment_size
-            ]
-
-            mel_start = start // self.hop_length
-            mel_size = self.segment_size // self.hop_length
-            gt_mels = gt_mels[:, mel_start : mel_start + mel_size]
-            mels_key_padding_mask = mels_key_padding_mask[
-                :, mel_start : mel_start + mel_size
-            ]
-
-            features = features[:, :, mel_start : mel_start + mel_size]
+        # features = self.naive_proj(features.transpose(1, 2))
 
         fake_audios = self.generator(features)
+
+        min_audio_length = min(audios.shape[-1], fake_audios.shape[-1])
+        audios = audios[:, :, :min_audio_length]
+        fake_audios = fake_audios[:, :, :min_audio_length]
+        audio_masks = audio_masks[:, :, :min_audio_length]
+
         audio = torch.masked_fill(audios, audio_masks, 0.0)
         fake_audios = torch.masked_fill(fake_audios, audio_masks, 0.0)
         assert fake_audios.shape == audio.shape
@@ -201,6 +213,12 @@ class VQGAN(L.LightningModule):
         y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = self.discriminator(audios, fake_audios)
         fake_mels = self.mel_transform(fake_audios.squeeze(1)).transpose(1, 2)
 
+        # Min mel length
+        min_mel_length = min(gt_mels.shape[1], fake_mels.shape[1])
+        gt_mels = gt_mels[:, :min_mel_length]
+        fake_mels = fake_mels[:, :min_mel_length]
+        mels_key_padding_mask = mels_key_padding_mask[:, :min_mel_length]
+
         # Fill mel mask
         fake_mels = torch.masked_fill(fake_mels, mels_key_padding_mask[:, :, None], 0.0)
         gt_mels = torch.masked_fill(gt_mels, mels_key_padding_mask[:, :, None], 0.0)
@@ -210,7 +228,7 @@ class VQGAN(L.LightningModule):
             loss_adv, _ = self.generator_loss(y_d_hat_g)
             loss_fm = self.feature_loss(fmap_r, fmap_g)
 
-            loss_gen_all = loss_fm * 45 + loss_mel + loss_adv + encoded.loss
+            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + encoded.loss
 
         self.log(
             "train/generator/loss",
@@ -274,6 +292,9 @@ class VQGAN(L.LightningModule):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
         features, feature_lengths = batch["features"], batch["feature_lengths"]
 
+        audios = audios.float()
+        features = features.float()
+
         with torch.no_grad():
             gt_mels = self.mel_transform(audios).transpose(1, 2)
             key_padding_mask = sequence_mask(feature_lengths)
@@ -298,6 +319,8 @@ class VQGAN(L.LightningModule):
             mels_key_padding_mask=mels_key_padding_mask,
         )
 
+        # features = self.naive_proj(features.transpose(1, 2))
+
         features = encoded.features
         audios = audios[:, None, :]
 
@@ -313,6 +336,11 @@ class VQGAN(L.LightningModule):
         assert fake_audios.shape == audio.shape
 
         fake_mels = self.mel_transform(fake_audios.squeeze(1)).transpose(1, 2)
+        min_mel_length = min(gt_mels.shape[1], fake_mels.shape[1])
+        gt_mels = gt_mels[:, :min_mel_length]
+        fake_mels = fake_mels[:, :min_mel_length]
+        mels_key_padding_mask = mels_key_padding_mask[:, :min_mel_length]
+
         gt_mels = torch.masked_fill(gt_mels, mels_key_padding_mask[:, :, None], 0.0)
         fake_mels = torch.masked_fill(fake_mels, mels_key_padding_mask[:, :, None], 0.0)
 

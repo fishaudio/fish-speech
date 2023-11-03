@@ -27,11 +27,15 @@ class KMeansDataset(Dataset):
 
     def __getitem__(self, idx):
         file = self.files[idx]
-        feature = np.load(file.with_suffix(".npy"))
+        try:
+            feature = np.load(file.with_suffix(".npy"))
+        except Exception as e:
+            return None
         return torch.from_numpy(feature).float()
 
     @staticmethod
     def collate_fn(features):
+        features = [feature for feature in features if feature is not None]
         features = torch.concat(features, dim=0)
         return features
 
@@ -40,7 +44,7 @@ class KMeansDataset(Dataset):
 @click.option(
     "--filelist",
     type=click.Path(exists=True, path_type=Path),
-    default="data/test.filelist",
+    default="data/vq_train_filelist.txt",
 )
 @click.option("--output", type=click.Path(path_type=Path), default="kmeans.pt")
 @click.option("--num-clusters", type=int, default=2048)
@@ -55,7 +59,7 @@ def main(filelist: Path, output: Path, num_clusters: int, epochs: int):
     )
 
     means = None
-    for _ in tqdm(range(epochs), desc="Epochs", position=0):
+    for epoch in tqdm(range(epochs), desc="Epochs", position=0):
         total_bins = torch.zeros(1, num_clusters, dtype=torch.int64, device="cuda")
 
         for samples in tqdm(loader, desc="Batches", position=1):
@@ -86,14 +90,14 @@ def main(filelist: Path, output: Path, num_clusters: int, epochs: int):
 
             total_bins += bins
 
-    torch.save(
-        {
-            "centroids": means,
-            "bins": bins,
-        },
-        output,
-    )
-    print(f"Saved to {output}")
+        torch.save(
+            {
+                "centroids": means,
+                "bins": bins,
+            },
+            output,
+        )
+        print(f"Finished epoch {epoch}, total bins: {total_bins}")
 
 
 if __name__ == "__main__":

@@ -45,6 +45,37 @@ def main(cfg: DictConfig):
     model.discriminator.load_state_dict(discriminator_weights, strict=True)
     logger.info("Discriminator weights restored.")
 
+    # Restore kmeans
+    logger.info("Reset vq projection layer to mimic avg pooling")
+    torch.nn.init.normal_(
+        model.encoder.in_proj.weight,
+        mean=1
+        / (
+            model.encoder.in_proj.weight.shape[0]
+            * model.encoder.in_proj.weight.shape[-1]
+        ),
+        std=1e-2,
+    )
+    model.encoder.in_proj.bias.data.zero_()
+
+    kmeans_ckpt = "results/hubert-vq-pretrain/kmeans.pt"
+    kmeans_ckpt = torch.load(kmeans_ckpt, map_location="cpu")
+
+    centroids = kmeans_ckpt["centroids"][0]
+    bins = kmeans_ckpt["bins"][0]
+    logger.info(
+        f"Restoring kmeans centroids with shape {centroids.shape} and bins {bins.shape}"
+    )
+
+    state_dict = {
+        "_codebook.inited": torch.Tensor([True]),
+        "_codebook.cluster_size": bins,
+        "_codebook.embed": centroids,
+        "_codebook.embed_avg": centroids.clone(),
+    }
+
+    model.encoder.vq.load_state_dict(state_dict, strict=True)
+
     torch.save(model.state_dict(), cfg.ckpt_path)
     logger.info("Done")
 
