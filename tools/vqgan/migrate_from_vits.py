@@ -35,11 +35,14 @@ def main(cfg: DictConfig):
 
     # Posterior Encoder
     encoder_state = {
-        k[6:]: v for k, v in generator_weights.items() if k.startswith("enc_q.")
+        k[6:]: v
+        for k, v in generator_weights.items()
+        if k.startswith("enc_q.")
+        if not k.startswith("enc_q.proj.")
     }
     logger.info(f"Found {len(encoder_state)} posterior encoder weights, restoring...")
-    model.posterior_encoder.load_state_dict(encoder_state, strict=True)
-    logger.info("Posterior encoder weights restored.")
+    x = model.posterior_encoder.load_state_dict(encoder_state, strict=False)
+    logger.info(f"Posterior encoder weights restored. {x}")
 
     # Flow
     # flow_state = {

@@ -8,15 +8,17 @@ import wandb
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
+from vector_quantize_pytorch import ResidualLFQ
 
-from fish_speech.models.vqgan.modules import (
-    EnsembleDiscriminator,
-    Generator,
-    PosteriorEncoder,
-    SemanticEncoder,
-    SpeakerEncoder,
+from fish_speech.models.vqgan.losses import (
+    discriminator_loss,
+    feature_loss,
+    generator_loss,
+    kl_loss_normal,
 )
-from fish_speech.models.vqgan.utils import plot_mel, sequence_mask
+from fish_speech.models.vqgan.modules.discriminator import EnsembleDiscriminator
+from fish_speech.models.vqgan.modules.models import SynthesizerTrn
+from fish_speech.models.vqgan.utils import plot_mel, sequence_mask, slice_segments
 
 
 class VQGAN(L.LightningModule):
@@ -24,11 +26,7 @@ class VQGAN(L.LightningModule):
         self,
         optimizer: Callable,
         lr_scheduler: Callable,
-        semantic_encoder: SemanticEncoder,
-        posterior_encoder: PosteriorEncoder,
-        speaker_encoder: SpeakerEncoder,
-        # flow: nn.Module,
-        generator: Generator,
+        generator: SynthesizerTrn,
         discriminator: EnsembleDiscriminator,
         mel_transform: nn.Module,
         segment_size: int = 20480,
@@ -42,11 +40,6 @@ class VQGAN(L.LightningModule):
         self.lr_scheduler_builder = lr_scheduler
 
         # Generator and discriminators
-        # Compile generator so that snake can save memory
-        self.semantic_encoder = semantic_encoder
-        self.posterior_encoder = posterior_encoder
-        self.speaker_encoder = speaker_encoder
-        # self.flow = flow
         self.generator = generator
         self.discriminator = discriminator
         self.mel_transform = mel_transform
@@ -61,15 +54,7 @@ class VQGAN(L.LightningModule):
 
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
-        optimizer_generator = self.optimizer_builder(
-            itertools.chain(
-                self.semantic_encoder.parameters(),
-                self.posterior_encoder.parameters(),
-                self.speaker_encoder.parameters(),
-                self.generator.parameters(),
-                # self.flow.parameters(),
-            )
-        )
+        optimizer_generator = self.optimizer_builder(self.generator.parameters())
         optimizer_discriminator = self.optimizer_builder(
             self.discriminator.parameters()
         )
@@ -96,127 +81,41 @@ class VQGAN(L.LightningModule):
             },
         )
 
-    @staticmethod
-    def discriminator_loss(disc_real_outputs, disc_generated_outputs):
-        loss = 0
-        r_losses = []
-        g_losses = []
-        for dr, dg in zip(disc_real_outputs, disc_generated_outputs):
-            dr = dr.float()
-            dg = dg.float()
-            r_loss = torch.mean((1 - dr) ** 2)
-            g_loss = torch.mean(dg**2)
-            loss += r_loss + g_loss
-            r_losses.append(r_loss.item())
-            g_losses.append(g_loss.item())
-
-        return loss, r_losses, g_losses
-
-    @staticmethod
-    def generator_loss(disc_outputs):
-        loss = 0
-        gen_losses = []
-        for dg in disc_outputs:
-            dg = dg.float()
-            l = torch.mean((1 - dg) ** 2)
-            gen_losses.append(l)
-            loss += l
-
-        return loss, gen_losses
-
-    @staticmethod
-    def feature_loss(fmap_r, fmap_g):
-        loss = 0
-        for dr, dg in zip(fmap_r, fmap_g):
-            for rl, gl in zip(dr, dg):
-                rl = rl.float().detach()
-                gl = gl.float()
-                loss += torch.mean(torch.abs(rl - gl))
-
-        return loss * 2
-
-    @staticmethod
-    def kl_loss(m_q, logs_q, m_p, logs_p, z_mask):
-        """
-        m_q, logs_q: [b, h, t_t]
-        m_p, logs_p: [b, h, t_t]
-        """
-        m_q = m_q.float()
-        logs_q = logs_q.float()
-        m_p = m_p.float()
-        logs_p = logs_p.float()
-        z_mask = z_mask.float()
-
-        kl = 0.5 * (
-            (m_q - m_p) ** 2 / torch.exp(logs_p)
-            + torch.exp(logs_q) / torch.exp(logs_p)
-            - 1
-            - logs_q
-            + logs_p
-        )
-
-        kl = torch.sum(kl * z_mask)
-        l = kl / torch.sum(z_mask)
-
-        return l
-
     def training_step(self, batch, batch_idx):
         optim_g, optim_d = self.optimizers()
 
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
         features, feature_lengths = batch["features"], batch["feature_lengths"]
+        audios = audios[:, None, :]
 
         audios = audios.float()
         features = features.float()
 
         with torch.no_grad():
-            gt_mels, gt_specs = self.mel_transform(audios, return_linear=True)
-            gt_mels = gt_mels.transpose(1, 2)
-            key_padding_mask = sequence_mask(feature_lengths)
-            mels_key_padding_mask = sequence_mask(audio_lengths // self.hop_length)
-            audio_masks = sequence_mask(audio_lengths)[:, None]
+            gt_mels = self.mel_transform(audios)
+            assert (
+                gt_mels.shape[2] == features.shape[1]
+            ), f"Shapes do not match: {gt_mels.shape}, {features.shape}"
 
-            assert abs(gt_mels.shape[1] - mels_key_padding_mask.shape[1]) <= 1
-            gt_mel_length = min(gt_mels.shape[1], mels_key_padding_mask.shape[1])
-            gt_mels = gt_mels[:, :gt_mel_length]
-            gt_specs = gt_specs[:, :, :gt_mel_length]
-            mels_key_padding_mask = mels_key_padding_mask[:, :gt_mel_length]
+        (
+            y_hat,
+            ids_slice,
+            x_mask,
+            y_mask,
+            (z_q_audio, z_p),
+            (m_p_text, logs_p_text),
+            (m_q, logs_q),
+        ) = self.generator(features, feature_lengths, gt_mels, feature_lengths)
 
-            assert abs(features.shape[1] - key_padding_mask.shape[1]) <= 1
-            gt_feature_length = min(features.shape[1], key_padding_mask.shape[1])
-            features = features[:, :gt_feature_length]
-            key_padding_mask = key_padding_mask[:, :gt_feature_length]
-
-        audios = audios[:, None, :]
-
-        speaker = self.speaker_encoder(gt_mels, mels_key_padding_mask)[:, :, None]
-        prior = self.semantic_encoder(
-            x=features,
-            key_padding_mask=key_padding_mask,
-            g=speaker,
-        )
-
-        posterior_key_padding_mask = (~mels_key_padding_mask).float()[:, None]
-        posterior = self.posterior_encoder(
-            gt_specs, posterior_key_padding_mask, g=speaker
-        )
-        # z_p = self.flow(posterior.mean, posterior_key_padding_mask, g=speaker)
-        fake_audios = self.generator(posterior.z, g=speaker)
-
-        min_audio_length = min(audios.shape[-1], fake_audios.shape[-1])
-        audios = audios[:, :, :min_audio_length]
-        fake_audios = fake_audios[:, :, :min_audio_length]
-        audio_masks = audio_masks[:, :, :min_audio_length]
-
-        audio = torch.masked_fill(audios, audio_masks, 0.0)
-        fake_audios = torch.masked_fill(fake_audios, audio_masks, 0.0)
-        assert fake_audios.shape == audio.shape
+        y_hat_mel = self.mel_transform(y_hat.squeeze(1))
+        y_mel = slice_segments(gt_mels, ids_slice, self.segment_size // self.hop_length)
+        y = slice_segments(audios, ids_slice * self.hop_length, self.segment_size)
 
         # Discriminator
-        y_d_hat_r, y_d_hat_g, _, _ = self.discriminator(audio, fake_audios.detach())
+        y_d_hat_r, y_d_hat_g, _, _ = self.discriminator(y, y_hat.detach())
 
         with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_disc_all, _, _ = self.discriminator_loss(y_d_hat_r, y_d_hat_g)
+            loss_disc_all, _, _ = discriminator_loss(y_d_hat_r, y_d_hat_g)
 
         self.log(
             "train/discriminator/loss",
@@ -235,32 +134,26 @@ class VQGAN(L.LightningModule):
         )
         optim_d.step()
 
-        y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = self.discriminator(audios, fake_audios)
-        fake_mels = self.mel_transform(fake_audios.squeeze(1)).transpose(1, 2)
-
-        # Min mel length
-        min_mel_length = min(gt_mels.shape[1], fake_mels.shape[1])
-        gt_mels = gt_mels[:, :min_mel_length]
-        fake_mels = fake_mels[:, :min_mel_length]
-        mels_key_padding_mask = mels_key_padding_mask[:, :min_mel_length]
-
-        # Fill mel mask
-        fake_mels = torch.masked_fill(fake_mels, mels_key_padding_mask[:, :, None], 0.0)
-        gt_mels = torch.masked_fill(gt_mels, mels_key_padding_mask[:, :, None], 0.0)
+        y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = self.discriminator(y, y_hat)
 
         with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_mel = F.l1_loss(gt_mels, fake_mels)
-            loss_adv, _ = self.generator_loss(y_d_hat_g)
-            loss_fm = self.feature_loss(fmap_r, fmap_g)
-            loss_kl = self.kl_loss(
-                posterior.mean,
-                posterior.logs,
-                prior.mean,
-                prior.logs,
-                posterior_key_padding_mask,
+            loss_mel = F.l1_loss(y_mel, y_hat_mel)
+            loss_adv, _ = generator_loss(y_d_hat_g)
+            loss_fm = feature_loss(fmap_r, fmap_g)
+            # x_mask,
+            # y_mask,
+            # (z_q_audio, z_p),
+            # (m_p_text, logs_p_text),
+            # (m_q, logs_q),
+            loss_kl = kl_loss_normal(
+                m_q,
+                logs_q,
+                m_p_text,
+                logs_p_text,
+                x_mask,
             )
 
-            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + prior.loss + loss_kl
+            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * 0.05
 
         self.log(
             "train/generator/loss",
@@ -307,15 +200,15 @@ class VQGAN(L.LightningModule):
             logger=True,
             sync_dist=True,
         )
-        self.log(
-            "train/generator/loss_vq",
-            prior.loss,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
+        # self.log(
+        #     "train/generator/loss_vq",
+        #     prior.loss,
+        #     on_step=True,
+        #     on_epoch=False,
+        #     prog_bar=False,
+        #     logger=True,
+        #     sync_dist=True,
+        # )
 
         optim_g.zero_grad()
         self.manual_backward(loss_gen_all)
@@ -335,60 +228,23 @@ class VQGAN(L.LightningModule):
 
         audios = audios.float()
         features = features.float()
-
-        with torch.no_grad():
-            gt_mels, gt_specs = self.mel_transform(audios, return_linear=True)
-            gt_mels = gt_mels.transpose(1, 2)
-            key_padding_mask = sequence_mask(feature_lengths)
-            mels_key_padding_mask = sequence_mask(audio_lengths // self.hop_length)
-
-            assert abs(gt_mels.shape[1] - mels_key_padding_mask.shape[1]) <= 1
-            gt_mel_length = min(gt_mels.shape[1], mels_key_padding_mask.shape[1])
-            gt_mels = gt_mels[:, :gt_mel_length]
-            gt_specs = gt_specs[:, :, :gt_mel_length]
-            mels_key_padding_mask = mels_key_padding_mask[:, :gt_mel_length]
-
-            assert abs(features.shape[1] - key_padding_mask.shape[1]) <= 1
-            gt_feature_length = min(features.shape[1], key_padding_mask.shape[1])
-            features = features[:, :gt_feature_length]
-            key_padding_mask = key_padding_mask[:, :gt_feature_length]
-
-        # Generator
-        # speaker: (B, C, 1)
-        speaker = self.speaker_encoder(gt_mels, mels_key_padding_mask)[:, :, None]
-        posterior_key_padding_mask = (~mels_key_padding_mask).float()[:, None]
-
-        z_gen = self.semantic_encoder(
-            x=features,
-            key_padding_mask=key_padding_mask,
-            g=speaker,
-        ).z
-
-        # z_gen = self.flow(z_gen, posterior_key_padding_mask, g=speaker, reverse=True)
-
-        z_posterior = self.posterior_encoder(
-            gt_specs, posterior_key_padding_mask, g=speaker
-        ).mean
-
         audios = audios[:, None, :]
-        fake_audios = self.generator(z_gen, g=speaker)
-        posterior_audios = self.generator(z_posterior)
-        min_audio_length = min(
-            audios.shape[-1], fake_audios.shape[-1], posterior_audios.shape[-1]
-        )
 
-        audios = audios[:, :, :min_audio_length]
-        fake_audios = fake_audios[:, :, :min_audio_length]
-        posterior_audios = posterior_audios[:, :, :min_audio_length]
-        assert fake_audios.shape == audios.shape == posterior_audios.shape
+        gt_mels = self.mel_transform(audios)
+        assert (
+            gt_mels.shape[2] == features.shape[1]
+        ), f"Shapes do not match: {gt_mels.shape}, {features.shape}"
 
-        fake_mels = self.mel_transform(fake_audios.squeeze(1)).transpose(1, 2)
-        posterior_mels = self.mel_transform(posterior_audios.squeeze(1)).transpose(1, 2)
+        fake_audios = self.generator.infer(features, feature_lengths, gt_mels)
+        posterior_audios = self.generator.reconstruct(gt_mels, feature_lengths)
 
-        min_mel_length = min(gt_mels.shape[1], fake_mels.shape[1])
-        gt_mels = gt_mels[:, :min_mel_length]
-        fake_mels = fake_mels[:, :min_mel_length]
-        posterior_mels = posterior_mels[:, :min_mel_length]
+        fake_mels = self.mel_transform(fake_audios.squeeze(1))
+        posterior_mels = self.mel_transform(posterior_audios.squeeze(1))
+
+        min_mel_length = min(gt_mels.shape[-1], fake_mels.shape[-1])
+        gt_mels = gt_mels[:, :, :min_mel_length]
+        fake_mels = fake_mels[:, :, :min_mel_length]
+        posterior_mels = posterior_mels[:, :, :min_mel_length]
 
         mel_loss = F.l1_loss(gt_mels, fake_mels)
         self.log(
@@ -411,9 +267,9 @@ class VQGAN(L.LightningModule):
             audio_len,
         ) in enumerate(
             zip(
-                gt_mels.transpose(1, 2),
-                fake_mels.transpose(1, 2),
-                posterior_mels.transpose(1, 2),
+                gt_mels,
+                fake_mels,
+                posterior_mels,
                 audios,
                 fake_audios,
                 posterior_audios,

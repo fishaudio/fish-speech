@@ -13,7 +13,7 @@ trainer:
     static_graph: true
   precision: 32
   max_steps: 1_000_000
-  val_check_interval: 1000
+  val_check_interval: 5000
 
 sample_rate: 32000
 hop_length: 640
@@ -27,14 +27,13 @@ train_dataset:
   filelist: data/vq_train_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  slice_frames: 32
+  slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
   filelist: data/vq_val_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  slice_frames: 256
 
 data:
   _target_: fish_speech.datasets.vqgan.VQGANDataModule
@@ -51,57 +50,31 @@ model:
   hop_length: ${hop_length}
   segment_size: 20480
 
-  semantic_encoder:
-    _target_: fish_speech.models.vqgan.modules.SemanticEncoder
-    in_channels: 1024
-    hidden_channels: 384
-    out_channels: 192
-    num_heads: 2
-    num_layers: 8
-    input_downsample: true
-    code_book_size: 2048
-    freeze_vq: false
-    gin_channels: ${model.speaker_encoder.out_channels}
-
-  posterior_encoder:
-    _target_: fish_speech.models.vqgan.modules.PosteriorEncoder
-    in_channels: "${eval: '${n_fft} // 2 + 1'}"
-    hidden_channels: 192
-    out_channels: 192
-    gin_channels: ${model.speaker_encoder.out_channels}
-  
-  speaker_encoder:
-    _target_: fish_speech.models.vqgan.modules.SpeakerEncoder
-    in_channels: ${num_mels}
-    hidden_channels: 192
-    out_channels: 512
-
-  # flow:
-  #   _target_: fish_speech.models.vqgan.modules.ResidualCouplingBlock
-  #   channels: 192
-  #   hidden_channels: 192
-  #   kernel_size: 5
-  #   dilation_rate: 1
-  #   n_layers: 4
-  #   n_flows: 4
-  #   gin_channels: ${model.speaker_encoder.out_channels}
-
   generator:
-    _target_: fish_speech.models.vqgan.modules.Generator
-    initial_channel: 192
-    gin_channels: ${model.speaker_encoder.out_channels}
+    _target_: fish_speech.models.vqgan.modules.models.SynthesizerTrn
+    in_channels: 1024
+    spec_channels: ${num_mels}
+    segment_size: "${eval: '${model.segment_size} // ${hop_length}'}"
+    inter_channels: 192
+    hidden_channels: 192
+    filter_channels: 768
+    n_heads: 4
+    n_layers: 8
+    n_layers_q: 16
+    n_layers_spk: 6
+    kernel_size: 3
+    p_dropout: 0.1
+    speaker_cond_layer: 0
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
-    resblock_dilation_sizes: 
-      - [1, 3, 5]
-      - [1, 3, 5]
-      - [1, 3, 5]
+    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
     upsample_rates: [10, 8, 2, 2, 2]
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 8, 2, 2]
+    gin_channels: 512 # basically the speaker embedding size
 
   discriminator:
-    _target_: fish_speech.models.vqgan.modules.EnsembleDiscriminator
+    _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -114,7 +87,7 @@ model:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 2e-4
     betas: [0.8, 0.99]
     eps: 1e-5
 
@@ -124,7 +97,7 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 0
+      num_warmup_steps: 1000
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
 
@@ -133,5 +106,5 @@ callbacks:
     sub_module: generator
 
 # Resume from rcell's checkpoint
-ckpt_path: results/hubert-vq-pretrain/rcell/ckpt_23000_pl.pth
-resume_weights_only: true
+# ckpt_path: results/hubert-vq-pretrain/rcell/ckpt_23000_pl.pth
+# resume_weights_only: true
