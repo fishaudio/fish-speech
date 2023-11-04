@@ -66,27 +66,3 @@ def kl_loss(
     kl = torch.sum(kl * z_mask)
     l = kl / torch.sum(z_mask)
     return l
-
-
-def kl_loss_normal(
-    m_q: torch.Tensor,
-    logs_q: torch.Tensor,
-    m_p: torch.Tensor,
-    logs_p: torch.Tensor,
-    z_mask: torch.Tensor,
-):
-    """
-    z_p, logs_q: [b, h, t_t]
-    m_p, logs_p: [b, h, t_t]
-    """
-    m_q = m_q.float()
-    logs_q = logs_q.float()
-    m_p = m_p.float()
-    logs_p = logs_p.float()
-    z_mask = z_mask.float()
-
-    kl = logs_p - logs_q - 0.5
-    kl += 0.5 * (torch.exp(2.0 * logs_q) + (m_q - m_p) ** 2) * torch.exp(-2.0 * logs_p)
-    kl = torch.sum(kl * z_mask)
-    l = kl / torch.sum(z_mask)
-    return l

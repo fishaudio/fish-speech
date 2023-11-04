@@ -14,7 +14,7 @@ from fish_speech.models.vqgan.losses import (
     discriminator_loss,
     feature_loss,
     generator_loss,
-    kl_loss_normal,
+    kl_loss,
 )
 from fish_speech.models.vqgan.modules.discriminator import EnsembleDiscriminator
 from fish_speech.models.vqgan.modules.models import SynthesizerTrn
@@ -102,8 +102,8 @@ class VQGAN(L.LightningModule):
             ids_slice,
             x_mask,
             y_mask,
-            (z_q_audio, z_p),
-            (m_p_text, logs_p_text),
+            (z_q, z_p),
+            (m_p, logs_p),
             (m_q, logs_q),
         ) = self.generator(features, feature_lengths, gt_mels)
 
@@ -140,20 +140,15 @@ class VQGAN(L.LightningModule):
             loss_mel = F.l1_loss(y_mel, y_hat_mel)
             loss_adv, _ = generator_loss(y_d_hat_g)
             loss_fm = feature_loss(fmap_r, fmap_g)
-            # x_mask,
-            # y_mask,
-            # (z_q_audio, z_p),
-            # (m_p_text, logs_p_text),
-            # (m_q, logs_q),
-            loss_kl = kl_loss_normal(
-                m_q,
-                logs_q,
-                m_p_text,
-                logs_p_text,
-                x_mask,
+            loss_kl = kl_loss(
+                z_p=z_p,
+                logs_q=logs_q,
+                m_p=m_p,
+                logs_p=logs_p,
+                z_mask=x_mask,
             )
 
-            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * 0.05
+            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * 1
 
         self.log(
             "train/generator/loss",

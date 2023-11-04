@@ -60,7 +60,9 @@ model:
     filter_channels: 768
     n_heads: 4
     n_layers: 8
-    n_layers_q: 16
+    n_layers_q: 8
+    n_layers_flow: 8
+    n_flows: 4
     n_layers_spk: 6
     kernel_size: 3
     p_dropout: 0.1

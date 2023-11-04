@@ -22,7 +22,6 @@ class TextEncoder(nn.Module):
         kernel_size: int,
         dropout: float,
         gin_channels=0,
-        lang_channels=0,
         speaker_cond_layer=0,
     ):
         """Text Encoder for VITS model.
@@ -37,7 +36,6 @@ class TextEncoder(nn.Module):
             kernel_size (int): Kernel size for the FFN layers in Transformer network.
             dropout (float): Dropout rate for the Transformer layers.
             gin_channels (int, optional): Number of channels for speaker embedding. Defaults to 0.
-            lang_channels (int, optional): Number of channels for language embedding. Defaults to 0.
         """
         super().__init__()
         self.out_channels = out_channels
@@ -58,7 +56,6 @@ class TextEncoder(nn.Module):
             dropout=dropout,
             window_size=4,
             gin_channels=gin_channels,
-            lang_channels=lang_channels,
             speaker_cond_layer=speaker_cond_layer,
         )
         self.proj = nn.Linear(hidden_channels, out_channels * 2)
@@ -68,7 +65,7 @@ class TextEncoder(nn.Module):
         x: torch.Tensor,
         x_lengths: torch.Tensor,
         g: torch.Tensor = None,
-        lang: torch.Tensor = None,
+        noise_scale: float = 1,
     ):
         """
         Shapes:
@@ -79,11 +76,11 @@ class TextEncoder(nn.Module):
         x = self.emb(x).mT  # * math.sqrt(self.hidden_channels)  # [b, h, t]
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
 
-        x = self.encoder(x, x_mask, g=g, lang=lang)
+        x = self.encoder(x, x_mask, g=g)
         stats = self.proj(x.mT).mT * x_mask
 
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask
+        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask * noise_scale
         return z, m, logs, x, x_mask
 
 
@@ -126,7 +123,13 @@ class PosteriorEncoder(nn.Module):
         )
         self.proj = nn.Linear(hidden_channels, out_channels * 2)
 
-    def forward(self, x: torch.Tensor, x_lengths: torch.Tensor, g=None):
+    def forward(
+        self,
+        x: torch.Tensor,
+        x_lengths: torch.Tensor,
+        g: torch.Tensor,
+        noise_scale: float = 1,
+    ):
         """
         Shapes:
             - x: :math:`[B, C, T]`
@@ -138,7 +141,7 @@ class PosteriorEncoder(nn.Module):
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x.mT).mT * x_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask
+        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask * noise_scale
         return z, m, logs, x_mask
 
 

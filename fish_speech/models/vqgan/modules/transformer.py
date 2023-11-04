@@ -23,10 +23,13 @@ class RelativePositionTransformer(nn.Module):
         dropout=0.0,
         window_size=4,
         gin_channels=0,
-        lang_channels=0,
         speaker_cond_layer=0,
     ):
         super().__init__()
+        assert (
+            out_channels == hidden_channels
+        ), "out_channels must be equal to hidden_channels"
+
         self.n_layers = n_layers
         self.speaker_cond_layer = speaker_cond_layer
 
@@ -56,6 +59,7 @@ class RelativePositionTransformer(nn.Module):
                 )
             )
             self.norm_layers_2.append(LayerNorm(hidden_channels))
+
         if gin_channels != 0:
             self.cond = nn.Linear(gin_channels, hidden_channels)
 
@@ -64,7 +68,6 @@ class RelativePositionTransformer(nn.Module):
         x: torch.Tensor,
         x_mask: torch.Tensor,
         g: torch.Tensor = None,
-        lang: torch.Tensor = None,
     ):
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         x = x * x_mask
@@ -75,6 +78,7 @@ class RelativePositionTransformer(nn.Module):
                 # ! g = torch.detach(g)
                 x = x + self.cond(g.mT).mT
                 x = x * x_mask
+
             y = self.attn_layers[i](x, x, attn_mask)
             y = self.drop(y)
             x = self.norm_layers_1[i](x + y)
