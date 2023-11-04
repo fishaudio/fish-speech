@@ -213,7 +213,7 @@ def segments_to_phones(
 
 def g2p(text, order=None):
     segments = parse_text_to_segments(text, order=order)
-    _, phones = segments_to_phones(segments)
+    phones, _ = segments_to_phones(segments)
     return phones
 
 

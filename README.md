@@ -15,3 +15,8 @@ pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 # Install fish-speech
 pip3 install -e .
 ```
+
+## Credits
+- [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
+- [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
+- [GPT VITS](https://github.com/innnky/gpt-vits)
