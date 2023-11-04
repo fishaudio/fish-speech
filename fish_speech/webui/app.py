@@ -38,7 +38,15 @@ def build_html_error_message(error):
     """
 
 
-def prepare_text(text, input_mode, language0, language1, language2):
+def prepare_text(
+    text,
+    input_mode,
+    language0,
+    language1,
+    language2,
+    enable_reference_audio,
+    reference_text,
+):
     lines = text.splitlines()
     languages = [language0, language1, language2]
     languages = [
@@ -53,9 +61,14 @@ def prepare_text(text, input_mode, language0, language1, language2):
     if len(set(languages)) != len(languages):
         return [], build_html_error_message("语言优先级不能重复.")
 
+    if enable_reference_audio:
+        reference_text = reference_text.strip() + " "
+    else:
+        reference_text = ""
+
     if input_mode != "自动音素转换":
         return [
-            [idx, line, "-", "-"]
+            [idx, reference_text + line, "-", "-"]
             for idx, line in enumerate(lines)
             if line.strip() != ""
         ], None
@@ -67,14 +80,14 @@ def prepare_text(text, input_mode, language0, language1, language2):
             continue
 
         try:
-            segments = parse_text_to_segments(line, order=languages)
+            segments = parse_text_to_segments(reference_text + line, order=languages)
         except Exception:
             traceback.print_exc()
             err = traceback.format_exc()
             return [], build_html_error_message(f"解析 '{line}' 时发生错误. \n\n{err}")
 
         for segment in segments:
-            rows.append([idx, segment.text, segment.language, segment.phones])
+            rows.append([idx, segment.text, segment.language, " ".join(segment.phones)])
 
     return rows, None
 
@@ -120,6 +133,18 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
                             value="英文",
                         )
 
+                with gr.Tab(label="参考音频"):
+                    gr.Markdown("3 秒左右的参考音频, 适用于无微调直接推理.")
+
+                    enable_reference_audio = gr.Checkbox(label="启用参考音频", value=False)
+                    reference_audio = gr.Audio(label="参考音频")
+                    reference_text = gr.Textbox(
+                        label="参考文本",
+                        placeholder="参考文本",
+                        lines=1,
+                        value="万一他很崇拜我们呢? 嘿嘿.",
+                    )
+
             with gr.Row():
                 with gr.Column(scale=2):
                     generate = gr.Button(value="合成", variant="primary")
@@ -133,7 +158,15 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
 
     # Language & Text Parsing
     kwargs = dict(
-        inputs=[text, input_mode, language0, language1, language2],
+        inputs=[
+            text,
+            input_mode,
+            language0,
+            language1,
+            language2,
+            enable_reference_audio,
+            reference_text,
+        ],
         outputs=[parsed_text, error],
         trigger_mode="always_last",
     )
@@ -142,6 +175,11 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
     language0.change(prepare_text, **kwargs)
     language1.change(prepare_text, **kwargs)
     language2.change(prepare_text, **kwargs)
+    enable_reference_audio.change(prepare_text, **kwargs)
+
+    # Submit
+    generate.click(lambda: None, outputs=[audio])
+
 
 if __name__ == "__main__":
     app.launch(show_api=False)
