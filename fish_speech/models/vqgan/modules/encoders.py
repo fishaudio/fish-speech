@@ -202,6 +202,6 @@ class SpeakerEncoder(nn.Module):
         for block in self.blocks:
             x = block(x, x, x, key_padding_mask=x_mask)[0]
 
-        x = self.out_proj(x[:, 0])
+        x = self.out_proj(x[:, :1, :]).mT
 
         return x
