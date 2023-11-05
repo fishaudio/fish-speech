@@ -48,23 +48,26 @@ class VQGANDataset(Dataset):
         if self.slice_frames is not None and features.shape[0] > self.slice_frames:
             start = np.random.randint(0, features.shape[0] - self.slice_frames)
             features = features[start : start + self.slice_frames]
+            feature_hop_length = features.shape[0] * (32000 // 50)
             audio = audio[
-                start * self.hop_length : (start + self.slice_frames) * self.hop_length
+                start
+                * feature_hop_length : (start + self.slice_frames)
+                * feature_hop_length
             ]
 
-        if features.shape[0] % 2 != 0:
-            features = features[:-1]
+        # if features.shape[0] % 2 != 0:
+        #     features = features[:-1]
 
-        if len(audio) > len(features) * self.hop_length:
-            audio = audio[: features.shape[0] * self.hop_length]
+        # if len(audio) > len(features) * self.hop_length:
+        #     audio = audio[: features.shape[0] * self.hop_length]
 
-        if len(audio) < len(features) * self.hop_length:
-            audio = np.pad(
-                audio,
-                (0, len(features) * self.hop_length - len(audio)),
-                mode="constant",
-                constant_values=0,
-            )
+        # if len(audio) < len(features) * self.hop_length:
+        #     audio = np.pad(
+        #         audio,
+        #         (0, len(features) * self.hop_length - len(audio)),
+        #         mode="constant",
+        #         constant_values=0,
+        #     )
 
         return {
             "audio": torch.from_numpy(audio),
@@ -90,6 +93,7 @@ class VQGANCollator:
         audio_maxlen = audio_lengths.max()
         feature_maxlen = feature_lengths.max()
 
+        # Rounds up to nearest multiple of 2 (audio_lengths)
         audios, features = [], []
         for x in batch:
             audios.append(

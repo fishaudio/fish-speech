@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: hubert_vq
+project: hubert_vq_diffusion
 
 # Lightning Trainer
 trainer:
@@ -11,12 +11,14 @@ trainer:
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
     static_graph: true
-  precision: 32
+  gradient_clip_val: 1.0
+  gradient_clip_algorithm: 'norm'
+  precision: bf16-mixed
   max_steps: 1_000_000
-  val_check_interval: 5000
+  val_check_interval: 1000
 
-sample_rate: 32000
-hop_length: 640
+sample_rate: 44100
+hop_length: 512
 num_mels: 128
 n_fft: 2048
 win_length: 2048
@@ -40,45 +42,65 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 8
   val_batch_size: 4
 
 # Model Configuration
 model:
-  _target_: fish_speech.models.vq_diffusion.VQGAN
+  _target_: fish_speech.models.vq_diffusion.lit_module.VQDiffusion
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  segment_size: 20480
 
-  generator:
-    _target_: fish_speech.models.vqgan.modules.models.SynthesizerTrn
+  text_encoder:
+    _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
     in_channels: 1024
-    spec_channels: ${num_mels}
-    segment_size: "${eval: '${model.segment_size} // ${hop_length}'}"
-    inter_channels: 192
+    out_channels: 128
     hidden_channels: 192
-    filter_channels: 768
+    hidden_channels_ffn: 768
     n_heads: 2
-    n_layers: 6
-    n_layers_q: 6
-    n_layers_flow: 6
-    n_layers_spk: 4
-    n_flows: 4
-    kernel_size: 3
-    p_dropout: 0.1
-    speaker_cond_layer: 2
-    resblock: "1"
-    resblock_kernel_sizes: [3, 7, 11]
-    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
-    upsample_rates: [10, 8, 2, 2, 2]
-    upsample_initial_channel: 512
-    upsample_kernel_sizes: [16, 16, 8, 2, 2]
-    gin_channels: 512 # basically the speaker embedding size
-    kmeans_ckpt: results/hubert-vq-pretrain/kmeans.pt
-    codebook_size: 2048
+    n_layers: 4
+    kernel_size: 1
+    dropout: 0.1
+    use_vae: false
+    gin_channels: 512
+    speaker_cond_layer: 0
 
-  discriminator:
-    _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
+  vq_encoder:
+    _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
+    in_channels: 1024
+    vq_channels: 1024
+    codebook_size: 2048
+    downsample: 2
+    kmeans_ckpt: results/hubert-vq-pretrain/kmeans.pt
+
+  speaker_encoder:
+    _target_: fish_speech.models.vqgan.modules.encoders.SpeakerEncoder
+    in_channels: 128
+    hidden_channels: 192
+    out_channels: 512
+    num_heads: 2
+    num_layers: 4
+    p_dropout: 0.1
+  
+  # denoiser:
+  #   _target_: fish_speech.models.vq_diffusion.convnext_1d.ConvNext1DModel
+  #   in_channels: 256
+  #   out_channels: 128
+  #   intermediate_dim: 512
+  #   mlp_dim: 2048
+  #   num_layers: 20
+  #   dilation_cycle_length: 2
+  #   time_embedding_type: "positional"
+
+  denoiser:
+    _target_: fish_speech.models.vq_diffusion.unet1d.Unet1DDenoiser
+    dim: 64
+    dim_mults: [1, 2, 4]
+    groups: 8
+    pe_scale: 1000
+
+  vocoder:
+    _target_: fish_speech.models.vq_diffusion.adamos.ADaMoSHiFiGANV1
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -87,12 +109,14 @@ model:
     hop_length: ${hop_length}
     win_length: ${win_length}
     n_mels: ${num_mels}
+    f_min: 40
+    f_max: 16000
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 2e-4
-    betas: [0.8, 0.99]
+    lr: 1e-4
+    betas: [0.9, 0.999]
     eps: 1e-5
 
   lr_scheduler:
@@ -104,11 +128,3 @@ model:
       num_warmup_steps: 0
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
-
-callbacks:
-  grad_norm_monitor:
-    sub_module: generator
-
-# Resume from rcell's checkpoint
-ckpt_path: results/hubert-vq-pretrain/rcell/ckpt_23000_pl.pth
-resume_weights_only: true

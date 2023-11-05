@@ -26,6 +26,7 @@ dependencies = [
     "vector-quantize-pytorch>=1.10.0",
     "rich>=13.5.3",
     "gradio>=4.0.0",
+    "diffusers@git+https://github.com/huggingface/diffusers",
     "cn2an",
     "pypinyin",
     "jieba",

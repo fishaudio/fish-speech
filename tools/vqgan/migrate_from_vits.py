@@ -27,22 +27,23 @@ def main(cfg: DictConfig):
 
     # Decoder
     generator_state = {
-        k[4:]: v for k, v in generator_weights.items() if k.startswith("dec.")
+        k[4:]: v
+        for k, v in generator_weights.items()
+        if k.startswith("dec.") and not k.startswith("dec.cond.")
     }
     logger.info(f"Found {len(generator_state)} HiFiGAN weights, restoring...")
-    model.generator.load_state_dict(generator_state, strict=True)
-    logger.info("Generator weights restored.")
+    r = model.generator.dec.load_state_dict(generator_state, strict=False)
+    logger.info(f"Generator weights restored. {r}")
 
     # Posterior Encoder
-    encoder_state = {
-        k[6:]: v
-        for k, v in generator_weights.items()
-        if k.startswith("enc_q.")
-        if not k.startswith("enc_q.proj.")
-    }
-    logger.info(f"Found {len(encoder_state)} posterior encoder weights, restoring...")
-    x = model.posterior_encoder.load_state_dict(encoder_state, strict=False)
-    logger.info(f"Posterior encoder weights restored. {x}")
+    # encoder_state = {
+    #     k[6:]: v
+    #     for k, v in generator_weights.items()
+    #     if k.startswith("enc_q.") and not k.startswith("enc_q.proj.")
+    # }
+    # logger.info(f"Found {len(encoder_state)} posterior encoder weights, restoring...")
+    # x = model.generator.enc_q.load_state_dict(encoder_state, strict=False)
+    # logger.info(f"Posterior encoder weights restored. {x}")
 
     # Flow
     # flow_state = {
@@ -60,37 +61,6 @@ def main(cfg: DictConfig):
     )
     model.discriminator.load_state_dict(discriminator_weights, strict=True)
     logger.info("Discriminator weights restored.")
-
-    # Restore kmeans
-    logger.info("Reset vq projection layer to mimic avg pooling")
-    torch.nn.init.normal_(
-        model.semantic_encoder.in_proj.weight,
-        mean=1
-        / (
-            model.semantic_encoder.in_proj.weight.shape[0]
-            * model.semantic_encoder.in_proj.weight.shape[-1]
-        ),
-        std=1e-2,
-    )
-    model.semantic_encoder.in_proj.bias.data.zero_()
-
-    kmeans_ckpt = "results/hubert-vq-pretrain/kmeans.pt"
-    kmeans_ckpt = torch.load(kmeans_ckpt, map_location="cpu")
-
-    centroids = kmeans_ckpt["centroids"][0]
-    bins = kmeans_ckpt["bins"][0]
-    logger.info(
-        f"Restoring kmeans centroids with shape {centroids.shape} and bins {bins.shape}"
-    )
-
-    state_dict = {
-        "_codebook.inited": torch.Tensor([True]),
-        "_codebook.cluster_size": bins,
-        "_codebook.embed": centroids,
-        "_codebook.embed_avg": centroids.clone(),
-    }
-
-    model.semantic_encoder.vq.load_state_dict(state_dict, strict=True)
 
     torch.save(model.state_dict(), cfg.ckpt_path)
     logger.info("Done")

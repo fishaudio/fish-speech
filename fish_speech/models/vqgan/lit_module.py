@@ -233,9 +233,7 @@ class VQGAN(L.LightningModule):
         audios = audios[:, None, :]
 
         gt_mels = self.mel_transform(audios)
-        assert (
-            gt_mels.shape[2] == features.shape[1]
-        ), f"Shapes do not match: {gt_mels.shape}, {features.shape}"
+        gt_mels = gt_mels[:, :, : features.shape[1]]
 
         fake_audios = self.generator.infer(features, feature_lengths, gt_mels)
         posterior_audios = self.generator.reconstruct(gt_mels, feature_lengths)

@@ -32,7 +32,7 @@ class WN(nn.Module):
         self.drop = nn.Dropout(p_dropout)
 
         if gin_channels != 0:
-            cond_layer = nn.Linear(gin_channels, 2 * hidden_channels * n_layers)
+            cond_layer = nn.Conv1d(gin_channels, 2 * hidden_channels * n_layers, 1)
             self.cond_layer = weight_norm(cond_layer, name="weight")
 
         for i in range(n_layers):
@@ -52,7 +52,7 @@ class WN(nn.Module):
             res_skip_channels = (
                 2 * hidden_channels if i < n_layers - 1 else hidden_channels
             )
-            res_skip_layer = nn.Linear(hidden_channels, res_skip_channels)
+            res_skip_layer = nn.Conv1d(hidden_channels, res_skip_channels, 1)
             res_skip_layer = weight_norm(res_skip_layer, name="weight")
             self.res_skip_layers.append(res_skip_layer)
 
@@ -61,7 +61,7 @@ class WN(nn.Module):
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
 
         if g is not None:
-            g = self.cond_layer(g.mT).mT
+            g = self.cond_layer(g)
 
         for i in range(self.n_layers):
             x_in = self.in_layers[i](x)
@@ -74,7 +74,7 @@ class WN(nn.Module):
             acts = fused_add_tanh_sigmoid_multiply(x_in, g_l, n_channels_tensor)
             acts = self.drop(acts)
 
-            res_skip_acts = self.res_skip_layers[i](acts.mT).mT
+            res_skip_acts = self.res_skip_layers[i](acts)
             if i < self.n_layers - 1:
                 res_acts = res_skip_acts[:, : self.hidden_channels, :]
                 x = (x + res_acts) * x_mask

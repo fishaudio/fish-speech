@@ -104,12 +104,12 @@ class SynthesizerTrn(nn.Module):
             gin_channels=gin_channels,
         )
 
-    def forward(self, x, x_lengths, y):
-        g = self.enc_spk(y, x_lengths)
+    def forward(self, x, x_lengths, specs):
+        g = self.enc_spk(specs, x_lengths)
         x, vq_loss = self.vq(x)
 
         _, m_p, logs_p, _, x_mask = self.enc_p(x, x_lengths, g=g)
-        z_q, m_q, logs_q, y_mask = self.enc_q(y, x_lengths, g=g)
+        z_q, m_q, logs_q, y_mask = self.enc_q(specs, x_lengths, g=g)
         z_p = self.flow(z_q, y_mask, g=g, reverse=False)
 
         z_slice, ids_slice = rand_slice_segments(z_q, x_lengths, self.segment_size)
@@ -126,8 +126,8 @@ class SynthesizerTrn(nn.Module):
             vq_loss,
         )
 
-    def infer(self, x, x_lengths, y, max_len=None, noise_scale=0.35):
-        g = self.enc_spk(y, x_lengths)
+    def infer(self, x, x_lengths, specs, max_len=None, noise_scale=0.35):
+        g = self.enc_spk(specs, x_lengths)
         x, vq_loss = self.vq(x)
         z_p, m_p, logs_p, h_text, x_mask = self.enc_p(
             x, x_lengths, g=g, noise_scale=noise_scale
