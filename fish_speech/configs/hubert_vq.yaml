@@ -58,15 +58,15 @@ model:
     inter_channels: 192
     hidden_channels: 192
     filter_channels: 768
-    n_heads: 4
-    n_layers: 8
-    n_layers_q: 8
-    n_layers_flow: 8
+    n_heads: 2
+    n_layers: 6
+    n_layers_q: 6
+    n_layers_flow: 6
+    n_layers_spk: 4
     n_flows: 4
-    n_layers_spk: 6
     kernel_size: 3
     p_dropout: 0.1
-    speaker_cond_layer: 0
+    speaker_cond_layer: 2
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
     resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
@@ -74,6 +74,8 @@ model:
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 8, 2, 2]
     gin_channels: 512 # basically the speaker embedding size
+    kmeans_ckpt: results/hubert-vq-pretrain/kmeans.pt
+    codebook_size: 2048
 
   discriminator:
     _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
@@ -99,7 +101,7 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 1000
+      num_warmup_steps: 0
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
 

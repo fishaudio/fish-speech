@@ -8,7 +8,7 @@ import wandb
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
-from vector_quantize_pytorch import ResidualLFQ
+from vector_quantize_pytorch import VectorQuantize
 
 from fish_speech.models.vqgan.losses import (
     discriminator_loss,
@@ -93,9 +93,7 @@ class VQGAN(L.LightningModule):
 
         with torch.no_grad():
             gt_mels = self.mel_transform(audios)
-            assert (
-                gt_mels.shape[2] == features.shape[1]
-            ), f"Shapes do not match: {gt_mels.shape}, {features.shape}"
+            gt_mels = gt_mels[:, :, : features.shape[1]]
 
         (
             y_hat,
@@ -105,6 +103,7 @@ class VQGAN(L.LightningModule):
             (z_q, z_p),
             (m_p, logs_p),
             (m_q, logs_q),
+            vq_loss,
         ) = self.generator(features, feature_lengths, gt_mels)
 
         y_hat_mel = self.mel_transform(y_hat.squeeze(1))
@@ -148,7 +147,15 @@ class VQGAN(L.LightningModule):
                 z_mask=x_mask,
             )
 
-            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * 1
+            # Cyclical kl loss
+            # then 500 steps linear: 0.1
+            # then 500 steps 0.1
+            # then go back to 0
+
+            beta = self.global_step % 1000
+            beta = min(beta, 500) / 500 * 0.1 + 1e-6
+
+            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * beta + vq_loss
 
         self.log(
             "train/generator/loss",
@@ -195,15 +202,15 @@ class VQGAN(L.LightningModule):
             logger=True,
             sync_dist=True,
         )
-        # self.log(
-        #     "train/generator/loss_vq",
-        #     prior.loss,
-        #     on_step=True,
-        #     on_epoch=False,
-        #     prog_bar=False,
-        #     logger=True,
-        #     sync_dist=True,
-        # )
+        self.log(
+            "train/generator/loss_vq",
+            vq_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+            sync_dist=True,
+        )
 
         optim_g.zero_grad()
         self.manual_backward(loss_gen_all)

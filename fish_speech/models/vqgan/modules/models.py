@@ -6,8 +6,9 @@ from fish_speech.models.vqgan.modules.encoders import (
     PosteriorEncoder,
     SpeakerEncoder,
     TextEncoder,
+    VQEncoder,
 )
-from fish_speech.models.vqgan.modules.flow import TransformerCouplingBlock
+from fish_speech.models.vqgan.modules.flow import ResidualCouplingBlock
 from fish_speech.models.vqgan.utils import rand_slice_segments
 
 
@@ -41,11 +42,19 @@ class SynthesizerTrn(nn.Module):
         upsample_initial_channel,
         upsample_kernel_sizes,
         gin_channels,
+        codebook_size,
+        kmeans_ckpt=None,
     ):
         super().__init__()
 
         self.segment_size = segment_size
 
+        self.vq = VQEncoder(
+            in_channels=in_channels,
+            vq_channels=in_channels,
+            codebook_size=codebook_size,
+            kmeans_ckpt=kmeans_ckpt,
+        )
         self.enc_p = TextEncoder(
             in_channels,
             inter_channels,
@@ -66,14 +75,12 @@ class SynthesizerTrn(nn.Module):
             num_layers=n_layers_spk,
             p_dropout=p_dropout,
         )
-        self.flow = TransformerCouplingBlock(
+        self.flow = ResidualCouplingBlock(
             channels=inter_channels,
             hidden_channels=hidden_channels,
-            filter_channels=filter_channels,
-            n_heads=n_heads,
-            n_layers=n_layers_flow,
             kernel_size=5,
-            p_dropout=p_dropout,
+            dilation_rate=1,
+            n_layers=n_layers_flow,
             n_flows=n_flows,
             gin_channels=gin_channels,
         )
@@ -99,6 +106,7 @@ class SynthesizerTrn(nn.Module):
 
     def forward(self, x, x_lengths, y):
         g = self.enc_spk(y, x_lengths)
+        x, vq_loss = self.vq(x)
 
         _, m_p, logs_p, _, x_mask = self.enc_p(x, x_lengths, g=g)
         z_q, m_q, logs_q, y_mask = self.enc_q(y, x_lengths, g=g)
@@ -115,10 +123,12 @@ class SynthesizerTrn(nn.Module):
             (z_q, z_p),
             (m_p, logs_p),
             (m_q, logs_q),
+            vq_loss,
         )
 
     def infer(self, x, x_lengths, y, max_len=None, noise_scale=0.35):
         g = self.enc_spk(y, x_lengths)
+        x, vq_loss = self.vq(x)
         z_p, m_p, logs_p, h_text, x_mask = self.enc_p(
             x, x_lengths, g=g, noise_scale=noise_scale
         )

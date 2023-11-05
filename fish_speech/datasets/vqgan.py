@@ -52,6 +52,12 @@ class VQGANDataset(Dataset):
                 start * self.hop_length : (start + self.slice_frames) * self.hop_length
             ]
 
+        if features.shape[0] % 2 != 0:
+            features = features[:-1]
+
+        if len(audio) > len(features) * self.hop_length:
+            audio = audio[: features.shape[0] * self.hop_length]
+
         if len(audio) < len(features) * self.hop_length:
             audio = np.pad(
                 audio,
