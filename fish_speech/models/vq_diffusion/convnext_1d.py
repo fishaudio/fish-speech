@@ -88,19 +88,6 @@ class ConvNeXtBlock(nn.Module):
         return x
 
 
-@dataclass
-class ConvNext1DOutput(BaseOutput):
-    """
-    The output of [`UNet1DModel`].
-
-    Args:
-        sample (`torch.FloatTensor` of shape `(batch_size, num_channels, sample_size)`):
-            The hidden states output from the last layer of the model.
-    """
-
-    sample: torch.FloatTensor
-
-
 class ConvNext1DModel(ModelMixin, ConfigMixin):
     r"""
     A ConvNext model that takes a noisy sample and a timestep and returns a sample shaped output.
@@ -176,6 +163,10 @@ class ConvNext1DModel(ModelMixin, ConfigMixin):
         self.in_proj = nn.Conv1d(in_channels, intermediate_dim, 1)
         self.out_proj = nn.Conv1d(intermediate_dim, out_channels, 1)
 
+        # Initialize weights
+        nn.init.normal_(self.out_proj.weight, mean=0, std=0.01)
+        nn.init.zeros_(self.out_proj.bias)
+
         # Blocks
         self.blocks = nn.ModuleList(
             [
@@ -199,7 +190,7 @@ class ConvNext1DModel(ModelMixin, ConfigMixin):
         timestep: Union[torch.Tensor, float, int],
         sample_mask: Optional[torch.Tensor] = None,
         condition: Optional[torch.Tensor] = None,
-    ) -> Union[ConvNext1DOutput, Tuple]:
+    ) -> torch.FloatTensor:
         r"""
         The [`ConvNext1DModel`] forward method.
 

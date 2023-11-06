@@ -29,7 +29,7 @@ class VQGANDataset(Dataset):
         self.files = [
             root / line.strip()
             for line in filelist.read_text().splitlines()
-            if ("Genshin" in line or "StarRail" in line)
+            # if ("Genshin" in line or "StarRail" in line)
         ]
         self.sample_rate = sample_rate
         self.hop_length = hop_length
@@ -48,26 +48,23 @@ class VQGANDataset(Dataset):
         if self.slice_frames is not None and features.shape[0] > self.slice_frames:
             start = np.random.randint(0, features.shape[0] - self.slice_frames)
             features = features[start : start + self.slice_frames]
-            feature_hop_length = features.shape[0] * (32000 // 50)
+
+            start_in_seconds, end_in_seconds = (
+                start * 320 / 16000,
+                (start + self.slice_frames) * 320 / 16000,
+            )
             audio = audio[
-                start
-                * feature_hop_length : (start + self.slice_frames)
-                * feature_hop_length
+                int(start_in_seconds * self.sample_rate) : int(
+                    end_in_seconds * self.sample_rate
+                )
             ]
 
-        # if features.shape[0] % 2 != 0:
-        #     features = features[:-1]
+        if len(audio) == 0:
+            return None
 
-        # if len(audio) > len(features) * self.hop_length:
-        #     audio = audio[: features.shape[0] * self.hop_length]
-
-        # if len(audio) < len(features) * self.hop_length:
-        #     audio = np.pad(
-        #         audio,
-        #         (0, len(features) * self.hop_length - len(audio)),
-        #         mode="constant",
-        #         constant_values=0,
-        #     )
+        max_value = np.abs(audio).max()
+        if max_value > 1.0:
+            audio = audio / max_value
 
         return {
             "audio": torch.from_numpy(audio),

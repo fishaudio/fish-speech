@@ -44,7 +44,6 @@ class VQDiffusion(L.LightningModule):
         self.mel_transform = mel_transform
         self.noise_scheduler_train = DDIMScheduler(num_train_timesteps=1000)
         self.noise_scheduler_infer = UniPCMultistepScheduler(num_train_timesteps=1000)
-        self.noise_scheduler_infer.set_timesteps(20)
 
         # Modules
         self.vq_encoder = vq_encoder
@@ -73,10 +72,13 @@ class VQDiffusion(L.LightningModule):
         }
 
     def normalize_mels(self, x):
-        return (x + 11.5129251) / (1 + 11.5129251) * 2 - 1
+        # x is in range -10.1 to 3.1, normalize to -1 to 1
+        x_min, x_max = -10.1, 3.1
+        return (x - x_min) / (x_max - x_min) * 2 - 1
 
     def denormalize_mels(self, x):
-        return (x + 1) / 2 * (1.0 + 11.5129251) - 11.5129251
+        x_min, x_max = -10.1, 3.1
+        return (x + 1) / 2 * (x_max - x_min) + x_min
 
     def training_step(self, batch, batch_idx):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
@@ -99,7 +101,7 @@ class VQDiffusion(L.LightningModule):
         )
 
         speaker_features = self.speaker_encoder(gt_mels, mel_masks)
-        vq_features, _ = self.vq_encoder(features, feature_masks)
+        vq_features, vq_loss = self.vq_encoder(features, feature_masks)
 
         # vq_features is 50 hz, need to convert to true mel size
         vq_features = F.interpolate(vq_features, size=gt_mels.shape[2], mode="nearest")
@@ -127,13 +129,16 @@ class VQDiffusion(L.LightningModule):
         model_output = self.denoiser(noisy_images, timesteps, mel_masks, text_features)
 
         # MSE loss without the mask
-        loss = (
-            (model_output * mel_masks - normalized_gt_mels * mel_masks) ** 2
+        # noise_loss = (
+        #     (model_output * mel_masks - normalized_gt_mels * mel_masks) ** 2
+        # ).sum() / (mel_masks.sum() * gt_mels.shape[1])
+        noise_loss = torch.abs(
+            model_output * mel_masks - normalized_gt_mels * mel_masks
         ).sum() / (mel_masks.sum() * gt_mels.shape[1])
 
         self.log(
-            "train/loss",
-            loss,
+            "train/noise_loss",
+            noise_loss,
             on_step=True,
             on_epoch=False,
             prog_bar=True,
@@ -141,7 +146,17 @@ class VQDiffusion(L.LightningModule):
             sync_dist=True,
         )
 
-        return loss
+        self.log(
+            "train/vq_loss",
+            vq_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
+
+        return noise_loss + vq_loss
 
     def validation_step(self, batch: Any, batch_idx: int):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
@@ -169,7 +184,7 @@ class VQDiffusion(L.LightningModule):
 
         # Begin sampling
         sampled_mels = torch.randn_like(gt_mels)
-        self.noise_scheduler_infer.set_timesteps(20)
+        self.noise_scheduler_infer.set_timesteps(100)
 
         for t in self.noise_scheduler_infer.timesteps:
             timesteps = torch.tensor([t], device=sampled_mels.device, dtype=torch.long)

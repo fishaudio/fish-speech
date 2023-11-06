@@ -34,7 +34,7 @@ callbacks:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: ${paths.ckpt_dir}
     filename: "step_{step:09d}"
-    save_last: true # additionally always save an exact copy of the last checkpoint to a file last.ckpt
+    save_last: false # additionally always save an exact copy of the last checkpoint to a file last.ckpt
     save_top_k: 5 # save 5 latest checkpoints
     monitor: step # use step to monitor checkpoints
     mode: max # save the latest checkpoint with the highest global_step
