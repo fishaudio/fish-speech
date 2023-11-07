@@ -18,12 +18,12 @@ tokenizer:
 
 # Dataset Configuration
 train_dataset:
-  - _target_: fish_speech.datasets.text.TextDataset
+  - _target_: fish_speech.datasets.text.StreamTextDataset
     repo: fishaudio/cn-hubert-25hz-vq
     prefix: 'data/train'
 
 val_dataset:
-  _target_: fish_speech.datasets.text.TextDataset
+  _target_: fish_speech.datasets.text.StreamTextDataset
   repo: fishaudio/cn-hubert-25hz-vq
   prefix: 'data/test'
 

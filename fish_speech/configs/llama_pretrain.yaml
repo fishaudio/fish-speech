@@ -28,11 +28,11 @@ tokenizer:
 dataset:
   _target_: fish_speech.datasets.text.InterleaveDataset
   datasets:
-    - _target_: fish_speech.datasets.text.TextDataset
+    - _target_: fish_speech.datasets.text.StreamTextDataset
       prefix: 'en/'
-    - _target_: fish_speech.datasets.text.TextDataset
+    - _target_: fish_speech.datasets.text.StreamTextDataset
       prefix: 'zh/'
-    - _target_: fish_speech.datasets.text.TextDataset
+    - _target_: fish_speech.datasets.text.StreamTextDataset
       prefix: 'ja/'
   probabilities: [0.4, 0.3, 0.3]
   seed: 42
