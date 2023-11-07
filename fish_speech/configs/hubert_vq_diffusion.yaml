@@ -58,12 +58,12 @@ model:
     hidden_channels: 192
     hidden_channels_ffn: 768
     n_heads: 2
-    n_layers: 4
+    n_layers: 6
     kernel_size: 1
     dropout: 0.1
     use_vae: false
     gin_channels: 512
-    speaker_cond_layer: 0
+    speaker_cond_layer: 2
 
   vq_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder

@@ -61,7 +61,7 @@ class RelativePositionTransformer(nn.Module):
             self.norm_layers_2.append(LayerNorm(hidden_channels))
 
         if gin_channels != 0:
-            self.cond = nn.Linear(gin_channels, hidden_channels)
+            self.cond = nn.Conv1d(gin_channels, hidden_channels, 1)
 
     def forward(
         self,
@@ -74,9 +74,9 @@ class RelativePositionTransformer(nn.Module):
         for i in range(self.n_layers):
             # TODO consider using other conditioning
             # TODO https://github.com/svc-develop-team/so-vits-svc/blob/4.1-Stable/modules/attentions.py#L12
-            if i == self.speaker_cond_layer - 1 and g is not None:
+            if i == self.speaker_cond_layer and g is not None:
                 # ! g = torch.detach(g)
-                x = x + self.cond(g.mT).mT
+                x = x + self.cond(g)
                 x = x * x_mask
 
             y = self.attn_layers[i](x, x, attn_mask)
