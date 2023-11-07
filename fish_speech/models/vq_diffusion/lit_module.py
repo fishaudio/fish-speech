@@ -11,7 +11,7 @@ from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
 
-from fish_speech.models.vq_diffusion.unet1d import Unet1DDenoiser
+from fish_speech.models.vq_diffusion.convnext_1d import ConvNext1DModel
 from fish_speech.models.vqgan.modules.encoders import (
     SpeakerEncoder,
     TextEncoder,
@@ -29,7 +29,7 @@ class VQDiffusion(L.LightningModule):
         vq_encoder: VQEncoder,
         speaker_encoder: SpeakerEncoder,
         text_encoder: TextEncoder,
-        denoiser: Unet1DDenoiser,
+        denoiser: ConvNext1DModel,
         vocoder: nn.Module,
         hop_length: int = 640,
         sample_rate: int = 32000,

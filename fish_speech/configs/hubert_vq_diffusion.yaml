@@ -7,7 +7,7 @@ project: hubert_vq_diffusion
 # Lightning Trainer
 trainer:
   accelerator: gpu
-  devices: 1
+  devices: 4
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
     static_graph: true
@@ -41,7 +41,7 @@ data:
   _target_: fish_speech.datasets.vqgan.VQGANDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
-  num_workers: 0 #16
+  num_workers: 8
   batch_size: 32
   val_batch_size: 4
 
@@ -82,32 +82,16 @@ model:
     num_layers: 4
     p_dropout: 0.1
   
-  # denoiser:
-  #   _target_: fish_speech.models.vq_diffusion.convnext_1d.ConvNext1DModel
-  #   in_channels: 256
-  #   out_channels: 128
-  #   intermediate_dim: 512
-  #   mlp_dim: 2048
-  #   num_layers: 20
-  #   dilation_cycle_length: 2
-  #   time_embedding_type: "positional"
-
   denoiser:
-    _target_: fish_speech.models.vq_diffusion.wavenet.WaveNet
+    _target_: fish_speech.models.vq_diffusion.convnext_1d.ConvNext1DModel
     in_channels: 128
     out_channels: 128
-    d_encoder: 128
-    residual_channels: 512
-    residual_layers: 20
-    use_linear_bias: false
-    dilation_cycle: 2
-
-  # denoiser:
-  #   _target_: fish_speech.models.vq_diffusion.unet1d.Unet1DDenoiser
-  #   dim: 64
-  #   dim_mults: [1, 2, 4]
-  #   groups: 8
-  #   pe_scale: 1000
+    intermediate_dim: 512
+    condition_dim: 128
+    mlp_dim: 2048
+    num_layers: 20
+    dilation_cycle_length: 2
+    time_embedding_type: "positional"
 
   vocoder:
     _target_: fish_speech.models.vq_diffusion.adamos.ADaMoSHiFiGANV1
@@ -138,3 +122,11 @@ model:
       num_warmup_steps: 0
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.05
+
+callbacks:
+  grad_norm_monitor:
+    sub_module: 
+      - vq_encoder
+      - text_encoder
+      - speaker_encoder
+      - denoiser
