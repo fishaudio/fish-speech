@@ -26,11 +26,7 @@ class VQGANDataset(Dataset):
         filelist = Path(filelist)
         root = filelist.parent
 
-        self.files = [
-            root / line.strip()
-            for line in filelist.read_text().splitlines()
-            # if ("Genshin" in line or "StarRail" in line)
-        ]
+        self.files = [root / line.strip() for line in filelist.read_text().splitlines()]
         self.sample_rate = sample_rate
         self.hop_length = hop_length
         self.slice_frames = slice_frames
