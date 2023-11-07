@@ -129,12 +129,9 @@ class VQDiffusion(L.LightningModule):
         model_output = self.denoiser(noisy_images, timesteps, mel_masks, text_features)
 
         # MSE loss without the mask
-        # noise_loss = (
-        #     (model_output * mel_masks - normalized_gt_mels * mel_masks) ** 2
-        # ).sum() / (mel_masks.sum() * gt_mels.shape[1])
-        noise_loss = torch.abs(
-            model_output * mel_masks - normalized_gt_mels * mel_masks
-        ).sum() / (mel_masks.sum() * gt_mels.shape[1])
+        noise_loss = ((model_output * mel_masks - noise * mel_masks) ** 2).sum() / (
+            mel_masks.sum() * gt_mels.shape[1]
+        )
 
         self.log(
             "train/noise_loss",
