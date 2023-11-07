@@ -9,3 +9,4 @@ __pycache__
 filelists
 /fish_speech/text/cmudict_cache.pickle
 /checkpoints
+/.vscode
