@@ -10,6 +10,7 @@ from diffusers.utils.torch_utils import randn_tensor
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
+from tqdm import tqdm
 
 from fish_speech.models.vq_diffusion.convnext_1d import ConvNext1DModel
 from fish_speech.models.vqgan.modules.encoders import (
@@ -183,7 +184,7 @@ class VQDiffusion(L.LightningModule):
         sampled_mels = torch.randn_like(gt_mels)
         self.noise_scheduler_infer.set_timesteps(100)
 
-        for t in self.noise_scheduler_infer.timesteps:
+        for t in tqdm(self.noise_scheduler_infer.timesteps):
             timesteps = torch.tensor([t], device=sampled_mels.device, dtype=torch.long)
 
             # 1. predict noise model_output

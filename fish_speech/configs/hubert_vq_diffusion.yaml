@@ -84,10 +84,10 @@ model:
   
   denoiser:
     _target_: fish_speech.models.vq_diffusion.convnext_1d.ConvNext1DModel
-    in_channels: 128
+    in_channels: 256
     out_channels: 128
     intermediate_dim: 512
-    condition_dim: 128
+    # condition_dim: 128
     mlp_dim: 2048
     num_layers: 20
     dilation_cycle_length: 2
