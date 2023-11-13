@@ -8,9 +8,7 @@ project: hubert_vq
 trainer:
   accelerator: gpu
   devices: 4
-  strategy:
-    _target_: lightning.pytorch.strategies.DDPStrategy
-    static_graph: true
+  strategy: ddp_find_unused_parameters_true
   precision: 32
   max_steps: 1_000_000
   val_check_interval: 5000
@@ -45,7 +43,7 @@ data:
 
 # Model Configuration
 model:
-  _target_: fish_speech.models.vq_diffusion.VQGAN
+  _target_: fish_speech.models.vqgan.VQGAN
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   segment_size: 20480

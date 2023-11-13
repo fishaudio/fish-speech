@@ -8,9 +8,7 @@ project: hubert_vq_diffusion
 trainer:
   accelerator: gpu
   devices: 4
-  strategy:
-    _target_: lightning.pytorch.strategies.DDPStrategy
-    static_graph: true
+  strategy: ddp_find_unused_parameters_true
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
   precision: 16-mixed

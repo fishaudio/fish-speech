@@ -129,7 +129,7 @@ class PosteriorEncoder(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        x_lengths: torch.Tensor,
+        x_mask: torch.Tensor,
         g: torch.Tensor,
         noise_scale: float = 1,
     ):
@@ -139,7 +139,6 @@ class PosteriorEncoder(nn.Module):
             - x_lengths: :math:`[B, 1]`
             - g: :math:`[B, C, 1]`
         """
-        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
         x = self.pre(x) * x_mask
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x) * x_mask
