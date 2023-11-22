@@ -103,7 +103,7 @@ class VQGAN(L.LightningModule):
             (z_q, z_p),
             (m_p, logs_p),
             (m_q, logs_q),
-            vq_loss,
+            # vq_loss,
         ) = self.generator(features, feature_lengths, gt_mels)
 
         y_hat_mel = self.mel_transform(y_hat.squeeze(1))
@@ -155,7 +155,9 @@ class VQGAN(L.LightningModule):
             beta = self.global_step % 1000
             beta = min(beta, 500) / 500 * 0.1 + 1e-6
 
-            loss_gen_all = loss_mel * 45 + loss_fm + loss_adv + loss_kl * beta + vq_loss
+            loss_gen_all = (
+                loss_mel * 45 + loss_fm + loss_adv + loss_kl * beta
+            )  # + vq_loss
 
         self.log(
             "train/generator/loss",
@@ -202,15 +204,15 @@ class VQGAN(L.LightningModule):
             logger=True,
             sync_dist=True,
         )
-        self.log(
-            "train/generator/loss_vq",
-            vq_loss,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
+        # self.log(
+        #     "train/generator/loss_vq",
+        #     vq_loss,
+        #     on_step=True,
+        #     on_epoch=False,
+        #     prog_bar=False,
+        #     logger=True,
+        #     sync_dist=True,
+        # )
 
         optim_g.zero_grad()
         self.manual_backward(loss_gen_all)

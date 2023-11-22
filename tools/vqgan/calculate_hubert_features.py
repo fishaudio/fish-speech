@@ -44,7 +44,7 @@ def get_hubert_model():
     return model
 
 
-def process_batch(files: list[Path]):
+def process_batch(files: list[Path], kmeans_centers: torch.Tensor) -> float:
     model = get_hubert_model()
 
     wavs = []
@@ -81,25 +81,32 @@ def process_batch(files: list[Path]):
 
     # Calculate lengths
     with torch.no_grad():
-        outputs = model(wavs, attention_mask=attention_mask)
+        outputs = model(wavs, attention_mask=attention_mask).last_hidden_state
+
+        # Find closest centroids
+        kmeans_centers = kmeans_centers.to(dtype=outputs.dtype, device=outputs.device)
+        distances = torch.cdist(outputs, kmeans_centers)
+        outputs = torch.min(distances, dim=-1)
+        avg_distance = torch.mean(outputs.values)
 
     # Save to disk
-    outputs = outputs.last_hidden_state.cpu().numpy()
+    outputs = outputs.indices.cpu().numpy()
 
     for file, length, feature, wav in zip(files, feature_lengths, outputs, wavs):
         feature = feature[:length]
 
-        # (T, 1024)
+        # (T,)
         with open(file.with_suffix(".npy"), "wb") as f:
             np.save(f, feature)
 
-    return total_time
+    return total_time, avg_distance
 
 
 @click.command()
 @click.argument("folder")
 @click.option("--num-workers", default=1)
-def main(folder: str, num_workers: int):
+@click.option("--kmeans", default="results/hubert-vq-pretrain/kmeans.pt")
+def main(folder: str, num_workers: int, kmeans: str):
     if num_workers > 1 and WORLD_SIZE != num_workers:
         assert WORLD_SIZE == 1, "You should either use SLURM or this launcher, not both"
 
@@ -140,16 +147,22 @@ def main(folder: str, num_workers: int):
     files = files[RANK::WORLD_SIZE]
     logger.info(f"Processing {len(files)}/{total_files} files")
 
+    # Load kmeans
+    kmeans_centers = torch.load(kmeans)["centroids"]
+
     # Batch size 64
     total_time = 0
     begin_time = time.time()
     processed_files = 0
+    total_distance = 0
 
     for n_batch, idx in enumerate(range(0, len(files), 32)):
         batch = files[idx : idx + 32]
-        batch_time = process_batch(batch)
+        batch_time, avg_distance = process_batch(batch, kmeans_centers)
+
         total_time += batch_time
         processed_files += len(batch)
+        total_distance += avg_distance
 
         if (n_batch + 1) % 10 == 0:
             eta = (
@@ -158,12 +171,9 @@ def main(folder: str, num_workers: int):
                 * (len(files) - processed_files)
             )
             logger.info(
-                f"Processed {processed_files} files, {total_time / 3600:.2f} hours of audio, ETA: {timedelta(seconds=round(eta))}s"
+                f"Processed {processed_files} files, {total_time / 3600:.2f} hours of audio, "
+                + f"err {total_distance/(n_batch+1):.2f}, ETA: {timedelta(seconds=round(eta))}s"
             )
-
-        # Stop after 1000 hours
-        if total_time * WORLD_SIZE > 3600 * 1000:
-            break
 
     logger.info(
         f"Finished processing {len(files)} files, {total_time / 3600:.2f} hours of audio"

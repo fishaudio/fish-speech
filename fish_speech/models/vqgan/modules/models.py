@@ -121,7 +121,10 @@ class SynthesizerTrn(nn.Module):
         x_masks = torch.unsqueeze(sequence_mask(x_lengths, x.shape[2]), 1).to(x.dtype)
 
         g = self.enc_spk(specs, spec_masks)
-        x, vq_loss = self.vq(x, x_masks)
+
+        # with torch.no_grad():
+        #     x, _ = self.vq(x, x_masks)
+        #     vq_loss = 0
 
         _, m_p, logs_p, _, _ = self.enc_p(x, x_masks, g=g)
         z_q, m_q, logs_q, _ = self.enc_q(specs, spec_masks, g=g)
@@ -138,7 +141,7 @@ class SynthesizerTrn(nn.Module):
             (z_q, z_p),
             (m_p, logs_p),
             (m_q, logs_q),
-            vq_loss,
+            # vq_loss,
         )
 
     def infer(self, x, x_lengths, specs, max_len=None, noise_scale=0.35):
@@ -148,7 +151,7 @@ class SynthesizerTrn(nn.Module):
         )
         x_masks = torch.unsqueeze(sequence_mask(x_lengths, x.shape[2]), 1).to(x.dtype)
         g = self.enc_spk(specs, spec_masks)
-        x, vq_loss = self.vq(x, x_masks)
+        # x, vq_loss = self.vq(x, x_masks)
         z_p, m_p, logs_p, h_text, _ = self.enc_p(
             x, x_masks, g=g, noise_scale=noise_scale
         )

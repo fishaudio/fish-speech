@@ -6,7 +6,10 @@ import torch.nn.functional as F
 from vector_quantize_pytorch import VectorQuantize
 
 from fish_speech.models.vqgan.modules.modules import WN
-from fish_speech.models.vqgan.modules.transformer import RelativePositionTransformer
+from fish_speech.models.vqgan.modules.transformer import (
+    MultiHeadAttention,
+    RelativePositionTransformer,
+)
 from fish_speech.models.vqgan.utils import sequence_mask
 
 
@@ -43,7 +46,8 @@ class TextEncoder(nn.Module):
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
 
-        self.proj_in = nn.Conv1d(in_channels, hidden_channels, 1)
+        # self.proj_in = nn.Conv1d(in_channels, hidden_channels, 1)
+        self.proj_in = nn.Embedding(in_channels, hidden_channels)
 
         self.encoder = RelativePositionTransformer(
             in_channels=hidden_channels,
@@ -75,7 +79,7 @@ class TextEncoder(nn.Module):
             - x: :math:`[B, T]`
             - x_length: :math:`[B]`
         """
-        x = self.proj_in(x) * x_mask
+        x = self.proj_in(x).mT * x_mask
         x = self.encoder(x, x_mask, g=g)
         x = self.proj_out(x) * x_mask
 
@@ -162,13 +166,18 @@ class SpeakerEncoder(nn.Module):
 
         self.in_proj = nn.Sequential(
             nn.Conv1d(in_channels, hidden_channels, 1),
-            nn.SiLU(),
+            nn.Mish(),
+            nn.Dropout(p_dropout),
             nn.Conv1d(hidden_channels, hidden_channels, 5, padding=2),
-            nn.SiLU(),
+            nn.Mish(),
+            nn.Dropout(p_dropout),
             nn.Conv1d(hidden_channels, hidden_channels, 5, padding=2),
-            nn.SiLU(),
+            nn.Mish(),
             nn.Dropout(p_dropout),
         )
+        self.out_proj = nn.Conv1d(hidden_channels, out_channels, 1)
+        self.apply(self._init_weights)
+
         self.encoder = RelativePositionTransformer(
             in_channels=hidden_channels,
             out_channels=hidden_channels,
@@ -176,11 +185,15 @@ class SpeakerEncoder(nn.Module):
             hidden_channels_ffn=hidden_channels,
             n_heads=num_heads,
             n_layers=num_layers,
-            kernel_size=5,
+            kernel_size=1,
             dropout=p_dropout,
-            window_size=4,
+            window_size=None,  # No windowing
         )
-        self.out_proj = nn.Linear(hidden_channels, out_channels)
+
+    def _init_weights(self, m):
+        if isinstance(m, (nn.Conv1d, nn.Linear)):
+            nn.init.normal_(m.weight, mean=0, std=0.02)
+            nn.init.zeros_(m.bias)
 
     def forward(self, mels, mel_masks: torch.Tensor):
         """
@@ -194,8 +207,9 @@ class SpeakerEncoder(nn.Module):
 
         # Avg Pooling
         x = x * mel_masks
-        x = torch.sum(x, dim=2) / torch.sum(mel_masks, dim=2)
-        x = self.out_proj(x)[..., None]
+        x = self.out_proj(x)
+        x = torch.sum(x, dim=-1) / torch.sum(mel_masks, dim=-1)
+        x = x[..., None]
 
         return x
 

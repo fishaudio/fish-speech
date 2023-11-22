@@ -24,14 +24,14 @@ win_length: 2048
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/vq_train_filelist.txt
+  filelist: data/filelist.split.train
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/vq_val_filelist.txt
+  filelist: data/filelist.split.valid
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
 
@@ -51,7 +51,7 @@ model:
 
   text_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
-    in_channels: 1024
+    in_channels: 2048
     out_channels: 128
     hidden_channels: 192
     hidden_channels_ffn: 768

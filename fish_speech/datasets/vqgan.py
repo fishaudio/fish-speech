@@ -94,7 +94,7 @@ class VQGANCollator:
             )
             features.append(
                 torch.nn.functional.pad(
-                    x["features"], (0, 0, 0, feature_maxlen - len(x["features"]))
+                    x["features"], (0, feature_maxlen - len(x["features"]))
                 )
             )
 
