@@ -89,7 +89,7 @@ class VQGAN(L.LightningModule):
         audios = audios[:, None, :]
 
         audios = audios.float()
-        features = features.float()
+        # features = features.long()
 
         with torch.no_grad():
             gt_mels = self.mel_transform(audios)
@@ -152,8 +152,11 @@ class VQGAN(L.LightningModule):
             # then 500 steps 0.1
             # then go back to 0
 
-            beta = self.global_step % 1000
-            beta = min(beta, 500) / 500 * 0.1 + 1e-6
+            if self.global_step < 100000:
+                beta = 1e-6
+            else:
+                beta = self.global_step % 1000
+                beta = min(beta, 500) / 500 * 0.1 + 1e-6
 
             loss_gen_all = (
                 loss_mel * 45 + loss_fm + loss_adv + loss_kl * beta
@@ -231,7 +234,7 @@ class VQGAN(L.LightningModule):
         features, feature_lengths = batch["features"], batch["feature_lengths"]
 
         audios = audios.float()
-        features = features.float()
+        # features = features.float()
         audios = audios[:, None, :]
 
         gt_mels = self.mel_transform(audios)

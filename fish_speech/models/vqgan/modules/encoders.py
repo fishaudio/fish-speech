@@ -28,6 +28,7 @@ class TextEncoder(nn.Module):
         gin_channels=0,
         speaker_cond_layer=0,
         use_vae=True,
+        use_embedding=False,
     ):
         """Text Encoder for VITS model.
 
@@ -45,9 +46,12 @@ class TextEncoder(nn.Module):
         super().__init__()
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
+        self.use_embedding = use_embedding
 
-        # self.proj_in = nn.Conv1d(in_channels, hidden_channels, 1)
-        self.proj_in = nn.Embedding(in_channels, hidden_channels)
+        if use_embedding:
+            self.proj_in = nn.Embedding(in_channels, hidden_channels)
+        else:
+            self.proj_in = nn.Conv1d(in_channels, hidden_channels, 1)
 
         self.encoder = RelativePositionTransformer(
             in_channels=hidden_channels,
@@ -79,7 +83,12 @@ class TextEncoder(nn.Module):
             - x: :math:`[B, T]`
             - x_length: :math:`[B]`
         """
-        x = self.proj_in(x).mT * x_mask
+
+        if self.use_embedding:
+            x = self.proj_in(x.long()).mT * x_mask
+        else:
+            x = self.proj_in(x) * x_mask
+
         x = self.encoder(x, x_mask, g=g)
         x = self.proj_out(x) * x_mask
 
@@ -237,7 +246,9 @@ class VQEncoder(nn.Module):
             in_channels, vq_channels, kernel_size=downsample, stride=downsample
         )
         self.conv_out = nn.Sequential(
-            nn.Upsample(scale_factor=downsample, mode="nearest"),
+            nn.Upsample(scale_factor=downsample, mode="nearest")
+            if downsample > 1
+            else nn.Identity(),
             nn.Conv1d(vq_channels, in_channels, kernel_size=1, stride=1),
         )
 

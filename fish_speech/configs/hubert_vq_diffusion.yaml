@@ -51,7 +51,7 @@ model:
 
   text_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
-    in_channels: 2048
+    in_channels: 128
     out_channels: 128
     hidden_channels: 192
     hidden_channels_ffn: 768
@@ -61,21 +61,20 @@ model:
     dropout: 0.1
     use_vae: false
     gin_channels: 512
-    speaker_cond_layer: 2
+    speaker_cond_layer: 0
 
   vq_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
-    in_channels: 1024
-    vq_channels: 1024
-    codebook_size: 2048
-    downsample: 2
-    kmeans_ckpt: results/hubert-vq-pretrain/kmeans.pt
+    in_channels: 128
+    vq_channels: 128
+    codebook_size: 4096
+    downsample: 1
 
   speaker_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.SpeakerEncoder
     in_channels: 128
     hidden_channels: 192
-    out_channels: 512
+    out_channels: 128
     num_heads: 2
     num_layers: 4
     p_dropout: 0.1
@@ -103,6 +102,14 @@ model:
     n_mels: ${num_mels}
     f_min: 40
     f_max: 16000
+
+  feature_mel_transform:
+    _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
+    sample_rate: 32000
+    n_fft: 2048
+    hop_length: 640
+    win_length: 2048
+    n_mels: 128
 
   optimizer:
     _target_: torch.optim.AdamW
