@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: hubert_vq_diffusion
+project: vq_diffusion
 
 # Lightning Trainer
 trainer:
@@ -15,11 +15,11 @@ trainer:
   max_steps: 1_000_000
   val_check_interval: 5000
 
-sample_rate: 44100
-hop_length: 512
-num_mels: 128
-n_fft: 2048
-win_length: 2048
+sample_rate: 24000
+hop_length: 256
+num_mels: 100
+n_fft: 1024
+win_length: 1024
 
 # Dataset Configuration
 train_dataset:
@@ -48,6 +48,7 @@ model:
   _target_: fish_speech.models.vq_diffusion.lit_module.VQDiffusion
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
+  speaker_use_feats: true
 
   text_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
@@ -80,18 +81,14 @@ model:
     p_dropout: 0.1
   
   denoiser:
-    _target_: fish_speech.models.vq_diffusion.convnext_1d.ConvNext1DModel
-    in_channels: 256
-    out_channels: 128
-    intermediate_dim: 512
-    # condition_dim: 128
-    mlp_dim: 2048
-    num_layers: 20
-    dilation_cycle_length: 2
-    time_embedding_type: "positional"
+    _target_: fish_speech.models.vq_diffusion.wavenet.WaveNet
+    d_encoder: 128
+    mel_channels: 100
+    residual_channels: 384
+    residual_layers: 20
 
   vocoder:
-    _target_: fish_speech.models.vq_diffusion.adamos.ADaMoSHiFiGANV1
+    _target_: fish_speech.models.vq_diffusion.bigvgan.BigVGAN
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -100,8 +97,8 @@ model:
     hop_length: ${hop_length}
     win_length: ${win_length}
     n_mels: ${num_mels}
-    f_min: 40
-    f_max: 16000
+    f_min: 0
+    f_max: 12000
 
   feature_mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram

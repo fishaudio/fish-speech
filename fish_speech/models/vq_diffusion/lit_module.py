@@ -36,6 +36,7 @@ class VQDiffusion(L.LightningModule):
         vocoder: nn.Module,
         hop_length: int = 640,
         sample_rate: int = 32000,
+        speaker_use_feats: bool = False,
     ):
         super().__init__()
 
@@ -58,6 +59,7 @@ class VQDiffusion(L.LightningModule):
         self.vocoder = vocoder
         self.hop_length = hop_length
         self.sampling_rate = sample_rate
+        self.speaker_use_feats = speaker_use_feats
 
         # Freeze vocoder
         for param in self.vocoder.parameters():
@@ -107,7 +109,11 @@ class VQDiffusion(L.LightningModule):
             gt_mels.dtype
         )
 
-        speaker_features = self.speaker_encoder(gt_mels, mel_masks)
+        if self.speaker_use_feats:
+            speaker_features = self.speaker_encoder(features, feature_masks)
+        else:
+            speaker_features = self.speaker_encoder(gt_mels, mel_masks)
+
         # vq_features is 50 hz, need to convert to true mel size
         text_features = self.text_encoder(features, feature_masks)
         text_features, vq_loss = self.vq_encoder(text_features, feature_masks)
@@ -184,7 +190,10 @@ class VQDiffusion(L.LightningModule):
             gt_mels.dtype
         )
 
-        speaker_features = self.speaker_encoder(gt_mels, mel_masks)
+        if self.speaker_use_feats:
+            speaker_features = self.speaker_encoder(features, feature_masks)
+        else:
+            speaker_features = self.speaker_encoder(gt_mels, mel_masks)
 
         # vq_features is 50 hz, need to convert to true mel size
         text_features = self.text_encoder(features, feature_masks)
