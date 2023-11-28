@@ -13,7 +13,7 @@ trainer:
   gradient_clip_algorithm: 'norm'
   precision: 16-mixed
   max_steps: 1_000_000
-  val_check_interval: 1000
+  val_check_interval: 5000
 
 sample_rate: 44100
 hop_length: 512
@@ -67,7 +67,7 @@ model:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
     in_channels: 128
     vq_channels: 128
-    codebook_size: 4096
+    codebook_size: 16384
     downsample: 1
 
   speaker_encoder:

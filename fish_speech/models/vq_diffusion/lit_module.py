@@ -218,7 +218,7 @@ class VQDiffusion(L.LightningModule):
             # Run vocoder on fp32
             fake_audios = self.vocoder.decode(sampled_mels.float())
 
-        mel_loss = F.l1_loss(gt_mels, sampled_mels)
+        mel_loss = F.l1_loss(gt_mels * mel_masks, sampled_mels * mel_masks)
         self.log(
             "val/mel_loss",
             mel_loss,
