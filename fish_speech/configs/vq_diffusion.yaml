@@ -50,6 +50,12 @@ model:
   hop_length: ${hop_length}
   speaker_use_feats: true
 
+  downsample:
+    _target_: fish_speech.models.vq_diffusion.lit_module.ConvDownSample
+    dims: [128, 512, 128]
+    kernel_sizes: [3, 3]
+    strides: [2, 2]
+
   text_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
     in_channels: 128
@@ -104,7 +110,7 @@ model:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: 32000
     n_fft: 2048
-    hop_length: 1280
+    hop_length: 320
     win_length: 2048
     n_mels: 128
 
