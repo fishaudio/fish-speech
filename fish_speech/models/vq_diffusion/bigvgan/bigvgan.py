@@ -366,7 +366,9 @@ class BigVGAN(nn.Module):
 
     @torch.no_grad()
     def decode(self, mel):
+        mel = F.pad(mel, (0, 10), "reflect")
         y = self.model(mel)
+        y = y[:, :, : -self.h.hop_size * 10]
         return y
 
     @torch.no_grad()

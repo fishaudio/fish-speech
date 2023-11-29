@@ -12,7 +12,7 @@ trainer:
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
   precision: 16-mixed
-  max_steps: 1_000_000
+  max_steps: 300_000
   val_check_interval: 5000
 
 sample_rate: 24000
@@ -84,7 +84,7 @@ model:
     _target_: fish_speech.models.vq_diffusion.wavenet.WaveNet
     d_encoder: 128
     mel_channels: 100
-    residual_channels: 384
+    residual_channels: 512
     residual_layers: 20
 
   vocoder:
@@ -104,7 +104,7 @@ model:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: 32000
     n_fft: 2048
-    hop_length: 640
+    hop_length: 1280
     win_length: 2048
     n_mels: 128
 
