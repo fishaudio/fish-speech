@@ -11,7 +11,7 @@ trainer:
   strategy: ddp_find_unused_parameters_true
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  precision: 16-mixed
+  precision: bf16-mixed
   max_steps: 300_000
   val_check_interval: 5000
 
