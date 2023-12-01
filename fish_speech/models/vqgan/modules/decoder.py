@@ -19,12 +19,13 @@ class Generator(nn.Module):
         upsample_initial_channel,
         upsample_kernel_sizes,
         gin_channels=0,
+        ckpt_path=None,
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
-        self.conv_pre = nn.Conv1d(
-            initial_channel, upsample_initial_channel, 7, 1, padding=3
+        self.conv_pre = weight_norm(
+            nn.Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
         )
         resblock = ResBlock1 if resblock == "1" else ResBlock2
 
@@ -50,11 +51,14 @@ class Generator(nn.Module):
             ):
                 self.resblocks.append(resblock(ch, k, d))
 
-        self.conv_post = nn.Conv1d(ch, 1, 7, 1, padding=3, bias=False)
+        self.conv_post = weight_norm(nn.Conv1d(ch, 1, 7, 1, padding=3))
         self.ups.apply(init_weights)
 
         if gin_channels != 0:
             self.cond = nn.Linear(gin_channels, upsample_initial_channel)
+
+        if ckpt_path is not None:
+            self.load_state_dict(torch.load(ckpt_path)["generator"], strict=True)
 
     def forward(self, x, g=None):
         x = self.conv_pre(x)
@@ -225,3 +229,42 @@ class ResBlock2(nn.Module):
     def remove_weight_norm(self):
         for l in self.convs:
             remove_weight_norm(l)
+
+
+if __name__ == "__main__":
+    import librosa
+    import soundfile as sf
+
+    from fish_speech.models.vqgan.spectrogram import LogMelSpectrogram
+
+    gen = Generator(
+        80,
+        "1",
+        [3, 7, 11],
+        [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        [8, 8, 2, 2],
+        512,
+        [16, 16, 4, 4],
+        ckpt_path="checkpoints/hifigan-v1-universal-22050/g_02500000",
+    )
+
+    spec = LogMelSpectrogram(
+        sample_rate=22050,
+        n_fft=1024,
+        win_length=1024,
+        hop_length=256,
+        n_mels=80,
+        f_min=0.0,
+        f_max=8000.0,
+    )
+
+    audio = librosa.load("data/StarRail/Chinese/符玄/archive_fuxuan_9.wav", sr=22050)[0]
+    audio = torch.from_numpy(audio).unsqueeze(0)
+
+    spec = spec(audio)
+    print(spec.shape)
+
+    audio = gen(spec)
+    print(audio.shape)
+
+    sf.write("test.wav", audio.detach().squeeze().numpy(), 22050)

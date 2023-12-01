@@ -14,6 +14,58 @@ from fish_speech.models.vqgan.utils import sequence_mask
 
 
 # * Ready and Tested
+class ConvDownSampler(nn.Module):
+    def __init__(
+        self,
+        dims: list,
+        kernel_sizes: list,
+        strides: list,
+    ):
+        super().__init__()
+
+        self.dims = dims
+        self.kernel_sizes = kernel_sizes
+        self.strides = strides
+        self.total_strides = np.prod(self.strides)
+
+        self.convs = nn.ModuleList(
+            [
+                nn.ModuleList(
+                    [
+                        nn.Conv1d(
+                            in_channels=self.dims[i],
+                            out_channels=self.dims[i + 1],
+                            kernel_size=self.kernel_sizes[i],
+                            stride=self.strides[i],
+                            padding=(self.kernel_sizes[i] - 1) // 2,
+                        ),
+                        nn.LayerNorm(self.dims[i + 1], elementwise_affine=True),
+                        nn.GELU(),
+                    ]
+                )
+                for i in range(len(self.dims) - 1)
+            ]
+        )
+
+        self.apply(self.init_weights)
+
+    def init_weights(self, m):
+        if isinstance(m, nn.Conv1d):
+            nn.init.normal_(m.weight, std=0.02)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.ones_(m.weight)
+            nn.init.zeros_(m.bias)
+
+    def forward(self, x):
+        for conv, norm, act in self.convs:
+            x = conv(x)
+            x = norm(x.mT).mT
+            x = act(x)
+
+        return x
+
+
+# * Ready and Tested
 class TextEncoder(nn.Module):
     def __init__(
         self,
@@ -229,7 +281,7 @@ class VQEncoder(nn.Module):
         in_channels: int = 1024,
         vq_channels: int = 1024,
         codebook_size: int = 2048,
-        downsample: int = 2,
+        downsample: int = 1,
         kmeans_ckpt: Optional[str] = None,
     ):
         super().__init__()

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.parametrizations import spectral_norm, weight_norm
+from torch.nn.utils import spectral_norm, weight_norm
 
 from fish_speech.models.vqgan.modules.modules import LRELU_SLOPE
 from fish_speech.models.vqgan.utils import get_padding
@@ -91,11 +91,12 @@ class DiscriminatorS(nn.Module):
         norm_f = weight_norm if use_spectral_norm == False else spectral_norm
         self.convs = nn.ModuleList(
             [
-                norm_f(nn.Conv1d(1, 16, 15, 1, padding=7)),
-                norm_f(nn.Conv1d(16, 64, 41, 4, groups=4, padding=20)),
-                norm_f(nn.Conv1d(64, 256, 41, 4, groups=16, padding=20)),
-                norm_f(nn.Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
-                norm_f(nn.Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
+                norm_f(nn.Conv1d(1, 128, 15, 1, padding=7)),
+                norm_f(nn.Conv1d(128, 128, 41, 2, groups=4, padding=20)),
+                norm_f(nn.Conv1d(128, 256, 41, 2, groups=16, padding=20)),
+                norm_f(nn.Conv1d(256, 512, 41, 4, groups=16, padding=20)),
+                norm_f(nn.Conv1d(512, 1024, 41, 4, groups=16, padding=20)),
+                norm_f(nn.Conv1d(1024, 1024, 41, 1, groups=16, padding=20)),
                 norm_f(nn.Conv1d(1024, 1024, 5, 1, padding=2)),
             ]
         )
@@ -116,15 +117,33 @@ class DiscriminatorS(nn.Module):
 
 
 class EnsembleDiscriminator(nn.Module):
-    def __init__(self, use_spectral_norm=False):
+    def __init__(self, ckpt_path=None):
         super(EnsembleDiscriminator, self).__init__()
         periods = [2, 3, 5, 7, 11]  # [1, 2, 3, 5, 7, 11]
 
-        discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
-        discs = discs + [
-            DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
-        ]
+        discs = [DiscriminatorS(use_spectral_norm=True)]
+        discs = discs + [DiscriminatorP(i, use_spectral_norm=False) for i in periods]
         self.discriminators = nn.ModuleList(discs)
+
+        if ckpt_path is not None:
+            self.restore_from_ckpt(ckpt_path)
+
+    def restore_from_ckpt(self, ckpt_path):
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        mpd, msd = ckpt["mpd"], ckpt["msd"]
+
+        all_keys = {}
+        for k, v in mpd.items():
+            keys = k.split(".")
+            keys[1] = str(int(keys[1]) + 1)
+            all_keys[".".join(keys)] = v
+
+        for k, v in msd.items():
+            if not k.startswith("discriminators.0"):
+                continue
+            all_keys[k] = v
+
+        self.load_state_dict(all_keys, strict=True)
 
     def forward(self, y, y_hat):
         y_d_rs = []
@@ -140,3 +159,9 @@ class EnsembleDiscriminator(nn.Module):
             fmap_gs.append(fmap_g)
 
         return y_d_rs, y_d_gs, fmap_rs, fmap_gs
+
+
+if __name__ == "__main__":
+    m = EnsembleDiscriminator(
+        ckpt_path="checkpoints/hifigan-v1-universal-22050/do_02500000"
+    )

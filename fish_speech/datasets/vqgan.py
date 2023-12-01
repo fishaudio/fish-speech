@@ -42,22 +42,16 @@ class VQGANDataset(Dataset):
         file = self.files[idx]
 
         audio, _ = librosa.load(file, sr=self.sample_rate, mono=True)
-        features = np.load(file.with_suffix(".npy"))  # (T, 1024)
 
         # Slice audio and features
-        if self.slice_frames is not None and features.shape[0] > self.slice_frames:
-            start = np.random.randint(0, features.shape[0] - self.slice_frames)
-            features = features[start : start + self.slice_frames]
-
-            start_in_seconds, end_in_seconds = (
-                start * 320 / 16000,
-                (start + self.slice_frames) * 320 / 16000,
+        if (
+            self.slice_frames is not None
+            and audio.shape[0] > self.slice_frames * self.hop_length
+        ):
+            start = np.random.randint(
+                0, audio.shape[0] - self.slice_frames * self.hop_length
             )
-            audio = audio[
-                int(start_in_seconds * self.sample_rate) : int(
-                    end_in_seconds * self.sample_rate
-                )
-            ]
+            audio = audio[start : start + self.slice_frames * self.hop_length]
 
         if len(audio) == 0:
             return None
@@ -68,7 +62,6 @@ class VQGANDataset(Dataset):
 
         return {
             "audio": torch.from_numpy(audio),
-            "features": torch.from_numpy(features),
         }
 
     def __getitem__(self, idx):
@@ -85,28 +78,18 @@ class VQGANCollator:
         batch = [x for x in batch if x is not None]
 
         audio_lengths = torch.tensor([len(x["audio"]) for x in batch])
-        feature_lengths = torch.tensor([len(x["features"]) for x in batch])
-
         audio_maxlen = audio_lengths.max()
-        feature_maxlen = feature_lengths.max()
 
         # Rounds up to nearest multiple of 2 (audio_lengths)
-        audios, features = [], []
+        audios = []
         for x in batch:
             audios.append(
                 torch.nn.functional.pad(x["audio"], (0, audio_maxlen - len(x["audio"])))
             )
-            features.append(
-                torch.nn.functional.pad(
-                    x["features"], (0, feature_maxlen - len(x["features"]))
-                )
-            )
 
         return {
             "audios": torch.stack(audios),
-            "features": torch.stack(features),
             "audio_lengths": audio_lengths,
-            "feature_lengths": feature_lengths,
         }
 
 

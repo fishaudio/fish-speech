@@ -83,7 +83,8 @@ class VQDiffusion(L.LightningModule):
         vq_encoder: VQEncoder,
         speaker_encoder: SpeakerEncoder,
         text_encoder: TextEncoder,
-        denoiser: ConvNext1DModel,
+        decoder: ConvNext1DModel,
+        postnet: ConvNext1DModel,
         vocoder: nn.Module,
         hop_length: int = 640,
         sample_rate: int = 32000,
@@ -109,7 +110,8 @@ class VQDiffusion(L.LightningModule):
         self.vq_encoder = vq_encoder
         self.speaker_encoder = speaker_encoder
         self.text_encoder = text_encoder
-        self.denoiser = denoiser
+        self.decoder = decoder
+        self.postnet = postnet
         self.downsample = downsample
 
         self.vocoder = vocoder
@@ -187,37 +189,38 @@ class VQDiffusion(L.LightningModule):
             text_features, size=gt_mels.shape[2], mode="nearest"
         )
 
-        text_features = text_features + speaker_features
-
         # Sample noise that we'll add to the images
-        normalized_gt_mels = self.normalize_mels(gt_mels)
-        noise = torch.randn_like(normalized_gt_mels)
-
-        # Sample a random timestep for each image
-        timesteps = torch.randint(
-            0,
-            self.noise_scheduler.config.num_train_timesteps,
-            (normalized_gt_mels.shape[0],),
-            device=normalized_gt_mels.device,
-        ).long()
-
-        # Add noise to the clean images according to the noise magnitude at each timestep
-        # (this is the forward diffusion process)
-        noisy_images = self.noise_scheduler.add_noise(
-            normalized_gt_mels, noise, timesteps
-        )
+        normalized_gt_mels = gt_mels / 2.303
 
         # Predict
-        model_output = self.denoiser(noisy_images, timesteps, mel_masks, text_features)
+        mels = self.decoder(text_features, mel_masks, g=speaker_features)
+        t = torch.tensor([0] * mels.shape[0], device=mels.device, dtype=torch.long)
+        postnet_mels = self.postnet(mels, t, mel_masks)
 
         # MSE loss without the mask
-        noise_loss = (torch.abs(model_output * mel_masks - noise * mel_masks)).sum() / (
-            mel_masks.sum() * gt_mels.shape[1]
+        mel_loss = F.l1_loss(
+            mels * mel_masks,
+            normalized_gt_mels * mel_masks,
+        )
+
+        postnet_loss = F.l1_loss(
+            postnet_mels * mel_masks,
+            normalized_gt_mels * mel_masks,
         )
 
         self.log(
-            "train/noise_loss",
-            noise_loss,
+            "train/mel_loss",
+            mel_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
+
+        self.log(
+            "train/postnet_loss",
+            postnet_loss,
             on_step=True,
             on_epoch=False,
             prog_bar=True,
@@ -235,7 +238,7 @@ class VQDiffusion(L.LightningModule):
             sync_dist=True,
         )
 
-        return noise_loss + vq_loss
+        return vq_loss + mel_loss + postnet_loss
 
     def validation_step(self, batch: Any, batch_idx: int):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
@@ -278,26 +281,12 @@ class VQDiffusion(L.LightningModule):
             text_features, size=gt_mels.shape[2], mode="nearest"
         )
 
-        text_features = text_features + speaker_features
-
         # Begin sampling
-        sampled_mels = torch.randn_like(gt_mels)
-        self.noise_scheduler.set_timesteps(50)
+        mels = self.decoder(text_features, mel_masks, g=speaker_features)
+        t = torch.tensor([0] * mels.shape[0], device=mels.device, dtype=torch.long)
+        postnet_mels = self.postnet(mels, t, mel_masks)
 
-        for t in tqdm(self.noise_scheduler.timesteps):
-            timesteps = torch.tensor([t], device=sampled_mels.device, dtype=torch.long)
-
-            # 1. predict noise model_output
-            model_output = self.denoiser(
-                sampled_mels, timesteps, mel_masks, text_features
-            )
-
-            # 2. compute previous image: x_t -> x_t-1
-            sampled_mels = self.noise_scheduler.step(
-                model_output, t, sampled_mels
-            ).prev_sample
-
-        sampled_mels = self.denormalize_mels(sampled_mels)
+        sampled_mels = postnet_mels * 2.303
         sampled_mels = sampled_mels * mel_masks
 
         with torch.autocast(device_type=sampled_mels.device.type, enabled=False):
