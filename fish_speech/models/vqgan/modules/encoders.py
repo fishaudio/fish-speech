@@ -1,3 +1,4 @@
+from math import log2
 from typing import Optional
 
 import torch
@@ -283,16 +284,34 @@ class VQEncoder(nn.Module):
         codebook_size: int = 2048,
         downsample: int = 1,
         kmeans_ckpt: Optional[str] = None,
+        use_lfq: bool = False,
     ):
         super().__init__()
 
-        self.vq = VectorQuantize(
-            dim=vq_channels,
-            codebook_size=codebook_size,
-            threshold_ema_dead_code=2,
-            kmeans_init=False,
-            channel_last=False,
-        )
+        if use_lfq:
+            assert 2**vq_channels == codebook_size, (
+                "LFQ requires 2 ** vq_channels == codebook_size. "
+                f"Got vq_channels={vq_channels} and codebook_size={codebook_size}"
+            )
+
+            self.ln = nn.LayerNorm(vq_channels, eps=1e-5)
+            self.vq = LFQ(
+                dim=vq_channels,
+                codebook_size=codebook_size,
+                entropy_loss_weight=0.1,
+                commitment_loss_weight=1,
+                diversity_gamma=2.5,
+            )
+        else:
+            self.vq = VectorQuantize(
+                dim=vq_channels,
+                codebook_size=codebook_size,
+                threshold_ema_dead_code=2,
+                kmeans_init=False,
+                channel_last=False,
+            )
+
+        self.use_lfq = use_lfq
         self.downsample = downsample
         self.conv_in = nn.Conv1d(
             in_channels, vq_channels, kernel_size=downsample, stride=downsample
@@ -338,7 +357,14 @@ class VQEncoder(nn.Module):
             x_mask = F.pad(x_mask, (0, self.downsample - x_len % self.downsample))
 
         x = self.conv_in(x)
-        q, _, loss = self.vq(x)
+
+        if self.use_lfq:
+            x = self.ln(x.mT)
+            q, _, loss = self.vq(x)
+            q = q.mT
+        else:
+            q, _, loss = self.vq(x)
+
         x = self.conv_out(q) * x_mask
         x = x[:, :, :x_len]
 
