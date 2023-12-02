@@ -360,12 +360,12 @@ class VQEncoder(nn.Module):
 
         if self.use_lfq:
             x = self.ln(x.mT)
-            q, _, loss = self.vq(x)
+            q, indices, loss = self.vq(x)
             q = q.mT
         else:
-            q, _, loss = self.vq(x)
+            q, indices, loss = self.vq(x)
 
         x = self.conv_out(q) * x_mask
         x = x[:, :, :x_len]
 
-        return x, loss
+        return x, indices, loss

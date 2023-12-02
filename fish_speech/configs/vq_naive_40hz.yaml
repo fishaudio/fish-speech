@@ -2,17 +2,17 @@ defaults:
   - base
   - _self_
 
-project: vq_naive_lfq
+project: vq_naive_40hz
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
-  devices: [1]
+  devices: 4
   strategy: ddp_find_unused_parameters_true
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
   precision: bf16-mixed
-  max_steps: 100_000
+  max_steps: 1_000_000
   val_check_interval: 5000
 
 sample_rate: 22050
@@ -40,8 +40,8 @@ data:
   _target_: fish_speech.datasets.vqgan.VQGANDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
-  num_workers: 8
-  batch_size: 128
+  num_workers: 4
+  batch_size: 32
   val_batch_size: 16
 
 # Model Configuration
@@ -52,9 +52,9 @@ model:
 
   downsample:
     _target_: fish_speech.models.vq_diffusion.lit_module.ConvDownSample
-    dims: ["${num_mels}", 512, 256]
-    kernel_sizes: [3, 3]
-    strides: [2, 2]
+    dims: ["${num_mels}", 256]
+    kernel_sizes: [3]
+    strides: [2]
 
   mel_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.TextEncoder
@@ -71,10 +71,9 @@ model:
   vq_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
     in_channels: 256
-    vq_channels: 14
-    codebook_size: 16384
+    vq_channels: 256
+    codebook_size: 4096
     downsample: 1
-    use_lfq: true
 
   speaker_encoder:
     _target_: fish_speech.models.vqgan.modules.encoders.SpeakerEncoder
