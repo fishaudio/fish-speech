@@ -18,7 +18,7 @@ hop_length: 256
 num_mels: 80
 n_fft: 1024
 win_length: 1024
-segment_size: 512
+segment_size: 256
 
 # Dataset Configuration
 train_dataset:
@@ -39,7 +39,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 16
+  batch_size: 32
   val_batch_size: 4
 
 # Model Configuration
@@ -48,7 +48,7 @@ model:
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   segment_size: 8192
-  freeze_hifigan: true
+  freeze_hifigan: false
 
   downsample:
     _target_: fish_speech.models.vq_diffusion.lit_module.ConvDownSample

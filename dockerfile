@@ -24,12 +24,10 @@ ENV SHELL=/usr/bin/zsh
 # Setup flash-attn
 RUN pip3 install --upgrade pip && \
     pip3 install ninja packaging && \
-    MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
+    MAX_JOBS=4 pip3 install git+https://github.com/facebookresearch/xformers.git@v0.0.22
 
 # Project Env
 WORKDIR /exp
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt && pip3 install encodec --no-deps
 
 COPY . .
 RUN pip3 install -e .
