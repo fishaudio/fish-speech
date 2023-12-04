@@ -293,7 +293,6 @@ class VQEncoder(nn.Module):
                 codebook_size=codebook_size,
                 threshold_ema_dead_code=2,
                 kmeans_init=False,
-                channel_last=False,
                 groups=codebook_groups,
                 num_quantizers=1,
             )
@@ -303,9 +302,9 @@ class VQEncoder(nn.Module):
                 codebook_size=codebook_size,
                 threshold_ema_dead_code=2,
                 kmeans_init=False,
-                channel_last=False,
             )
 
+        self.codebook_groups = codebook_groups
         self.downsample = downsample
         self.conv_in = nn.Conv1d(
             in_channels, vq_channels, kernel_size=downsample, stride=downsample
@@ -326,7 +325,11 @@ class VQEncoder(nn.Module):
             x_mask = F.pad(x_mask, (0, self.downsample - x_len % self.downsample))
 
         x = self.conv_in(x)
-        q, indices, loss = self.vq(x)
+        q, indices, loss = self.vq(x.mT)
+        q = q.mT
+
+        if self.codebook_groups > 1:
+            loss = loss.mean()
 
         x = self.conv_out(q) * x_mask
         x = x[:, :, :x_len]

@@ -19,6 +19,7 @@ class WN(nn.Module):
         n_layers,
         gin_channels=0,
         p_dropout=0,
+        out_channels=None,
     ):
         super(WN, self).__init__()
         assert kernel_size % 2 == 1
@@ -56,6 +57,10 @@ class WN(nn.Module):
             res_skip_layer = weight_norm(res_skip_layer, name="weight")
             self.res_skip_layers.append(res_skip_layer)
 
+        self.out_channels = out_channels
+        if out_channels is not None:
+            self.out_layer = nn.Conv1d(hidden_channels, out_channels, 1)
+
     def forward(self, x, x_mask, g=None, **kwargs):
         output = torch.zeros_like(x)
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
@@ -81,7 +86,13 @@ class WN(nn.Module):
                 output = output + res_skip_acts[:, self.hidden_channels :, :]
             else:
                 output = output + res_skip_acts
-        return output * x_mask
+
+        x = output * x_mask
+
+        if self.out_channels is not None:
+            x = self.out_layer(x)
+
+        return x
 
     def remove_weight_norm(self):
         if self.gin_channels != 0:

@@ -72,14 +72,16 @@ model:
     downsample: 1
 
   decoder:
+    _target_: fish_speech.models.vqgan.modules.modules.WN
     hidden_channels: 256
+    out_channels: ${num_mels}
     kernel_size: 3
     dilation_rate: 2
     n_layers: 6
 
   generator:
     _target_: fish_speech.models.vqgan.modules.decoder.Generator
-    initial_channel: 256
+    initial_channel: ${num_mels}
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
     resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
@@ -119,7 +121,6 @@ callbacks:
     sub_module: 
       - generator
       - discriminator
-      - text_encoder
+      - mel_encoder
       - vq_encoder
-      - speaker_encoder
       - decoder
