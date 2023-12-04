@@ -4,7 +4,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from vector_quantize_pytorch import LFQ, VectorQuantize
+from vector_quantize_pytorch import LFQ, GroupedResidualVQ, VectorQuantize
 
 from fish_speech.models.vqgan.modules.modules import WN
 from fish_speech.models.vqgan.modules.transformer import (
@@ -283,24 +283,19 @@ class VQEncoder(nn.Module):
         vq_channels: int = 1024,
         codebook_size: int = 2048,
         downsample: int = 1,
-        kmeans_ckpt: Optional[str] = None,
-        use_lfq: bool = False,
+        codebook_groups: int = 1,
     ):
         super().__init__()
 
-        if use_lfq:
-            assert 2**vq_channels == codebook_size, (
-                "LFQ requires 2 ** vq_channels == codebook_size. "
-                f"Got vq_channels={vq_channels} and codebook_size={codebook_size}"
-            )
-
-            self.ln = nn.LayerNorm(vq_channels, eps=1e-5)
-            self.vq = LFQ(
+        if codebook_groups > 1:
+            self.vq = GroupedResidualVQ(
                 dim=vq_channels,
                 codebook_size=codebook_size,
-                entropy_loss_weight=0.1,
-                commitment_loss_weight=1,
-                diversity_gamma=2.5,
+                threshold_ema_dead_code=2,
+                kmeans_init=False,
+                channel_last=False,
+                groups=codebook_groups,
+                num_quantizers=1,
             )
         else:
             self.vq = VectorQuantize(
@@ -311,7 +306,6 @@ class VQEncoder(nn.Module):
                 channel_last=False,
             )
 
-        self.use_lfq = use_lfq
         self.downsample = downsample
         self.conv_in = nn.Conv1d(
             in_channels, vq_channels, kernel_size=downsample, stride=downsample
@@ -323,31 +317,6 @@ class VQEncoder(nn.Module):
             nn.Conv1d(vq_channels, in_channels, kernel_size=1, stride=1),
         )
 
-        if kmeans_ckpt is not None:
-            self.init_weights(kmeans_ckpt)
-
-    def init_weights(self, kmeans_ckpt):
-        torch.nn.init.normal_(
-            self.conv_in.weight,
-            mean=1 / (self.conv_in.weight.shape[0] * self.conv_in.weight.shape[-1]),
-            std=1e-2,
-        )
-        self.conv_in.bias.data.zero_()
-
-        kmeans_ckpt = "results/hubert-vq-pretrain/kmeans.pt"
-        kmeans_ckpt = torch.load(kmeans_ckpt, map_location="cpu")
-
-        centroids = kmeans_ckpt["centroids"]
-        bins = kmeans_ckpt["bins"]
-        state_dict = {
-            "_codebook.initted": torch.Tensor([True]),
-            "_codebook.cluster_size": bins,
-            "_codebook.embed": centroids,
-            "_codebook.embed_avg": centroids.clone(),
-        }
-
-        self.vq.load_state_dict(state_dict, strict=True)
-
     def forward(self, x, x_mask):
         # x: [B, C, T], x_mask: [B, 1, T]
         x_len = x.shape[2]
@@ -357,13 +326,7 @@ class VQEncoder(nn.Module):
             x_mask = F.pad(x_mask, (0, self.downsample - x_len % self.downsample))
 
         x = self.conv_in(x)
-
-        if self.use_lfq:
-            x = self.ln(x.mT)
-            q, indices, loss = self.vq(x)
-            q = q.mT
-        else:
-            q, indices, loss = self.vq(x)
+        q, indices, loss = self.vq(x)
 
         x = self.conv_out(q) * x_mask
         x = x[:, :, :x_len]
