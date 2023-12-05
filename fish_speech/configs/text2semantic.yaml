@@ -1,0 +1,72 @@
+defaults:
+  - base
+  - _self_
+
+project: text2semantic_400m
+
+# Lightning Trainer
+trainer:
+  accumulate_grad_batches: 2
+  gradient_clip_val: 1.0
+  gradient_clip_algorithm: 'norm'
+  max_steps: 1_000_000
+  precision: bf16-true
+
+# Dataset Configuration
+tokenizer:
+  _target_: transformers.AutoTokenizer.from_pretrained
+  pretrained_model_name_or_path: 01-ai/Yi-34B
+  padding_side: right
+  truncation_side: right
+
+# Dataset Configuration
+train_dataset:
+  _target_: fish_speech.datasets.text.StreamTextDataset
+  repo: fishaudio/cn-hubert-25hz-vq
+  prefix: 'data/train'
+
+val_dataset:
+  _target_: fish_speech.datasets.text.StreamTextDataset
+  repo: fishaudio/cn-hubert-25hz-vq
+  prefix: 'data/test'
+
+data:
+  _target_: fish_speech.datasets.text.TextDataModule
+  train_dataset: ${train_dataset}
+  val_dataset: ${val_dataset}
+  num_workers: 4
+  batch_size: 32
+  tokenizer: ${tokenizer}
+
+# Model Configuration
+model:
+  _target_: fish_speech.models.text2semantic.TextToSemantic
+
+  model:
+    # ~ 130M parameters, for debug purpose
+    _target_: fish_speech.models.text2semantic.modules.FishSpeechTransformer
+    vocab_size: 64000
+    codebook_size: 1032  # 1024 + 2 (bos, eos), make it divisible by 8
+    num_codebooks: 1
+    hidden_size: 1024
+    nhead: 16
+    num_encoder_layers: 12
+    num_decoder_layers: 12
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 1e-4
+    weight_decay: 0.1
+    betas: [0.9, 0.95]
+    eps: 1e-5
+
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.LambdaLR
+    _partial_: true
+    lr_lambda:
+      _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+      _partial_: true
+      num_warmup_steps: 2000
+      num_training_steps: ${trainer.max_steps}
+      final_lr_ratio: 0.1

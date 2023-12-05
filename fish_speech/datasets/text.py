@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Optional, Union
 import numpy as np
 import pyarrow.parquet as pq
 import torch
+import torch.nn.functional as F
 from datasets.download.streaming_download_manager import xopen
 from huggingface_hub import HfApi
 from lightning import LightningDataModule
@@ -96,6 +98,25 @@ class StreamTextDataset(IterableDataset):
                 log.exception(f"Failed to parse {filename}: {e}")
 
     def parse_data(self, filename: str):
+        for data in self.parse_data_internal(filename):
+            text = data["text"]
+            expression = re.compile(r"\[INST\] (.*) \[/INST\] (.*) </s>")
+            match = expression.match(text)
+
+            if match is None:
+                continue
+
+            text = match.group(1)
+            semantic = match.group(2)
+
+            # Convert semantic to ids
+            expression = re.compile(r"<semantic_(\d+)>")
+            # 0 and 1 are reserved for <s> and </s>
+            semantic = [0] + [int(i) + 2 for i in expression.findall(semantic)] + [1]
+
+            yield {"text": text, "semantic": [semantic]}
+
+    def parse_data_internal(self, filename: str):
         url = f"https://huggingface.co/datasets/{self.repo}/resolve/main/{filename}"
 
         with xopen(url, mode="rb") as stream:
@@ -242,16 +263,53 @@ class TextDataCollator:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        data = self.tokenizer(
+        encoded_texts = self.tokenizer(
             texts,
             truncation=True,
             padding=True,
             max_length=self.max_length,
             return_tensors="pt",
+            pad_to_multiple_of=8,
         )
 
-        data["labels"] = data["input_ids"].clone()
-        data["labels"][data["attention_mask"] == 0] = -100
+        semantic = [i["semantic"] for i in examples]
+        max_semantic_length = max([len(i[0]) for i in semantic])
+
+        # Make xformers happy
+        if (max_semantic_length - 1) % 8 != 0:
+            max_semantic_length += 8 - (max_semantic_length - 1) % 8
+
+        if max_semantic_length > self.max_length + 1:
+            max_semantic_length = self.max_length + 1
+
+        codes, codes_mask = [], []
+
+        for i in semantic:
+            t = torch.tensor(i)
+            if t.shape[-1] >= max_semantic_length:
+                t = t[..., :max_semantic_length]
+
+            codes.append(
+                F.pad(
+                    t,
+                    (0, max_semantic_length - t.shape[-1]),
+                    value=1,
+                )
+            )
+
+            mask = torch.zeros(max_semantic_length, dtype=torch.long)
+            mask[t.shape[-1] :] = 1
+            codes_mask.append(mask.bool())
+
+        codes = torch.stack(codes)
+        codes_mask = torch.stack(codes_mask)
+
+        data = {
+            "inputs": encoded_texts["input_ids"],
+            "input_mask": encoded_texts["attention_mask"] == 0,
+            "codes": codes,
+            "codes_mask": codes_mask,
+        }
 
         return data
 
