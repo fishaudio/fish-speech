@@ -67,7 +67,7 @@ def main():
     text_features, indices, _ = model.vq_encoder(text_features, feature_masks)
 
     logger.info(
-        f"VQ Encoded, indices: {indices.shape} equavilent to "
+        f"VQ Encoded, indices: {indices.shape} equivalent to "
         + f"{1/(audios.shape[2] / model.sampling_rate / indices.shape[2]):.2f} Hz"
     )
 
