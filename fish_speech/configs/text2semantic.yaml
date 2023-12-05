@@ -15,7 +15,8 @@ trainer:
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: 01-ai/Yi-34B
+  pretrained_model_name_or_path: fishaudio/speech-lm-300m
+  revision: mqtts-phones
   padding_side: right
   truncation_side: right
 
@@ -35,7 +36,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 16
   tokenizer: ${tokenizer}
 
 # Model Configuration
@@ -45,7 +46,7 @@ model:
   model:
     # ~ 130M parameters, for debug purpose
     _target_: fish_speech.models.text2semantic.modules.FishSpeechTransformer
-    vocab_size: 64000
+    vocab_size: 32248
     codebook_size: 1032  # 1024 + 2 (bos, eos), make it divisible by 8
     num_codebooks: 1
     hidden_size: 1024
