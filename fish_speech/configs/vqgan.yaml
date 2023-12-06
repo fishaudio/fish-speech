@@ -51,7 +51,7 @@ model:
   freeze_hifigan: false
 
   downsample:
-    _target_: fish_speech.models.vq_diffusion.lit_module.ConvDownSample
+    _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
     dims: ["${num_mels}", 512, 256]
     kernel_sizes: [3, 3]
     strides: [2, 2]

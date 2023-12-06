@@ -51,6 +51,7 @@ def g2p(text):
     text = symbols_to_japanese(text)
     sentences = re.split(_japanese_marks, text)
     marks = re.findall(_japanese_marks, text)
+    ct = text
     text = []
     for i, sentence in enumerate(sentences):
         if re.match(_japanese_characters, sentence):
@@ -59,5 +60,9 @@ def g2p(text):
 
         if i < len(marks):
             text += [marks[i].replace(" ", "")]
+
+    # Clean empty strings
+    text = [t for t in text if t.strip() != ""]
+    text = ["-" if t == "pau" else t for t in text]
 
     return text

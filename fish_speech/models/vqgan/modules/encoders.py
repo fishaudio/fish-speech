@@ -1,6 +1,7 @@
 from math import log2
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -335,3 +336,9 @@ class VQEncoder(nn.Module):
         x = x[:, :, :x_len]
 
         return x, indices, loss
+
+    def decode(self, indices):
+        q = self.vq.get_output_from_indices(indices).mT
+        x = self.conv_out(q)
+
+        return x

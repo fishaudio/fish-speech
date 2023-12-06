@@ -537,11 +537,21 @@ class FishSpeechTransformer(nn.Module):
         **sampling_kwargs,
     ):
         new_tokens, new_probs = [], []
+        # Sliding context window
+        batch_size = 1
+        back_map = torch.zeros(
+            [batch_size, 1], device=cur_token.device, dtype=torch.long
+        )
 
         for i in range(num_new_tokens):
             next_token, next_prob = self.sample_decoder(
                 cur_token, context, input_pos, **sampling_kwargs
             )
+
+            # index_map = torch.arange(6, device=cur_token.device)
+            # index_map = back_map[:, -1:] + index_map.repeat(batch_size, 1)
+            # add = torch.arange(batch_size, device=index_map.device).unsqueeze(1) #N, 1
+            # index_map = index_map + add * t_length
 
             input_pos += 1
             new_tokens.append(next_token.clone())
@@ -554,6 +564,11 @@ class FishSpeechTransformer(nn.Module):
             cur_token = next_token.view(1, self.num_codebooks, -1)
 
         return new_tokens, new_probs
+
+    def compile(self):
+        self.sampler_decoder = torch.compile(
+            self.sample_decoder, mode="reduce-overhead", fullgraph=True
+        )
 
     @torch.no_grad()
     def inference(self, inputs, prompt=None, max_new_tokens=1024, **sampling_kwargs):

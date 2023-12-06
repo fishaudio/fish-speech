@@ -72,6 +72,7 @@ SYMBOLS_MAPPING = {
     "—": "-",
     "～": "-",
     "~": "-",
+    "・": "-",
     "「": "'",
     "」": "'",
     ";": ",",
@@ -196,6 +197,9 @@ def segments_to_phones(
 
     for segment in segments:
         for phone in segment.phones:
+            if phone.strip() == "":
+                continue
+
             q0 = (segment.language, phone)
             q1 = (None, phone)
 
@@ -206,7 +210,7 @@ def segments_to_phones(
                 phones.append(q1)
                 ids.append(symbols_to_id[q1])
             else:
-                raise ValueError(f"Unknown phone: {segment.language} {phone}")
+                raise ValueError(f"Unknown phone: {segment.language} - {phone} -")
 
     return phones, ids
 
