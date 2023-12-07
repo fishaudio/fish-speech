@@ -8,6 +8,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_type)
 
 # new tokens
 new_tokens = list(set(zh_symbols + jp_symbols + en_symbols))
+new_tokens = [f"<p:{token}>" for token in new_tokens]
 tokenizer.add_tokens(new_tokens)
 tokenizer.add_special_tokens({"pad_token": "<pad>"})
 
@@ -33,7 +34,7 @@ print(f"Vocab size: {len(tokenizer)}, padded to {length}")
 # print(f"Total parameters: {total_params / 1e6:.2f}M")
 
 # Try tokenizing a new sequence
-sequence = "[INST] Test uang1 iang5 AA an 你好 [/INST]<s>[PAD]</s>"
+sequence = "All around, too, lay vast quantities of the costliest merchandise, and treasures were heaped in every cranny of the rocks, but all these things only added to the desolation of the scene."
 encoded = tokenizer.encode(sequence)
 print("Test encoding....")
 print(f"\tSentence: {sequence}")

@@ -33,7 +33,7 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
 
     # set seed for random number generators in pytorch, numpy and python.random
     if cfg.get("seed"):
-        L.seed_everything(cfg.seed, workers=True)
+        L.seed_everything(cfg.seed, workers=False)
 
     if cfg.get("deterministic"):
         torch.use_deterministic_algorithms(True)

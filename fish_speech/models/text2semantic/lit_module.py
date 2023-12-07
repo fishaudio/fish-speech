@@ -3,11 +3,10 @@ from typing import Any
 import lightning as L
 import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
-from transformers import LlamaForCausalLM
 
 
 class TextToSemantic(L.LightningModule):
-    def __init__(self, model: LlamaForCausalLM, optimizer: Any, lr_scheduler: Any):
+    def __init__(self, model, optimizer: Any, lr_scheduler: Any):
         super().__init__()
 
         self.model = model
@@ -30,25 +29,27 @@ class TextToSemantic(L.LightningModule):
         }
 
     def _step(self, batch, batch_idx, stage: str):
-        logits = self.model(
-            inputs=batch["inputs"],
-            input_mask=batch["input_mask"],
-            codes=batch["codes"][..., :-1],
-            codes_mask=batch["codes_mask"][..., :-1],
+        outputs = self.model(
+            x=batch["inputs"],
+            key_padding_mask=batch["attention_masks"],
         )
 
         # Generate labels
-        labels = batch["codes"][..., 1:].contiguous()
-        label_mask = batch["codes_mask"][..., 1:]
-        label_mask = label_mask[:, None, :]
-        label_mask = label_mask.expand(-1, labels.size(1), -1)
-        labels = labels.masked_fill(label_mask, -100)
-
-        loss = F.cross_entropy(
-            logits.view(-1, logits.size(-1)),
-            labels.view(-1),
+        labels = batch["labels"]
+        token_loss = F.cross_entropy(
+            outputs.token_logits.reshape(-1, outputs.token_logits.size(-1)),
+            labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
+
+        codebook_labels = labels[:, 1:].mT
+        semantic_loss = F.cross_entropy(
+            outputs.codebook_logits.reshape(-1, outputs.codebook_logits.size(-1)),
+            codebook_labels.reshape(-1),
+            ignore_index=-100,
+        )
+
+        loss = token_loss + semantic_loss
 
         self.log(
             f"{stage}/loss",
@@ -60,9 +61,12 @@ class TextToSemantic(L.LightningModule):
         )
 
         # Top-5 accuracy
-        _, indices = logits.topk(5, dim=-1)
-        correct = indices.eq(labels.unsqueeze(-1)).sum()
-        accuracy = correct / labels.numel()
+        _, indices = outputs.codebook_logits.topk(5, dim=-1)
+        correct = indices.eq(codebook_labels.unsqueeze(-1))
+        correct[codebook_labels == -100] = 0
+        correct = correct.sum()
+        accuracy = correct / (codebook_labels != -100).sum()
+
         self.log(
             f"{stage}/top_5_accuracy",
             accuracy,

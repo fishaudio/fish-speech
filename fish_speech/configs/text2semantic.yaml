@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m
+project: text2semantic_100m
 
 # Lightning Trainer
 trainer:
@@ -15,21 +15,20 @@ trainer:
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/speech-lm-300m
-  revision: mqtts-phones
-  padding_side: right
-  truncation_side: right
+  pretrained_model_name_or_path: fishaudio/speech-lm-v1
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.text.StreamTextDataset
-  repo: fishaudio/cn-hubert-25hz-vq
-  prefix: 'data/train'
+  _target_: fish_speech.datasets.text.AutoAugTextDataset
+  files: [ data/quantized-dataset-1205.protos ]
+  tokenizer: ${tokenizer}
+  split: train
 
 val_dataset:
-  _target_: fish_speech.datasets.text.StreamTextDataset
-  repo: fishaudio/cn-hubert-25hz-vq
-  prefix: 'data/test'
+  _target_: fish_speech.datasets.text.AutoAugTextDataset
+  files: [ data/quantized-dataset-1205.protos ]
+  tokenizer: ${tokenizer}
+  split: val
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
@@ -38,6 +37,7 @@ data:
   num_workers: 4
   batch_size: 16
   tokenizer: ${tokenizer}
+  max_length: 1024
 
 # Model Configuration
 model:
@@ -45,14 +45,18 @@ model:
 
   model:
     # ~ 130M parameters, for debug purpose
-    _target_: fish_speech.models.text2semantic.modules.FishSpeechTransformer
-    vocab_size: 32248
-    codebook_size: 1032  # 1024 + 2 (bos, eos), make it divisible by 8
-    num_codebooks: 1
-    hidden_size: 1024
-    nhead: 16
-    num_encoder_layers: 12
-    num_decoder_layers: 12
+    _target_: fish_speech.models.text2semantic.llama.Transformer
+    config:
+      _target_: fish_speech.models.text2semantic.llama.ModelArgs
+      max_seq_len: 4096
+      vocab_size: 32312
+      n_layer: 12
+      n_head: 12
+      dim: 768
+      rope_base: 10000
+      norm_eps: 1e-5
+      codebook_size: 168
+      num_codebooks: 4
 
   optimizer:
     _target_: torch.optim.AdamW

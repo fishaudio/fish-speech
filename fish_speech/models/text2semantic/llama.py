@@ -124,20 +124,20 @@ class Transformer(nn.Module):
             )
 
     def forward(self, x: Tensor, key_padding_mask: Optional[Tensor] = None) -> Tensor:
-        # x: (batch, seq_len, num_codebooks + 1)
+        # x: (batch, num_codebooks + 1, seq_len)
+        seq_len = x.size(2)
 
         # Here we want to merge the embeddings of the codebooks
-        vocab_embeds = [self.embeddings(x[:, :, 0])]
+        vocab_embeds = [self.embeddings(x[:, 0])]
         for i in range(self.config.num_codebooks):
             emb = self.embeddings(
-                x[:, :, i + 1] + i * self.config.codebook_size + self.config.vocab_size
+                x[:, i + 1] + i * self.config.codebook_size + self.config.vocab_size
             )
             vocab_embeds.append(emb)
 
         x = torch.stack(vocab_embeds, dim=3)
         x = x.mean(dim=3)
 
-        seq_len = x.size(1)
         mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[:seq_len]
 
@@ -145,7 +145,7 @@ class Transformer(nn.Module):
         # That is, FALSE means masked out
         # To maintain consistency, key_padding_mask use TRUE to mask out
         if key_padding_mask is not None:
-            mask = mask & key_padding_mask[:, None, :, None].logical_not()
+            mask = mask & key_padding_mask[:, None, None, :].logical_not()
 
         for layer in self.layers:
             x = layer(x, freqs_cis, mask)
@@ -156,7 +156,7 @@ class Transformer(nn.Module):
         codebook_logits = logits[:, :, self.config.vocab_size :]
 
         codebook_logits = rearrange(
-            codebook_logits, "b n (d c) -> b n d c", c=self.config.codebook_size
+            codebook_logits, "b n (c d) -> b n c d", c=self.config.num_codebooks
         )
 
         return TransformerForwardResult(
@@ -293,19 +293,21 @@ def apply_rotary_emb(x: Tensor, freqs_cis: Tensor) -> Tensor:
 if __name__ == "__main__":
     args = ModelArgs(
         max_seq_len=4096,
-        vocab_size=32000,
+        vocab_size=32312,
         n_layer=12,
         n_head=12,
         dim=768,
         rope_base=10000,
         norm_eps=1e-5,
+        codebook_size=168,
+        num_codebooks=4,
     )
 
     model = Transformer(args)
     model = model.cuda().bfloat16()
     print("Total params:", sum(i.numel() for i in model.parameters()) / 1024 / 1024)
 
-    inputs = torch.randint(0, 100, (2, 128, 5)).cuda()
+    inputs = torch.randint(0, 100, (2, 5, 128)).cuda()
     key_padding_mask = torch.zeros(2, 128).bool().cuda()
     key_padding_mask[0, 2:] = True
     x1 = model(inputs, key_padding_mask=key_padding_mask)
