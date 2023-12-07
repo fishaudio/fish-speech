@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+message Semantics {
+    repeated uint32 values = 1;
+}
+
+message Sentence {
+    string text = 1;
+    repeated string phones = 2;
+    repeated Semantics semantics = 3;
+}
+
+message TextData {
+    string source = 1;
+    string name = 2;
+    repeated string languages = 3;
+    repeated Sentence sentences = 4;
+}

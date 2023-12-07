@@ -8,6 +8,7 @@ from random import Random
 from typing import Optional, Union
 
 import numpy as np
+import orjson
 import pyarrow.parquet as pq
 import torch
 import torch.nn.functional as F
@@ -166,21 +167,24 @@ class AutoAugTextDataset(IterableDataset):
         self.tokenizer = tokenizer
 
         # Read all lines, and group by speaker
-        self.speakers = {}
-        self.lines = []
+        self.groups = []
+        from tqdm import tqdm
 
         for filename in self.jsonl_files:
-            lines = Path(filename).read_text().splitlines()
-            for json_line in lines:
-                line = json.loads(json_line)
-                speaker = line.get("speaker", None)
+            with open(filename, "r") as f:
+                for json_line in tqdm(f):
+                    if json_line.strip() == "":
+                        continue
 
-                if speaker not in self.speakers:
-                    self.speakers[speaker] = []
+                    line = orjson.loads(json_line)
+                    # for i in line["sentences"]:
+                    #     # Save memory
+                    #     i["semantics"] = np.array(i["semantics"], dtype=np.uint16)
+                    self.groups.append(line)
 
-                self.lines.append(line)
-                self.speakers[speaker].append(line)
+        import sys
 
+        print(sys.getsizeof(self.groups) / 1024 / 1024)
         # Shuffle the lines
         Random(seed).shuffle(self.lines)
 
@@ -394,7 +398,7 @@ if __name__ == "__main__":
     #         f.write(json.dumps({"text": Path(i).read_text(), "speaker": i.parent.name, "semantic": fake_tokens}) + "\n")
 
     ds = AutoAugTextDataset(
-        jsonl_files=["test.jsonl"],
+        jsonl_files=["data/quantized-dataset-1205.json"],
         order=["en"],
         tokenizer=AutoTokenizer.from_pretrained(
             "fishaudio/speech-lm-300m", revision="text-pretrain-10k-phones"
