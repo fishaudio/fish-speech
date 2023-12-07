@@ -9,14 +9,17 @@ tokenizer = AutoTokenizer.from_pretrained(model_type)
 # new tokens
 new_tokens = list(set(zh_symbols + jp_symbols + en_symbols))
 tokenizer.add_tokens(new_tokens)
+tokenizer.add_special_tokens({"pad_token": "<pad>"})
 
 # pad token
-tokenizer.pad_token = tokenizer.eos_token
-tokenizer.pad_token_id = tokenizer.eos_token_id
 tokenizer.padding_side = "right"
 tokenizer.truncation_side = "right"
 
-print(f"Vocab size: {len(tokenizer)}")
+length = len(tokenizer)
+if length % 8 != 0:
+    length += 8 - (length % 8)
+
+print(f"Vocab size: {len(tokenizer)}, padded to {length}")
 
 # model = AutoModelForCausalLM.from_pretrained(
 #     "fishaudio/speech-lm-300m", revision="mqtts-proto"
@@ -30,7 +33,7 @@ print(f"Vocab size: {len(tokenizer)}")
 # print(f"Total parameters: {total_params / 1e6:.2f}M")
 
 # Try tokenizing a new sequence
-sequence = "Test <semantic_0> <semantic_1023> </s> uang1 iang5 AA an"
+sequence = "[INST] Test uang1 iang5 AA an 你好 [/INST]<s>[PAD]</s>"
 encoded = tokenizer.encode(sequence)
 print("Test encoding....")
 print(f"\tSentence: {sequence}")
@@ -40,4 +43,4 @@ print(f"\tDecoded: {tokenizer.batch_decode(encoded)}")
 # model.push_to_hub(
 #     "fishaudio/speech-lm-300m", private=True, revision="text-pretrain-10k-phones"
 # )
-tokenizer.push_to_hub("fishaudio/speech-lm-300m", private=True, revision="mqtts-phones")
+tokenizer.push_to_hub("fishaudio/speech-lm-v1", private=True)

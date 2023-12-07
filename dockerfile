@@ -24,7 +24,7 @@ ENV SHELL=/usr/bin/zsh
 # Setup flash-attn
 RUN pip3 install --upgrade pip && \
     pip3 install ninja packaging && \
-    pip3 install git+https://github.com/facebookresearch/xformers.git@v0.0.22
+    pip3 install git+https://github.com/Dao-AILab/flash-attention.git
 
 # Project Env
 WORKDIR /exp
