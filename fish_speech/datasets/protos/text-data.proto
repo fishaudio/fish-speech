@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package text_data;
+
 message Semantics {
     repeated uint32 values = 1;
 }
@@ -15,4 +17,16 @@ message TextData {
     string name = 2;
     repeated string languages = 3;
     repeated Sentence sentences = 4;
+}
+
+message SampledData {
+    repeated Sentence samples = 1;
+}
+
+message SampleDataRequest {
+    uint32 num_samples = 1;
+}
+
+service DataService {
+    rpc SampleData (SampleDataRequest) returns (SampledData) {}
 }
