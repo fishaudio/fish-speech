@@ -201,15 +201,19 @@ class AutoAugTextDataset(IterableDataset):
             )
 
         tokens = self.tokenizer.encode(
-            f"{sentence}", max_length=10**6, add_special_tokens=False
+            f"{sentence}",
+            max_length=10**6,
+            add_special_tokens=False,
+            truncation=False,
         )
         return sentence, len(tokens)
 
     def augment(self, group):
         # 50% to pure text or pure phones
-        mode = "sample"
-        if random.random() < 0.5:
-            mode = random.choice(["text", "phones"])
+        # mode = "sample"
+        # if random.random() < 0.5:
+        #     mode = random.choice(["text", "phones"])
+        mode = "phones"
 
         # Random sample based on speaker using a truncated normal distribution
         a = torch.tensor([0], dtype=torch.float32)
@@ -243,7 +247,10 @@ class AutoAugTextDataset(IterableDataset):
 
         final_text = "[INST] " + "<pad>".join(final_text) + " [/INST]"
         encoded = self.tokenizer.encode(
-            final_text, max_length=self.max_length, add_special_tokens=False
+            final_text,
+            max_length=self.max_length,
+            add_special_tokens=False,
+            truncation=False,
         )
         semantic_length = sum([len(i[0].values) for i in final_semantic])
 

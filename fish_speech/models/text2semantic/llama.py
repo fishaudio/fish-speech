@@ -164,6 +164,46 @@ class Transformer(nn.Module):
             codebook_logits=codebook_logits,
         )
 
+    def forward_generate(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+        # x: (batch, num_codebooks + 1, 1)
+
+        assert (
+            self.max_seq_len != -1 and self.max_batch_size != -1
+        ), "Please call setup_caches before forward_generate"
+
+        # Here we want to merge the embeddings of the codebooks
+        vocab_embeds = [self.embeddings(x[:, 0])]
+        for i in range(self.config.num_codebooks):
+            emb = self.embeddings(
+                x[:, i + 1] + i * self.config.codebook_size + self.config.vocab_size
+            )
+            vocab_embeds.append(emb)
+
+        x = torch.stack(vocab_embeds, dim=3)
+        x = x.mean(dim=3)
+
+        mask = self.causal_mask[
+            None, None, input_pos, : self.max_seq_len
+        ]  # (B, N, Q, K)
+        freqs_cis = self.freqs_cis[input_pos]
+
+        for layer in self.layers:
+            x = layer(x, freqs_cis, mask, input_pos=input_pos)
+
+        x = self.norm(x)
+        logits = self.output(x)
+        token_logits = logits[:, :, : self.config.vocab_size]
+        codebook_logits = logits[:, :, self.config.vocab_size :]
+
+        codebook_logits = rearrange(
+            codebook_logits, "b n (c d) -> b n c d", c=self.config.num_codebooks
+        )
+
+        return TransformerForwardResult(
+            token_logits=token_logits,
+            codebook_logits=codebook_logits,
+        )
+
 
 class TransformerBlock(nn.Module):
     def __init__(self, config: ModelArgs) -> None:

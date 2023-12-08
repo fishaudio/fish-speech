@@ -21,3 +21,5 @@ pip3 install -e .
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
 - [GPT VITS](https://github.com/innnky/gpt-vits)
 - [MQTTS](https://github.com/b04901014/MQTTS)
+- [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+

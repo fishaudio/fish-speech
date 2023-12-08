@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_100m
+project: text2semantic_400m
 
 # Lightning Trainer
 trainer:
@@ -50,9 +50,9 @@ model:
       _target_: fish_speech.models.text2semantic.llama.ModelArgs
       max_seq_len: 4096
       vocab_size: 32312
-      n_layer: 12
-      n_head: 12
-      dim: 768
+      n_layer: 24
+      n_head: 16
+      dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
       codebook_size: 168

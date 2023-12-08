@@ -69,10 +69,8 @@ def main():
     print(indices.shape)
 
     # Restore
-    indices = np.load(
-        "data/LibriTTS_R/train-clean-100/7226/86964/7226_86964_000012_000003.npy"
-    )
-    indices = torch.from_numpy(indices).to(model.device)
+    indices = np.load("codes_0.npy")
+    indices = torch.from_numpy(indices).to(model.device).long()
     indices = indices.unsqueeze(1).unsqueeze(-1)
     mel_lengths = indices.shape[2] * (
         model.downsample.total_strides if model.downsample is not None else 1
