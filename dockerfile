@@ -26,6 +26,10 @@ RUN pip3 install --upgrade pip && \
     pip3 install ninja packaging && \
     pip3 install git+https://github.com/Dao-AILab/flash-attention.git
 
+# Setup rust-data-server
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    cd data_server && cargo build --release
+
 # Project Env
 WORKDIR /exp
 

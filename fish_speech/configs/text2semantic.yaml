@@ -11,6 +11,7 @@ trainer:
   gradient_clip_algorithm: 'norm'
   max_steps: 1_000_000
   precision: bf16-true
+  limit_val_batches: 10
 
 # Dataset Configuration
 tokenizer:
@@ -20,15 +21,11 @@ tokenizer:
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
-  files: [ data/quantized-dataset-1205.protos ]
   tokenizer: ${tokenizer}
-  split: train
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
-  files: [ data/quantized-dataset-1205.protos ]
   tokenizer: ${tokenizer}
-  split: val
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
