@@ -42,27 +42,27 @@ logger.add(sys.stderr, format=logger_format)
 
 
 @lru_cache(maxsize=1)
-def get_model():
+def get_model(
+    config_name: str = "vqgan",
+    checkpoint_path: str = "checkpoints/vqgan/step_000380000.ckpt",
+):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
-        cfg = compose(config_name="vqgan")
+        cfg = compose(config_name=config_name)
 
     model: LightningModule = instantiate(cfg.model)
     state_dict = torch.load(
-        "checkpoints/vqgan/step_000380000.ckpt",
+        checkpoint_path,
         map_location=model.device,
     )["state_dict"]
     model.load_state_dict(state_dict, strict=True)
     model.eval()
     model.cuda()
-    logger.info("Restored model from checkpoint")
 
     logger.info(f"Loaded model")
     return model
 
 
-def process_batch(files: list[Path]) -> float:
-    model = get_model()
-
+def process_batch(files: list[Path], model) -> float:
     wavs = []
     audio_lengths = []
     max_length = total_time = 0
@@ -105,10 +105,19 @@ def process_batch(files: list[Path]) -> float:
             sequence_mask(feature_lengths, features.shape[2]), 1
         ).to(gt_mels.dtype)
 
-        # vq_features is 50 hz, need to convert to true mel size
         text_features = model.mel_encoder(features, feature_masks)
         _, indices, _ = model.vq_encoder(text_features, feature_masks)
-        indices = indices.squeeze(-1)
+
+        if indices.ndim == 4:
+            # Grouped vq
+            assert indices.shape[-1] == 1, f"Residual vq is not supported"
+            indices = indices.squeeze(-1)
+        elif indices.ndim == 2:
+            # Single vq
+            indices = indices.unsqueeze(0)
+        else:
+            raise ValueError(f"Invalid indices shape {indices.shape}")
+
         indices = rearrange(indices, "c b t -> b c t")
 
     # Save to disk
@@ -127,7 +136,19 @@ def process_batch(files: list[Path]) -> float:
 @click.command()
 @click.argument("folder")
 @click.option("--num-workers", default=1)
-def main(folder: str, num_workers: int):
+@click.option("--config-name", default="vqgan")
+@click.option(
+    "--checkpoint-path",
+    default="checkpoints/vqgan/step_000380000.ckpt",
+)
+@click.option("--batch-size", default=64)
+def main(
+    folder: str,
+    num_workers: int,
+    config_name: str,
+    checkpoint_path: str,
+    batch_size: int,
+):
     if num_workers > 1 and WORLD_SIZE != num_workers:
         assert WORLD_SIZE == 1, "You should either use SLURM or this launcher, not both"
 
@@ -168,14 +189,15 @@ def main(folder: str, num_workers: int):
     files = files[RANK::WORLD_SIZE]
     logger.info(f"Processing {len(files)}/{total_files} files")
 
-    # Batch size 64
+    # Batch processing
     total_time = 0
     begin_time = time.time()
     processed_files = 0
+    model = get_model(config_name, checkpoint_path)
 
-    for n_batch, idx in enumerate(range(0, len(files), 32)):
-        batch = files[idx : idx + 32]
-        batch_time = process_batch(batch)
+    for n_batch, idx in enumerate(range(0, len(files), batch_size)):
+        batch = files[idx : idx + batch_size]
+        batch_time = process_batch(batch, model)
 
         total_time += batch_time
         processed_files += len(batch)

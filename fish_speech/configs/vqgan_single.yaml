@@ -1,0 +1,134 @@
+defaults:
+  - base
+  - _self_
+
+project: vqgan_single
+
+# Lightning Trainer
+trainer:
+  accelerator: gpu
+  devices: 4
+  strategy: ddp_find_unused_parameters_true
+  precision: 32
+  max_steps: 1_000_000
+  val_check_interval: 5000
+
+sample_rate: 22050
+hop_length: 256
+num_mels: 80
+n_fft: 1024
+win_length: 1024
+segment_size: 256
+
+# Dataset Configuration
+train_dataset:
+  _target_: fish_speech.datasets.vqgan.VQGANDataset
+  filelist: data/filelist.split.train
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  slice_frames: ${segment_size}
+
+val_dataset:
+  _target_: fish_speech.datasets.vqgan.VQGANDataset
+  filelist: data/filelist.split.valid
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+
+data:
+  _target_: fish_speech.datasets.vqgan.VQGANDataModule
+  train_dataset: ${train_dataset}
+  val_dataset: ${val_dataset}
+  num_workers: 4
+  batch_size: 32
+  val_batch_size: 4
+
+# Model Configuration
+model:
+  _target_: fish_speech.models.vqgan.VQGAN
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  segment_size: 8192
+  freeze_hifigan: false
+
+  downsample:
+    _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
+    dims: ["${num_mels}", 512, 256]
+    kernel_sizes: [3, 3]
+    strides: [2, 2]
+
+  mel_encoder:
+    _target_: fish_speech.models.vqgan.modules.modules.WN
+    hidden_channels: 256
+    kernel_size: 3
+    dilation_rate: 2
+    n_layers: 6
+
+  vq_encoder:
+    _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
+    in_channels: 256
+    vq_channels: 256
+    codebook_size: 4096
+    codebook_groups: 1
+    downsample: 1
+
+  speaker_encoder:
+    _target_: fish_speech.models.vqgan.modules.encoders.SpeakerEncoder
+    in_channels: ${num_mels}
+    hidden_channels: 256
+    out_channels: 512
+    num_layers: 6
+
+  decoder:
+    _target_: fish_speech.models.vqgan.modules.modules.WN
+    hidden_channels: 256
+    out_channels: ${num_mels}
+    kernel_size: 3
+    dilation_rate: 2
+    n_layers: 6
+    gin_channels: 512
+
+  generator:
+    _target_: fish_speech.models.vqgan.modules.decoder.Generator
+    initial_channel: ${num_mels}
+    resblock: "1"
+    resblock_kernel_sizes: [3, 7, 11]
+    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+    upsample_rates: [8, 8, 2, 2]
+    upsample_initial_channel: 512
+    upsample_kernel_sizes: [16, 16, 4, 4]
+    ckpt_path: "checkpoints/hifigan-v1-universal-22050/g_02500000"
+
+  discriminator:
+    _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
+    ckpt_path: checkpoints/hifigan-v1-universal-22050/do_02500000
+
+  mel_transform:
+    _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
+    sample_rate: ${sample_rate}
+    n_fft: ${n_fft}
+    hop_length: ${hop_length}
+    win_length: ${win_length}
+    n_mels: ${num_mels}
+    f_min: 0
+    f_max: 8000
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 2e-4
+    betas: [0.8, 0.99]
+    eps: 1e-5
+
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.ExponentialLR
+    _partial_: true
+    gamma: 0.999999  # Estimated base on LibriTTS dataset
+
+callbacks:
+  grad_norm_monitor:
+    sub_module: 
+      - generator
+      - discriminator
+      - mel_encoder
+      - vq_encoder
+      - decoder

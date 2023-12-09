@@ -49,6 +49,7 @@ class VQGAN(L.LightningModule):
         sample_rate: int = 32000,
         freeze_hifigan: bool = False,
         freeze_vq: bool = False,
+        speaker_encoder: SpeakerEncoder = None,
     ):
         super().__init__()
 
@@ -60,6 +61,7 @@ class VQGAN(L.LightningModule):
         self.downsample = downsample
         self.vq_encoder = vq_encoder
         self.mel_encoder = mel_encoder
+        self.speaker_encoder = speaker_encoder
         self.decoder = decoder
         self.generator = generator
         self.discriminator = discriminator
@@ -168,7 +170,12 @@ class VQGAN(L.LightningModule):
         )
 
         # Sample mels
-        decoded_mels = self.decoder(text_features, mel_masks)
+        speaker_features = (
+            self.speaker_encoder(gt_mels, mel_masks)
+            if self.speaker_encoder is not None
+            else None
+        )
+        decoded_mels = self.decoder(text_features, mel_masks, g=speaker_features)
         fake_audios = self.generator(decoded_mels)
 
         y_hat_mels = self.mel_transform(fake_audios.squeeze(1))
@@ -316,7 +323,12 @@ class VQGAN(L.LightningModule):
         )
 
         # Sample mels
-        decoded_mels = self.decoder(text_features, mel_masks)
+        speaker_features = (
+            self.speaker_encoder(gt_mels, mel_masks)
+            if self.speaker_encoder is not None
+            else None
+        )
+        decoded_mels = self.decoder(text_features, mel_masks, g=speaker_features)
         fake_audios = self.generator(decoded_mels)
 
         fake_mels = self.mel_transform(fake_audios.squeeze(1))

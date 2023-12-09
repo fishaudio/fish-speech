@@ -221,36 +221,26 @@ class SpeakerEncoder(nn.Module):
         in_channels: int = 128,
         hidden_channels: int = 192,
         out_channels: int = 512,
-        num_heads: int = 2,
         num_layers: int = 4,
-        p_dropout: float = 0.0,
     ) -> None:
         super().__init__()
 
         self.in_proj = nn.Sequential(
             nn.Conv1d(in_channels, hidden_channels, 1),
             nn.Mish(),
-            nn.Dropout(p_dropout),
             nn.Conv1d(hidden_channels, hidden_channels, 5, padding=2),
             nn.Mish(),
-            nn.Dropout(p_dropout),
             nn.Conv1d(hidden_channels, hidden_channels, 5, padding=2),
             nn.Mish(),
-            nn.Dropout(p_dropout),
         )
         self.out_proj = nn.Conv1d(hidden_channels, out_channels, 1)
         self.apply(self._init_weights)
 
-        self.encoder = RelativePositionTransformer(
-            in_channels=hidden_channels,
-            out_channels=hidden_channels,
-            hidden_channels=hidden_channels,
-            hidden_channels_ffn=hidden_channels,
-            n_heads=num_heads,
+        self.encoder = WN(
+            hidden_channels,
+            kernel_size=3,
+            dilation_rate=1,
             n_layers=num_layers,
-            kernel_size=1,
-            dropout=p_dropout,
-            window_size=None,  # No windowing
         )
 
     def _init_weights(self, m):
@@ -338,7 +328,12 @@ class VQEncoder(nn.Module):
         return x, indices, loss
 
     def decode(self, indices):
-        q = self.vq.get_output_from_indices(indices).mT
+        q = self.vq.get_output_from_indices(indices)
+
+        if q.shape[1] != indices.shape[1]:
+            q = q.view(q.shape[0], indices.shape[1], -1)
+        q = q.mT
+
         x = self.conv_out(q)
 
         return x
