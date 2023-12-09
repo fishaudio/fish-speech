@@ -222,36 +222,58 @@ class AutoAugTextDataset(IterableDataset):
             final_text.append(text)
             final_semantic.append(sentence.semantics)
 
-        final_text = "[INST] " + "<pad>".join(final_text) + " [/INST]"
+        final_text = "[INST] " + " ".join(final_text) + " [/INST]"
         encoded = self.tokenizer.encode(
             final_text,
-            max_length=self.max_length,
             add_special_tokens=False,
             truncation=False,
+            max_length=10**6,
         )
         semantic_length = sum([len(i[0].values) for i in final_semantic])
 
-        # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
-        tokens = (
-            [self.tokenizer.bos_token_id]
-            + encoded
-            + [self.tokenizer.pad_token_id] * semantic_length
-            + [self.tokenizer.eos_token_id]
-        )
-        codes = [[0] * (len(encoded) + 1) for _ in range(len(final_semantic[0]))]
-        for segment in final_semantic:
-            for book_idx, book in enumerate(segment):
-                for j in book.values:
-                    codes[book_idx].append(int(j) + 2)
+        # Single codebook
+        if len(final_semantic[0]) == 1:
+            semantic_tokens = [f"<s:{j}>" for i in final_semantic for j in i[0].values]
+            tokenized = self.tokenizer.encode(
+                f" ".join(semantic_tokens),
+                add_special_tokens=False,
+                truncation=False,
+                max_length=10**6,
+            )
 
-        for book in codes:
-            book.append(1)
+            # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
+            tokens = (
+                [self.tokenizer.bos_token_id]
+                + encoded
+                + tokenized
+                + [self.tokenizer.eos_token_id]
+            )
+            tokens = torch.tensor([tokens], dtype=torch.long)
+            labels = tokens.clone()
+        else:
+            # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
+            tokens = (
+                [self.tokenizer.bos_token_id]
+                + encoded
+                + [self.tokenizer.pad_token_id] * semantic_length
+                + [self.tokenizer.eos_token_id]
+            )
+            codes = [[0] * (len(encoded) + 1) for _ in range(len(final_semantic[0]))]
+            for segment in final_semantic:
+                for book_idx, book in enumerate(segment):
+                    for j in book.values:
+                        codes[book_idx].append(int(j) + 2)
 
-        tokens = [tokens] + codes
-        tokens = torch.tensor(tokens, dtype=torch.long)
+            for book in codes:
+                book.append(1)
 
-        labels = tokens.clone()
-        labels[1:, : len(encoded) + 1] = -100  # Mask out the <s> tokens for semantic
+            tokens = [tokens] + codes
+
+            tokens = torch.tensor(tokens, dtype=torch.long)
+            labels = tokens.clone()
+            labels[
+                1:, : len(encoded) + 1
+            ] = -100  # Mask out the <s> tokens for semantic
 
         return {
             "tokens": tokens[:, :-1],

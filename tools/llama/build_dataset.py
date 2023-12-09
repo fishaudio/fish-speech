@@ -13,6 +13,7 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
 # Define datasets
 DATASETS = [
+    # (root, name, languages, extension, group parent level)
     ("data/StarRail/Chinese", "StarRail", ["ZH", "EN"], ".lab", 1),
     ("data/StarRail/English", "StarRail", ["EN"], ".lab", 1),
     ("data/StarRail/Japanese", "StarRail", ["JP", "EN"], ".lab", 1),
@@ -94,7 +95,7 @@ def run_task(task):
 
 
 def main():
-    dataset_fp = open("data/quantized-dataset-1205.protos", "wb")
+    dataset_fp = open("data/quantized-dataset-1208.protos", "wb")
     with Pool(16) as p:
         for result in tqdm(p.imap_unordered(run_task, task_generator())):
             dataset_fp.write(result)

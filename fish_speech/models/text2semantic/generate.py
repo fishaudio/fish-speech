@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Optional, Tuple
 
+import numpy as np
 import torch
 import torch._dynamo.config
 import torch._inductor.config
@@ -33,7 +34,24 @@ def multinomial_sample_one_no_sync(
     return torch.argmax(probs_sort / q, dim=-1, keepdim=True).to(dtype=torch.int)
 
 
-def logits_to_probs(logits, temperature: float = 1.0, top_k: Optional[int] = None):
+def logits_to_probs(
+    logits,
+    temperature: float = 1.0,
+    top_k: Optional[int] = None,
+    top_p: Optional[int] = None,
+):
+    if top_p is not None and top_p < 1.0:
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+        cum_probs = torch.cumsum(
+            torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1
+        )
+        sorted_indices_to_remove = cum_probs > top_p
+        sorted_indices_to_remove[0] = False  # keep at least one option
+        indices_to_remove = sorted_indices_to_remove.scatter(
+            dim=0, index=sorted_indices, src=sorted_indices_to_remove
+        )
+        logits = logits.masked_fill(indices_to_remove, -float("Inf"))
+
     logits = logits / max(temperature, 1e-5)
 
     if top_k is not None:
@@ -44,8 +62,13 @@ def logits_to_probs(logits, temperature: float = 1.0, top_k: Optional[int] = Non
     return probs
 
 
-def sample(logits, temperature: float = 1.0, top_k: Optional[int] = None):
-    probs = logits_to_probs(logits[0, -1], temperature, top_k)
+def sample(
+    logits,
+    temperature: float = 1.0,
+    top_k: Optional[int] = None,
+    top_p: Optional[int] = None,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    probs = logits_to_probs(logits[0, -1], temperature, top_k, top_p)
     idx_next = multinomial_sample_one_no_sync(probs)
     return idx_next, probs
 
@@ -57,10 +80,15 @@ def decode_token(
     logits = model.forward_generate(x, input_pos)
     codebooks = [sample(logits.token_logits, **sampling_kwargs)[0]]
 
-    # Disable <s> and </s> tokens for 2-n codebooks
-    logits.codebook_logits[:, :, 1:, :2] = -float("Inf")
-    for i in range(model.config.num_codebooks):
-        codebooks.append(sample(logits.codebook_logits[:, :, i], **sampling_kwargs)[0])
+    # Disable <s> and </s> tokens for codebooks
+    if model.config.num_codebooks != 0:
+        logits.codebook_logits[:, :, :, :2] = -float("Inf")
+
+        for i in range(model.config.num_codebooks):
+            codebooks.append(
+                sample(logits.codebook_logits[:, :, i], **sampling_kwargs)[0]
+            )
+
     return torch.stack(codebooks, dim=0)
 
 
@@ -83,8 +111,8 @@ def decode_n_tokens(
         callback(new_tokens[-1])
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
 
-        # TODO: use tokenizer
-        if (cur_token[0, 1:, 0] == 1).any():
+        # TODO: use tokenizer's eos
+        if (cur_token[0, 0, -1] == 2).any():
             print("EOS detected, stopping generation")
             break
 
@@ -151,14 +179,41 @@ def generate(
 
 
 def encode_tokens(tokenizer, string, bos=True, device="cuda"):
+    # data/Genshin/Chinese/神里绫华/vo_ayaka_character_idle_04.npy
+    prompt = g2p("剑，就和茶一样，细细品味才能理解其中风雅。 " + string)
+    prompt = [
+        (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
+        for _, i in prompt
+    ]
+    prompt = " ".join(prompt)
+    string = f"[INST] {prompt} [/INST]"
+    print("Encoding string:", string)
+
+    data = np.load("data/Genshin/Chinese/神里绫华/vo_ayaka_character_idle_02.npy")
+    codes = [f"<s:{i}>" for i in data[0]]
+
     tokens = tokenizer.encode(
-        string, max_length=10**6, add_special_tokens=bos, truncation=False
+        string + " ".join(codes),
+        max_length=10**6,
+        add_special_tokens=bos,
+        truncation=False,
     )
     tokens = torch.tensor([tokens], dtype=torch.int, device=device)
 
     # Codebooks
-    zeros = torch.zeros((4, tokens.size(1)), dtype=torch.int, device=device)
-    return torch.cat((tokens, zeros), dim=0)
+    # zeros = torch.zeros((4, tokens.size(1)), dtype=torch.int, device=device)
+    # prompt = torch.cat((tokens, zeros), dim=0)
+
+    # # Get prompt tokens
+    # data = np.load("data/Genshin/Chinese/神里绫华/vo_ayaka_character_idle_02.npy")
+    # data = torch.from_numpy(data).to(device=device, dtype=torch.int) + 2
+
+    # zeros = torch.zeros((1, data.size(1)), dtype=torch.int, device=device) + 32311 # 32311 is the <pad> token
+    # data = torch.cat((zeros, data), dim=0)
+    # prompt = torch.cat((prompt, data), dim=1)
+    # print(prompt)
+
+    return tokens
 
 
 def _load_model(checkpoint_path, device, precision, use_tp):
@@ -174,7 +229,7 @@ def _load_model(checkpoint_path, device, precision, use_tp):
                 rope_base=10000,
                 norm_eps=1e-5,
                 codebook_size=168,
-                num_codebooks=4,
+                num_codebooks=0,
             )
         )
 
@@ -216,13 +271,13 @@ def main(
     interactive: bool = False,
     num_samples: int = 5,
     max_new_tokens: int = 100,
-    top_k: int = 200,
+    top_k: int = None,
+    top_p: int = None,
     temperature: float = 0.8,
     checkpoint_path: Path = Path(
         "results/text2semantic_400m/checkpoints/step_000025000.ckpt"
     ),
     compile: bool = True,
-    compile_prefill: bool = False,
     profile: Optional[Path] = None,
     tokenizer: str = "fishaudio/speech-lm-v1",
 ) -> None:
@@ -249,16 +304,8 @@ def main(
     print(f"Time to load model: {time.time() - t0:.02f} seconds")
 
     tokenizer = AutoTokenizer.from_pretrained(tokenizer)
-    prompt = g2p(prompt)
-    prompt = [
-        (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
-        for _, i in prompt
-    ]
-    prompt = " ".join(prompt)
     print(prompt)
-    encoded = encode_tokens(
-        tokenizer, f"[INST] {prompt} [/INST]", bos=True, device=device
-    )
+    encoded = encode_tokens(tokenizer, f"{prompt}", bos=True, device=device)
     print(encoded[0])
     prompt_length = encoded.size(1)
 
@@ -322,6 +369,7 @@ def main(
                 callback=callback,
                 temperature=temperature,
                 top_k=top_k,
+                top_p=top_p,
             )
         if i == -1:
             print(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
@@ -336,7 +384,7 @@ def main(
 
         if not interactive:
             print(tokenizer.decode(y[0].tolist()))
-            codes = y[1:, prompt_length:-1] - 2
+            codes = y[1:, prompt_length - 120 : -1] - 2
             assert (codes >= 0).all()
             import numpy as np
 
@@ -378,14 +426,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_new_tokens", type=int, default=768, help="Maximum number of new tokens."
     )
-    parser.add_argument("--top_k", type=int, default=10, help="Top-k for sampling.")
+    parser.add_argument("--top_k", type=int, default=None, help="Top-k for sampling.")
+    parser.add_argument("--top_p", type=int, default=0.7, help="Top-k for sampling.")
     parser.add_argument(
         "--temperature", type=float, default=1.0, help="Temperature for sampling."
     )
     parser.add_argument(
         "--checkpoint_path",
         type=Path,
-        default=Path("results/text2semantic_400m/step_000025000_weights.ckpt"),
+        default=Path("results/text2semantic_400m/step_000035000_weights.ckpt"),
         help="Model checkpoint path.",
     )
     parser.add_argument(
@@ -400,6 +449,7 @@ if __name__ == "__main__":
         args.num_samples,
         args.max_new_tokens,
         args.top_k,
+        args.top_p,
         args.temperature,
         args.checkpoint_path,
         args.compile,

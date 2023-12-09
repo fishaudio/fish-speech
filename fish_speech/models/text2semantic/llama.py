@@ -30,6 +30,7 @@ class ModelArgs:
     # Additional decoding heads
     codebook_size: int = 160
     num_codebooks: int = 4
+    codebook_padding_idx: int = 0
 
     def __post_init__(self):
         if self.n_local_heads == -1:
@@ -123,20 +124,56 @@ class Transformer(nn.Module):
                 max_batch_size, max_seq_len, self.config.n_local_heads, head_dim
             )
 
-    def forward(self, x: Tensor, key_padding_mask: Optional[Tensor] = None) -> Tensor:
-        # x: (batch, num_codebooks + 1, seq_len)
-        seq_len = x.size(2)
-
+    def embed(self, x: Tensor) -> Tensor:
         # Here we want to merge the embeddings of the codebooks
+        if self.config.num_codebooks == 0:
+            return self.embeddings(x[:, 0])
+
         vocab_embeds = [self.embeddings(x[:, 0])]
         for i in range(self.config.num_codebooks):
             emb = self.embeddings(
                 x[:, i + 1] + i * self.config.codebook_size + self.config.vocab_size
             )
+            emb[x[:, i + 1] == self.config.codebook_padding_idx] = 0
             vocab_embeds.append(emb)
 
         x = torch.stack(vocab_embeds, dim=3)
-        x = x.mean(dim=3)
+        return x.sum(dim=3)
+
+    def compute(
+        self, x: Tensor, freqs_cis: Tensor, mask: Tensor
+    ) -> TransformerForwardResult:
+        for layer in self.layers:
+            x = layer(x, freqs_cis, mask)
+
+        x = self.norm(x)
+        logits = self.output(x)
+        token_logits = logits[:, :, : self.config.vocab_size]
+
+        if self.config.num_codebooks == 0:
+            return TransformerForwardResult(
+                token_logits=token_logits,
+                codebook_logits=None,
+            )
+
+        codebook_logits = logits[:, :, self.config.vocab_size :]
+        codebook_logits = rearrange(
+            codebook_logits, "b n (c d) -> b n c d", c=self.config.num_codebooks
+        )
+
+        return TransformerForwardResult(
+            token_logits=token_logits,
+            codebook_logits=codebook_logits,
+        )
+
+    def forward(
+        self, x: Tensor, key_padding_mask: Optional[Tensor] = None
+    ) -> TransformerForwardResult:
+        # x: (batch, num_codebooks + 1, seq_len)
+        seq_len = x.size(2)
+
+        # Here we want to merge the embeddings of the codebooks
+        x = self.embed(x)
 
         mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[:seq_len]
@@ -147,22 +184,7 @@ class Transformer(nn.Module):
         if key_padding_mask is not None:
             mask = mask & key_padding_mask[:, None, None, :].logical_not()
 
-        for layer in self.layers:
-            x = layer(x, freqs_cis, mask)
-
-        x = self.norm(x)
-        logits = self.output(x)
-        token_logits = logits[:, :, : self.config.vocab_size]
-        codebook_logits = logits[:, :, self.config.vocab_size :]
-
-        codebook_logits = rearrange(
-            codebook_logits, "b n (c d) -> b n c d", c=self.config.num_codebooks
-        )
-
-        return TransformerForwardResult(
-            token_logits=token_logits,
-            codebook_logits=codebook_logits,
-        )
+        return self.compute(x, freqs_cis, mask)
 
     def forward_generate(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         # x: (batch, num_codebooks + 1, 1)
@@ -171,38 +193,16 @@ class Transformer(nn.Module):
             self.max_seq_len != -1 and self.max_batch_size != -1
         ), "Please call setup_caches before forward_generate"
 
-        # Here we want to merge the embeddings of the codebooks
-        vocab_embeds = [self.embeddings(x[:, 0])]
-        for i in range(self.config.num_codebooks):
-            emb = self.embeddings(
-                x[:, i + 1] + i * self.config.codebook_size + self.config.vocab_size
-            )
-            vocab_embeds.append(emb)
-
-        x = torch.stack(vocab_embeds, dim=3)
-        x = x.mean(dim=3)
+        x = self.embed(x)
 
         mask = self.causal_mask[
             None, None, input_pos, : self.max_seq_len
         ]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
 
-        for layer in self.layers:
-            x = layer(x, freqs_cis, mask, input_pos=input_pos)
+        # TODO: support key padding mask for generation
 
-        x = self.norm(x)
-        logits = self.output(x)
-        token_logits = logits[:, :, : self.config.vocab_size]
-        codebook_logits = logits[:, :, self.config.vocab_size :]
-
-        codebook_logits = rearrange(
-            codebook_logits, "b n (c d) -> b n c d", c=self.config.num_codebooks
-        )
-
-        return TransformerForwardResult(
-            token_logits=token_logits,
-            codebook_logits=codebook_logits,
-        )
+        return self.compute(x, freqs_cis, mask)
 
 
 class TransformerBlock(nn.Module):
@@ -339,8 +339,8 @@ if __name__ == "__main__":
         dim=768,
         rope_base=10000,
         norm_eps=1e-5,
-        codebook_size=168,
-        num_codebooks=4,
+        codebook_size=0,
+        num_codebooks=0,
     )
 
     model = Transformer(args)
@@ -352,4 +352,4 @@ if __name__ == "__main__":
     key_padding_mask[0, 2:] = True
     x1 = model(inputs, key_padding_mask=key_padding_mask)
     print(x1.token_logits.shape)
-    print(x1.codebook_logits.shape)
+    # print(x1.codebook_logits.shape)

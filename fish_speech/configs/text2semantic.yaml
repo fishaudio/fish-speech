@@ -46,14 +46,13 @@ model:
     config:
       _target_: fish_speech.models.text2semantic.llama.ModelArgs
       max_seq_len: 4096
-      vocab_size: 32312
+      vocab_size: 36408
       n_layer: 24
       n_head: 16
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      codebook_size: 168
-      num_codebooks: 4
+      num_codebooks: 0  # single codebook
 
   optimizer:
     _target_: torch.optim.AdamW

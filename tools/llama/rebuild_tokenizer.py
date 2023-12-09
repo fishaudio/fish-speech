@@ -8,7 +8,9 @@ tokenizer = AutoTokenizer.from_pretrained(model_type)
 
 # new tokens
 new_tokens = list(set(zh_symbols + jp_symbols + en_symbols))
-new_tokens = [f"<p:{token}>" for token in new_tokens]
+new_tokens = [f"<p:{token}>" for token in new_tokens] + [
+    f"<s:{i}>" for i in range(4096)
+]
 tokenizer.add_tokens(new_tokens)
 tokenizer.add_special_tokens({"pad_token": "<pad>"})
 

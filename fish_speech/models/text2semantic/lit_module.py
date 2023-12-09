@@ -36,20 +36,22 @@ class TextToSemantic(L.LightningModule):
 
         # Generate labels
         labels = batch["labels"]
-        token_loss = F.cross_entropy(
+        loss = F.cross_entropy(
             outputs.token_logits.reshape(-1, outputs.token_logits.size(-1)),
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
 
-        codebook_labels = labels[:, 1:].mT
-        semantic_loss = F.cross_entropy(
-            outputs.codebook_logits.reshape(-1, outputs.codebook_logits.size(-1)),
-            codebook_labels.reshape(-1),
-            ignore_index=-100,
-        )
+        # If we have a codebook, add the loss
+        if self.model.config.num_codebooks != 0:
+            codebook_labels = labels[:, 1:].mT
+            semantic_loss = F.cross_entropy(
+                outputs.codebook_logits.reshape(-1, outputs.codebook_logits.size(-1)),
+                codebook_labels.reshape(-1),
+                ignore_index=-100,
+            )
 
-        loss = token_loss + semantic_loss
+            loss = loss + semantic_loss
 
         self.log(
             f"{stage}/loss",
@@ -61,11 +63,18 @@ class TextToSemantic(L.LightningModule):
         )
 
         # Top-5 accuracy
-        _, indices = outputs.codebook_logits.topk(5, dim=-1)
-        correct = indices.eq(codebook_labels.unsqueeze(-1))
-        correct[codebook_labels == -100] = 0
-        correct = correct.sum()
-        accuracy = correct / (codebook_labels != -100).sum()
+        if self.model.config.num_codebooks == 0:
+            _, indices = outputs.token_logits.topk(5, dim=-1)
+            correct = indices.eq(labels[:, 0].unsqueeze(-1))
+            correct[labels[:, 0] == -100] = 0
+            correct = correct.sum()
+            accuracy = correct / (labels[:, 0] != -100).sum()
+        else:
+            _, indices = outputs.codebook_logits.topk(5, dim=-1)
+            correct = indices.eq(codebook_labels.unsqueeze(-1))
+            correct[codebook_labels == -100] = 0
+            correct = correct.sum()
+            accuracy = correct / (codebook_labels != -100).sum()
 
         self.log(
             f"{stage}/top_5_accuracy",
