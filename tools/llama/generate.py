@@ -21,10 +21,10 @@ torch._inductor.config.fx_graph_cache = True  # Experimental feature to reduce c
 
 
 from fish_speech.models.text2semantic.llama import ModelArgs, Transformer
-from fish_speech.models.text2semantic.tp import maybe_init_dist
 from fish_speech.text import g2p
 from fish_speech.text.symbols import pad as pad_symbol
 from fish_speech.text.symbols import pu_symbols
+from tools.llama.tp import maybe_init_dist
 
 
 def multinomial_sample_one_no_sync(
@@ -175,9 +175,9 @@ def generate(
 
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
-    # if T + max_new_tokens > 1024:
-    #     max_new_tokens = 1024 - T
-    #     print(f"Truncating max_new_tokens to {max_new_tokens}")
+    if T + max_new_tokens > model.config.max_seq_len:
+        max_new_tokens = model.config.max_seq_len - T
+        print(f"Truncating max_new_tokens to {max_new_tokens}")
 
     T_new = T + max_new_tokens
     if interactive:
@@ -221,7 +221,7 @@ def generate(
 def encode_tokens(tokenizer, string, bos=True, device="cuda"):
     # data/Genshin/Chinese/神里绫华/vo_ayaka_character_idle_04.npy
 
-    prompt = g2p("算啦，虽然他罪无可恕，但也有可怜的地方嘛。" + string)
+    prompt = g2p("<zh>算啦，虽然他罪无可恕，但也有可怜的地方嘛。</zh> {string}")
     prompt = [
         (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
         for _, i in prompt
@@ -425,7 +425,8 @@ def main(
         t = time.perf_counter() - t0
 
         if not interactive:
-            print(tokenizer.decode(y[0].tolist()))
+            print(tokenizer.decode(y[0, :prompt_length:].tolist()))
+            print(f"Generated {y.size(1) - prompt_length} tokens")
             # Find all <s:2769>
             codes = y[0, prompt_length:-1]
             codes = codes - 32311
@@ -459,7 +460,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--prompt",
         type=str,
-        default="在情感分析功能中，我们让大语言模型分析了一段经典散文。可以看到虽然分析的角度比较浅显，但没有逻辑错误，还是可以自洽的。这也不能怪AI，如果我们提前告知它作者所处的时代背景，相信它一定可以回答得更好。而在这个中文翻译功能中，英特尔大语言模型的表现就更加令我意外了，",
+        default="感情分析関数では、大規模言語モデルに古典的な散文を分析させます。 分析の観点は比較的単純ですが、論理的な誤りはなく、依然として自己一貫性があることがわかります。",
         help="Input prompt.",
     )
     parser.add_argument(
@@ -469,18 +470,18 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_samples", type=int, default=1, help="Number of samples.")
     parser.add_argument(
-        "--max_new_tokens", type=int, default=1024, help="Maximum number of new tokens."
+        "--max_new_tokens", type=int, default=4096, help="Maximum number of new tokens."
     )
     parser.add_argument("--top_k", type=int, default=50, help="Top-k for sampling.")
     parser.add_argument("--top_p", type=int, default=0.95, help="Top-k for sampling.")
-    parser.add_argument("--repetition_penalty", type=float, default=1.1)
+    parser.add_argument("--repetition_penalty", type=float, default=1.0)
     parser.add_argument(
         "--temperature", type=float, default=0.8, help="Temperature for sampling."
     )
     parser.add_argument(
         "--checkpoint_path",
         type=Path,
-        default=Path("results/text2semantic_400m/step_000090000_weights.ckpt"),
+        default=Path("results/text2semantic_400m/step_000095000_weights.ckpt"),
         help="Model checkpoint path.",
     )
     parser.add_argument(

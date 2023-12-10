@@ -330,7 +330,7 @@ class VQEncoder(nn.Module):
     def decode(self, indices):
         q = self.vq.get_output_from_indices(indices)
 
-        if q.shape[1] != indices.shape[1]:
+        if q.shape[1] != indices.shape[1] and indices.ndim != 4:
             q = q.view(q.shape[0], indices.shape[1], -1)
         q = q.mT
 
