@@ -34,7 +34,7 @@ def main():
 
     # Load audio
     audio = librosa.load(
-        "data/StarRail/Chinese/停云/chapter2_1_tingyun_142.wav",
+        "data/Genshin/Chinese/派蒙/vo_WYLQ103_10_paimon_04.wav",
         sr=model.sampling_rate,
         mono=True,
     )[0]
@@ -72,37 +72,39 @@ def main():
     _, indices, _ = model.vq_encoder(text_features, feature_masks)
     print(indices.shape)
 
-    # Restore
-    # indices = np.load("codes_0.npy")
-    # indices = torch.from_numpy(indices).to(model.device).long()
-    # indices = indices.unsqueeze(1).unsqueeze(-1)
-    # mel_lengths = indices.shape[2] * (
-    #     model.downsample.total_strides if model.downsample is not None else 1
-    # )
-    # mel_lengths = torch.tensor([mel_lengths], device=model.device, dtype=torch.long)
-    # mel_masks = torch.ones(
-    #     (1, 1, mel_lengths), device=model.device, dtype=torch.float32
-    # )
+    speaker_features = model.speaker_encoder(gt_mels, mel_masks)
 
-    # print(mel_lengths)
+    # Restore
+    indices = np.load("codes_0.npy")
+    indices = torch.from_numpy(indices).to(model.device).long()
+    print(indices)
+    # indices = indices.unsqueeze(1).unsqueeze(-1)
+    mel_lengths = indices.shape[1] * (
+        model.downsample.total_strides if model.downsample is not None else 1
+    )
+    mel_lengths = torch.tensor([mel_lengths], device=model.device, dtype=torch.long)
+    mel_masks = torch.ones(
+        (1, 1, mel_lengths), device=model.device, dtype=torch.float32
+    )
+
+    print(mel_lengths)
 
     # Reference speaker
-    ref_audio = librosa.load(
-        "data/StarRail/Chinese/符玄/chapter2_8_fuxuan_104.wav",
-        sr=model.sampling_rate,
-        mono=True,
-    )[0]
-    ref_audios = torch.from_numpy(ref_audio).to(model.device)[None, None, :]
-    ref_audio_lengths = torch.tensor(
-        [ref_audios.shape[2]], device=model.device, dtype=torch.long
-    )
-    ref_mels = model.mel_transform(ref_audios, sample_rate=model.sampling_rate)
-    ref_mel_lengths = ref_audio_lengths // model.hop_length
-    ref_mel_masks = torch.unsqueeze(
-        sequence_mask(ref_mel_lengths, ref_mels.shape[2]), 1
-    ).to(gt_mels.dtype)
-    speaker_features = model.speaker_encoder(ref_mels, ref_mel_masks)
-    # speaker_features = model.speaker_encoder(gt_mels, mel_masks)
+    # ref_audio = librosa.load(
+    #     "data/StarRail/Chinese/符玄/chapter2_8_fuxuan_104.wav",
+    #     sr=model.sampling_rate,
+    #     mono=True,
+    # )[0]
+    # ref_audios = torch.from_numpy(ref_audio).to(model.device)[None, None, :]
+    # ref_audio_lengths = torch.tensor(
+    #     [ref_audios.shape[2]], device=model.device, dtype=torch.long
+    # )
+    # ref_mels = model.mel_transform(ref_audios, sample_rate=model.sampling_rate)
+    # ref_mel_lengths = ref_audio_lengths // model.hop_length
+    # ref_mel_masks = torch.unsqueeze(
+    #     sequence_mask(ref_mel_lengths, ref_mels.shape[2]), 1
+    # ).to(gt_mels.dtype)
+    # speaker_features = model.speaker_encoder(ref_mels, ref_mel_masks)
 
     print("indices", indices.shape)
     text_features = model.vq_encoder.decode(indices)

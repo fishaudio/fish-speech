@@ -141,10 +141,14 @@ class Transformer(nn.Module):
         return x.sum(dim=3)
 
     def compute(
-        self, x: Tensor, freqs_cis: Tensor, mask: Tensor
+        self,
+        x: Tensor,
+        freqs_cis: Tensor,
+        mask: Tensor,
+        input_pos: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
         for layer in self.layers:
-            x = layer(x, freqs_cis, mask)
+            x = layer(x, freqs_cis, mask, input_pos=input_pos)
 
         x = self.norm(x)
         logits = self.output(x)
@@ -202,7 +206,7 @@ class Transformer(nn.Module):
 
         # TODO: support key padding mask for generation
 
-        return self.compute(x, freqs_cis, mask)
+        return self.compute(x, freqs_cis, mask, input_pos=input_pos)
 
 
 class TransformerBlock(nn.Module):

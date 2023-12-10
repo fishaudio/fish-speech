@@ -188,9 +188,10 @@ class AutoAugTextDataset(IterableDataset):
 
     def augment(self):
         # 50% to pure text or pure phones
-        mode = "sample"
-        if random.random() < 0.5:
-            mode = random.choice(["text", "phones"])
+        # mode = "sample"
+        # if random.random() < 0.5:
+        #     mode = random.choice(["text", "phones"])
+        mode = "phones"
 
         # Random sample based on speaker using a truncated normal distribution
         a = torch.tensor([0], dtype=torch.float32)
@@ -250,6 +251,7 @@ class AutoAugTextDataset(IterableDataset):
             )
             tokens = torch.tensor([tokens], dtype=torch.long)
             labels = tokens.clone()
+            labels[0, : len(encoded) + 1] = -100  # Mask out the <s> and query tokens
         else:
             # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
             tokens = (
