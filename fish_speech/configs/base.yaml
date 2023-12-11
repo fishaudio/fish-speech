@@ -14,7 +14,7 @@ trainer:
   default_root_dir: ${paths.run_dir}
   accelerator: gpu
   num_nodes: 1
-  devices: 8
+  devices: auto
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
 

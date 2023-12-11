@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m
+project: text2semantic_400m_multi
 max_length: 1024
 
 # Lightning Trainer
@@ -35,7 +35,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 16
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
@@ -55,12 +55,13 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 0  # single codebook
+      num_codebooks: 4  # single codebook
+      codebook_size: 168 # codebook size 160 + 2 special tokens
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 3e-4
     weight_decay: 0.1
     betas: [0.9, 0.95]
     eps: 1e-5
