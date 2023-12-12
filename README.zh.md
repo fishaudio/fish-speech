@@ -8,7 +8,7 @@
 我们不对代码库的任何非法使用承担任何责任。请参阅您当地关于DMCA和其他相关法律的法律。
 
 ## 要求
-- GPU内存：4GB（用于推理），24GB（用于微调）
+- GPU内存：2GB（用于推理），24GB（用于微调）
 - 系统：Linux（全部功能），Windows（仅推理，不支持flash-attn，不支持torch.compile）
 
 因此，我们强烈建议Windows用户使用WSL2或docker来运行代码库。
@@ -35,14 +35,27 @@ pip3 install -e .
 TODO
 ```
 
-从文本生成语义 token：
+### [可选] 从语音生成 prompt：
 ```bash
-python tools/llama/generate.py
+python tools/vqgan/inference.py -i codes_0.wav
+```
+
+你应该能得到一个 `fake.npy` 文件。
+
+### 从文本生成语义 token：
+```bash
+python tools/llama/generate.py \
+    --text "要转换的文本" \
+    --prompt-string "你的参考文本" \
+    --prompt-tokens "fake.npy" \
+    --checkpoint-path results/text2semantic_400m_finetune/step_000002000.pth \
+    --num-samples 2 \
+    --compile
 ```
 
 您可能希望使用 `--compile` 来融合 cuda 内核以实现更快的推理（~25 个 token/秒 -> ~300 个 token/秒）。
 
-从语义 token 生成人声：
+### 从语义 token 生成人声：
 ```bash
 python tools/vqgan/inference.py -i codes_0.npy
 ```
