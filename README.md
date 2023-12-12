@@ -1,6 +1,6 @@
 # Fish Speech
 
-**Documentation is under construction**
+**Documentation is under construction, English is not fully supported yet.**
 
 [中文文档](README.zh.md)
 
@@ -33,7 +33,8 @@ pip3 install -e .
 Download required `vqgan` and `text2semantic` model from our huggingface repo.
 
 ```bash
-TODO
+wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth -O checkpoints/vqgan-v1.pth
+wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.1-4k.pth -O checkpoints/text2semantic-400m-v0.1-4k.pth
 ```
 
 Generate semantic tokens from text:

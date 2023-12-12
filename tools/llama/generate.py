@@ -338,10 +338,10 @@ def load_model(config_name, checkpoint_path, device, precision):
 )
 @click.option("--num-samples", type=int, default=1)
 @click.option("--max_new_tokens", type=int, default=0)
-@click.option("--top_k", type=int, default=50)
-@click.option("--top_p", type=float, default=0.95)
-@click.option("--repetition-penalty", type=float, default=1.05)
-@click.option("--temperature", type=float, default=0.8)
+@click.option("--top-k", type=int, default=None)
+@click.option("--top-p", type=float, default=0.5)
+@click.option("--repetition-penalty", type=float, default=1.1)
+@click.option("--temperature", type=float, default=0.7)
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),

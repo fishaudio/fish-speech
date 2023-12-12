@@ -1,7 +1,5 @@
 # Fish Speech
 
-**文档正在编写中**
-
 此代码库根据 BSD-3-Clause 许可证发布，所有模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节。
 
 ## 免责声明
@@ -32,12 +30,13 @@ pip3 install -e .
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `text2semantic` 模型。
     
 ```bash
-TODO
+wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth -O checkpoints/vqgan-v1.pth
+wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.1-4k.pth -O checkpoints/text2semantic-400m-v0.1-4k.pth
 ```
 
 ### [可选] 从语音生成 prompt：
 ```bash
-python tools/vqgan/inference.py -i codes_0.wav
+python tools/vqgan/inference.py -i paimon.wav --checkpoint-path checkpoints/vqgan-v1.pth
 ```
 
 你应该能得到一个 `fake.npy` 文件。
@@ -48,16 +47,17 @@ python tools/llama/generate.py \
     --text "要转换的文本" \
     --prompt-string "你的参考文本" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path results/text2semantic_400m_finetune/step_000002000.pth \
+    --checkpoint-path "checkpoints/text2semantic-400m-v0.1-4k.pth" \
     --num-samples 2 \
     --compile
 ```
 
-您可能希望使用 `--compile` 来融合 cuda 内核以实现更快的推理（~25 个 token/秒 -> ~300 个 token/秒）。
+该命令会在工作目录下创建 `codes_N` 文件，其中 N 是从 0 开始的整数。
+您可能希望使用 `--compile` 来融合 cuda 内核以实现更快的推理（~30 个 token/秒 -> ~500 个 token/秒）。
 
 ### 从语义 token 生成人声：
 ```bash
-python tools/vqgan/inference.py -i codes_0.npy
+python tools/vqgan/inference.py -i codes_0.npy --checkpoint-path checkpoints/vqgan-v1.pth
 ```
 
 ## Rust 数据服务器
