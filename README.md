@@ -1,5 +1,7 @@
 # Fish Speech
 
+**Documentation is under construction**
+
 [中文文档](README.zh.md)
 
 This codebase is released under BSD-3-Clause License, and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 
