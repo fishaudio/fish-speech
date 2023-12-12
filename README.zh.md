@@ -1,6 +1,6 @@
 # Fish Speech
 
-** 文档正在编写中 **
+**文档正在编写中**
 
 此代码库根据 BSD-3-Clause 许可证发布，所有模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节。
 
