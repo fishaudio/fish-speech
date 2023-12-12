@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_multi
+project: text2semantic_400m_pretrain
 max_length: 1024
 
 # Lightning Trainer

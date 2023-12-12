@@ -11,3 +11,5 @@ filelists
 /checkpoints
 /.vscode
 /data_server/target
+/*.npy
+/*.wav

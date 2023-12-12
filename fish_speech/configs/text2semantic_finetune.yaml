@@ -2,8 +2,10 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_multi
+project: text2semantic_400m_finetune
 max_length: 4096
+ckpt_path: results/text2semantic_400m_pretrain/checkpoints/step_000065000.ckpt
+resume_weights_only: true
 
 # Lightning Trainer
 trainer:
