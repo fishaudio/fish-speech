@@ -218,8 +218,8 @@ class AutoAugTextDataset(IterableDataset):
 
         final_text, final_semantic = [], []
 
-        # Shuffle unique lines
-        request = SampleDataRequest(num_samples=50)
+        # Shuffle unique lines, estimate that each sample is at least 20 tokens
+        request = SampleDataRequest(num_samples=self.max_length // 20)
         response = self.stub.SampleData(request)
         if len(response.samples) == 0:
             # Invalid group
