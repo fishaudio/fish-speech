@@ -1,6 +1,17 @@
 # Fish Speech
 
-This repo is still under construction. Please check back later.
+[中文文档](README.zh.md)
+
+This codebase is released under BSD-3-Clause License, and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 
+
+## Disclaimer
+We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
+
+## Requirements
+- GPU memory: 4GB (for inference), 24GB (for finetuning)
+- System: Linux (full functionality), Windows (inference only, flash-attn is not supported, torch.compile is not supported)
+
+Therefore, we strongly recommend to use WSL2 or docker to run the codebase for Windows users.
 
 ## Setup
 ```bash
@@ -14,6 +25,25 @@ pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 
 # Install fish-speech
 pip3 install -e .
+```
+
+## Inference (CLI)
+Download required `vqgan` and `text2semantic` model from our huggingface repo.
+
+```bash
+TODO
+```
+
+Generate semantic tokens from text:
+```bash
+python tools/llama/generate.py
+```
+
+You may want to use `--compile` to fuse cuda kernels faster inference (~25 tokens/sec -> ~300 tokens/sec).
+
+Generate vocals from semantic tokens:
+```bash
+python tools/vqgan/inference.py -i codes_0.npy
 ```
 
 ## Rust Data Server
