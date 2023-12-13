@@ -149,7 +149,7 @@ class AutoAugTextDataset(IterableDataset):
         server: str = "localhost:50051",
         seed: int = 42,
         phones_prob: float = 0.3,
-        repetition_prob: float = 0.1,
+        repetition_prob: float = 0.0,
         max_length: int = 1024,
         tokenizer: AutoTokenizer = None,
     ):
@@ -200,10 +200,9 @@ class AutoAugTextDataset(IterableDataset):
 
     def augment(self):
         # 50% to pure text or pure phones
-        # mode = "sample"
-        # if random.random() < 0.5:
-        #     mode = random.choice(["text", "phones"])
-        mode = "phones"
+        mode = "sample"
+        if random.random() < 0.5:
+            mode = random.choice(["text", "phones"])
 
         # Random sample based on speaker using a truncated normal distribution
         a = torch.tensor([0], dtype=torch.float32)
