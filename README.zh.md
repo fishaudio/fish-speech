@@ -2,6 +2,10 @@
 
 此代码库根据 BSD-3-Clause 许可证发布，所有模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节。
 
+<p align="center">
+<img src="figs/diagram.png" width="75%">
+</p>
+
 ## 免责声明
 我们不对代码库的任何非法使用承担任何责任。请参阅您当地关于DMCA和其他相关法律的法律。
 
@@ -45,7 +49,7 @@ python tools/vqgan/inference.py -i paimon.wav --checkpoint-path checkpoints/vqga
 ```bash
 python tools/llama/generate.py \
     --text "要转换的文本" \
-    --prompt-string "你的参考文本" \
+    --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
     --checkpoint-path "checkpoints/text2semantic-400m-v0.1-4k.pth" \
     --num-samples 2 \
