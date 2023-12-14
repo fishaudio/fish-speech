@@ -169,6 +169,9 @@ class VQGAN(L.LightningModule):
             text_features, size=gt_mels.shape[2], mode="nearest"
         )
 
+        if loss_vq.ndim > 1:
+            loss_vq = loss_vq.mean()
+
         # Sample mels
         speaker_features = (
             self.speaker_encoder(gt_mels, mel_masks)

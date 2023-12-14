@@ -14,6 +14,8 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+from fish_speech.text.parser import clean_text
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
 torch._inductor.config.triton.unique_kernel_names = True
@@ -266,12 +268,14 @@ def encode_tokens(
         string = prompt_string + " " + string
 
     if use_g2p:
-        prompt = g2p(prompt)
+        prompt = g2p(string)
         prompt = [
             (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
             for _, i in prompt
         ]
         string = " ".join(prompt)
+    else:
+        string = clean_text(string)
 
     string = f"[INST] {string} [/INST]"
 

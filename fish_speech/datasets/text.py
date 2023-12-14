@@ -21,6 +21,7 @@ from transformers import AutoTokenizer
 
 from fish_speech.datasets.protos.text_data_pb2 import SampleDataRequest
 from fish_speech.datasets.protos.text_data_pb2_grpc import DataServiceStub
+from fish_speech.text.parser import clean_text
 from fish_speech.text.symbols import pad as pad_symbol
 from fish_speech.text.symbols import pu_symbols
 from fish_speech.utils import RankedLogger
@@ -189,6 +190,8 @@ class AutoAugTextDataset(IterableDataset):
                     for i in phones
                 ]
             )
+        else:
+            sentence = clean_text(sentence)
 
         tokens = self.tokenizer.encode(
             f"{sentence}",

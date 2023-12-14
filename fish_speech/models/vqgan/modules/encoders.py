@@ -275,17 +275,18 @@ class VQEncoder(nn.Module):
         codebook_size: int = 2048,
         downsample: int = 1,
         codebook_groups: int = 1,
+        codebook_layers: int = 1,
     ):
         super().__init__()
 
-        if codebook_groups > 1:
+        if codebook_groups > 1 or codebook_layers > 1:
             self.vq = GroupedResidualVQ(
                 dim=vq_channels,
                 codebook_size=codebook_size,
                 threshold_ema_dead_code=2,
                 kmeans_init=False,
                 groups=codebook_groups,
-                num_quantizers=1,
+                num_quantizers=codebook_layers,
             )
         else:
             self.vq = VectorQuantize(
