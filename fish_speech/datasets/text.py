@@ -181,6 +181,7 @@ class AutoAugTextDataset(IterableDataset):
         repetition_prob: float = 0.0,
         max_length: int = 1024,
         tokenizer: AutoTokenizer = None,
+        use_speaker: bool = True,
     ):
         """
         Args:
@@ -199,6 +200,7 @@ class AutoAugTextDataset(IterableDataset):
         self.max_length = max_length
         self.tokenizer = tokenizer
         self.repetition_prob = repetition_prob
+        self.use_speaker = use_speaker
 
         # Read all lines, and group by speaker
         self.channel = grpc.insecure_channel(server)
@@ -218,6 +220,8 @@ class AutoAugTextDataset(IterableDataset):
                     for i in phones
                 ]
             )
+        else:
+            sentence = clean_text(sentence)
 
         tokens = self.tokenizer.encode(
             f"{sentence}",
@@ -267,6 +271,9 @@ class AutoAugTextDataset(IterableDataset):
             remaining_tokens -= length + len(sentence.semantics[0].values)
             final_text.append(text)
             final_semantic.append(sentence.semantics)
+
+        if self.use_speaker is not None:
+            final_text = [f"[SPK: {response.name}]"] + final_text
 
         final_text = "[INST] " + " ".join(final_text) + " [/INST]"
         encoded = self.tokenizer.encode(
@@ -441,14 +448,15 @@ if __name__ == "__main__":
 
     from tqdm import tqdm
 
-    # ds = AutoAugTextDataset(
+    ds = AutoAugTextDataset(
+        tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
+        use_speaker=True,
+    )
+
+    # ds = StreamTextDataset(
+    #     prefix="en/",
     #     tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
     # )
-
-    ds = StreamTextDataset(
-        prefix="en/",
-        tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
-    )
 
     dm = TextDataModule(
         train_dataset=ds,

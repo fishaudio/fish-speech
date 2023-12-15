@@ -263,6 +263,7 @@ def encode_tokens(
     prompt_text=None,
     prompt_tokens=None,
     use_g2p=False,
+    speaker=None,
 ):
     if prompt_text is not None:
         string = prompt_text + " " + string
@@ -276,6 +277,9 @@ def encode_tokens(
         string = " ".join(prompt)
     else:
         string = clean_text(string)
+
+    if speaker is not None:
+        string = f"[SPK: {speaker}] {string}"
 
     string = f"[INST] {string} [/INST]"
 
@@ -373,6 +377,7 @@ def load_model(config_name, checkpoint_path, device, precision):
 @click.option("--compile/--no-compile", default=False)
 @click.option("--use-g2p/--no-g2p", default=True)
 @click.option("--seed", type=int, default=42)
+@click.option("--speaker", type=str, default=None)
 def main(
     text: str,
     prompt_text: Optional[str],
@@ -389,6 +394,7 @@ def main(
     compile: bool,
     use_g2p: bool,
     seed: int,
+    speaker: Optional[str],
 ) -> None:
     device = "cuda"
     precision = torch.bfloat16
@@ -415,6 +421,7 @@ def main(
         bos=True,
         device=device,
         use_g2p=use_g2p,
+        speaker=speaker,
     )
     prompt_length = encoded.size(1)
     logger.info(f"Encoded prompt shape: {encoded.shape}")

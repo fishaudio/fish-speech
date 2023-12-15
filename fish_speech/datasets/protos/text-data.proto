@@ -20,7 +20,9 @@ message TextData {
 }
 
 message SampledData {
-    repeated Sentence samples = 1;
+    string source = 1;
+    string name = 2;
+    repeated Sentence samples = 3;
 }
 
 message SampleDataRequest {

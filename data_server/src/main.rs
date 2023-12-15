@@ -106,7 +106,11 @@ impl DataService for MyDataService {
                 .cloned() // Clone each &Sentence to get Sentence
                 .collect();
 
-            Ok(Response::new(SampledData { samples: sentences }))
+            Ok(Response::new(SampledData {
+                name: group.name.clone(), 
+                source: group.source.clone(),
+                samples: sentences 
+            }))
         } else {
             Err(Status::internal("Failed to select a group"))
         }
