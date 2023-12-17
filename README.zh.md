@@ -35,7 +35,7 @@ pip3 install -e .
     
 ```bash
 wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth -O checkpoints/vqgan-v1.pth
-wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.1-4k.pth -O checkpoints/text2semantic-400m-v0.1-4k.pth
+wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.2-4k.pth -O checkpoints/text2semantic-400m-v0.2-4k.pth
 ```
 
 ### 1. [可选] 从语音生成 prompt: 
@@ -74,6 +74,7 @@ cargo build --release
 
 ## 更新日志
 
+- 2023/12/17: 更新了 `text2semantic` 模型, 支持无音素模式.
 - 2023/12/13: 测试版发布, 包含 VQGAN 模型和一个基于 LLAMA 的语言模型 (只支持音素).
 
 ## 致谢

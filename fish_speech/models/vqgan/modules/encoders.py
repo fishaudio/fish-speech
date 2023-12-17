@@ -308,7 +308,7 @@ class VQEncoder(nn.Module):
             nn.Conv1d(vq_channels, in_channels, kernel_size=1, stride=1),
         )
 
-    def forward(self, x, x_mask):
+    def forward(self, x, x_mask, freeze_codebook=False):
         # x: [B, C, T], x_mask: [B, 1, T]
         x_len = x.shape[2]
 
@@ -317,7 +317,7 @@ class VQEncoder(nn.Module):
             x_mask = F.pad(x_mask, (0, self.downsample - x_len % self.downsample))
 
         x = self.conv_in(x)
-        q, indices, loss = self.vq(x.mT)
+        q, indices, loss = self.vq(x.mT, freeze_codebook=freeze_codebook)
         q = q.mT
 
         if self.codebook_groups > 1:

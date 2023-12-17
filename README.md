@@ -34,7 +34,7 @@ Download required `vqgan` and `text2semantic` model from our huggingface repo.
 
 ```bash
 wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth -O checkpoints/vqgan-v1.pth
-wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.1-4k.pth -O checkpoints/text2semantic-400m-v0.1-4k.pth
+wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.2-4k.pth -O checkpoints/text2semantic-400m-v0.2-4k.pth
 ```
 
 Generate semantic tokens from text:
