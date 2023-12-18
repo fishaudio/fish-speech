@@ -381,6 +381,7 @@ def load_model(config_name, checkpoint_path, device, precision):
 @click.option("--use-g2p/--no-g2p", default=True)
 @click.option("--seed", type=int, default=42)
 @click.option("--speaker", type=str, default=None)
+@click.option("--hf-token", type=str, default=None)
 def main(
     text: str,
     prompt_text: Optional[str],
@@ -398,6 +399,7 @@ def main(
     use_g2p: bool,
     seed: int,
     speaker: Optional[str],
+    hf_token: str,
 ) -> None:
     device = "cuda"
     precision = torch.bfloat16
@@ -410,7 +412,7 @@ def main(
     torch.cuda.synchronize()
     logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
 
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer, token=hf_token)
     prompt_tokens = (
         torch.from_numpy(np.load(prompt_tokens)).to(device)
         if prompt_tokens is not None
