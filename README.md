@@ -1,66 +1,19 @@
 # Fish Speech
 
-**Documentation is under construction, English is not fully supported yet.**
-
-[中文文档](README.zh.md)
-
 This codebase is released under BSD-3-Clause License, and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 
 
-## Disclaimer
-We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
+此代码库根据 BSD-3-Clause 许可证发布, 所有模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节.
 
-## Requirements
-- GPU memory: 2GB (for inference), 24GB (for finetuning)
-- System: Linux (full functionality), Windows (inference only, flash-attn is not supported, torch.compile is not supported)
+## Disclaimer / 免责声明
+We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.  
+我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律的法律.
 
-Therefore, we strongly recommend to use WSL2 or docker to run the codebase for Windows users.
+## Documents / 文档
+- [English](https://speech.fish.audio/en/)
+- [中文](https://speech.fish.audio/zh/)
 
-## Setup
-```bash
-# Basic environment setup
-conda create -n fish-speech python=3.10
-conda activate fish-speech
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
 
-# Install flash-attn (for linux)
-pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
-
-# Install fish-speech
-pip3 install -e .
-```
-
-## Inference (CLI)
-Download required `vqgan` and `text2semantic` model from our huggingface repo.
-
-```bash
-wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth -O checkpoints/vqgan-v1.pth
-wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.2-4k.pth -O checkpoints/text2semantic-400m-v0.2-4k.pth
-```
-
-Generate semantic tokens from text:
-```bash
-python tools/llama/generate.py \
-    --text "Hello" \
-    --num-samples 2 \
-    --compile
-```
-
-You may want to use `--compile` to fuse cuda kernels faster inference (~25 tokens/sec -> ~300 tokens/sec).
-
-Generate vocals from semantic tokens:
-```bash
-python tools/vqgan/inference.py -i codes_0.npy
-```
-
-## Rust Data Server
-Since loading and shuffle the dataset is very slow and memory consuming, we use a rust server to load and shuffle the dataset. The server is based on GRPC and can be installed by
-
-```bash
-cd data_server
-cargo build --release
-```
-
-## Credits
+## Credits / 鸣谢
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
 - [GPT VITS](https://github.com/innnky/gpt-vits)
