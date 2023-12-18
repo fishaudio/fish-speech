@@ -88,11 +88,11 @@ model:
     upsample_rates: [8, 8, 2, 2]
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 4, 4]
-    ckpt_path: "checkpoints/hifigan-v1-universal-22050/g_02500000"
+    # ckpt_path: "checkpoints/hifigan-v1-universal-22050/g_02500000"
 
   discriminator:
     _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
-    ckpt_path: checkpoints/hifigan-v1-universal-22050/do_02500000
+    # ckpt_path: checkpoints/hifigan-v1-universal-22050/do_02500000
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
