@@ -12,6 +12,7 @@ theme:
     - search.suggest
     - search.highlight
     - search.share
+    - content.code.copy
 
   palette:
     # Palette toggle for automatic mode
@@ -51,3 +52,18 @@ extra:
     - name: 中文
       link: /zh/
       lang: zh
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.superfences
