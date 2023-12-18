@@ -4,7 +4,7 @@ defaults:
 
 project: text2semantic_400m_finetune_spk
 max_length: 4096
-ckpt_path: results/text2semantic_400m_finetune/checkpoints/step_000010000.ckpt
+ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
 resume_weights_only: true
 
 # Lightning Trainer
@@ -74,7 +74,7 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 100
+      num_warmup_steps: 1000
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
 

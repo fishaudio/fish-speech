@@ -29,14 +29,6 @@ pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 pip3 install -e .
 ```
 
-## Rust 数据服务器
-由于加载和打乱数据集非常缓慢且占用内存, 因此我们使用 rust 服务器来加载和打乱数据. 该服务器基于 GRPC, 可以通过以下方式安装:
-
-```bash
-cd data_server
-cargo build --release
-```
-
 ## 更新日志
 
 - 2023/12/17: 更新了 `text2semantic` 模型, 支持无音素模式.

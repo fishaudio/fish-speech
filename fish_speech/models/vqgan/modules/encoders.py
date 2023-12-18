@@ -317,7 +317,7 @@ class VQEncoder(nn.Module):
             x_mask = F.pad(x_mask, (0, self.downsample - x_len % self.downsample))
 
         x = self.conv_in(x)
-        q, indices, loss = self.vq(x.mT, freeze_codebook=freeze_codebook)
+        q, indices, loss = self.vq(x.mT)
         q = q.mT
 
         if self.codebook_groups > 1:

@@ -2,7 +2,9 @@ import re
 from collections import defaultdict
 from multiprocessing import Pool
 
+import click
 import numpy as np
+import yaml
 from loguru import logger
 from tqdm import tqdm
 
@@ -11,22 +13,20 @@ from fish_speech.datasets.protos.text_data_stream import pack_pb_stream
 from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
-# Define datasets
-DATASETS = [
-    # (root, name, languages, extension, group parent level)
-    ("data/StarRail/Chinese", "StarRail", ["ZH", "EN"], ".lab", 1),
-    ("data/StarRail/English", "StarRail", ["EN"], ".lab", 1),
-    ("data/StarRail/Japanese", "StarRail", ["JP", "EN"], ".lab", 1),
-    ("data/Genshin/Chinese", "Genshin", ["ZH", "EN"], ".lab", 1),
-    ("data/Genshin/English", "Genshin", ["EN"], ".lab", 1),
-    ("data/Genshin/Japanese", "Genshin", ["JP", "EN"], ".lab", 1),
-    ("data/LibriTTS_R", "LibriTTS_R", ["EN"], ".normalized.txt", 2),
-    ("data/WenetSpeech", "WenetSpeech", ["ZH", "EN"], ".txt", 1),
-]
 
+def task_generator(config):
+    with open(config, "r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
-def task_generator():
-    for root, source, languages, extension, parent_level in DATASETS:
+    for row in config["datasets"]:
+        root, source, languages, extension, parent_level = (
+            row["root"],
+            row["source"],
+            row["languages"],
+            row["extension"],
+            row["group_parent_level"],
+        )
+
         # Load the files
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
 
@@ -55,6 +55,7 @@ def run_task(task):
         np_file = file.with_suffix(".npy")
         txt_file = file.with_suffix(extension)
         if np_file.exists() is False or txt_file.exists() is False:
+            logger.warning(f"Can't find {np_file} or {txt_file}")
             continue
 
         with open(txt_file, "r") as f:
@@ -94,10 +95,15 @@ def run_task(task):
     )
 
 
-def main():
-    dataset_fp = open("data/quantized-dataset-1208.protos", "wb")
+@click.command()
+@click.option(
+    "--config", type=click.Path(), default="fish_speech/configs/data/finetune.yaml"
+)
+@click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
+def main(config, output):
+    dataset_fp = open(output, "wb")
     with Pool(16) as p:
-        for result in tqdm(p.imap_unordered(run_task, task_generator())):
+        for result in tqdm(p.imap_unordered(run_task, task_generator(config))):
             dataset_fp.write(result)
 
     dataset_fp.close()

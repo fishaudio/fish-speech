@@ -15,10 +15,8 @@
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `text2semantic` 模型。
     
 ```bash
-wget https://huggingface.co/fishaudio/speech-lm-v1/raw/main/vqgan-v1.pth \
-    -O "checkpoints/vqgan-v1.pth"
-wget https://huggingface.co/fishaudio/speech-lm-v1/blob/main/text2semantic-400m-v0.2-4k.pth \
-    -O "checkpoints/text2semantic-400m-v0.2-4k.pth"
+huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
 
 ### 1. 从语音生成 prompt: 

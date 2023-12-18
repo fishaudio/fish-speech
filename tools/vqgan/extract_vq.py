@@ -53,7 +53,10 @@ def get_model(
     state_dict = torch.load(
         checkpoint_path,
         map_location=model.device,
-    )["state_dict"]
+    )
+    if "state_dict" in state_dict:
+        state_dict = state_dict["state_dict"]
+
     model.load_state_dict(state_dict, strict=True)
     model.eval()
     model.cuda()
@@ -136,10 +139,10 @@ def process_batch(files: list[Path], model) -> float:
 @click.command()
 @click.argument("folder")
 @click.option("--num-workers", default=1)
-@click.option("--config-name", default="vqgan")
+@click.option("--config-name", default="vqgan_pretrain")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/vqgan/step_000380000.ckpt",
+    default="checkpoints/vqgan-v1.pth",
 )
 @click.option("--batch-size", default=64)
 def main(
