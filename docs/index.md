@@ -1,4 +1,4 @@
 ---
 template: redirect.html
-location: /zh/
+location: ./zh/
 ---
