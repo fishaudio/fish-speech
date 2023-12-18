@@ -17,10 +17,12 @@
 
 ## 设置
 ```bash
-# 基本环境设置
+# 创建一个 python 3.10 虚拟环境, 你也可以用 virtualenv
 conda create -n fish-speech python=3.10
 conda activate fish-speech
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+
+# 安装 pytorch
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # 安装 flash-attn (适用于linux)
 pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
