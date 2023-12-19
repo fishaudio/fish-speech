@@ -13,12 +13,7 @@ def main(root):
     files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
     print(f"Found {len(files)} files")
 
-    files = [
-        str(file.relative_to(root))
-        for file in tqdm(files)
-        if file.with_suffix(".npy").exists()
-    ]
-    print(f"Found {len(files)} files with features")
+    files = [str(file.relative_to(root)) for file in tqdm(files)]
 
     Random(42).shuffle(files)
 

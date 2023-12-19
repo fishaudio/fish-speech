@@ -98,15 +98,25 @@ class VQGAN(L.LightningModule):
 
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
-        optimizer_generator = self.optimizer_builder(
-            itertools.chain(
-                self.downsample.parameters(),
-                self.vq_encoder.parameters(),
-                self.mel_encoder.parameters(),
-                self.decoder.parameters(),
-                self.generator.parameters(),
+        components = []
+        if self.freeze_vq is False:
+            components.extend(
+                [
+                    self.downsample.parameters(),
+                    self.vq_encoder.parameters(),
+                    self.mel_encoder.parameters(),
+                ]
             )
-        )
+
+        if self.speaker_encoder is not None:
+            components.append(self.speaker_encoder.parameters())
+
+        components.append(self.decoder.parameters())
+
+        if self.freeze_hifigan is False:
+            components.append(self.generator.parameters())
+
+        optimizer_generator = self.optimizer_builder(itertools.chain(*components))
         optimizer_discriminator = self.optimizer_builder(
             self.discriminator.parameters()
         )
@@ -146,6 +156,13 @@ class VQGAN(L.LightningModule):
                 audios, sample_rate=self.sampling_rate
             )
 
+        if self.freeze_vq:
+            # Disable gradient computation for VQ
+            torch.set_grad_enabled(False)
+            self.vq_encoder.eval()
+            self.mel_encoder.eval()
+            self.downsample.eval()
+
         if self.downsample is not None:
             features = self.downsample(features)
 
@@ -174,6 +191,10 @@ class VQGAN(L.LightningModule):
 
         if loss_vq.ndim > 1:
             loss_vq = loss_vq.mean()
+
+        if self.freeze_vq:
+            # Enable gradient computation
+            torch.set_grad_enabled(True)
 
         # Sample mels
         speaker_features = (

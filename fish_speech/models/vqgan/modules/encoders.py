@@ -276,6 +276,7 @@ class VQEncoder(nn.Module):
         downsample: int = 1,
         codebook_groups: int = 1,
         codebook_layers: int = 1,
+        threshold_ema_dead_code: int = 2,
     ):
         super().__init__()
 
@@ -283,7 +284,7 @@ class VQEncoder(nn.Module):
             self.vq = GroupedResidualVQ(
                 dim=vq_channels,
                 codebook_size=codebook_size,
-                threshold_ema_dead_code=2,
+                threshold_ema_dead_code=threshold_ema_dead_code,
                 kmeans_init=False,
                 groups=codebook_groups,
                 num_quantizers=codebook_layers,
@@ -292,7 +293,7 @@ class VQEncoder(nn.Module):
             self.vq = VectorQuantize(
                 dim=vq_channels,
                 codebook_size=codebook_size,
-                threshold_ema_dead_code=2,
+                threshold_ema_dead_code=threshold_ema_dead_code,
                 kmeans_init=False,
             )
 
