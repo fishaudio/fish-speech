@@ -1,18 +1,17 @@
 import gc
 import time
-from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote
 
-import click
 import librosa
 import numpy as np
 import soundfile as sf
 import torch
 import torch.nn.functional as F
-from fastapi import FastAPI, Query, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from hydra import compose, initialize
 from hydra.utils import instantiate
+from pydantic import BaseModel
 from transformers import AutoTokenizer
 
 from fish_speech.models.vqgan.utils import sequence_mask
@@ -29,24 +28,26 @@ class LLamaModelManager:
         self.device = None
         self.precision = None
         self.compilation = None
+        self.decode_one_token = None
 
     def load_model(self, config_name: str, checkpoint_path: str,
-                   device, precision, tokenizer_path: str, compilation: bool):
+                   device, precision: bool, tokenizer_path: str, compilation: bool):
         self.device = device
-        self.precision = precision
+
         self.compilation = compilation
         if self.model is None:
             self.t0 = time.time()
-            self.model = load_model(config_name, checkpoint_path, device, precision)
+            self.precision = torch.bfloat16 if precision else torch.half
+            self.model = load_model(config_name, checkpoint_path, device, self.precision)
             self.model_size = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+
             torch.cuda.synchronize()
             logger.info(f"Time to load model: {time.time() - self.t0:.02f} seconds")
             if self.tokenizer is None:
                 self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
             if self.compilation:
-                global decode_one_token
-                decode_one_token = torch.compile(
-                    decode_one_token, mode="reduce-overhead", fullgraph=True
+                self.decode_one_token = torch.compile(
+                    self.decode_one_token, mode="reduce-overhead", fullgraph=True
                 )
 
         else:
@@ -88,13 +89,6 @@ class VQGANModelManager:
         self.model = None
         self.cfg = None
 
-    @torch.no_grad()
-    @torch.autocast(device_type="cuda", enabled=True)
-    @click.command()
-    @click.option("--config-name", "-cfg", default="vqgan_pretrain")
-    @click.option(
-        "--checkpoint-path", "-ckpt", default="checkpoints/vqgan/step_000380000_wo.ckpt"
-    )
     def load_model(self, config_name: str, checkpoint_path: str):
         if self.cfg is None:
             with initialize(version_base="1.3", config_path="./fish_speech/configs"):
@@ -123,19 +117,9 @@ class VQGANModelManager:
 
     @torch.no_grad()
     @torch.autocast(device_type="cuda", enabled=True)
-    @click.command()
-    @click.option(
-        "--input-path",
-        "-i",
-        default="data/Genshin/Chinese/派蒙/vo_WYLQ103_10_paimon_04.wav",
-        type=click.Path(exists=True, path_type=Path),
-    )
-    @click.option(
-        "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
-    )
     def sematic_to_wav(self, input_path, output_path):
         model = self.model
-        if input_path.suffix == ".wav":
+        if input_path.endswith(".wav"):
             logger.info(f"Processing in-place reconstruction of {input_path}")
             # Load audio
             audio, _ = librosa.load(
@@ -187,8 +171,8 @@ class VQGANModelManager:
             logger.info(f"Generated indices of shape {indices.shape}")
 
             # Save indices
-            np.save(output_path.with_suffix(".npy"), indices.cpu().numpy())
-        elif input_path.suffix == ".npy":
+            np.save(output_path.replace(".wav", ".npy"), indices.cpu().numpy())
+        elif input_path.endswith(".npy"):
             logger.info(f"Processing precomputed indices from {input_path}")
             indices = np.load(input_path)
             indices = torch.from_numpy(indices).to(model.device).long()
@@ -224,7 +208,7 @@ class VQGANModelManager:
 
         # Save audio
         fake_audio = fake_audios[0, 0].cpu().numpy().astype(np.float32)
-        sf.write("fake.wav", fake_audio, model.sampling_rate)
+        sf.write(f"{output_path}", fake_audio, model.sampling_rate)
         logger.info(f"Saved audio to {output_path}")
         return f"Saved audio to {output_path}"
 
@@ -242,65 +226,77 @@ def read_root():
     return {"message": "Welcome to my FastAPI application!"}
 
 
+class LoadLLamaModelRequest(BaseModel):
+    config_name: str
+    checkpoint_path: str
+    device: str
+    precision: bool
+    tokenizer: str
+    compilation: bool
+
+
 @app.post("/load-llama-model")
 async def load_llama_model_api(
         request: Request,
-        config_name: str = Query(..., description="配置文件名"),
-        checkpoint_path: str = Query(..., description="模型路径"),
-        device: str = Query("cuda", description="训练设备"),
-        precision: bool = Query(True, description="bf16精度"),
-        tokenizer: str = Query(..., description="tokenizer路径"),
-        compilation: bool = Query(False, description="是否编译")
+        req: LoadLLamaModelRequest,
 ):
     """用post请求"""
     logger.info(
         f"{request.client.host}:{request.client.port}/load-model  {unquote(str(request.query_params))} "
-        f"config_name={config_name}"
+        f"config_name={req.config_name}"
     )
     logger.info("Loading model ...")
     try:
-        precision = torch.bfloat16 if precision else torch.half
-        llama_model_manager.load_model(config_name, checkpoint_path, device, precision, tokenizer, compilation)
+
+        llama_model_manager.load_model(req.config_name, req.checkpoint_path, req.device, req.precision, req.tokenizer,
+                                       req.compilation)
 
         return {"message": "Model loaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class LoadVQGANModelRequest(BaseModel):
+    config_name: str
+    checkpoint_path: str
 
 
 @app.post("/load-vqgan-model")
 async def load_vqgan_model_api(
         request: Request,
-        config_name: str = Query(..., description="配置文件名"),
-        checkpoint_path: str = Query(..., description="模型路径"),
+        req: LoadVQGANModelRequest
 ):
     """用post请求"""
     logger.info(
         f"{request.client.host}:{request.client.port}/load-model  {unquote(str(request.query_params))} "
-        f"config_name={config_name}"
+        f"config_name={req.config_name}"
     )
     try:
-        vqgan_model_manager.load_model(config_name, checkpoint_path)
+        vqgan_model_manager.load_model(req.config_name, req.checkpoint_path)
         return {"message": "Model loaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class UseModelRequest(BaseModel):
+    text: str
+    prompt_text: Optional[str] = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
+    prompt_tokens: Optional[str] = None
+    num_samples: int = 1
+    max_new_tokens: int = 0
+    top_k: Optional[int] = None
+    top_p: float = 0.5
+    repetition_penalty: float = 1.5
+    temperature: float = 0.7
+    use_g2p: bool = True
+    seed: int = 42
+    speaker: Optional[str] = None
+
+
 @app.post("/use-model")
 async def use_model(
         request: Request,
-        text: str = Query("你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.", description="输入文本"),
-        prompt_text: Optional[str] = Query(None, description="提示文本"),
-        prompt_tokens: Optional[str] = Query(None, description="提示令牌的文件路径"),
-        num_samples: int = Query(1, description="样本数量"),
-        max_new_tokens: int = Query(0, description="最大新令牌数"),
-        top_k: Optional[int] = Query(None, description="Top K 采样"),
-        top_p: float = Query(0.5, description="Top P 采样"),
-        repetition_penalty: float = Query(1.5, description="重复罚分"),
-        temperature: float = Query(0.7, description="温度"),
-
-        use_g2p: bool = Query(True, description="是否使用G2P"),
-        seed: int = Query(42, description="随机种子"),
-        speaker: Optional[str] = Query(None, description="说话者"),
+        req: UseModelRequest
 ):
     # 这里添加使用模型处理文本的逻辑
 
@@ -313,6 +309,19 @@ async def use_model(
     tokenizer = llama_model_manager.get_tokenizer()
     precision = llama_model_manager.get_precision()
     model_size = llama_model_manager.get_model_size()
+    text = req.text
+    prompt_text = req.prompt_text
+    prompt_tokens = req.prompt_tokens
+    num_samples = req.num_samples
+    max_new_tokens = req.max_new_tokens
+    top_k = req.top_k
+    top_p = req.top_p
+    repetition_penalty = req.repetition_penalty
+    temperature = req.temperature
+    use_g2p = req.use_g2p
+    seed = req.seed
+    speaker = req.speaker
+
     prompt_tokens = (
         torch.from_numpy(np.load(prompt_tokens)).to(device)
         if prompt_tokens is not None
@@ -382,9 +391,14 @@ async def use_model(
     return {"message": "Model used successfully", "input": text}
 
 
+class DelModelRequest(BaseModel):
+    text: Optional[str] = None
+
+
 @app.post("/del-model")
 async def del_model(
-        request: Request
+        request: Request,
+        req: DelModelRequest
 ):
     """用post请求"""
     logger.info(
