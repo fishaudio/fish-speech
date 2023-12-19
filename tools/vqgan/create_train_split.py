@@ -1,5 +1,4 @@
 import math
-
 from pathlib import Path
 from random import Random
 
@@ -20,7 +19,7 @@ def main(root):
     Random(42).shuffle(files)
 
     # use 3:1 ratio on train vs val
-    val_size = math.ceil(len(files) / 4) # at least one val file
+    val_size = math.ceil(len(files) / 4)  # at least one val file
 
     with open(root / "vq_train_filelist.txt", "w") as f:
         f.write("\n".join(files[val_size:]))
