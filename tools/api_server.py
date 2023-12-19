@@ -11,12 +11,12 @@ import torch.nn.functional as F
 from fastapi import FastAPI, HTTPException, Request
 from hydra import compose, initialize
 from hydra.utils import instantiate
+from loguru import logger
 from pydantic import BaseModel
 from transformers import AutoTokenizer
 
 from fish_speech.models.vqgan.utils import sequence_mask
 from tools.llama.generate import encode_tokens, generate, load_model
-from tools.log import logger
 
 
 class LLamaModelManager:
