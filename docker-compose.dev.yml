@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  fish-speech:
+    build: .
+    container_name: fish-speech
+    volumes:
+      - ./data:/exp/data
+      - ./raw_data:/exp/raw_data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: tail -f /dev/null
+

@@ -63,7 +63,7 @@ model:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 1e-5
     weight_decay: 0.1
     betas: [0.9, 0.95]
     eps: 1e-5
@@ -74,11 +74,11 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 1000
+      num_warmup_steps: 100
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
 
 # Callbacks
 callbacks:
   model_checkpoint:
-    every_n_train_steps: 1000
+    every_n_train_steps: 200
