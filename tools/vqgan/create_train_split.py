@@ -20,8 +20,13 @@ def main(root, val_ratio, val_count):
 
     Random(42).shuffle(files)
 
-    # use 3:1 ratio on train vs val
-    val_size = math.ceil(len(files) / 4)  # at least one val file
+    if val_count is not None:
+        if val_count < 1 or val_count > len(files):
+            raise ValueError("val_count must be between 1 and number of files")
+        else:
+            val_size = val_count
+    else:
+        val_size = math.ceil(len(files) * val_ratio)
 
     with open(root / "vq_train_filelist.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(files[val_size:]))
