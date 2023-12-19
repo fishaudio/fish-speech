@@ -110,7 +110,7 @@ class Transformer(nn.Module):
         self.max_batch_size = -1
         self.max_seq_len = -1
 
-    def setup_caches(self, max_batch_size, max_seq_len):
+    def setup_caches(self, max_batch_size, max_seq_len, dtype=torch.bfloat16):
         if self.max_seq_len >= max_seq_len and self.max_batch_size >= max_batch_size:
             return
 
@@ -121,7 +121,11 @@ class Transformer(nn.Module):
 
         for b in self.layers:
             b.attention.kv_cache = KVCache(
-                max_batch_size, max_seq_len, self.config.n_local_heads, head_dim
+                max_batch_size,
+                max_seq_len,
+                self.config.n_local_heads,
+                head_dim,
+                dtype=dtype,
             )
 
     def embed(self, x: Tensor) -> Tensor:

@@ -53,6 +53,9 @@ python tools/llama/generate.py \
     您可能希望使用 `--compile` 来融合 cuda 内核以实现更快的推理 (~30 个 token/秒 -> ~500 个 token/秒).  
     对应的, 如果你不打算使用加速, 你可以注释掉 `--compile` 参数.
 
+!!! info
+    对于不支持 bf16 的 GPU, 你可能需要使用 `--half` 参数.
+
 ### 3. 从语义 token 生成人声: 
 ```bash
 python tools/vqgan/inference.py \

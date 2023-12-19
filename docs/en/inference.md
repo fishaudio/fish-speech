@@ -48,6 +48,9 @@ This command will create a `codes_N` file in the working directory, where N is a
     You may want to use `--compile` to fuse CUDA kernels for faster inference (~30 tokens/second -> ~500 tokens/second).
     Correspondingly, if you do not plan to use acceleration, you can comment out the `--compile` parameter.
 
+!!! info
+    For GPUs that do not support bf16, you may need to use the `--half` parameter.
+
 ### 3. Generate vocals from semantic tokens:
 ```bash
 python tools/vqgan/inference.py \
