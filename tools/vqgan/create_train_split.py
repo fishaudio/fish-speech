@@ -23,8 +23,7 @@ def main(root, val_ratio, val_count):
     if val_count is not None:
         if val_count < 1 or val_count > len(files):
             raise ValueError("val_count must be between 1 and number of files")
-        else:
-            val_size = val_count
+        val_size = val_count
     else:
         val_size = math.ceil(len(files) * val_ratio)
 
