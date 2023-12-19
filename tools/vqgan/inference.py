@@ -14,6 +14,7 @@ from loguru import logger
 from omegaconf import OmegaConf
 
 from fish_speech.models.vqgan.utils import sequence_mask
+from fish_speech.utils.file import AUDIO_EXTENSIONS
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
@@ -51,7 +52,7 @@ def main(input_path, output_path, config_name, checkpoint_path):
     model.cuda()
     logger.info("Restored model from checkpoint")
 
-    if input_path.suffix == ".wav":
+    if input_path.suffix in AUDIO_EXTENSIONS:
         logger.info(f"Processing in-place reconstruction of {input_path}")
         # Load audio
         audio, _ = librosa.load(
