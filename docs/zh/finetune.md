@@ -33,7 +33,10 @@
 ```bash
 huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
 ```
-
+对于中国大陆用户，可使用mirror下载。
+```bash
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+```
 随后可运行以下命令来提取语义 token:
 
 ```bash
@@ -103,7 +106,10 @@ data_server/target/release/data_server \
 ```bash
 huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
-
+对于中国大陆用户，可使用mirror下载。
+```bash
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
+```
 最后, 你可以运行以下命令来启动微调:
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune_spk
