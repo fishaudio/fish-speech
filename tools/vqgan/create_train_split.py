@@ -10,8 +10,8 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
 @click.command()
 @click.argument("root", type=click.Path(exists=True, path_type=Path))
-@click.option("val_ratio", type=float, default=0.2)
-@click.option("val_count", type=int, default=None)
+@click.option("--val-ratio", type=float, default=0.2)
+@click.option("--val-count", type=int, default=None)
 def main(root, val_ratio, val_count):
     files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
     print(f"Found {len(files)} files")
