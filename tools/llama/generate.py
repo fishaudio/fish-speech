@@ -434,6 +434,8 @@ def main(
     logger.info(f"Encoded prompt shape: {encoded.shape}")
 
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
     if compile:
         global decode_one_token
         decode_one_token = torch.compile(
