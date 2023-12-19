@@ -8,6 +8,7 @@ theme:
     - navigation.instant
     - navigation.instant.prefetch
     - navigation.tracking
+    - navigation.tabs
     - search
     - search.suggest
     - search.highlight
@@ -43,8 +44,6 @@ theme:
   
 extra:
   homepage: https://speech.fish.audio
-  version:
-    provider: mike
   alternate:
     - name: English
       link: /en/ 

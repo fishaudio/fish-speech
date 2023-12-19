@@ -9,8 +9,8 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律的法律.
 
 ## Documents / 文档
-- [English](https://speech.fish.audio/zh/latest/en/)
-- [中文](https://speech.fish.audio/zh/latest/zh/)
+- [English](https://speech.fish.audio/en/)
+- [中文](https://speech.fish.audio/zh/)
 
 
 ## Credits / 鸣谢

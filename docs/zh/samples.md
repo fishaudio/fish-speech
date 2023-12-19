@@ -20,28 +20,28 @@
     <tbody>
     <tr>
         <td>纳西妲 (原神)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/0_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/0_output.wav" /></td>
     </tr>
     <tr>
         <td>钟离 (原神)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/1_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/1_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/1_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/1_output.wav" /></td>
     </tr>
     <tr>
         <td>芙宁娜 (原神)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/2_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/2_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/2_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/2_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/3_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/3_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/4_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/4_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -67,13 +67,13 @@
     <tbody>
     <tr>
         <td>纳西妲 (原神)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/5_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/5_output.wav" /></td>
     </tr>
     <tr>
         <td>青雀 (星穹铁道)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/6_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/6_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/6_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/6_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -98,18 +98,18 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
     <tbody>
     <tr>
         <td>Speaker 200 (LibriTTS)</td>
-        <td><audio controls preload="auto" src="../../assets/audios/7_input.wav" /></td>
-        <td><audio controls preload="auto" src="../../assets/audios/7_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/7_input.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/7_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/8_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/8_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/9_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/9_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -135,12 +135,12 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/10_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/10_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="../../assets/audios/11_output.wav" /></td>
+        <td><audio controls preload="auto" src="/assets/audios/11_output.wav" /></td>
     </tr>
     </tbody>
 </table>

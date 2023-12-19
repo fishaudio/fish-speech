@@ -6,7 +6,7 @@
 This codebase is released under the `BSD-3-Clause` license, and all models are released under the CC-BY-NC-SA-4.0 license.
 
 <p align="center">
-<img src="../assets/figs/diagram.png" width="75%">
+<img src="/assets/figs/diagram.png" width="75%">
 </p>
 
 ## Requirements
