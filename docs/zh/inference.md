@@ -18,6 +18,11 @@
 huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
 huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
+对于中国大陆用户，可使用mirror下载。
+```bash
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
+```
 
 ### 1. 从语音生成 prompt: 
 
