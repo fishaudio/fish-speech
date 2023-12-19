@@ -181,6 +181,10 @@ async def load_llama_model(
     Load llama model (semantic model)
     """
 
+    if llama_model_manager.model is not None:
+        llama_model_manager.del_model()
+        logger.info("The previous llama model is removed from memory.")
+
     logger.info("Loading model ...")
 
     try:
@@ -208,6 +212,10 @@ async def load_vqgan_model(req: LoadVQGANModelRequest):
     """
     Load vqgan model (vocoder model)
     """
+
+    if vqgan_model_manager.model is not None:
+        vqgan_model_manager.del_model()
+        logger.info("The previous vqgan model is removed from memory.")
 
     try:
         vqgan_model_manager.load_model(req.config_name, req.checkpoint_path)
@@ -245,6 +253,7 @@ async def invoke_model(req: UseModelRequest):
     device = llama_model_manager.device
     seed = req.seed
     prompt_tokens = req.prompt_tokens
+    logger.info(f"Device: {device}")
 
     prompt_tokens = (
         torch.from_numpy(np.load(prompt_tokens)).to(device)
@@ -314,12 +323,8 @@ async def invoke_model(req: UseModelRequest):
     )
 
 
-class DelModelRequest(BaseModel):
-    text: Optional[str] = None
-
-
 @app.post("/del")
-async def del_model(request: Request, req: DelModelRequest):
+async def del_model():
     """
     Delete model from memory
     """
