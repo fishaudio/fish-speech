@@ -1,8 +1,9 @@
-import gradio as gr
-import webbrowser
 import os
-import librosa
 import subprocess
+import webbrowser
+
+import gradio as gr
+import librosa
 
 
 def gen_prompt(audio_path, vq_gan_path):
