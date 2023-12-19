@@ -22,6 +22,7 @@ jobs:
         with:
           RUSTTARGET: ${{ matrix.target }}
           UPLOAD_MODE: none
+          SRC_DIR: data_server
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
