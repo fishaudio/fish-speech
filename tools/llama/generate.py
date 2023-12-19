@@ -39,13 +39,13 @@ def multinomial_sample_one_no_sync(
 
 
 def logits_to_probs(
-        logits,
-        previous_tokens: Optional[torch.Tensor] = None,
-        temperature: float = 1.0,
-        top_k: Optional[int] = None,
-        top_p: Optional[int] = None,
-        repetition_penalty: float = 1.0,
-        precision: torch.dtype = torch.bfloat16,
+    logits,
+    previous_tokens: Optional[torch.Tensor] = None,
+    temperature: float = 1.0,
+    top_k: Optional[int] = None,
+    top_p: Optional[int] = None,
+    repetition_penalty: float = 1.0,
+    precision: torch.dtype = torch.bfloat16,
 ):
     if previous_tokens is not None and repetition_penalty != 1.0:
         previous_tokens = previous_tokens.long()

@@ -110,7 +110,9 @@ class Transformer(nn.Module):
         self.max_batch_size = -1
         self.max_seq_len = -1
 
-    def setup_caches(self, max_batch_size, max_seq_len, dtype: torch.dtype = torch.bfloat16):
+    def setup_caches(
+        self, max_batch_size, max_seq_len, dtype: torch.dtype = torch.bfloat16
+    ):
         if self.max_seq_len >= max_seq_len and self.max_batch_size >= max_batch_size:
             return
 

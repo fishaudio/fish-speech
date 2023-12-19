@@ -8,14 +8,14 @@ import numpy as np
 import soundfile as sf
 import torch
 import torch.nn.functional as F
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from pydantic import BaseModel
 from transformers import AutoTokenizer
 
 from fish_speech.models.vqgan.utils import sequence_mask
-from tools.llama.generate import load_model, encode_tokens, generate
+from tools.llama.generate import encode_tokens, generate, load_model
 from tools.log import logger
 
 
@@ -30,16 +30,27 @@ class LLamaModelManager:
         self.compilation = None
         self.decode_one_token = None
 
-    def load_model(self, config_name: str, checkpoint_path: str,
-                   device, precision: bool, tokenizer_path: str, compilation: bool):
+    def load_model(
+        self,
+        config_name: str,
+        checkpoint_path: str,
+        device,
+        precision: bool,
+        tokenizer_path: str,
+        compilation: bool,
+    ):
         self.device = device
 
         self.compilation = compilation
         if self.model is None:
             self.t0 = time.time()
             self.precision = torch.bfloat16 if precision else torch.half
-            self.model = load_model(config_name, checkpoint_path, device, self.precision)
-            self.model_size = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            self.model = load_model(
+                config_name, checkpoint_path, device, self.precision
+            )
+            self.model_size = sum(
+                p.numel() for p in self.model.parameters() if p.requires_grad
+            )
 
             torch.cuda.synchronize()
             logger.info(f"Time to load model: {time.time() - self.t0:.02f} seconds")
@@ -146,17 +157,21 @@ class VQGANModelManager:
 
             mel_lengths = audio_lengths // model.hop_length
             feature_lengths = (
-                    audio_lengths
-                    / model.hop_length
-                    / (model.downsample.total_strides if model.downsample is not None else 1)
+                audio_lengths
+                / model.hop_length
+                / (
+                    model.downsample.total_strides
+                    if model.downsample is not None
+                    else 1
+                )
             ).long()
 
             feature_masks = torch.unsqueeze(
                 sequence_mask(feature_lengths, features.shape[2]), 1
             ).to(gt_mels.dtype)
-            mel_masks = torch.unsqueeze(sequence_mask(mel_lengths, gt_mels.shape[2]), 1).to(
-                gt_mels.dtype
-            )
+            mel_masks = torch.unsqueeze(
+                sequence_mask(mel_lengths, gt_mels.shape[2]), 1
+            ).to(gt_mels.dtype)
 
             # vq_features is 50 hz, need to convert to true mel size
             text_features = model.mel_encoder(features, feature_masks)
@@ -197,7 +212,9 @@ class VQGANModelManager:
             + f"{1 / (mel_lengths[0] * model.hop_length / model.sampling_rate / indices.shape[2]):.2f} Hz"
         )
 
-        text_features = F.interpolate(text_features, size=mel_lengths[0], mode="nearest")
+        text_features = F.interpolate(
+            text_features, size=mel_lengths[0], mode="nearest"
+        )
 
         # Sample mels
         decoded_mels = model.decoder(text_features, mel_masks)
@@ -237,8 +254,8 @@ class LoadLLamaModelRequest(BaseModel):
 
 @app.post("/load-llama-model")
 async def load_llama_model_api(
-        request: Request,
-        req: LoadLLamaModelRequest,
+    request: Request,
+    req: LoadLLamaModelRequest,
 ):
     """用post请求"""
     logger.info(
@@ -247,9 +264,14 @@ async def load_llama_model_api(
     )
     logger.info("Loading model ...")
     try:
-
-        llama_model_manager.load_model(req.config_name, req.checkpoint_path, req.device, req.precision, req.tokenizer,
-                                       req.compilation)
+        llama_model_manager.load_model(
+            req.config_name,
+            req.checkpoint_path,
+            req.device,
+            req.precision,
+            req.tokenizer,
+            req.compilation,
+        )
 
         return {"message": "Model loaded successfully"}
     except Exception as e:
@@ -262,10 +284,7 @@ class LoadVQGANModelRequest(BaseModel):
 
 
 @app.post("/load-vqgan-model")
-async def load_vqgan_model_api(
-        request: Request,
-        req: LoadVQGANModelRequest
-):
+async def load_vqgan_model_api(request: Request, req: LoadVQGANModelRequest):
     """用post请求"""
     logger.info(
         f"{request.client.host}:{request.client.port}/load-model  {unquote(str(request.query_params))} "
@@ -294,10 +313,7 @@ class UseModelRequest(BaseModel):
 
 
 @app.post("/use-model")
-async def use_model(
-        request: Request,
-        req: UseModelRequest
-):
+async def use_model(request: Request, req: UseModelRequest):
     # 这里添加使用模型处理文本的逻辑
 
     """用post请求"""
@@ -396,10 +412,7 @@ class DelModelRequest(BaseModel):
 
 
 @app.post("/del-model")
-async def del_model(
-        request: Request,
-        req: DelModelRequest
-):
+async def del_model(request: Request, req: DelModelRequest):
     """用post请求"""
     logger.info(
         f"{request.client.host}:{request.client.port}/del-model  {unquote(str(request.query_params))} "
@@ -408,6 +421,6 @@ async def del_model(
         msg_1 = llama_model_manager.del_model()
         msg_2 = vqgan_model_manager.del_model()
         # 添加使用模型的逻辑
-        return {"message": msg_1 + '\n' + msg_2}
+        return {"message": msg_1 + "\n" + msg_2}
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
