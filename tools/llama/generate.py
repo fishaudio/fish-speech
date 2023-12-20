@@ -39,13 +39,12 @@ def multinomial_sample_one_no_sync(
 
 
 def logits_to_probs(
-        logits,
-        previous_tokens: Optional[torch.Tensor] = None,
-        temperature: float = 1.0,
-        top_k: Optional[int] = None,
-        top_p: Optional[int] = None,
-        repetition_penalty: float = 1.0,
-        precision: torch.dtype = torch.bfloat16,
+    logits,
+    previous_tokens: Optional[torch.Tensor] = None,
+    temperature: float = 1.0,
+    top_k: Optional[int] = None,
+    top_p: Optional[int] = None,
+    repetition_penalty: float = 1.0,
 ):
     if previous_tokens is not None and repetition_penalty != 1.0:
         previous_tokens = previous_tokens.long()
@@ -181,10 +180,10 @@ def decode_n_tokens(
             enable_flash=False, enable_mem_efficient=False, enable_math=True
         ):  # Actually better for Inductor to codegen attention here
             next_token = decode_one_token(
-                model,
-                cur_token,
-                input_pos,
-                window,
+                model=model,
+                x=cur_token,
+                input_pos=input_pos,
+                previous_tokens=window,
                 **sampling_kwargs,
             )
 
@@ -435,6 +434,8 @@ def main(
     logger.info(f"Encoded prompt shape: {encoded.shape}")
 
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
     if compile:
         global decode_one_token
         decode_one_token = torch.compile(
