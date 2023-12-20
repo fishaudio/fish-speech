@@ -190,12 +190,12 @@ def main(
     if filelist:
         with open(filelist, "r", encoding="utf-8") as f:
             #files = [Path(line..strip().split("|")[0]) for line in f]
-            audioPaths = set()
+            files = set()
             countSame = 0
             countNotFound = 0
             for line in f.readlines():
                 file = line.strip().split("|")[0]
-                if file in audioPaths:
+                if file in files:
                     print(f"重复音频文本：{line}")
                     countSame += 1
                     continue
@@ -204,7 +204,7 @@ def main(
                     print(f"没有找到对应的音频：{file}")
                     countNotFound += 1
                     continue
-            audioPaths.add(file)
+            files.add(file)
         print(f"总重复音频数：{countSame}，总未找到的音频数:{countNotFound}")
     else:
         files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
