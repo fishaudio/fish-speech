@@ -180,8 +180,7 @@ python fish_speech/train.py --config-name text2semantic_finetune_spk
 !!! note
     你可以通过修改 `fish_speech/configs/text2semantic_finetune_spk.yaml` 来修改训练参数如 `batch_size`, `gradient_accumulation_steps` 等, 来适应你的显存.
 
-训练结束后, 你可以参考推理部分来生成语音. 
-
+训练结束后, 你可以参考推理部分, 并携带 `--speaker SPK1` 参数来测试你的模型.
 
 !!! info
     默认配置下, 基本只会学到说话人的发音方式, 而不包含音色, 你依然需要使用 prompt 来保证音色的稳定性.  

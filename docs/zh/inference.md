@@ -1,6 +1,6 @@
 # 推理
 
-计划中, 推理会支持命令行和 webui 两种方式, 但是目前只完成了命令行推理的功能.  
+计划中, 推理会支持命令行, http api, 以及 webui 三种方式.  
 
 !!! note
     总的来说, 推理分为几个部分:  
@@ -56,9 +56,23 @@ python tools/llama/generate.py \
 !!! info
     对于不支持 bf16 的 GPU, 你可能需要使用 `--half` 参数.
 
+!!! warning
+    如果你在使用自己微调的模型, 请务必携带 `--speaker` 参数来保证发音的稳定性.
+
 ### 3. 从语义 token 生成人声: 
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
+
+## HTTP API 推理
+
+运行以下命令来启动 HTTP 服务:
+```bash
+python -m zibai tools.api_server:app --listen 127.0.0.1:8000
+```
+
+随后, 你可以在 `http://127.0.0.1:8000/docs` 中查看并测试 API.  
+一般来说, 你需要先调用 `PUT /v1/models/default` 来加载模型, 然后调用 `POST /v1/models/default/invoke` 来进行推理. 具体的参数请参考 API 文档.
+
