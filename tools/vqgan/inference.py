@@ -33,9 +33,7 @@ OmegaConf.register_new_resolver("eval", eval)
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
 @click.option("--config-name", "-cfg", default="vqgan_pretrain")
-@click.option(
-    "--checkpoint-path", "-ckpt", default="checkpoints/vqgan/step_000380000_wo.ckpt"
-)
+@click.option("--checkpoint-path", "-ckpt", default="checkpoints/vqgan-v1.pth")
 def main(input_path, output_path, config_name, checkpoint_path):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
