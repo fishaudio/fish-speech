@@ -22,42 +22,19 @@ to transcribe the second speaker.
 Note: Be aware of your audio sample rate, which defaults to 44.1kHz.
 """
 
-import argparse
 import os
-from pathlib import Path
+import argparse
+from glob import glob
 
-import librosa
 import numpy as np
 import whisper
-from scipy.io import wavfile
 from tqdm import tqdm
+from pydub import AudioSegment
 
-
-def load_and_normalize_audio(filepath, target_sr):
-    wav, sr = librosa.load(filepath, sr=None, mono=True)
-    wav, _ = librosa.effects.trim(wav, top_db=20)
-    peak = np.abs(wav).max()
-    if peak > 1.0:
-        wav /= peak / 0.98
-    return librosa.resample(wav, orig_sr=sr, target_sr=target_sr), target_sr
-
-
-def transcribe_audio(model, filepath):
+def transcribe_audio(model, filepath, language):
     return model.transcribe(
-        filepath, word_timestamps=True, task="transcribe", beam_size=5, best_of=5
+        filepath, language=language
     )
-
-
-def save_audio_segments(segments, wav, sr, save_path):
-    for i, seg in enumerate(segments):
-        start_time, end_time = seg["start"], seg["end"]
-        wav_seg = wav[int(start_time * sr) : int(end_time * sr)]
-        wav_seg_name = f"{save_path.stem}_{i}.wav"
-        out_fpath = save_path / wav_seg_name
-        wavfile.write(
-            out_fpath, rate=sr, data=(wav_seg * np.iinfo(np.int16).max).astype(np.int16)
-        )
-
 
 def transcribe_segment(model, filepath):
     audio = whisper.load_audio(filepath)
@@ -69,38 +46,30 @@ def transcribe_segment(model, filepath):
     result = whisper.decode(model, mel, options)
     return result.text, lang
 
-
-def process_output(save_dir, language, out_file):
-    with open(out_file, "w", encoding="utf-8") as wf:
-        ch_name = save_dir.stem
-        for file in save_dir.glob("*.lab"):
-            with open(file, "r", encoding="utf-8") as perFile:
-                line = perFile.readline().strip()
-                result = (
-                    f"{save_dir}/{ch_name}/{file.stem}.wav|{ch_name}|{language}|{line}"
-                )
-                wf.write(f"{result}\n")
-
-
 def main(model_size, audio_dir, save_dir, out_sr, language):
+    print("Loading/Downloading OpenAI Whisper model...")
     model = whisper.load_model(model_size)
-    audio_dir, save_dir = Path(audio_dir), Path(save_dir)
-    save_dir.mkdir(exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
+    audio_files = []
+    for ext in ['*.wav', '*.flac', '*.mp3']:  # 支持多种文件格式
+        audio_files.extend(glob(os.path.join(audio_dir, ext)))
+    for file_path in tqdm(audio_files, desc="Processing audio file"):
+        file_name, extension = os.path.splitext(os.path.basename(file_path))
 
-    for filepath in tqdm(list(audio_dir.glob("*.wav")), desc="Processing files"):
-        wav, sr = load_and_normalize_audio(filepath, out_sr)
-        transcription = transcribe_audio(model, filepath)
-        save_path = save_dir / filepath.stem
-        save_audio_segments(transcription["segments"], wav, sr, save_path)
+        if extension.lower() == '.wav':
+            audio = AudioSegment.from_wav(file_path)
+        elif extension.lower() == '.mp3':
+            audio = AudioSegment.from_mp3(file_path)
+        elif extension.lower() == '.flac':
+            audio = AudioSegment.from_file(file_path, format='flac')
 
-        for segment_file in tqdm(
-            list(save_path.glob("*.wav")), desc="Transcribing segments"
-        ):
-            text, _ = transcribe_segment(model, segment_file)
-            with open(segment_file.with_suffix(".lab"), "w", encoding="utf-8") as f:
+        transcription = transcribe_audio(model, file_path, language)
+        for segment in transcription.get('segments', []):
+            id, text, start, end = segment['id'], segment['text'], segment['start'], segment['end']
+            extract = audio[start:end]
+            extract.export(os.path.join(save_dir, f"{file_name}_{id}{extension}"), format=extension.lower().strip('.'))
+            with open(os.path.join(save_dir, f"{file_name}_{id}.lab"), "w", encoding="utf-8") as f:
                 f.write(text)
-
-    # process_output(save_dir, language, save_dir / "output.txt") # Dont need summarize to one file
 
 
 if __name__ == "__main__":
