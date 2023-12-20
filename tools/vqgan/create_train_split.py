@@ -20,8 +20,10 @@ def main(root, val_ratio, val_count,filelist):
     else:
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
     print(f"Found {len(files)} files")
-
-    #files = [str(file.relative_to(root)) for file in tqdm(files)]
+    try:
+        files = [str(file.relative_to(root)) for file in tqdm(files)]
+    except ValueError as e:
+        print(e)
 
     Random(42).shuffle(files)
 
