@@ -1,3 +1,4 @@
+import os
 import re
 from collections import defaultdict
 from multiprocessing import Pool
@@ -29,8 +30,23 @@ def task_generator(config,filelist):
 
         # Load the files
         if filelist:
-            with open(filelist) as f:
-                files = [Path(line.split("|")[0]) for line in f]
+            with open(filelist, "r", encoding="utf-8") as f:
+                #files = [Path(line..strip().split("|")[0]) for line in f]
+                audioPaths = set()
+                countSame = 0
+                countNotFound = 0
+                for line in f.readlines():
+                    file = line.strip().split("|")[0]
+                    if file in audioPaths:
+                        print(f"重复音频文本：{line}")
+                        countSame += 1
+                        continue
+                    if not os.path.isfile(file):
+                    # 过滤数据集错误：不存在对应音频
+                        print(f"没有找到对应的音频：{file}")
+                        countNotFound += 1
+                        continue
+                audioPaths.add(file)
         else:
             files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
