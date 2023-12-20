@@ -180,10 +180,10 @@ def decode_n_tokens(
             enable_flash=False, enable_mem_efficient=False, enable_math=True
         ):  # Actually better for Inductor to codegen attention here
             next_token = decode_one_token(
-                model,
-                cur_token,
-                input_pos,
-                window,
+                model=model,
+                x=cur_token,
+                input_pos=input_pos,
+                previous_tokens=window,
                 **sampling_kwargs,
             )
 
@@ -434,6 +434,8 @@ def main(
     logger.info(f"Encoded prompt shape: {encoded.shape}")
 
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
     if compile:
         global decode_one_token
         decode_one_token = torch.compile(
