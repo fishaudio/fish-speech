@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import Union
 
+from loguru import logger
+
 AUDIO_EXTENSIONS = {
     ".mp3",
     ".wav",
@@ -72,3 +74,51 @@ def get_latest_checkpoint(path: Path | str) -> Path | None:
         return None
 
     return ckpts[-1]
+
+
+def load_filelist(path: Path | str) -> list[tuple[Path, str, str, str]]:
+    """
+    Load a Bert-VITS2 style filelist.
+    """
+
+    files = set()
+    results = []
+    count_duplicated, count_not_found = 0, 0
+
+    LANGUAGE_TO_LANGUAGES = {
+        "zh": ["zh", "en"],
+        "jp": ["jp", "en"],
+        "en": ["en"],
+    }
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f.readlines():
+            filename, speaker, language, text = line.strip().split("|")
+            file = Path(filename)
+            language = language.strip().lower()
+
+            if language == "ja":
+                language = "jp"
+
+            assert language in ["zh", "jp", "en"], f"Invalid language {language}"
+            languages = LANGUAGE_TO_LANGUAGES[language]
+
+            if file in files:
+                logger.warning(f"Duplicated file: {file}")
+                count_duplicated += 1
+                continue
+
+            if not file.exists():
+                logger.warning(f"File not found: {file}")
+                count_not_found += 1
+                continue
+
+            results.append((file, speaker, languages, text))
+
+    if count_duplicated > 0:
+        logger.warning(f"Total duplicated files: {count_duplicated}")
+
+    if count_not_found > 0:
+        logger.warning(f"Total files not found: {count_not_found}")
+
+    return results
