@@ -16,7 +16,7 @@ from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 
-def task_generator_yaml(config, **kwargs):
+def task_generator_yaml(config):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -126,10 +126,10 @@ def run_task(task):
 @click.option("--num_worker", type=int, default=16)
 def main(config, output, filelist, num_worker):
     dataset_fp = open(output, "wb")
-    generator_fn = task_generator_yaml if filelist is None else task_generator_filelist
+    generator_fn = task_generator_yaml(config) if filelist is None else task_generator_filelist(filelist)
 
     with Pool(num_worker) as p:
-        for result in tqdm(p.imap_unordered(run_task, generator_fn(config, filelist))):
+        for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             dataset_fp.write(result)
 
     dataset_fp.close()
