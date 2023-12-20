@@ -21,7 +21,7 @@ def main(root, val_ratio, val_count,filelist):
             countSame = 0
             countNotFound = 0
             for line in f.readlines():
-                file = line.strip().split("|")[0]
+                file = [Path(line.strip().split("|")[0])]
                 if file in files:
                     print(f"重复音频文本：{line}")
                     countSame += 1
