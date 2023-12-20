@@ -1,6 +1,8 @@
+import os
 import re
 from collections import defaultdict
 from multiprocessing import Pool
+from pathlib import Path
 
 import click
 import numpy as np
@@ -14,7 +16,7 @@ from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
 
-def task_generator(config):
+def task_generator(config, filelist):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -28,7 +30,26 @@ def task_generator(config):
         )
 
         # Load the files
-        files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
+        if filelist:
+            with open(filelist, "r", encoding="utf-8") as f:
+                # files = [Path(line..strip().split("|")[0]) for line in f]
+                files = set()
+                countSame = 0
+                countNotFound = 0
+                for line in f.readlines():
+                    file = Path(line.strip().split("|")[0])
+                    if file in files:
+                        print(f"重复音频文本：{line}")
+                        countSame += 1
+                        continue
+                    if not os.path.isfile(file):
+                        # 过滤数据集错误：不存在对应音频
+                        print(f"没有找到对应的音频：{file}")
+                        countNotFound += 1
+                        continue
+                    files.add(file)
+        else:
+            files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
         grouped_files = defaultdict(list)
         for file in files:
@@ -38,7 +59,6 @@ def task_generator(config):
                 p = file.parent.parent.name
             else:
                 raise ValueError(f"Invalid parent level {parent_level}")
-
             grouped_files[p].append(file)
 
         logger.info(f"Found {len(grouped_files)} groups in {root}")
@@ -57,7 +77,6 @@ def run_task(task):
         if np_file.exists() is False or txt_file.exists() is False:
             logger.warning(f"Can't find {np_file} or {txt_file}")
             continue
-
         with open(txt_file, "r") as f:
             text = f.read().strip()
 
@@ -100,10 +119,14 @@ def run_task(task):
     "--config", type=click.Path(), default="fish_speech/configs/data/finetune.yaml"
 )
 @click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
-def main(config, output):
+@click.option("--filelist", type=click.Path(), default=None)
+@click.option("--num_worker", type=int, default=16)
+def main(config, output, filelist, num_worker):
     dataset_fp = open(output, "wb")
-    with Pool(16) as p:
-        for result in tqdm(p.imap_unordered(run_task, task_generator(config))):
+    with Pool(num_worker) as p:
+        for result in tqdm(
+            p.imap_unordered(run_task, task_generator(config, filelist))
+        ):
             dataset_fp.write(result)
 
     dataset_fp.close()

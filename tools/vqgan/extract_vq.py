@@ -145,12 +145,14 @@ def process_batch(files: list[Path], model) -> float:
     default="checkpoints/vqgan-v1.pth",
 )
 @click.option("--batch-size", default=64)
+@click.option("--filelist", default=None, type=Path)
 def main(
     folder: str,
     num_workers: int,
     config_name: str,
     checkpoint_path: str,
     batch_size: int,
+    filelist: Path,
 ):
     if num_workers > 1 and WORLD_SIZE != num_workers:
         assert WORLD_SIZE == 1, "You should either use SLURM or this launcher, not both"
@@ -185,7 +187,28 @@ def main(
 
     # This is a worker
     logger.info(f"Starting worker")
-    files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+    if filelist:
+        with open(filelist, "r", encoding="utf-8") as f:
+            # files = [Path(line..strip().split("|")[0]) for line in f]
+            files = set()
+            countSame = 0
+            countNotFound = 0
+            for line in f.readlines():
+                file = Path(line.strip().split("|")[0])
+                if file in files:
+                    print(f"重复音频文本：{line}")
+                    countSame += 1
+                    continue
+                if not os.path.isfile(file):
+                    # 过滤数据集错误：不存在对应音频
+                    print(f"没有找到对应的音频：{file}")
+                    countNotFound += 1
+                    continue
+                files.add(file)
+        files = list(files)
+        print(f"总重复音频数：{countSame}，总未找到的音频数:{countNotFound}")
+    else:
+        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
     Random(42).shuffle(files)
 
     total_files = len(files)
