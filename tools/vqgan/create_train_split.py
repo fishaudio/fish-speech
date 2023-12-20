@@ -32,6 +32,7 @@ def main(root, val_ratio, val_count,filelist):
                     countNotFound += 1
                     continue
             files.add(file)
+        files = list(files)
     else:
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
     print(f"Found {len(files)} files")

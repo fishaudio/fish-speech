@@ -205,6 +205,7 @@ def main(
                     countNotFound += 1
                     continue
             files.add(file)
+        files = list(files)
         print(f"总重复音频数：{countSame}，总未找到的音频数:{countNotFound}")
     else:
         files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
