@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 from multiprocessing import Pool
-
+from pathlib import Path
 import click
 import numpy as np
 import yaml
@@ -14,7 +14,7 @@ from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
 
-def task_generator(config):
+def task_generator(config,filelist):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -28,7 +28,11 @@ def task_generator(config):
         )
 
         # Load the files
-        files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
+        if filelist:
+            with open(filelist) as f:
+                files = [Path(line.split("|")[0]) for line in f]
+        else:
+            files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
         grouped_files = defaultdict(list)
         for file in files:
@@ -100,10 +104,11 @@ def run_task(task):
     "--config", type=click.Path(), default="fish_speech/configs/data/finetune.yaml"
 )
 @click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
-def main(config, output):
+@click.option("--filelist", type=click.Path(), default=None)
+def main(config, output, filelist):
     dataset_fp = open(output, "wb")
     with Pool(16) as p:
-        for result in tqdm(p.imap_unordered(run_task, task_generator(config))):
+        for result in tqdm(p.imap_unordered(run_task, task_generator(config, filelist))):
             dataset_fp.write(result)
 
     dataset_fp.close()
