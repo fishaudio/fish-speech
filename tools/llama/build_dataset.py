@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from multiprocessing import Pool
 from pathlib import Path
+
 import click
 import numpy as np
 import yaml
@@ -15,7 +16,7 @@ from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 
 
-def task_generator(config,filelist):
+def task_generator(config, filelist):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -31,7 +32,7 @@ def task_generator(config,filelist):
         # Load the files
         if filelist:
             with open(filelist, "r", encoding="utf-8") as f:
-                #files = [Path(line..strip().split("|")[0]) for line in f]
+                # files = [Path(line..strip().split("|")[0]) for line in f]
                 files = set()
                 countSame = 0
                 countNotFound = 0
@@ -42,7 +43,7 @@ def task_generator(config,filelist):
                         countSame += 1
                         continue
                     if not os.path.isfile(file):
-                    # 过滤数据集错误：不存在对应音频
+                        # 过滤数据集错误：不存在对应音频
                         print(f"没有找到对应的音频：{file}")
                         countNotFound += 1
                         continue
@@ -124,7 +125,9 @@ def run_task(task):
 def main(config, output, filelist):
     dataset_fp = open(output, "wb")
     with Pool(16) as p:
-        for result in tqdm(p.imap_unordered(run_task, task_generator(config, filelist))):
+        for result in tqdm(
+            p.imap_unordered(run_task, task_generator(config, filelist))
+        ):
             dataset_fp.write(result)
 
     dataset_fp.close()
