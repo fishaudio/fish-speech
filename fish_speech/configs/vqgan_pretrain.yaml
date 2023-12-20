@@ -7,7 +7,7 @@ project: vqgan
 # Lightning Trainer
 trainer:
   accelerator: gpu
-  devices: 4
+  devices: auto
   strategy: ddp_find_unused_parameters_true
   precision: 32
   max_steps: 1_000_000
