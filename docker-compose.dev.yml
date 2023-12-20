@@ -15,4 +15,3 @@ services:
               count: all
               capabilities: [gpu]
     command: tail -f /dev/null
-

@@ -13,3 +13,5 @@ filelists
 /data_server/target
 /*.npy
 /*.wav
+/results
+/data
