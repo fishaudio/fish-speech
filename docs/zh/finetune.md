@@ -38,7 +38,12 @@
 python tools/vqgan/create_train_split.py data/demo
 ```
 
-该命令会在 `data/demo` 目录下创建 `data/demo/vq_train_filelist.txt` 和 `data/demo/vq_val_filelist.txt` 文件, 分别用于训练和验证.
+
+该命令会在 `data/demo` 目录下创建 `data/demo/vq_train_filelist.txt` 和 `data/demo/vq_val_filelist.txt` 文件, 分别用于训练和验证.  
+
+!!!info
+    对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
+    请注意, `filelist` 所指向的音频文件必须也位于 `data/demo` 文件夹下.
 
 ### 3. 启动训练
 
@@ -109,7 +114,8 @@ python tools/vqgan/extract_vq.py data/demo \
 ```
 
 !!! note
-    你可以调整 `--num-workers` 和 `--batch-size` 来提高提取速度, 但是请注意不要超过你的显存限制.
+    你可以调整 `--num-workers` 和 `--batch-size` 来提高提取速度, 但是请注意不要超过你的显存限制. 
+    对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
 
 该命令会在 `data/demo` 目录下创建 `.npy` 文件, 如下所示:
 
@@ -137,9 +143,13 @@ python tools/vqgan/extract_vq.py data/demo \
 python tools/llama/build_dataset.py \
     --config "fish_speech/configs/data/finetune.yaml" \
     --output "data/quantized-dataset-ft.protos"
+    --num_workers 16
 ```
 
 命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
+
+!!! note
+    对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
 
 ### 4. 启动 Rust 数据服务器
 
