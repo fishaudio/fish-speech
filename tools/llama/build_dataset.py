@@ -16,7 +16,7 @@ from fish_speech.text import g2p
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 
-def task_generator_yaml(config):
+def task_generator_yaml(config, **kwargs):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
