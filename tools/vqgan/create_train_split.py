@@ -12,8 +12,13 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 @click.argument("root", type=click.Path(exists=True, path_type=Path))
 @click.option("--val-ratio", type=float, default=0.2)
 @click.option("--val-count", type=int, default=None)
-def main(root, val_ratio, val_count):
-    files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
+@click.option("--filelist", default=None, type=Path)
+def main(root, val_ratio, val_count,filelist):
+    if filelist:
+        with open(filelist) as f:
+            files = [Path(line.split("|")[0]) for line in f]
+    else:
+        files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
     print(f"Found {len(files)} files")
 
     files = [str(file.relative_to(root)) for file in tqdm(files)]
