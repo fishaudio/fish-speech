@@ -31,7 +31,7 @@ def main(root, val_ratio, val_count,filelist):
                     print(f"没有找到对应的音频：{file}")
                     countNotFound += 1
                     continue
-            files.add(file)
+                files.add(file)
         files = list(files)
     else:
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
