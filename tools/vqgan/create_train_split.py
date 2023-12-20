@@ -21,7 +21,7 @@ def main(root, val_ratio, val_count,filelist):
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
     print(f"Found {len(files)} files")
 
-    files = [str(file.relative_to(root)) for file in tqdm(files)]
+    #files = [str(file.relative_to(root)) for file in tqdm(files)]
 
     Random(42).shuffle(files)
 
