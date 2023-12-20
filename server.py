@@ -14,6 +14,7 @@ from hydra.utils import instantiate
 from pydantic import BaseModel
 from transformers import AutoTokenizer
 
+import tools.llama.generate
 from fish_speech.models.vqgan.utils import sequence_mask
 from tools.llama.generate import load_model, encode_tokens, generate
 from tools.log import logger
@@ -46,13 +47,10 @@ class LLamaModelManager:
             if self.tokenizer is None:
                 self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
             if self.compilation:
-                self.decode_one_token = torch.compile(
-                    self.decode_one_token, mode="reduce-overhead", fullgraph=True
+                tools.llama.generate.decode_one_token = torch.compile(
+                    tools.llama.generate.decode_one_token, mode="reduce-overhead", fullgraph=True
                 )
 
-        else:
-            # 已经加载了模型，可以添加日志或处理逻辑
-            pass
 
     def get_model(self):
         if self.model is None:
@@ -250,7 +248,6 @@ async def load_llama_model_api(
 
         llama_model_manager.load_model(req.config_name, req.checkpoint_path, req.device, req.precision, req.tokenizer,
                                        req.compilation)
-
         return {"message": "Model loaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -381,7 +378,7 @@ async def use_model(
         logger.info(f"Saved codes to codes_{i}.npy")
         # --------------- llama end ------------
         vqgan_model_manager.sematic_to_wav(f"codes_{i}.npy", f"fake_{i}.wav")
-    # --------------- vqgan end ------------
+        # --------------- vqgan end ------------
 
     # all end
     gc.collect()
