@@ -38,7 +38,13 @@
 python tools/vqgan/create_train_split.py data/demo
 ```
 
-该命令会在 `data/demo` 目录下创建 `data/demo/vq_train_filelist.txt` 和 `data/demo/vq_val_filelist.txt` 文件, 分别用于训练和验证.
+对于VITS数据集
+
+```bash
+python tools/vqgan/create_train_split.py data/demo --filelist xxx.list
+```
+该命令会在 `data/demo` 目录下创建 `data/demo/vq_train_filelist.txt` 和 `data/demo/vq_val_filelist.txt` 文件, 分别用于训练和验证.  
+请注意，此步filelist所指向的音频文件必须也位于`data/demo`文件夹下。
 
 ### 3. 启动训练
 
@@ -105,7 +111,8 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v
 python tools/vqgan/extract_vq.py data/demo \
     --num-workers 1 --batch-size 16 \
     --config-name "vqgan_pretrain" \
-    --checkpoint-path "checkpoints/vqgan-v1.pth"
+    --checkpoint-path "checkpoints/vqgan-v1.pth" \
+    --filelist xxx.list # For vits format list, or not us this parameter.
 ```
 
 !!! note
@@ -137,6 +144,8 @@ python tools/vqgan/extract_vq.py data/demo \
 python tools/llama/build_dataset.py \
     --config "fish_speech/configs/data/finetune.yaml" \
     --output "data/quantized-dataset-ft.protos"
+    --num_workers 16
+    --filelist xxx.list # For vits format list, or not us this parameter.
 ```
 
 命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
