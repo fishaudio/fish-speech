@@ -1,34 +1,67 @@
 import gc
 import io
 import time
-from typing import Literal, Optional
+import traceback
+from http import HTTPStatus
+from typing import Annotated, Any, Literal, Optional
 
-import llama.generate
 import numpy as np
 import soundfile as sf
 import torch
 import torch.nn.functional as F
-from fastapi import FastAPI, HTTPException, Request, Response
 from hydra import compose, initialize
 from hydra.utils import instantiate
-from llama.generate import encode_tokens, generate, load_model
+from kui.wsgi import (
+    Body,
+    HTTPException,
+    HttpView,
+    JSONResponse,
+    Kui,
+    OpenAPI,
+    Path,
+    StreamResponse,
+    allow_cors,
+)
+from kui.wsgi.routing import MultimethodRoutes, Router
 from loguru import logger
 from pydantic import BaseModel
 from transformers import AutoTokenizer
 
+import tools.llama.generate
+from tools.llama.generate import encode_tokens, generate, load_model
 
-class LlamaModelManager:
-    def __init__(self):
-        self.model = None
-        self.tokenizer = None
-        self.model_size = None
-        self.t0 = None
-        self.device = None
-        self.precision = None
-        self.compile = None
-        self.decode_one_token = None
 
-    def load_model(
+# Define utils for web server
+def http_execption_handler(exc: HTTPException):
+    return JSONResponse(
+        dict(
+            statusCode=exc.status_code,
+            message=exc.content,
+            error=HTTPStatus(exc.status_code).phrase,
+        ),
+        exc.status_code,
+        exc.headers,
+    )
+
+
+def other_exception_handler(exc: "Exception"):
+    traceback.print_exc()
+
+    status = HTTPStatus.INTERNAL_SERVER_ERROR
+    return JSONResponse(
+        dict(statusCode=status, message=str(exc), error=status.phrase),
+        status,
+    )
+
+
+routes = MultimethodRoutes(base_class=HttpView)
+
+# Define models
+MODELS = {}
+
+
+class LlamaModel:
+    def __init__(
         self,
         config_name: str,
         checkpoint_path: str,
@@ -38,38 +71,30 @@ class LlamaModelManager:
         compile: bool,
     ):
         self.device = device
-
         self.compile = compile
-        if self.model is None:
-            self.t0 = time.time()
-            self.precision = (
-                torch.bfloat16 if precision == "bfloat16" else torch.float16
+
+        self.t0 = time.time()
+        self.precision = torch.bfloat16 if precision == "bfloat16" else torch.float16
+        self.model = load_model(config_name, checkpoint_path, device, self.precision)
+        self.model_size = sum(
+            p.numel() for p in self.model.parameters() if p.requires_grad
+        )
+
+        torch.cuda.synchronize()
+        logger.info(f"Time to load model: {time.time() - self.t0:.02f} seconds")
+
+        if self.tokenizer is None:
+            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+        if self.compile:
+            logger.info("Compiling model ...")
+            tools.llama.generate.decode_one_token = torch.compile(
+                tools.llama.generate.decode_one_token,
+                mode="reduce-overhead",
+                fullgraph=True,
             )
-            self.model = load_model(
-                config_name, checkpoint_path, device, self.precision
-            )
-            self.model_size = sum(
-                p.numel() for p in self.model.parameters() if p.requires_grad
-            )
 
-            torch.cuda.synchronize()
-            logger.info(f"Time to load model: {time.time() - self.t0:.02f} seconds")
-
-            if self.tokenizer is None:
-                self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-
-            if self.compile:
-                logger.info("Compiling model ...")
-                llama.generate.decode_one_token = torch.compile(
-                    llama.generate.decode_one_token,
-                    mode="reduce-overhead",
-                    fullgraph=True,
-                )
-
-        else:
-            logger.warning("Model is already loaded. Skipping.")
-
-    def del_model(self):
+    def __del__(self):
         self.model = None
         self.tokenizer = None
 
@@ -77,37 +102,28 @@ class LlamaModelManager:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        logger.info("The llama model is removed from memory.")
+        logger.info("The llama is removed from memory.")
 
 
-class VQGANModelManager:
-    def __init__(self):
-        self.model = None
-        self.cfg = None
-
-    def load_model(self, config_name: str, checkpoint_path: str):
+class VQGANModel:
+    def __init__(self, config_name: str, checkpoint_path: str):
         if self.cfg is None:
             with initialize(version_base="1.3", config_path="../fish_speech/configs"):
                 self.cfg = compose(config_name=config_name)
 
-        if self.model is None:
-            self.model = instantiate(self.cfg.model)
-            state_dict = torch.load(
-                checkpoint_path,
-                map_location=self.model.device,
-            )
-            if "state_dict" in state_dict:
-                state_dict = state_dict["state_dict"]
-            self.model.load_state_dict(state_dict, strict=True)
-            self.model.eval()
-            self.model.cuda()
-            logger.info("Restored model from checkpoint")
-        else:
-            logger.warning("Model is already loaded. Skipping.")
+        self.model = instantiate(self.cfg.model)
+        state_dict = torch.load(
+            checkpoint_path,
+            map_location=self.model.device,
+        )
+        if "state_dict" in state_dict:
+            state_dict = state_dict["state_dict"]
+        self.model.load_state_dict(state_dict, strict=True)
+        self.model.eval()
+        self.model.cuda()
+        logger.info("Restored model from checkpoint")
 
-        return self.model
-
-    def del_model(self):
+    def __del__(self):
         self.cfg = None
         self.model = None
 
@@ -156,14 +172,6 @@ class VQGANModelManager:
         return fake_audio, model.sampling_rate
 
 
-app = FastAPI()
-app.logger = logger
-
-llama_model_manager = LlamaModelManager()
-vqgan_model_manager = VQGANModelManager()
-logger.info("Launched FastAPI server")
-
-
 class LoadLlamaModelRequest(BaseModel):
     config_name: str = "text2semantic_finetune"
     checkpoint_path: str = "checkpoints/text2semantic-400m-v0.2-4k.pth"
@@ -173,58 +181,82 @@ class LoadLlamaModelRequest(BaseModel):
     compile: bool = True
 
 
-@app.post("/load-llama")
-async def load_llama_model(
-    req: LoadLlamaModelRequest,
-):
-    """
-    Load llama model (semantic model)
-    """
-
-    if llama_model_manager.model is not None:
-        llama_model_manager.del_model()
-        logger.info("The previous llama model is removed from memory.")
-
-    logger.info("Loading model ...")
-
-    try:
-        llama_model_manager.load_model(
-            req.config_name,
-            req.checkpoint_path,
-            req.device,
-            req.precision,
-            req.tokenizer,
-            req.compile,
-        )
-
-        return Response(status_code=204)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 class LoadVQGANModelRequest(BaseModel):
     config_name: str = "vqgan_pretrain"
     checkpoint_path: str = "checkpoints/vqgan-v1.pth"
 
 
-@app.post("/load-vqgan")
-async def load_vqgan_model(req: LoadVQGANModelRequest):
+class LoadModelResponse(BaseModel):
+    name: str
+
+
+@routes.http.put("/models/{name}")
+def load_model(
+    name: Annotated[str, Path("default")],
+    llama: Annotated[LoadLlamaModelRequest, Body()],
+    vqgan: Annotated[LoadVQGANModelRequest, Body()],
+) -> Annotated[LoadModelResponse, JSONResponse[200, {}, LoadModelResponse]]:
     """
-    Load vqgan model (vocoder model)
+    Load model
     """
 
-    if vqgan_model_manager.model is not None:
-        vqgan_model_manager.del_model()
-        logger.info("The previous vqgan model is removed from memory.")
+    if name in MODELS:
+        del MODELS[name]
 
-    try:
-        vqgan_model_manager.load_model(req.config_name, req.checkpoint_path)
-        return Response(status_code=204)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("Loading model ...")
+    new_model = {
+        "llama": LlamaModel(
+            config_name=llama.config_name,
+            checkpoint_path=llama.checkpoint_path,
+            device=llama.device,
+            precision=llama.precision,
+            tokenizer_path=llama.tokenizer,
+            compile=llama.compile,
+        ),
+        "vqgan": VQGANModel(
+            config_name=vqgan.config_name,
+            checkpoint_path=vqgan.checkpoint_path,
+        ),
+    }
+
+    MODELS[name] = new_model
+
+    return LoadModelResponse(name=name)
 
 
-class UseModelRequest(BaseModel):
+@routes.http.delete("/models/{name}")
+def delete_model(
+    name: Annotated[str, Path("default")],
+) -> JSONResponse[200, {}, dict]:
+    """
+    Delete model
+    """
+
+    if name not in MODELS:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content="Model not found.",
+        )
+
+    return JSONResponse(
+        dict(message="Model deleted."),
+        200,
+    )
+
+
+@routes.http.get("/models")
+def list_models() -> JSONResponse[200, {}, dict]:
+    """
+    List models
+    """
+
+    return JSONResponse(
+        dict(models=list(MODELS.keys())),
+        200,
+    )
+
+
+class InvokeRequest(BaseModel):
     text: str = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
     prompt_text: Optional[str] = None
     prompt_tokens: Optional[str] = None
@@ -238,17 +270,24 @@ class UseModelRequest(BaseModel):
     speaker: Optional[str] = None
 
 
-@app.post("/invoke")
-async def invoke_model(req: UseModelRequest):
+@routes.http.post("/models/{name}/invoke")
+def invoke_model(
+    name: Annotated[str, Path("default")],
+    req: Annotated[InvokeRequest, Body(exclusive=True)],
+):
     """
     Invoke model and generate audio
     """
 
-    if llama_model_manager.model is None or vqgan_model_manager.model is None:
+    if name not in MODELS:
         raise HTTPException(
-            status_code=400,
-            detail="Model is not loaded. Please load model first.",
+            status_code=HTTPStatus.NOT_FOUND,
+            content="Cannot find model.",
         )
+
+    model = MODELS[name]
+    llama_model_manager = model["llama"]
+    vqgan_model_manager = model["vqgan"]
 
     device = llama_model_manager.device
     seed = req.seed
@@ -316,30 +355,30 @@ async def invoke_model(req: UseModelRequest):
     buffer = io.BytesIO()
     sf.write(buffer, audio, sr, format="wav")
 
-    return Response(
-        buffer.getvalue(),
-        media_type="audio/wav",
-        headers={"Content-Disposition": "attachment; filename=generated.wav"},
+    return StreamResponse(
+        iterable=[buffer.getvalue()],
+        headers={
+            "Content-Disposition": "attachment; filename=generated.wav",
+            "Content-Type": "audio/wav",
+        },
     )
 
 
-@app.post("/del")
-async def del_model():
-    """
-    Delete model from memory
-    """
+# Define Kui app
+app = Kui(
+    exception_handlers={
+        HTTPException: http_execption_handler,
+        Exception: other_exception_handler,
+    },
+)
+app.router = Router(
+    [],
+    http_middlewares=[
+        app.exception_middleware,
+        allow_cors(),
+    ],
+)
 
-    try:
-        llama_model_manager.del_model()
-        vqgan_model_manager.del_model()
-        return Response(status_code=204)
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-if __name__ == "__main__":
-    import os
-
-    import uvicorn
-
-    uvicorn.run(app, host="127.0.0.1", port=int(os.getenv("PORT", 8000)))
+# Swagger UI & routes
+app.router << ("/v1" // routes)
+app.router << ("/docs" // OpenAPI().routes)
