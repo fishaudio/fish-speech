@@ -13,10 +13,10 @@ from tqdm import tqdm
 from fish_speech.datasets.protos.text_data_pb2 import Semantics, Sentence, TextData
 from fish_speech.datasets.protos.text_data_stream import pack_pb_stream
 from fish_speech.text import g2p
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 
-def task_generator(config, filelist):
+def task_generator_yaml(config):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -30,26 +30,7 @@ def task_generator(config, filelist):
         )
 
         # Load the files
-        if filelist:
-            with open(filelist, "r", encoding="utf-8") as f:
-                # files = [Path(line..strip().split("|")[0]) for line in f]
-                files = set()
-                countSame = 0
-                countNotFound = 0
-                for line in f.readlines():
-                    file = Path(line.strip().split("|")[0])
-                    if file in files:
-                        print(f"重复音频文本：{line}")
-                        countSame += 1
-                        continue
-                    if not os.path.isfile(file):
-                        # 过滤数据集错误：不存在对应音频
-                        print(f"没有找到对应的音频：{file}")
-                        countNotFound += 1
-                        continue
-                    files.add(file)
-        else:
-            files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
         grouped_files = defaultdict(list)
         for file in files:
@@ -63,22 +44,44 @@ def task_generator(config, filelist):
 
         logger.info(f"Found {len(grouped_files)} groups in {root}")
         for name, subset in grouped_files.items():
-            yield name, subset, source, languages, extension
+            yield name, subset, source, languages, extension, None
+
+
+def task_generator_filelist(filelist):
+    grouped_files = defaultdict(list)
+    for filename, speaker, languages, text in load_filelist(filelist):
+        if speaker in grouped_files:
+            assert (
+                languages == grouped_files[speaker][0][2]
+            ), f"Speaker {speaker} has different languages"
+
+        grouped_files[speaker].append((Path(filename), text, languages))
+
+    logger.info(f"Found {len(grouped_files)} groups in {filelist}")
+    for speaker, (filename, txt, languages) in grouped_files.items():
+        yield speaker, filename, "filelist", languages, None, txt
 
 
 def run_task(task):
-    name, subset, source, languages, extension = task
+    name, subset, source, languages, extension, text = task
 
     # Parse the files
     sentences = []
     for file in subset:
         np_file = file.with_suffix(".npy")
-        txt_file = file.with_suffix(extension)
-        if np_file.exists() is False or txt_file.exists() is False:
-            logger.warning(f"Can't find {np_file} or {txt_file}")
+        if np_file.exists() is False:
+            logger.warning(f"Can't find {np_file}")
             continue
-        with open(txt_file, "r") as f:
-            text = f.read().strip()
+
+        if text is None:
+            txt_file = file.with_suffix(extension)
+
+            if txt_file.exists() is False:
+                logger.warning(f"Can't find {txt_file}")
+                continue
+
+            with open(txt_file, "r") as f:
+                text = f.read().strip()
 
         # Simple cleaning: replace { xxx } and < xxx > with space
         text = re.sub(r"\{.*?\}", " ", text)
@@ -123,10 +126,10 @@ def run_task(task):
 @click.option("--num_worker", type=int, default=16)
 def main(config, output, filelist, num_worker):
     dataset_fp = open(output, "wb")
+    generator_fn = task_generator_yaml if filelist is None else task_generator_filelist
+
     with Pool(num_worker) as p:
-        for result in tqdm(
-            p.imap_unordered(run_task, task_generator(config, filelist))
-        ):
+        for result in tqdm(p.imap_unordered(run_task, generator_fn(config, filelist))):
             dataset_fp.write(result)
 
     dataset_fp.close()

@@ -19,7 +19,7 @@ from loguru import logger
 from omegaconf import OmegaConf
 
 from fish_speech.models.vqgan.utils import sequence_mask
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
@@ -188,27 +188,10 @@ def main(
     # This is a worker
     logger.info(f"Starting worker")
     if filelist:
-        with open(filelist, "r", encoding="utf-8") as f:
-            # files = [Path(line..strip().split("|")[0]) for line in f]
-            files = set()
-            countSame = 0
-            countNotFound = 0
-            for line in f.readlines():
-                file = Path(line.strip().split("|")[0])
-                if file in files:
-                    print(f"重复音频文本：{line}")
-                    countSame += 1
-                    continue
-                if not os.path.isfile(file):
-                    # 过滤数据集错误：不存在对应音频
-                    print(f"没有找到对应的音频：{file}")
-                    countNotFound += 1
-                    continue
-                files.add(file)
-        files = list(files)
-        print(f"总重复音频数：{countSame}，总未找到的音频数:{countNotFound}")
+        files = [i[0] for i in load_filelist(filelist)]
     else:
         files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+
     Random(42).shuffle(files)
 
     total_files = len(files)
