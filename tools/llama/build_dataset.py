@@ -47,6 +47,7 @@ def task_generator(config,filelist):
                         countNotFound += 1
                         continue
                 files.add(file)
+            files = list(files)
         else:
             files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
