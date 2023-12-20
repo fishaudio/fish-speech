@@ -1,8 +1,7 @@
 import functools
-
-import click
 from pathlib import Path
 
+import click
 from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
 from tqdm import tqdm
@@ -12,7 +11,7 @@ from tqdm import tqdm
 def asr_pipeline():
     return pipeline(
         task=Tasks.auto_speech_recognition,
-        model='damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+        model="damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
     )
 
 
@@ -36,7 +35,9 @@ def main(audio_dir):
     for filepath in tqdm(all_audio_files, desc="Processing files"):
         text = transcribe(str(filepath))
 
-        with open((audio_dir / filepath.stem).with_suffix(".lab"), "w", encoding="utf-8") as f:
+        with open(
+            (audio_dir / filepath.stem).with_suffix(".lab"), "w", encoding="utf-8"
+        ) as f:
             f.write(text)
 
 
