@@ -194,7 +194,7 @@ def main(
             countSame = 0
             countNotFound = 0
             for line in f.readlines():
-                file = [Path(line.strip().split("|")[0])]
+                file = Path(line.strip().split("|")[0])
                 if file in files:
                     print(f"重复音频文本：{line}")
                     countSame += 1
