@@ -36,7 +36,7 @@ def task_generator(config,filelist):
                 countSame = 0
                 countNotFound = 0
                 for line in f.readlines():
-                    file = line.strip().split("|")[0]
+                    file = Path(line.strip().split("|")[0])
                     if file in files:
                         print(f"重复音频文本：{line}")
                         countSame += 1
@@ -46,8 +46,7 @@ def task_generator(config,filelist):
                         print(f"没有找到对应的音频：{file}")
                         countNotFound += 1
                         continue
-                files.add(file)
-            files = list(files)
+                    files.add(file)
         else:
             files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
