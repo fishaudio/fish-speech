@@ -117,9 +117,8 @@ class DiscriminatorS(nn.Module):
 
 
 class EnsembleDiscriminator(nn.Module):
-    def __init__(self, ckpt_path=None):
+    def __init__(self, ckpt_path=None, periods=(2, 3, 5, 7, 11)):
         super(EnsembleDiscriminator, self).__init__()
-        periods = [2, 3, 5, 7, 11]  # [1, 2, 3, 5, 7, 11]
 
         discs = [DiscriminatorS(use_spectral_norm=True)]
         discs = discs + [DiscriminatorP(i, use_spectral_norm=False) for i in periods]

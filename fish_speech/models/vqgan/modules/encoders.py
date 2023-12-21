@@ -309,7 +309,7 @@ class VQEncoder(nn.Module):
             nn.Conv1d(vq_channels, in_channels, kernel_size=1, stride=1),
         )
 
-    def forward(self, x, x_mask, freeze_codebook=False):
+    def forward(self, x, x_mask):
         # x: [B, C, T], x_mask: [B, 1, T]
         x_len = x.shape[2]
 
