@@ -1,3 +1,3 @@
-from .lit_module import VQGAN, VQNaive
+from .lit_module import VQGAN
 
-__all__ = ["VQGAN", "VQNaive"]
+__all__ = ["VQGAN"]
