@@ -85,7 +85,12 @@ def load_filelist(path: Path | str) -> list[tuple[Path, str, str, str]]:
 
     with open(path, "r", encoding="utf-8") as f:
         for line in f.readlines():
-            filename, speaker, language, text = line.strip().split("|")
+            splits = line.strip().split("|", maxsplit=3)
+            if len(splits) != 4:
+                logger.warning(f"Invalid line: {line}")
+                continue
+
+            filename, speaker, language, text = splits
             file = Path(filename)
             language = language.strip().lower()
 

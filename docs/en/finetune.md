@@ -37,7 +37,7 @@ python tools/vqgan/create_train_split.py data/demo
 This command will create `data/demo/vq_train_filelist.txt` and `data/demo/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
 
 !!!info
-    For the VITS format, you can specify a file list using `--filelist xxx.list`.
+    For the VITS format, you can specify a file list using `--filelist xxx.list`.  
     Please note that the audio files in `filelist` must also be located in the `data/demo` folder.
 
 ### 3. Start Training
@@ -100,7 +100,8 @@ python tools/vqgan/extract_vq.py data/demo \
 ```
 
 !!! note
-    You can adjust `--num-workers` and `--batch-size` to increase extraction speed, but please make sure not to exceed your GPU memory limit.
+    You can adjust `--num-workers` and `--batch-size` to increase extraction speed, but please make sure not to exceed your GPU memory limit.  
+    For the VITS format, you can specify a file list using `--filelist xxx.list`.
 
 This command will create `.npy` files in the `data/demo` directory, as shown below:
 
@@ -134,7 +135,6 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 
 !!!info
     For the VITS format, you can specify a file list using `--filelist xxx.list`.
-    Please note that the audio files referenced in `filelist` must also be located in the `data/demo` folder.
 
 ### 4. Start the Rust data server
 

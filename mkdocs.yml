@@ -23,6 +23,8 @@ theme:
     - search.highlight
     - search.share
     - content.code.copy
+  icon:
+    logo: fontawesome/solid/fish
 
   palette:
     # Palette toggle for automatic mode
