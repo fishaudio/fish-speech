@@ -21,16 +21,13 @@ to transcribe the second speaker.
 
 Note: Be aware of your audio sample rate, which defaults to 44.1kHz.
 """
+from pathlib import Path
 
-import argparse
-import os
-from glob import glob
-
-import numpy as np
+import click
 import whisper
 from pydub import AudioSegment
-from tqdm import tqdm
 
+from fish_speech.utils.file import list_files 
 
 def transcribe_audio(model, filepath, language):
     return model.transcribe(filepath, language=language)
@@ -46,61 +43,46 @@ def transcribe_segment(model, filepath):
     result = whisper.decode(model, mel, options)
     return result.text, lang
 
+def load_audio(file_path, file_suffix):
+    try:
+        if file_suffix == '.wav':
+            audio = AudioSegment.from_wav(file_path)
+        elif file_suffix == '.mp3':
+            audio = AudioSegment.from_mp3(file_path)
+        elif file_suffix == '.flac':
+            audio = AudioSegment.from_file(file_path, format='flac')
+        return audio
+    except Exception as e:
+        print(f"Error processing file {file_path}: {e}")
+        return None
 
+@click.command()
+@click.option('--model_size', default='large', help='Size of the Whisper model')
+@click.option('--audio_dir', required=True, help='Directory containing audio files')
+@click.option('--save_dir', required=True, help='Directory to save processed audio files')
+@click.option('--language', default='ZH', help='Language of the transcription')
+@click.option('--out_sr', default=44100, type=int, help='Output sample rate')
 def main(model_size, audio_dir, save_dir, out_sr, language):
     print("Loading/Downloading OpenAI Whisper model...")
     model = whisper.load_model(model_size)
-    os.makedirs(save_dir, exist_ok=True)
-    audio_files = []
-    for ext in ["*.wav", "*.flac", "*.mp3"]:  # 支持多种文件格式
-        audio_files.extend(glob(os.path.join(audio_dir, ext)))
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    audio_files = list_files(path=audio_dir, extensions=[".wav", ".mp3", ".flac"], recursive=True)
     for file_path in tqdm(audio_files, desc="Processing audio file"):
-        file_name, extension = os.path.splitext(os.path.basename(file_path))
-
-        if extension.lower() == ".wav":
-            audio = AudioSegment.from_wav(file_path)
-        elif extension.lower() == ".mp3":
-            audio = AudioSegment.from_mp3(file_path)
-        elif extension.lower() == ".flac":
-            audio = AudioSegment.from_file(file_path, format="flac")
-
+        file_stem = file_path.stem
+        file_suffix = file_path.suffix
+        file_path = str(file_path)
+        audio = load_audio(file_path, file_suffix)
+        if not audio: continue
         transcription = transcribe_audio(model, file_path, language)
-        for segment in transcription.get("segments", []):
-            id, text, start, end = (
-                segment["id"],
-                segment["text"],
-                segment["start"],
-                segment["end"],
-            )
-            extract = audio[start:end]
-            extract.export(
-                os.path.join(save_dir, f"{file_name}_{id}{extension}"),
-                format=extension.lower().strip("."),
-            )
-            with open(
-                os.path.join(save_dir, f"{file_name}_{id}.lab"), "w", encoding="utf-8"
-            ) as f:
+        for segment in transcription.get('segments', []):
+            print(segment)
+            id, text, start, end = segment['id'], segment['text'], segment['start'], segment['end']
+            extract = audio[int(start * 1000):int(end * 1000)].set_frame_rate(out_sr)
+            extract.export(save_path / f"{file_stem}_{id}{file_suffix}", format=file_suffix.lower().strip('.'))
+            with open(save_path / f"{file_stem}_{id}.lab", "w", encoding="utf-8") as f:
                 f.write(text)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Audio Transcription with Whisper")
-    parser.add_argument(
-        "--model_size", type=str, default="large", help="Size of the Whisper model"
-    )
-    parser.add_argument(
-        "--audio_dir", type=str, required=True, help="Directory containing audio files"
-    )
-    parser.add_argument(
-        "--save_dir",
-        type=str,
-        required=True,
-        help="Directory to save processed audio files",
-    )
-    parser.add_argument(
-        "--language", type=str, default="ZH", help="Language of the transcription"
-    )
-    parser.add_argument("--out_sr", type=int, default=44100, help="Output sample rate")
-    args = parser.parse_args()
-
-    main(args.model_size, args.audio_dir, args.save_dir, args.out_sr, args.language)
+    main()
