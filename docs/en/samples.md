@@ -1,4 +1,4 @@
-# Example
+# Samples
 
 !!! note
     Due to insufficient Japanese to English training data, we first phonemicize the text and then use it for generation.

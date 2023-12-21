@@ -1,6 +1,6 @@
 # Inference
 
-In the plan, inference is expected to support both command line and webui methods, but currently, only the command-line reasoning function has been completed.  
+Inference support command line, HTTP API and web UI.
 
 !!! note
     Overall, reasoning consists of several parts:
@@ -57,3 +57,27 @@ python tools/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
+
+## HTTP API Inference
+
+We provide a HTTP API for inference. You can use the following command to start the server:
+
+```bash
+python -m zibai tools.api_server:app --listen 127.0.0.1:8000
+```
+
+After that, you can view and test the API at http://127.0.0.1:8000/docs.  
+
+Generally, you need to first call PUT /v1/models/default to load the model, and then use POST /v1/models/default/invoke for inference. For specific parameters, please refer to the API documentation.
+
+## WebUI Inference
+
+Before running the WebUI, you need to start the HTTP service as described above.
+
+Then you can start the WebUI using the following command:
+
+```bash
+python fish_speech/webui/app.py
+```
+
+Enjoy!

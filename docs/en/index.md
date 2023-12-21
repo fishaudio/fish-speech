@@ -33,6 +33,7 @@ pip3 install -e .
 
 ## Changelog
 
+- 2023/12/19: Updated webui and HTTP API.
 - 2023/12/18: Updated fine-tuning documentation and related examples.
 - 2023/12/17: Updated `text2semantic` model, supporting phoneme-free mode.
 - 2023/12/13: Beta version released, includes VQGAN model and a language model based on LLAMA (phoneme support only).
