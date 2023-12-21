@@ -1,4 +1,5 @@
 import os
+from glob import glob
 from pathlib import Path
 from typing import Union
 
@@ -42,16 +43,7 @@ def list_files(
     if not path.exists():
         raise FileNotFoundError(f"Directory {path} does not exist.")
 
-    files = (
-        [
-            Path(os.path.join(root, filename))
-            for root, _, filenames in os.walk(path, followlinks=True)
-            for filename in filenames
-            if Path(os.path.join(root, filename)).is_file()
-        ]
-        if recursive
-        else [f for f in path.glob("*") if f.is_file()]
-    )
+    files = [Path(f) for f in glob(str(path / "**/*"), recursive=recursive)]
 
     if extensions is not None:
         files = [f for f in files if f.suffix in extensions]

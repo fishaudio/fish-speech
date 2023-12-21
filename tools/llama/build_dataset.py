@@ -126,10 +126,14 @@ def run_task(task):
 @click.option("--num_worker", type=int, default=16)
 def main(config, output, filelist, num_worker):
     dataset_fp = open(output, "wb")
-    generator_fn = task_generator_yaml if filelist is None else task_generator_filelist
+    generator_fn = (
+        task_generator_yaml(config)
+        if filelist is None
+        else task_generator_filelist(filelist)
+    )
 
     with Pool(num_worker) as p:
-        for result in tqdm(p.imap_unordered(run_task, generator_fn(config, filelist))):
+        for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             dataset_fp.write(result)
 
     dataset_fp.close()
