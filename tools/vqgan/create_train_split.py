@@ -27,7 +27,7 @@ def main(root, val_ratio, val_count, filelist):
 
     if val_count is None and val_ratio is None:
         logger.info("Validation ratio and count not specified, using min(20%, 100)")
-        val_size = min(1, math.ceil(len(files) * 0.2))
+        val_size = min(100, math.ceil(len(files) * 0.2))
     elif val_count is not None and val_ratio is not None:
         logger.error("Cannot specify both val_count and val_ratio")
         return
