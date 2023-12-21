@@ -44,30 +44,30 @@ def task_generator_yaml(config):
 
         logger.info(f"Found {len(grouped_files)} groups in {root}")
         for name, subset in grouped_files.items():
-            yield name, subset, source, languages, extension, None
+            yield name, subset, source, languages, extension
 
 
 def task_generator_filelist(filelist):
     grouped_files = defaultdict(list)
     for filename, speaker, languages, text in load_filelist(filelist):
-        if speaker in grouped_files:
-            assert (
-                languages == grouped_files[speaker][0][2]
-            ), f"Speaker {speaker} has different languages"
-
         grouped_files[speaker].append((Path(filename), text, languages))
 
     logger.info(f"Found {len(grouped_files)} groups in {filelist}")
-    for speaker, (filename, txt, languages) in grouped_files.items():
-        yield speaker, filename, "filelist", languages, None, txt
+    for speaker, values in grouped_files.items():
+        yield speaker, values, "filelist", languages, None
 
 
 def run_task(task):
-    name, subset, source, languages, extension, text = task
+    name, subset, source, languages, extension = task
 
     # Parse the files
     sentences = []
     for file in subset:
+        if isinstance(file, tuple):
+            file, text, languages = file
+        else:
+            text = None
+
         np_file = file.with_suffix(".npy")
         if np_file.exists() is False:
             logger.warning(f"Can't find {np_file}")
