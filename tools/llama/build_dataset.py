@@ -58,8 +58,9 @@ def task_generator_filelist(filelist):
         grouped_files[speaker].append((Path(filename), text, languages))
 
     logger.info(f"Found {len(grouped_files)} groups in {filelist}")
-    for speaker, (filename, txt, languages) in grouped_files.items():
-        yield speaker, filename, "filelist", languages, None, txt
+    for speaker, values in grouped_files.items():
+        for filename, txt, languages in values:
+            yield speaker, filename, "filelist", languages, None, txt
 
 
 def run_task(task):
