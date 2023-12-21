@@ -50,8 +50,7 @@ model:
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   segment_size: 8192
-  freeze_hifigan: false
-  freeze_vq: true
+  mode: finetune
 
   downsample:
     _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
