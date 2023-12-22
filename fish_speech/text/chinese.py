@@ -1,9 +1,9 @@
 import os
 import re
 
-import cn2an
 import jieba.posseg as psg
 from pypinyin import Style, lazy_pinyin
+from tn.chinese.normalizer import Normalizer
 
 from fish_speech.text.symbols import punctuation
 from fish_speech.text.tone_sandhi import ToneSandhi
@@ -16,7 +16,7 @@ pinyin_to_symbol_map = {
     for line in open(OPENCPOP_DICT_PATH).readlines()
 }
 
-
+normalizer = Normalizer()
 tone_modifier = ToneSandhi()
 
 
@@ -123,10 +123,7 @@ def _g2p(segments):
 
 
 def text_normalize(text):
-    numbers = re.findall(r"\d+(?:\.?\d+)?", text)
-    for number in numbers:
-        text = text.replace(number, cn2an.an2cn(number), 1)
-    return text
+    return normalizer.normalize(text)
 
 
 if __name__ == "__main__":
