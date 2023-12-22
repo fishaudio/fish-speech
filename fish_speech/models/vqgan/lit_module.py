@@ -88,8 +88,8 @@ class VQGAN(L.LightningModule):
             for p in self.downsample.parameters():
                 p.requires_grad = False
 
-            for p in self.discriminators.parameters():
-                p.requires_grad = False
+            # for p in self.discriminators.parameters():
+            #     p.requires_grad = False
 
         self.balancer = Balancer(
             {
@@ -102,7 +102,7 @@ class VQGAN(L.LightningModule):
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
         components = []
-        if self.mode != "finetune":
+        if self.mode != "finetune" or True:
             components.extend(
                 [
                     self.downsample.parameters(),
