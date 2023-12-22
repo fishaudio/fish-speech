@@ -8,16 +8,14 @@ import wandb
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
-from vector_quantize_pytorch import VectorQuantize
 
 from fish_speech.models.vqgan.losses import (
     discriminator_loss,
     feature_loss,
     generator_loss,
-    kl_loss,
 )
+from fish_speech.models.vqgan.modules.balancer import Balancer
 from fish_speech.models.vqgan.modules.decoder import Generator
-from fish_speech.models.vqgan.modules.discriminator import EnsembleDiscriminator
 from fish_speech.models.vqgan.modules.encoders import (
     ConvDownSampler,
     SpeakerEncoder,
@@ -42,7 +40,7 @@ class VQGAN(L.LightningModule):
         mel_encoder: TextEncoder,
         decoder: TextEncoder,
         generator: Generator,
-        discriminator: EnsembleDiscriminator,
+        discriminators: nn.ModuleDict,
         mel_transform: nn.Module,
         segment_size: int = 20480,
         hop_length: int = 640,
@@ -67,7 +65,7 @@ class VQGAN(L.LightningModule):
         self.speaker_encoder = speaker_encoder
         self.decoder = decoder
         self.generator = generator
-        self.discriminator = discriminator
+        self.discriminators = discriminators
         self.mel_transform = mel_transform
 
         # Crop length for saving memory
@@ -90,10 +88,21 @@ class VQGAN(L.LightningModule):
             for p in self.downsample.parameters():
                 p.requires_grad = False
 
+            # for p in self.discriminators.parameters():
+            #     p.requires_grad = False
+
+        self.balancer = Balancer(
+            {
+                "mel": 1,
+                "adv": 1,
+                "fm": 1,
+            }
+        )
+
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
         components = []
-        if self.mode != "finetune":
+        if self.mode != "finetune" or True:
             components.extend(
                 [
                     self.downsample.parameters(),
@@ -111,7 +120,7 @@ class VQGAN(L.LightningModule):
         components.append(self.generator.parameters())
         optimizer_generator = self.optimizer_builder(itertools.chain(*components))
         optimizer_discriminator = self.optimizer_builder(
-            self.discriminator.parameters()
+            self.discriminators.parameters()
         )
 
         lr_scheduler_generator = self.lr_scheduler_builder(optimizer_generator)
@@ -229,10 +238,28 @@ class VQGAN(L.LightningModule):
         ), f"{audios.shape} != {fake_audios.shape}"
 
         # Discriminator
-        y_d_hat_r, y_d_hat_g, _, _ = self.discriminator(audios, fake_audios.detach())
+        loss_disc_all = []
 
-        with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_disc_all, _, _ = discriminator_loss(y_d_hat_r, y_d_hat_g)
+        for key, disc in self.discriminators.items():
+            scores, _ = disc(audios)
+            score_fakes, _ = disc(fake_audios.detach())
+
+            with torch.autocast(device_type=audios.device.type, enabled=False):
+                loss_disc, _, _ = discriminator_loss(scores, score_fakes)
+
+            self.log(
+                f"train/discriminator/{key}",
+                loss_disc,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
+            loss_disc_all.append(loss_disc)
+
+        loss_disc_all = torch.stack(loss_disc_all).mean()
 
         self.log(
             "train/discriminator/loss",
@@ -251,42 +278,69 @@ class VQGAN(L.LightningModule):
         )
         optim_d.step()
 
-        y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = self.discriminator(audios, fake_audios)
+        # Adv Loss
+        loss_adv_all = []
+        loss_fm_all = []
+
+        for key, disc in self.discriminators.items():
+            score_fakes, feat_fake = disc(fake_audios)
+
+            # Adversarial Loss
+            with torch.autocast(device_type=audios.device.type, enabled=False):
+                loss_fake, _ = generator_loss(score_fakes)
+
+            self.log(
+                f"train/generator/adv_{key}",
+                loss_fake,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
+            loss_adv_all.append(loss_fake)
+
+            # Feature Matching Loss
+            _, feat_real = disc(audios)
+
+            with torch.autocast(device_type=audios.device.type, enabled=False):
+                loss_fm = feature_loss(feat_real, feat_fake)
+
+            self.log(
+                f"train/generator/adv_fm_{key}",
+                loss_fm,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
+            loss_fm_all.append(loss_fm)
+
+        loss_adv_all = torch.stack(loss_adv_all).mean()
+        loss_fm_all = torch.stack(loss_fm_all).mean()
 
         with torch.autocast(device_type=audios.device.type, enabled=False):
             loss_decoded_mel = F.l1_loss(gt_mels * mel_masks, decoded_mels * mel_masks)
             loss_mel = F.l1_loss(
                 sliced_gt_mels * gen_mel_masks, fake_audio_mels * gen_mel_masks
             )
-            loss_adv, _ = generator_loss(y_d_hat_g)
-            loss_fm = feature_loss(fmap_r, fmap_g)
+
+            generator_out_grad = self.balancer.compute(
+                {
+                    "mel": loss_mel,
+                    "adv": loss_adv_all,
+                    "fm": loss_fm_all,
+                },
+                fake_audios,
+            )
 
             if self.mode == "pretrain-stage1":
                 loss_vq_all = loss_decoded_mel + loss_vq
-                loss_gen_all = loss_mel * 45 + loss_fm + loss_adv
-            else:
-                loss_gen_all = loss_mel * 45 + loss_vq * 45 + loss_fm + loss_adv
-
-        self.log(
-            "train/generator/loss_gen_all",
-            loss_gen_all,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-
-        if self.mode == "pretrain-stage1":
-            self.log(
-                "train/generator/loss_vq_all",
-                loss_vq_all,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=True,
-                logger=True,
-                sync_dist=True,
-            )
+            elif self.mode == "pretrain-stage2":
+                loss_vq_all = loss_vq * 10
 
         self.log(
             "train/generator/loss_decoded_mel",
@@ -307,8 +361,8 @@ class VQGAN(L.LightningModule):
             sync_dist=True,
         )
         self.log(
-            "train/generator/loss_fm",
-            loss_fm,
+            "train/generator/loss_fm_all",
+            loss_fm_all,
             on_step=True,
             on_epoch=False,
             prog_bar=False,
@@ -316,8 +370,8 @@ class VQGAN(L.LightningModule):
             sync_dist=True,
         )
         self.log(
-            "train/generator/loss_adv",
-            loss_adv,
+            "train/generator/loss_adv_all",
+            loss_adv_all,
             on_step=True,
             on_epoch=False,
             prog_bar=False,
@@ -336,11 +390,11 @@ class VQGAN(L.LightningModule):
 
         optim_g.zero_grad()
 
-        # Only backpropagate loss_vq_all in pretrain-stage1
-        if self.mode == "pretrain-stage1":
-            self.manual_backward(loss_vq_all)
+        # Only backpropagate loss_vq_all in pretrain-stages
+        if self.mode != "finetune":
+            self.manual_backward(loss_vq_all, retain_graph=True)
 
-        self.manual_backward(loss_gen_all)
+        self.manual_backward(fake_audios, gradient=generator_out_grad)
         self.clip_gradients(
             optim_g, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
         )
@@ -394,7 +448,9 @@ class VQGAN(L.LightningModule):
         else:
             decoded_mels = text_features
 
-        fake_audios = self.generator(decoded_mels)
+        # If stage 1, use gt mel as input
+        input_mels = gt_mels if self.mode == "pretrain-stage1" else decoded_mels
+        fake_audios = self.generator(input_mels)
 
         fake_mels = self.mel_transform(fake_audios.squeeze(1))
 

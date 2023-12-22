@@ -48,7 +48,7 @@ model:
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   segment_size: 8192
-  mode: pretrain-stage1
+  mode: finetune
 
   downsample:
     _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
@@ -89,9 +89,37 @@ model:
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 4, 4, 4]
 
-  discriminator:
-    _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
-    periods: [2, 3, 5, 7, 11, 17, 23, 37]
+  discriminators:
+    _target_: torch.nn.ModuleDict
+    modules:
+      mpd:
+        _target_: fish_speech.models.vqgan.modules.discriminators.mpd.MultiPeriodDiscriminator
+        periods: [2, 3, 5, 7, 11, 17, 23, 37]
+
+      mrd:
+        _target_: fish_speech.models.vqgan.modules.discriminators.mrd.MultiResolutionDiscriminator
+        resolutions:
+          - [1024, 120, 600]
+          - [2048, 240, 1200]
+          - [4096, 480, 2400]
+          - [512, 50, 240]
+
+      msstftd:
+        _target_: fish_speech.models.vqgan.modules.discriminators.msstftd.MultiScaleSTFTDiscriminator
+        filters: 32
+        n_ffts: [4096, 2048, 1024, 512, 256]
+        hop_lengths: [1024, 512, 256, 128, 64]
+        win_lengths: [4096, 2048, 1024, 512, 256]
+
+      mssbcqtd:
+        _target_: fish_speech.models.vqgan.modules.discriminators.mssbcqtd.MultiScaleSubbandCQTDiscriminator
+        hop_lengths: [512, 256, 256]
+        n_octaves: [9, 9, 9]
+        bins_per_octaves: [24, 36, 48]
+        filters: 32
+        max_filters: 1024
+        dilations: [1, 2, 4]
+        sample_rate: ${sample_rate}
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -119,7 +147,7 @@ callbacks:
   grad_norm_monitor:
     sub_module: 
       - generator
-      - discriminator
+      - discriminators
       - mel_encoder
       - vq_encoder
       - decoder
