@@ -35,6 +35,7 @@ dependencies = [
     "loguru>=0.6.0",
     "nnAudio>=0.3.2",
     "WeTextProcessing>=0.1.10",
+    "nnAudio>=0.3.2",
 ]
 
 [project.optional-dependencies]
