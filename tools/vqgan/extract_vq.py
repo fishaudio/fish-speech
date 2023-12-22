@@ -90,43 +90,15 @@ def process_batch(files: list[Path], model) -> float:
 
     # Calculate lengths
     with torch.no_grad():
-        # VQ Encoder
-        features = gt_mels = model.mel_transform(
-            audios, sample_rate=model.sampling_rate
-        )
-
-        if model.downsample is not None:
-            features = model.downsample(features)
-
-        feature_lengths = (
-            audio_lengths
-            / model.hop_length
-            / (model.downsample.total_strides if model.downsample is not None else 1)
-        ).long()
-
-        feature_masks = torch.unsqueeze(
-            sequence_mask(feature_lengths, features.shape[2]), 1
-        ).to(gt_mels.dtype)
-
-        text_features = model.mel_encoder(features, feature_masks)
-        _, indices, _ = model.vq_encoder(text_features, feature_masks)
-
-        if indices.ndim == 4:
-            # Grouped vq
-            assert indices.shape[-1] == 1, f"Residual vq is not supported"
-            indices = indices.squeeze(-1)
-        elif indices.ndim == 2:
-            # Single vq
-            indices = indices.unsqueeze(0)
-        else:
-            raise ValueError(f"Invalid indices shape {indices.shape}")
-
-        indices = rearrange(indices, "c b t -> b c t")
+        out = model.encode(audios, audio_lengths)
+        indices, feature_lengths = out.indices, out.feature_lengths
 
     # Save to disk
     outputs = indices.cpu().numpy()
 
-    for file, length, feature, audio in zip(files, feature_lengths, outputs, audios):
+    for file, length, feature, audio_length in zip(
+        files, feature_lengths, outputs, audio_lengths
+    ):
         feature = feature[:, :length]
 
         # (T,)

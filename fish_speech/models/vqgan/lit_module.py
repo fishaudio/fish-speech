@@ -1,10 +1,12 @@
 import itertools
+from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 import lightning as L
 import torch
 import torch.nn.functional as F
 import wandb
+from einops import rearrange
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
@@ -18,7 +20,6 @@ from fish_speech.models.vqgan.modules.balancer import Balancer
 from fish_speech.models.vqgan.modules.decoder import Generator
 from fish_speech.models.vqgan.modules.encoders import (
     ConvDownSampler,
-    SpeakerEncoder,
     TextEncoder,
     VQEncoder,
 )
@@ -28,6 +29,21 @@ from fish_speech.models.vqgan.utils import (
     sequence_mask,
     slice_segments,
 )
+
+
+@dataclass
+class VQEncodeResult:
+    features: torch.Tensor
+    indices: torch.Tensor
+    loss: torch.Tensor
+    feature_lengths: torch.Tensor
+
+
+@dataclass
+class VQDecodeResult:
+    audios: torch.Tensor
+    mels: torch.Tensor
+    mel_lengths: torch.Tensor
 
 
 class VQGAN(L.LightningModule):
@@ -46,7 +62,6 @@ class VQGAN(L.LightningModule):
         hop_length: int = 640,
         sample_rate: int = 32000,
         mode: Literal["pretrain", "finetune"] = "finetune",
-        speaker_encoder: SpeakerEncoder = None,
     ):
         super().__init__()
 
@@ -61,7 +76,6 @@ class VQGAN(L.LightningModule):
         self.downsample = downsample
         self.vq_encoder = vq_encoder
         self.mel_encoder = mel_encoder
-        self.speaker_encoder = speaker_encoder
         self.decoder = decoder
         self.generator = generator
         self.discriminators = discriminators
@@ -103,9 +117,6 @@ class VQGAN(L.LightningModule):
             self.mel_encoder.parameters(),
         ]
 
-        if self.speaker_encoder is not None:
-            components.append(self.speaker_encoder.parameters())
-
         if self.decoder is not None:
             components.append(self.decoder.parameters())
 
@@ -146,9 +157,7 @@ class VQGAN(L.LightningModule):
         audios = audios[:, None, :]
 
         with torch.no_grad():
-            features = gt_mels = self.mel_transform(
-                audios, sample_rate=self.sampling_rate
-            )
+            gt_mels = self.mel_transform(audios, sample_rate=self.sampling_rate)
 
         if self.mode == "finetune":
             # Disable gradient computation for VQ
@@ -157,29 +166,13 @@ class VQGAN(L.LightningModule):
             self.mel_encoder.eval()
             self.downsample.eval()
 
-        if self.downsample is not None:
-            features = self.downsample(features)
-
         mel_lengths = audio_lengths // self.hop_length
-        feature_lengths = (
-            audio_lengths
-            / self.hop_length
-            / (self.downsample.total_strides if self.downsample is not None else 1)
-        ).long()
-
-        feature_masks = torch.unsqueeze(
-            sequence_mask(feature_lengths, features.shape[2]), 1
-        ).to(gt_mels.dtype)
         mel_masks = torch.unsqueeze(sequence_mask(mel_lengths, gt_mels.shape[2]), 1).to(
             gt_mels.dtype
         )
 
-        # vq_features is 50 hz, need to convert to true mel size
-        text_features = self.mel_encoder(features, feature_masks)
-        text_features, _, loss_vq = self.vq_encoder(text_features, feature_masks)
-        text_features = F.interpolate(
-            text_features, size=gt_mels.shape[2], mode="nearest"
-        )
+        vq_result = self.encode(audios, audio_lengths)
+        loss_vq = vq_result.loss
 
         if loss_vq.ndim > 1:
             loss_vq = loss_vq.mean()
@@ -188,18 +181,15 @@ class VQGAN(L.LightningModule):
             # Enable gradient computation
             torch.set_grad_enabled(True)
 
-        # Sample mels
-        if self.decoder is not None:
-            speaker_features = (
-                self.speaker_encoder(gt_mels, mel_masks)
-                if self.speaker_encoder is not None
-                else None
-            )
-            decoded_mels = self.decoder(text_features, mel_masks, g=speaker_features)
-        else:
-            decoded_mels = text_features
-
+        decoded = self.decode(
+            indices=vq_result.indices if self.mode == "finetune" else None,
+            features=vq_result.features if self.mode == "pretrain" else None,
+            audio_lengths=audio_lengths,
+            mel_only=True,
+        )
+        decoded_mels = decoded.mels
         input_mels = gt_mels if self.mode == "pretrain" else decoded_mels
+
         if self.segment_size is not None:
             audios, ids_slice = rand_slice_segments(
                 audios, audio_lengths, self.segment_size
@@ -405,46 +395,26 @@ class VQGAN(L.LightningModule):
         audios = audios.float()
         audios = audios[:, None, :]
 
-        features = gt_mels = self.mel_transform(audios, sample_rate=self.sampling_rate)
-
-        if self.downsample is not None:
-            features = self.downsample(features)
-
+        gt_mels = self.mel_transform(audios, sample_rate=self.sampling_rate)
         mel_lengths = audio_lengths // self.hop_length
-        feature_lengths = (
-            audio_lengths
-            / self.hop_length
-            / (self.downsample.total_strides if self.downsample is not None else 1)
-        ).long()
-
-        feature_masks = torch.unsqueeze(
-            sequence_mask(feature_lengths, features.shape[2]), 1
-        ).to(gt_mels.dtype)
         mel_masks = torch.unsqueeze(sequence_mask(mel_lengths, gt_mels.shape[2]), 1).to(
             gt_mels.dtype
         )
 
-        # vq_features is 50 hz, need to convert to true mel size
-        text_features = self.mel_encoder(features, feature_masks)
-        text_features, _, _ = self.vq_encoder(text_features, feature_masks)
-        text_features = F.interpolate(
-            text_features, size=gt_mels.shape[2], mode="nearest"
+        vq_result = self.encode(audios, audio_lengths)
+        decoded = self.decode(
+            indices=vq_result.indices,
+            audio_lengths=audio_lengths,
+            mel_only=self.mode == "pretrain",
         )
 
-        # Sample mels
-        if self.decoder is not None:
-            speaker_features = (
-                self.speaker_encoder(gt_mels, mel_masks)
-                if self.speaker_encoder is not None
-                else None
-            )
-            decoded_mels = self.decoder(text_features, mel_masks, g=speaker_features)
-        else:
-            decoded_mels = text_features
+        decoded_mels = decoded.mels
 
-        # If stage 1, use gt mel as input
-        input_mels = gt_mels if self.mode == "pretrain" else decoded_mels
-        fake_audios = self.generator(input_mels)
+        # Use gt mel as input for pretrain
+        if self.mode == "pretrain":
+            fake_audios = self.generator(gt_mels)
+        else:
+            fake_audios = decoded.audios
 
         fake_mels = self.mel_transform(fake_audios.squeeze(1))
 
@@ -537,3 +507,92 @@ class VQGAN(L.LightningModule):
                 )
 
             plt.close(image_mels)
+
+    def encode(self, audios, audio_lengths=None):
+        if audio_lengths is None:
+            audio_lengths = torch.tensor(
+                [audios.shape[-1]] * audios.shape[0],
+                device=audios.device,
+                dtype=torch.long,
+            )
+
+        with torch.no_grad():
+            features = self.mel_transform(audios, sample_rate=self.sampling_rate)
+
+        if self.downsample is not None:
+            features = self.downsample(features)
+
+        feature_lengths = (
+            audio_lengths
+            / self.hop_length
+            / (self.downsample.total_strides if self.downsample is not None else 1)
+        ).long()
+
+        feature_masks = torch.unsqueeze(
+            sequence_mask(feature_lengths, features.shape[2]), 1
+        ).to(features.dtype)
+
+        text_features = self.mel_encoder(features, feature_masks)
+        vq_features, indices, loss = self.vq_encoder(text_features, feature_masks)
+
+        return VQEncodeResult(
+            features=vq_features,
+            indices=indices,
+            loss=loss,
+            feature_lengths=feature_lengths,
+        )
+
+    def calculate_audio_lengths(self, feature_lengths):
+        return (
+            feature_lengths
+            * self.hop_length
+            * (self.downsample.total_strides if self.downsample is not None else 1)
+        )
+
+    def decode(
+        self,
+        indices=None,
+        features=None,
+        audio_lengths=None,
+        mel_only=False,
+        feature_lengths=None,
+    ):
+        assert (
+            indices is not None or features is not None
+        ), "indices or features must be provided"
+        assert (
+            feature_lengths is not None or audio_lengths is not None
+        ), "feature_lengths or audio_lengths must be provided"
+
+        if audio_lengths is None:
+            audio_lengths = self.calculate_audio_lengths(feature_lengths)
+
+        mel_lengths = audio_lengths // self.hop_length
+        mel_masks = torch.unsqueeze(
+            sequence_mask(mel_lengths, torch.max(mel_lengths)), 1
+        ).float()
+
+        if indices is not None:
+            features = self.vq_encoder.decode(indices)
+
+        features = F.interpolate(features, size=mel_masks.shape[2], mode="nearest")
+
+        # Sample mels
+        if self.decoder is not None:
+            decoded_mels = self.decoder(features, mel_masks)
+        else:
+            decoded_mels = features
+
+        if mel_only:
+            return VQDecodeResult(
+                audios=None,
+                mels=decoded_mels,
+                mel_lengths=mel_lengths,
+            )
+
+        fake_audios = self.generator(decoded_mels)
+        return VQDecodeResult(
+            audios=fake_audios,
+            mels=decoded_mels,
+            mel_lengths=mel_lengths,
+        )
