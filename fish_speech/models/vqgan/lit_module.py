@@ -340,7 +340,7 @@ class VQGAN(L.LightningModule):
             if self.mode == "pretrain-stage1":
                 loss_vq_all = loss_decoded_mel + loss_vq
             elif self.mode == "pretrain-stage2":
-                loss_vq_all = loss_vq
+                loss_vq_all = loss_vq * 10
 
         self.log(
             "train/generator/loss_decoded_mel",
