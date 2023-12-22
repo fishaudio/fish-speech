@@ -45,13 +45,12 @@ class VQGAN(L.LightningModule):
         segment_size: int = 20480,
         hop_length: int = 640,
         sample_rate: int = 32000,
-        mode: Literal["pretrain-stage1", "pretrain-stage2", "finetune"] = "finetune",
+        mode: Literal["pretrain", "finetune"] = "finetune",
         speaker_encoder: SpeakerEncoder = None,
     ):
         super().__init__()
 
-        # pretrain-stage1: vq use gt mel as target, hifigan use gt mel as input
-        # pretrain-stage2: end-to-end training, use gt mel as hifi gan target
+        # pretrain: vq use gt mel as target, hifigan use gt mel as input
         # finetune: end-to-end training, use gt mel as hifi gan target but freeze vq
 
         # Model parameters
@@ -88,9 +87,6 @@ class VQGAN(L.LightningModule):
             for p in self.downsample.parameters():
                 p.requires_grad = False
 
-            # for p in self.discriminators.parameters():
-            #     p.requires_grad = False
-
         self.balancer = Balancer(
             {
                 "mel": 1,
@@ -101,15 +97,11 @@ class VQGAN(L.LightningModule):
 
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
-        components = []
-        if self.mode != "finetune" or True:
-            components.extend(
-                [
-                    self.downsample.parameters(),
-                    self.vq_encoder.parameters(),
-                    self.mel_encoder.parameters(),
-                ]
-            )
+        components = [
+            self.downsample.parameters(),
+            self.vq_encoder.parameters(),
+            self.mel_encoder.parameters(),
+        ]
 
         if self.speaker_encoder is not None:
             components.append(self.speaker_encoder.parameters())
@@ -207,7 +199,7 @@ class VQGAN(L.LightningModule):
         else:
             decoded_mels = text_features
 
-        input_mels = gt_mels if self.mode == "pretrain-stage1" else decoded_mels
+        input_mels = gt_mels if self.mode == "pretrain" else decoded_mels
         if self.segment_size is not None:
             audios, ids_slice = rand_slice_segments(
                 audios, audio_lengths, self.segment_size
@@ -337,20 +329,31 @@ class VQGAN(L.LightningModule):
                 fake_audios,
             )
 
-            if self.mode == "pretrain-stage1":
+            if self.mode == "pretrain":
                 loss_vq_all = loss_decoded_mel + loss_vq
-            elif self.mode == "pretrain-stage2":
-                loss_vq_all = loss_vq * 10
 
-        self.log(
-            "train/generator/loss_decoded_mel",
-            loss_decoded_mel,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
+        # Loss vq and loss decoded mel are only used in pretrain stage
+        if self.mode == "pretrain":
+            self.log(
+                "train/generator/loss_vq",
+                loss_vq,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
+            self.log(
+                "train/generator/loss_decoded_mel",
+                loss_decoded_mel,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
         self.log(
             "train/generator/loss_mel",
             loss_mel,
@@ -378,20 +381,11 @@ class VQGAN(L.LightningModule):
             logger=True,
             sync_dist=True,
         )
-        self.log(
-            "train/generator/loss_vq",
-            loss_vq,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
 
         optim_g.zero_grad()
 
-        # Only backpropagate loss_vq_all in pretrain-stages
-        if self.mode != "finetune":
+        # Only backpropagate loss_vq_all in pretrain stage
+        if self.mode == "pretrain":
             self.manual_backward(loss_vq_all, retain_graph=True)
 
         self.manual_backward(fake_audios, gradient=generator_out_grad)
@@ -449,7 +443,7 @@ class VQGAN(L.LightningModule):
             decoded_mels = text_features
 
         # If stage 1, use gt mel as input
-        input_mels = gt_mels if self.mode == "pretrain-stage1" else decoded_mels
+        input_mels = gt_mels if self.mode == "pretrain" else decoded_mels
         fake_audios = self.generator(input_mels)
 
         fake_mels = self.mel_transform(fake_audios.squeeze(1))
