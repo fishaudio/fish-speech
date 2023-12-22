@@ -91,15 +91,13 @@ class VQGAN(L.LightningModule):
             for p in self.discriminators.parameters():
                 p.requires_grad = False
 
-        keys = {
-            "mel": 1,
-            "adv": 1,
-            "fm": 1,
-        }
-        if self.mode == "pretrain-stage2":
-            keys["vq"] = 1
-
-        self.balancer = Balancer(keys)
+        self.balancer = Balancer(
+            {
+                "mel": 1,
+                "adv": 1,
+                "fm": 1,
+            }
+        )
 
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
@@ -330,32 +328,19 @@ class VQGAN(L.LightningModule):
                 sliced_gt_mels * gen_mel_masks, fake_audio_mels * gen_mel_masks
             )
 
-            keys = {
-                "mel": loss_mel,
-                "adv": loss_adv_all,
-                "fm": loss_fm_all,
-            }
-            if self.mode == "pretrain-stage2":
-                keys["vq"] = loss_vq
-
             generator_out_grad = self.balancer.compute(
-                keys,
+                {
+                    "mel": loss_mel,
+                    "adv": loss_adv_all,
+                    "fm": loss_fm_all,
+                },
                 fake_audios,
             )
 
             if self.mode == "pretrain-stage1":
                 loss_vq_all = loss_decoded_mel + loss_vq
-
-        if self.mode == "pretrain-stage1":
-            self.log(
-                "train/generator/loss_vq_all",
-                loss_vq_all,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=True,
-                logger=True,
-                sync_dist=True,
-            )
+            elif self.mode == "pretrain-stage2":
+                loss_vq_all = loss_vq
 
         self.log(
             "train/generator/loss_decoded_mel",
@@ -405,9 +390,9 @@ class VQGAN(L.LightningModule):
 
         optim_g.zero_grad()
 
-        # Only backpropagate loss_vq_all in pretrain-stage1
-        if self.mode == "pretrain-stage1":
-            self.manual_backward(loss_vq_all)
+        # Only backpropagate loss_vq_all in pretrain-stages
+        if self.mode != "finetune":
+            self.manual_backward(loss_vq_all, retain_graph=True)
 
         self.manual_backward(fake_audios, gradient=generator_out_grad)
         self.clip_gradients(
