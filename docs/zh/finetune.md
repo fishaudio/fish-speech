@@ -141,7 +141,7 @@ python tools/vqgan/extract_vq.py data/demo \
 python tools/llama/build_dataset.py \
     --config "fish_speech/configs/data/finetune.yaml" \
     --output "data/quantized-dataset-ft.protos" \
-    --num_worker 16
+    --num-workers 16
 ```
 
 命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
