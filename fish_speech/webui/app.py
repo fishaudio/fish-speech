@@ -6,7 +6,7 @@ import gradio as gr
 import librosa
 import requests
 
-from fish_speech.text import parse_text_to_segments, segments_to_phones
+from fish_speech.text import parse_text_to_segments
 
 HEADER_MD = """
 # Fish Speech
