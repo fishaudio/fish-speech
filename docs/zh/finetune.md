@@ -140,7 +140,7 @@ python tools/vqgan/extract_vq.py data/demo \
 ```bash
 python tools/llama/build_dataset.py \
     --config "fish_speech/configs/data/finetune.yaml" \
-    --output "data/quantized-dataset-ft.protos"
+    --output "data/quantized-dataset-ft.protos" \
     --num_workers 16
 ```
 
