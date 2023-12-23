@@ -43,13 +43,13 @@ def build_html_error_message(error):
 
 
 def prepare_text(
-        text,
-        input_mode,
-        language0,
-        language1,
-        language2,
-        enable_reference_audio,
-        reference_text,
+    text,
+    input_mode,
+    language0,
+    language1,
+    language2,
+    enable_reference_audio,
+    reference_text,
 ):
     lines = text.splitlines()
     languages = [language0, language1, language2]
@@ -97,15 +97,15 @@ def prepare_text(
 
 
 def load_model(
-        server_url,
-        llama_ckpt_path,
-        llama_config_name,
-        tokenizer,
-        vqgan_ckpt_path,
-        vqgan_config_name,
-        device,
-        precision,
-        compile_model,
+    server_url,
+    llama_ckpt_path,
+    llama_config_name,
+    tokenizer,
+    vqgan_ckpt_path,
+    vqgan_config_name,
+    device,
+    precision,
+    compile_model,
 ):
     payload = {
         "device": device,
@@ -187,21 +187,21 @@ def build_model_config_block():
 
 
 def inference(
-        server_url,
-        text,
-        input_mode,
-        language0,
-        language1,
-        language2,
-        enable_reference_audio,
-        reference_audio,
-        reference_text,
-        max_new_tokens,
-        top_k,
-        top_p,
-        repetition_penalty,
-        temperature,
-        speaker,
+    server_url,
+    text,
+    input_mode,
+    language0,
+    language1,
+    language2,
+    enable_reference_audio,
+    reference_audio,
+    reference_text,
+    max_new_tokens,
+    top_k,
+    top_p,
+    repetition_penalty,
+    temperature,
+    speaker,
 ):
     languages = [language0, language1, language2]
     languages = [
@@ -409,15 +409,17 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
 
 import argparse
 
-HOST = os.environ.get("HOST", '127.0.0.1')
-PORT = os.environ.get("PORT", '7860')
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = os.environ.get("PORT", "7860")
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="WebUI Command Args")
-    arg_parser.add_argument('-P', '--port', default=PORT, help='WebUi Port')
-    arg_parser.add_argument('--bind_all', action='store_true', help='Enable binding to all interfaces')
-    arg_parser.add_argument('--host', type=str, default=HOST, help='WebUI Host')
+    arg_parser.add_argument("-P", "--port", default=PORT, help="WebUi Port")
+    arg_parser.add_argument(
+        "--bind_all", action="store_true", help="Enable binding to all interfaces"
+    )
+    arg_parser.add_argument("--host", type=str, default=HOST, help="WebUI Host")
     args = arg_parser.parse_args()
     if args.bind_all:
-        app.launch(show_api=False, server_name='0.0.0.0', server_port=int(args.port))
+        app.launch(show_api=False, server_name="0.0.0.0", server_port=int(args.port))
     else:
         app.launch(show_api=False, server_name=args.host, server_port=int(args.port))
