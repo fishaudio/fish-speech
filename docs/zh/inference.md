@@ -93,12 +93,8 @@ python fish_speech/webui/app.py
 或附带参数来启动 WebUI:
 
 ```bash
-# 临时环境变量的方式启动:
-HOST=127.0.0.1 PORT=7860 python fish_speech/webui/app.py
-# 或者bind_all:
-python fish_speech/webui/app.py --host="0.0.0.0" --port 7860
-# 更简洁的方式启动：
-python fish_speech/webui/app.py --bind_all --port 7860
+# 以临时环境变量的方式启动:
+GRADIO_SERVER_NAME=127.0.0.1 GRADIO_SERVER_PORT=7860 python fish_speech/webui/app.py
 ```
 
 祝大家玩得开心!
