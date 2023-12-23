@@ -72,11 +72,7 @@ python tools/vqgan/inference.py \
 
 ```bash
 python -m zibai tools.api_server:app --listen 127.0.0.1:8000
-```
-
-推荐中国大陆用户运行以下命令来启动 HTTP 服务:
-
-```bash
+# 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
 HF_ENDPOINT=https://hf-mirror.com python -m zibai tools.api_server:app --listen 127.0.0.1:8000
 ```
 
@@ -84,13 +80,25 @@ HF_ENDPOINT=https://hf-mirror.com python -m zibai tools.api_server:app --listen 
 一般来说, 你需要先调用 `PUT /v1/models/default` 来加载模型, 然后调用 `POST /v1/models/default/invoke` 来进行推理.
 具体的参数请参考 API 文档.
 
-
 ## WebUI 推理
+
 在运行 WebUI 之前, 你需要先启动 HTTP 服务, 如上所述.
 
 随后你可以使用以下命令来启动 WebUI:
+
 ```bash
 python fish_speech/webui/app.py
+```
+
+或附带参数来启动 WebUI:
+
+```bash
+# 临时环境变量的方式启动:
+HOST=127.0.0.1 PORT=7860 python fish_speech/webui/app.py
+# 或者bind_all:
+python fish_speech/webui/app.py --host="0.0.0.0" --port 7860
+# 更简洁的方式启动：
+python fish_speech/webui/app.py --bind_all --port 7860
 ```
 
 祝大家玩得开心!
