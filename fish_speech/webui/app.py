@@ -1,6 +1,5 @@
 import html
 import io
-import os
 import traceback
 
 import gradio as gr
@@ -407,19 +406,6 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
         [audio, error],
     )
 
-import argparse
 
-HOST = os.environ.get("HOST", "127.0.0.1")
-PORT = os.environ.get("PORT", "7860")
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser(description="WebUI Command Args")
-    arg_parser.add_argument("-P", "--port", default=PORT, help="WebUi Port")
-    arg_parser.add_argument(
-        "--bind_all", action="store_true", help="Enable binding to all interfaces"
-    )
-    arg_parser.add_argument("--host", type=str, default=HOST, help="WebUI Host")
-    args = arg_parser.parse_args()
-    if args.bind_all:
-        app.launch(show_api=False, server_name="0.0.0.0", server_port=int(args.port))
-    else:
-        app.launch(show_api=False, server_name=args.host, server_port=int(args.port))
+    app.launch(show_api=False)
