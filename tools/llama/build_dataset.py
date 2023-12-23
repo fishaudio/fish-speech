@@ -1,6 +1,8 @@
+import os
 import re
 from collections import defaultdict
 from multiprocessing import Pool
+from pathlib import Path
 
 import click
 import numpy as np
@@ -11,10 +13,10 @@ from tqdm import tqdm
 from fish_speech.datasets.protos.text_data_pb2 import Semantics, Sentence, TextData
 from fish_speech.datasets.protos.text_data_stream import pack_pb_stream
 from fish_speech.text import g2p
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 
-def task_generator(config):
+def task_generator_yaml(config):
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -28,7 +30,7 @@ def task_generator(config):
         )
 
         # Load the files
-        files = list_files(root, AUDIO_EXTENSIONS, recursive=True)
+        files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
         grouped_files = defaultdict(list)
         for file in files:
@@ -38,12 +40,21 @@ def task_generator(config):
                 p = file.parent.parent.name
             else:
                 raise ValueError(f"Invalid parent level {parent_level}")
-
             grouped_files[p].append(file)
 
         logger.info(f"Found {len(grouped_files)} groups in {root}")
         for name, subset in grouped_files.items():
             yield name, subset, source, languages, extension
+
+
+def task_generator_filelist(filelist):
+    grouped_files = defaultdict(list)
+    for filename, speaker, languages, text in load_filelist(filelist):
+        grouped_files[speaker].append((Path(filename), text, languages))
+
+    logger.info(f"Found {len(grouped_files)} groups in {filelist}")
+    for speaker, values in grouped_files.items():
+        yield speaker, values, "filelist", languages, None
 
 
 def run_task(task):
@@ -52,14 +63,25 @@ def run_task(task):
     # Parse the files
     sentences = []
     for file in subset:
+        if isinstance(file, tuple):
+            file, text, languages = file
+        else:
+            text = None
+
         np_file = file.with_suffix(".npy")
-        txt_file = file.with_suffix(extension)
-        if np_file.exists() is False or txt_file.exists() is False:
-            logger.warning(f"Can't find {np_file} or {txt_file}")
+        if np_file.exists() is False:
+            logger.warning(f"Can't find {np_file}")
             continue
 
-        with open(txt_file, "r") as f:
-            text = f.read().strip()
+        if text is None:
+            txt_file = file.with_suffix(extension)
+
+            if txt_file.exists() is False:
+                logger.warning(f"Can't find {txt_file}")
+                continue
+
+            with open(txt_file, "r") as f:
+                text = f.read().strip()
 
         # Simple cleaning: replace { xxx } and < xxx > with space
         text = re.sub(r"\{.*?\}", " ", text)
@@ -100,10 +122,18 @@ def run_task(task):
     "--config", type=click.Path(), default="fish_speech/configs/data/finetune.yaml"
 )
 @click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
-def main(config, output):
+@click.option("--filelist", type=click.Path(), default=None)
+@click.option("--num_worker", type=int, default=16)
+def main(config, output, filelist, num_worker):
     dataset_fp = open(output, "wb")
-    with Pool(16) as p:
-        for result in tqdm(p.imap_unordered(run_task, task_generator(config))):
+    generator_fn = (
+        task_generator_yaml(config)
+        if filelist is None
+        else task_generator_filelist(filelist)
+    )
+
+    with Pool(num_worker) as p:
+        for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             dataset_fp.write(result)
 
     dataset_fp.close()

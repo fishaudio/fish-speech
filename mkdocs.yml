@@ -1,19 +1,30 @@
 site_name: Fish Speech
+site_description: Targeting SOTA TTS solutions.
+site_url: https://speech.fish.audio
+
+# Repository
+repo_name: fishaudio/fish-speech
 repo_url: https://github.com/fishaudio/fish-speech
+edit_uri: blob/main/docs
+
+# Copyright
+copyright: Copyright &copy; 2023-2024 by Fish Audio
 
 theme:
   name: material
   language: en
   features:
-    - navigation.instant
-    - navigation.instant.prefetch
+    - content.action.edit
+    - content.action.view
     - navigation.tracking
-    - navigation.tabs
+    # - navigation.tabs
     - search
     - search.suggest
     - search.highlight
     - search.share
     - content.code.copy
+  icon:
+    logo: fontawesome/solid/fish
 
   palette:
     # Palette toggle for automatic mode
@@ -44,13 +55,24 @@ theme:
   
 extra:
   homepage: https://speech.fish.audio
-  alternate:
-    - name: English
-      link: /en/ 
-      lang: en
-    - name: 中文
-      link: /zh/
-      lang: zh
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang:
+        - zh
+        - en
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: en
+          name: English
+          build: true
+        - locale: zh
+          default: true
+          name: 简体中文
+          build: true
 
 markdown_extensions:
   - pymdownx.highlight:

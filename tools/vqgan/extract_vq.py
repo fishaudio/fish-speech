@@ -19,7 +19,7 @@ from loguru import logger
 from omegaconf import OmegaConf
 
 from fish_speech.models.vqgan.utils import sequence_mask
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
@@ -145,12 +145,14 @@ def process_batch(files: list[Path], model) -> float:
     default="checkpoints/vqgan-v1.pth",
 )
 @click.option("--batch-size", default=64)
+@click.option("--filelist", default=None, type=Path)
 def main(
     folder: str,
     num_workers: int,
     config_name: str,
     checkpoint_path: str,
     batch_size: int,
+    filelist: Path,
 ):
     if num_workers > 1 and WORLD_SIZE != num_workers:
         assert WORLD_SIZE == 1, "You should either use SLURM or this launcher, not both"
@@ -185,7 +187,11 @@ def main(
 
     # This is a worker
     logger.info(f"Starting worker")
-    files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+    if filelist:
+        files = [i[0] for i in load_filelist(filelist)]
+    else:
+        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+
     Random(42).shuffle(files)
 
     total_files = len(files)

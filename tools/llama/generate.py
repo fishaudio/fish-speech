@@ -109,7 +109,7 @@ def decode_one_token(
 
     # Disable <s> and </s> tokens for codebooks
     if model.config.num_codebooks != 0:
-        logits.codebook_logits[:, :, :, :2] = -float("Inf")
+        logits.codebook_logits[:, :, :, :1] = -float("Inf")
 
         for i in range(model.config.num_codebooks):
             codebooks.append(
@@ -194,7 +194,7 @@ def decode_n_tokens(
         )
 
         # TODO: use tokenizer's eos
-        if (cur_token[0, 0, -1] == eos_token_id).any():
+        if cur_token[0, 0, -1] == eos_token_id or (cur_token[0, 1:, -1] == 1).any():
             break
 
     return previous_tokens[:, : i + 1]
@@ -268,12 +268,14 @@ def encode_tokens(
     prompt_tokens=None,
     use_g2p=False,
     speaker=None,
+    order="zh,jp,en",
 ):
     if prompt_text is not None:
         string = prompt_text + " " + string
 
     if use_g2p:
-        prompt = g2p(string)
+        order = order.split(",")
+        prompt = g2p(string, order=order)
         prompt = [
             (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
             for _, i in prompt
@@ -382,6 +384,7 @@ def load_model(config_name, checkpoint_path, device, precision):
 @click.option("--use-g2p/--no-g2p", default=True)
 @click.option("--seed", type=int, default=42)
 @click.option("--speaker", type=str, default=None)
+@click.option("--order", type=str, default="zh,jp,en")
 @click.option("--half/--no-half", default=False)
 def main(
     text: str,
@@ -400,6 +403,7 @@ def main(
     use_g2p: bool,
     seed: int,
     speaker: Optional[str],
+    order: str,
     half: bool,
 ) -> None:
     device = "cuda"
@@ -429,6 +433,7 @@ def main(
         device=device,
         use_g2p=use_g2p,
         speaker=speaker,
+        order=order,
     )
     prompt_length = encoded.size(1)
     logger.info(f"Encoded prompt shape: {encoded.shape}")

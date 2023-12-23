@@ -1,6 +1,6 @@
 # 推理
 
-计划中, 推理会支持命令行, http api, 以及 webui 三种方式.  
+推理支持命令行, http api, 以及 webui 三种方式.  
 
 !!! note
     总的来说, 推理分为几个部分:  
@@ -84,3 +84,13 @@ HF_ENDPOINT=https://hf-mirror.com python -m zibai tools.api_server:app --listen 
 一般来说, 你需要先调用 `PUT /v1/models/default` 来加载模型, 然后调用 `POST /v1/models/default/invoke` 来进行推理.
 具体的参数请参考 API 文档.
 
+
+## WebUI 推理
+在运行 WebUI 之前, 你需要先启动 HTTP 服务, 如上所述.
+
+随后你可以使用以下命令来启动 WebUI:
+```bash
+python fish_speech/webui/app.py
+```
+
+祝大家玩得开心!
