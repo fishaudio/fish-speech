@@ -68,10 +68,6 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
         log.info("Logging hyperparameters!")
         utils.log_hyperparameters(object_dict)
 
-    if cfg.get("compile"):
-        log.info("Compiling model!")
-        model = torch.compile(model)
-
     if cfg.get("train"):
         log.info("Starting training!")
 

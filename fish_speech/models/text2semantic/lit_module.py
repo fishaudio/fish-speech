@@ -1,8 +1,14 @@
-from typing import Any
+import platform
+from typing import Any, Optional
 
 import lightning as L
+import torch
 import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
+
+import fish_speech.utils as utils
+
+log = utils.RankedLogger(__name__, rank_zero_only=True)
 
 
 class TextToSemantic(L.LightningModule):
