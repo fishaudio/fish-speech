@@ -38,7 +38,7 @@ class ModelArgs:
     codebook_padding_idx: int = 0
 
     # Use flash attention
-    use_flash_attention: bool = is_flash_attn_2_available()
+    use_flash_attention: bool = False
 
     # Gradient checkpointing
     use_gradient_checkpointing: bool = True
