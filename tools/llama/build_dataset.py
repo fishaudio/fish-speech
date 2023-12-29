@@ -122,7 +122,7 @@ def run_task(task):
 )
 @click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
 @click.option("--filelist", type=click.Path(), default=None)
-@click.option("--num_workers", type=int, default=16)
+@click.option("--num-workers", type=int, default=16)
 def main(config, output, filelist, num_workers):
     dataset_fp = open(output, "wb")
     generator_fn = (
