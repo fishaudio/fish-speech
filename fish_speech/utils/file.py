@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Union
 
 from loguru import logger
+from natsort import natsorted
 
 AUDIO_EXTENSIONS = {
     ".mp3",
@@ -49,7 +50,7 @@ def list_files(
         files = [f for f in files if f.suffix in extensions]
 
     if sort:
-        files = sorted(files)
+        files = natsorted(files)
 
     return files
 
