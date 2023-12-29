@@ -186,11 +186,14 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v
 最后, 你可以运行以下命令来启动微调:
 
 ```bash
-python fish_speech/train.py --config-name text2semantic_finetune_spk
+python fish_speech/train.py --config-name text2semantic_finetune
 ```
 
 !!! note
-    你可以通过修改 `fish_speech/configs/text2semantic_finetune_spk.yaml` 来修改训练参数如 `batch_size`, `gradient_accumulation_steps` 等, 来适应你的显存.
+    如果你想使用 lora, 请使用 `--config-name text2semantic_finetune_lora` 来启动微调.
+
+!!! note
+    你可以通过修改 `fish_speech/configs/text2semantic_finetune.yaml` 来修改训练参数如 `batch_size`, `gradient_accumulation_steps` 等, 来适应你的显存.
 
 训练结束后, 你可以参考 [推理](inference.md) 部分, 并携带 `--speaker SPK1` 参数来测试你的模型.
 

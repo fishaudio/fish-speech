@@ -33,6 +33,7 @@ pip3 install -e .
 
 ## 更新日志
 
+- 2023/12/28: 添加了 `lora` 微调支持.
 - 2023/12/27: 添加了 `gradient checkpointing`, `causual sampling` 和 `flash-attn` 支持.
 - 2023/12/19: 更新了 Webui 和 HTTP API.
 - 2023/12/18: 更新了微调文档和相关例子.

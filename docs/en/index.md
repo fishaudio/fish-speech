@@ -33,6 +33,7 @@ pip3 install -e .
 
 ## Changelog
 
+- 2023/12/28: Added `lora` fine-tuning support.
 - 2023/12/27: Add `gradient checkpointing`, `causual sampling`, and `flash-attn` support.
 - 2023/12/19: Updated webui and HTTP API.
 - 2023/12/18: Updated fine-tuning documentation and related examples.
