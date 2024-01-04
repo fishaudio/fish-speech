@@ -35,7 +35,8 @@ dependencies = [
     "loguru>=0.6.0",
     "WeTextProcessing>=0.1.10",
     "loralib>=0.1.2",
-    "natsort>=8.4.0"
+    "natsort>=8.4.0",
+    "cn2an>=0.5.22"
 ]
 
 [project.optional-dependencies]
