@@ -62,6 +62,7 @@ class VQGAN(L.LightningModule):
         hop_length: int = 640,
         sample_rate: int = 32000,
         mode: Literal["pretrain", "finetune"] = "finetune",
+        freeze_discriminator: bool = False,
     ):
         super().__init__()
 
@@ -80,6 +81,7 @@ class VQGAN(L.LightningModule):
         self.generator = generator
         self.discriminators = discriminators
         self.mel_transform = mel_transform
+        self.freeze_discriminator = freeze_discriminator
 
         # Crop length for saving memory
         self.segment_size = segment_size
@@ -99,6 +101,10 @@ class VQGAN(L.LightningModule):
                 p.requires_grad = False
 
             for p in self.downsample.parameters():
+                p.requires_grad = False
+
+        if self.freeze_discriminator:
+            for p in self.discriminators.parameters():
                 p.requires_grad = False
 
         self.balancer = Balancer(
@@ -220,45 +226,46 @@ class VQGAN(L.LightningModule):
         ), f"{audios.shape} != {fake_audios.shape}"
 
         # Discriminator
-        loss_disc_all = []
+        if self.freeze_discriminator is False:
+            loss_disc_all = []
 
-        for key, disc in self.discriminators.items():
-            scores, _ = disc(audios)
-            score_fakes, _ = disc(fake_audios.detach())
+            for key, disc in self.discriminators.items():
+                scores, _ = disc(audios)
+                score_fakes, _ = disc(fake_audios.detach())
 
-            with torch.autocast(device_type=audios.device.type, enabled=False):
-                loss_disc, _, _ = discriminator_loss(scores, score_fakes)
+                with torch.autocast(device_type=audios.device.type, enabled=False):
+                    loss_disc, _, _ = discriminator_loss(scores, score_fakes)
+
+                self.log(
+                    f"train/discriminator/{key}",
+                    loss_disc,
+                    on_step=True,
+                    on_epoch=False,
+                    prog_bar=False,
+                    logger=True,
+                    sync_dist=True,
+                )
+
+                loss_disc_all.append(loss_disc)
+
+            loss_disc_all = torch.stack(loss_disc_all).mean()
 
             self.log(
-                f"train/discriminator/{key}",
-                loss_disc,
+                "train/discriminator/loss",
+                loss_disc_all,
                 on_step=True,
                 on_epoch=False,
-                prog_bar=False,
+                prog_bar=True,
                 logger=True,
                 sync_dist=True,
             )
 
-            loss_disc_all.append(loss_disc)
-
-        loss_disc_all = torch.stack(loss_disc_all).mean()
-
-        self.log(
-            "train/discriminator/loss",
-            loss_disc_all,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-
-        optim_d.zero_grad()
-        self.manual_backward(loss_disc_all)
-        self.clip_gradients(
-            optim_d, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
-        )
-        optim_d.step()
+            optim_d.zero_grad()
+            self.manual_backward(loss_disc_all)
+            self.clip_gradients(
+                optim_d, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
+            )
+            optim_d.step()
 
         # Adv Loss
         loss_adv_all = []

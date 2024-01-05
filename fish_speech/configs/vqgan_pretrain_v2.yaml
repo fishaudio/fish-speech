@@ -65,6 +65,7 @@ model:
   hop_length: ${hop_length}
   segment_size: 16384
   mode: pretrain
+  freeze_discriminator: true
 
   downsample:
     _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
