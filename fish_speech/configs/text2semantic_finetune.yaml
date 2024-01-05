@@ -59,6 +59,7 @@ model:
       norm_eps: 1e-5
       num_codebooks: 4  # single codebook
       codebook_size: 168 # codebook size 160 + 2 special tokens
+      dropout: 0.1 # For small dataset, dropout helps to prevent overfitting
 
   optimizer:
     _target_: torch.optim.AdamW
