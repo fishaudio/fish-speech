@@ -1,4 +1,3 @@
-import os
 import re
 from collections import defaultdict
 from multiprocessing import Pool
@@ -123,8 +122,8 @@ def run_task(task):
 )
 @click.option("--output", type=click.Path(), default="data/quantized-dataset-ft.protos")
 @click.option("--filelist", type=click.Path(), default=None)
-@click.option("--num_worker", type=int, default=16)
-def main(config, output, filelist, num_worker):
+@click.option("--num-workers", type=int, default=16)
+def main(config, output, filelist, num_workers):
     dataset_fp = open(output, "wb")
     generator_fn = (
         task_generator_yaml(config)
@@ -132,7 +131,7 @@ def main(config, output, filelist, num_worker):
         else task_generator_filelist(filelist)
     )
 
-    with Pool(num_worker) as p:
+    with Pool(num_workers) as p:
         for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             dataset_fp.write(result)
 

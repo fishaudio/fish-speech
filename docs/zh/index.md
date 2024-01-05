@@ -21,8 +21,8 @@
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 
-# 安装 pytorch
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# 安装 pytorch nightly 版本
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 
 # 安装 flash-attn (适用于linux)
 pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
@@ -33,6 +33,8 @@ pip3 install -e .
 
 ## 更新日志
 
+- 2023/12/28: 添加了 `lora` 微调支持.
+- 2023/12/27: 添加了 `gradient checkpointing`, `causual sampling` 和 `flash-attn` 支持.
 - 2023/12/19: 更新了 Webui 和 HTTP API.
 - 2023/12/18: 更新了微调文档和相关例子.
 - 2023/12/17: 更新了 `text2semantic` 模型, 支持无音素模式.
@@ -44,3 +46,4 @@ pip3 install -e .
 - [GPT VITS](https://github.com/innnky/gpt-vits)
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+- [Transformers](https://github.com/huggingface/transformers)

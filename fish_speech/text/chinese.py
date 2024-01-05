@@ -2,11 +2,21 @@ import os
 import re
 
 import jieba.posseg as psg
+from loguru import logger
 from pypinyin import Style, lazy_pinyin
-from tn.chinese.normalizer import Normalizer
 
 from fish_speech.text.symbols import punctuation
 from fish_speech.text.tone_sandhi import ToneSandhi
+
+try:
+    from tn.chinese.normalizer import Normalizer
+
+    normalizer = Normalizer().normalize
+except ImportError:
+    import cn2an
+
+    logger.warning("tn.chinese.normalizer not found, use cn2an normalizer")
+    normalizer = lambda x: cn2an.transform(x, "an2cn")
 
 current_file_path = os.path.dirname(__file__)
 OPENCPOP_DICT_PATH = os.path.join(current_file_path, "opencpop-strict.txt")
@@ -16,7 +26,6 @@ pinyin_to_symbol_map = {
     for line in open(OPENCPOP_DICT_PATH).readlines()
 }
 
-normalizer = Normalizer()
 tone_modifier = ToneSandhi()
 
 
@@ -123,7 +132,7 @@ def _g2p(segments):
 
 
 def text_normalize(text):
-    return normalizer.normalize(text)
+    return normalizer(text)
 
 
 if __name__ == "__main__":
