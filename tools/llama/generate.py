@@ -229,7 +229,9 @@ def generate(
 
     device, dtype = prompt.device, prompt.dtype
     with torch.device(device):
-        model.setup_caches(max_batch_size=1, max_seq_len=model.config.max_seq_len, dtype=precision)
+        model.setup_caches(
+            max_batch_size=1, max_seq_len=model.config.max_seq_len, dtype=precision
+        )
 
     codebook_dim = 1 + model.config.num_codebooks
     # create an empty tensor of the expected final shape and fill in the current tokens
