@@ -67,37 +67,8 @@ def main(input_path, output_path, config_name, checkpoint_path):
         audio_lengths = torch.tensor(
             [audios.shape[2]], device=model.device, dtype=torch.long
         )
-
-        features = gt_mels = model.mel_transform(
-            audios, sample_rate=model.sampling_rate
-        )
-
-        if model.downsample is not None:
-            features = model.downsample(features)
-
-        mel_lengths = audio_lengths // model.hop_length
-        feature_lengths = (
-            audio_lengths
-            / model.hop_length
-            / (model.downsample.total_strides if model.downsample is not None else 1)
-        ).long()
-
-        feature_masks = torch.unsqueeze(
-            sequence_mask(feature_lengths, features.shape[2]), 1
-        ).to(gt_mels.dtype)
-        mel_masks = torch.unsqueeze(sequence_mask(mel_lengths, gt_mels.shape[2]), 1).to(
-            gt_mels.dtype
-        )
-
-        # vq_features is 50 hz, need to convert to true mel size
-        text_features = model.mel_encoder(features, feature_masks)
-        _, indices, _ = model.vq_encoder(text_features, feature_masks)
-
-        if indices.ndim == 4 and indices.shape[1] == 1 and indices.shape[3] == 1:
-            indices = indices[:, 0, :, 0]
-        else:
-            logger.error(f"Unknown indices shape: {indices.shape}")
-            return
+        encoded = model.encode(audios, audio_lengths)
+        indices = encoded.indices[0]
 
         logger.info(f"Generated indices of shape {indices.shape}")
 
@@ -112,29 +83,13 @@ def main(input_path, output_path, config_name, checkpoint_path):
         raise ValueError(f"Unknown input type: {input_path}")
 
     # Restore
-    indices = indices.unsqueeze(1).unsqueeze(-1)
-    mel_lengths = indices.shape[2] * (
-        model.downsample.total_strides if model.downsample is not None else 1
-    )
-    mel_lengths = torch.tensor([mel_lengths], device=model.device, dtype=torch.long)
-    mel_masks = torch.ones(
-        (1, 1, mel_lengths), device=model.device, dtype=torch.float32
-    )
-
-    text_features = model.vq_encoder.decode(indices)
+    feature_lengths = torch.tensor([indices.shape[1]], device=model.device)
+    decoded = model.decode(indices=indices[None], feature_lengths=feature_lengths)
+    fake_audios = decoded.audios
+    audio_time = fake_audios.shape[-1] / model.sampling_rate
 
     logger.info(
-        f"VQ Encoded, indices: {indices.shape} equivalent to "
-        + f"{1/(mel_lengths[0] * model.hop_length / model.sampling_rate / indices.shape[2]):.2f} Hz"
-    )
-
-    text_features = F.interpolate(text_features, size=mel_lengths[0], mode="nearest")
-
-    # Sample mels
-    decoded_mels = model.decoder(text_features, mel_masks)
-    fake_audios = model.generator(decoded_mels)
-    logger.info(
-        f"Generated audio of shape {fake_audios.shape}, equivalent to {fake_audios.shape[-1] / model.sampling_rate:.2f} seconds"
+        f"Generated audio of shape {fake_audios.shape}, equivalent to {audio_time:.2f} seconds from {indices.shape[1]} features, features/second: {indices.shape[1] / audio_time:.2f}"
     )
 
     # Save audio

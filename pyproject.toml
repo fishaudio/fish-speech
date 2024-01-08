@@ -34,6 +34,7 @@ dependencies = [
     "zibai-server>=0.9.0",
     "loguru>=0.6.0",
     "WeTextProcessing>=0.1.10",
+    "nnAudio>=0.3.2",
     "loralib>=0.1.2",
     "natsort>=8.4.0",
     "cn2an>=0.5.22"
