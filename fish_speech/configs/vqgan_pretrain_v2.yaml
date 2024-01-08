@@ -63,7 +63,7 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  segment_size: 16384
+  segment_size: 32768
   mode: pretrain
   freeze_discriminator: true
 
@@ -125,6 +125,10 @@ model:
           - [4096, 480, 2400]
           - [512, 50, 240]
 
+  multi_resolution_stft_loss:
+    _target_: fish_speech.models.vqgan.losses.MultiResolutionSTFTLoss
+    resolutions: ${model.discriminators.modules.mrd.resolutions}
+  
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}

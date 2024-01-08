@@ -1,17 +1,17 @@
 import itertools
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, Optional
 
 import lightning as L
 import torch
 import torch.nn.functional as F
 import wandb
-from einops import rearrange
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
 
 from fish_speech.models.vqgan.losses import (
+    MultiResolutionSTFTLoss,
     discriminator_loss,
     feature_loss,
     generator_loss,
@@ -63,6 +63,7 @@ class VQGAN(L.LightningModule):
         sample_rate: int = 32000,
         mode: Literal["pretrain", "finetune"] = "finetune",
         freeze_discriminator: bool = False,
+        multi_resolution_stft_loss: Optional[MultiResolutionSTFTLoss] = None,
     ):
         super().__init__()
 
@@ -107,13 +108,18 @@ class VQGAN(L.LightningModule):
             for p in self.discriminators.parameters():
                 p.requires_grad = False
 
-        self.balancer = Balancer(
-            {
-                "mel": 1,
-                "adv": 1,
-                "fm": 1,
-            }
-        )
+        # Losses
+        self.multi_resolution_stft_loss = multi_resolution_stft_loss
+        loss_dict = {
+            "mel": 1,
+            "adv": 1,
+            "fm": 1,
+        }
+
+        if self.multi_resolution_stft_loss is not None:
+            loss_dict["stft"] = 1
+
+        self.balancer = Balancer(loss_dict)
 
     def configure_optimizers(self):
         # Need two optimizers and two schedulers
@@ -225,6 +231,14 @@ class VQGAN(L.LightningModule):
             audios.shape == fake_audios.shape
         ), f"{audios.shape} != {fake_audios.shape}"
 
+        # Multi-Resolution STFT Loss
+        if self.multi_resolution_stft_loss is not None:
+            with torch.autocast(device_type=audios.device.type, enabled=False):
+                sc_loss, mag_loss = self.multi_resolution_stft_loss(
+                    fake_audios.squeeze(1).float(), audios.squeeze(1).float()
+                )
+                loss_stft = sc_loss + mag_loss
+
         # Discriminator
         if self.freeze_discriminator is False:
             loss_disc_all = []
@@ -317,12 +331,17 @@ class VQGAN(L.LightningModule):
                 sliced_gt_mels * gen_mel_masks, fake_audio_mels * gen_mel_masks
             )
 
+            loss_dict = {
+                "mel": loss_mel,
+                "adv": loss_adv_all,
+                "fm": loss_fm_all,
+            }
+
+            if self.multi_resolution_stft_loss is not None:
+                loss_dict["stft"] = loss_stft
+
             generator_out_grad = self.balancer.compute(
-                {
-                    "mel": loss_mel,
-                    "adv": loss_adv_all,
-                    "fm": loss_fm_all,
-                },
+                loss_dict,
                 fake_audios,
             )
 
@@ -360,6 +379,18 @@ class VQGAN(L.LightningModule):
             logger=True,
             sync_dist=True,
         )
+
+        if self.multi_resolution_stft_loss is not None:
+            self.log(
+                "train/generator/loss_stft",
+                loss_stft,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+                sync_dist=True,
+            )
+
         self.log(
             "train/generator/loss_fm_all",
             loss_fm_all,
