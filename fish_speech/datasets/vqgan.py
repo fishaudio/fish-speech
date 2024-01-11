@@ -6,7 +6,7 @@ import librosa
 import numpy as np
 import torch
 from lightning import LightningDataModule
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from fish_speech.utils import RankedLogger
 
@@ -72,6 +72,33 @@ class VQGANDataset(Dataset):
             return None
 
 
+class MixDatast(IterableDataset):
+    def __init__(self, datasets: dict[str, dict], seed: int = 42) -> None:
+        values = list(datasets.values())
+        probs = [v["prob"] for v in values]
+        self.datasets = [v["dataset"] for v in values]
+
+        total_probs = sum(probs)
+        self.probs = [p / total_probs for p in probs]
+        self.seed = seed
+
+    def __iter__(self):
+        rng = np.random.default_rng(self.seed)
+        dataset_iterators = [iter(dataset) for dataset in self.datasets]
+
+        while True:
+            # Random choice one
+            dataset_idx = rng.choice(len(self.datasets), p=self.probs)
+            dataset_iterator = dataset_iterators[dataset_idx]
+
+            try:
+                yield next(dataset_iterator)
+            except StopIteration:
+                # Exhausted, create a new iterator
+                dataset_iterators[dataset_idx] = iter(self.datasets[dataset_idx])
+                yield next(dataset_iterators[dataset_idx])
+
+
 @dataclass
 class VQGANCollator:
     def __call__(self, batch):
@@ -116,7 +143,7 @@ class VQGANDataModule(LightningDataModule):
             batch_size=self.batch_size,
             collate_fn=VQGANCollator(),
             num_workers=self.num_workers,
-            shuffle=True,
+            shuffle=not isinstance(self.train_dataset, IterableDataset),
         )
 
     def val_dataloader(self):
