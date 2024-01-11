@@ -21,8 +21,8 @@ Therefore, we strongly recommend Windows users to use WSL2 or docker to run the 
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 
-# Install pytorch
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install pytorch nightly
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 
 # Install flash-attn (for Linux)
 pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
@@ -33,6 +33,8 @@ pip3 install -e .
 
 ## Changelog
 
+- 2023/12/28: Added `lora` fine-tuning support.
+- 2023/12/27: Add `gradient checkpointing`, `causual sampling`, and `flash-attn` support.
 - 2023/12/19: Updated webui and HTTP API.
 - 2023/12/18: Updated fine-tuning documentation and related examples.
 - 2023/12/17: Updated `text2semantic` model, supporting phoneme-free mode.
@@ -44,3 +46,4 @@ pip3 install -e .
 - [GPT VITS](https://github.com/innnky/gpt-vits)
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+- [Transformers](https://github.com/huggingface/transformers)

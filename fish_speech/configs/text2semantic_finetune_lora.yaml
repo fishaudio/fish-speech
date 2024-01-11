@@ -2,9 +2,9 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_finetune_spk
+project: text2semantic_400m_finetune_lora
 max_length: 4096
-ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
+ckpt_path: checkpoints/text2semantic-400m-v0.3-4k.pth
 resume_weights_only: true
 
 # Lightning Trainer
@@ -15,6 +15,7 @@ trainer:
   max_steps: 1000
   precision: bf16-true
   limit_val_batches: 10
+  log_every_n_steps: 10
 
 # Dataset Configuration
 tokenizer:
@@ -46,7 +47,6 @@ model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
 
   model:
-    # ~ 130M parameters, for debug purpose
     _target_: fish_speech.models.text2semantic.llama.Transformer
     config:
       _target_: fish_speech.models.text2semantic.llama.ModelArgs
@@ -59,11 +59,17 @@ model:
       norm_eps: 1e-5
       num_codebooks: 4  # single codebook
       codebook_size: 168 # codebook size 160 + 2 special tokens
+      dropout: 0.1 # For small dataset, dropout helps to prevent overfitting
+
+  lora_config:
+    _target_: fish_speech.models.text2semantic.lit_module.LoraConfig
+    r: 8
+    lora_alpha: 16
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-5
+    lr: 3e-4
     weight_decay: 0.1
     betas: [0.9, 0.95]
     eps: 1e-5

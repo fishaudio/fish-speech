@@ -272,7 +272,7 @@ class AutoAugTextDataset(IterableDataset):
             final_text.append(text)
             final_semantic.append(sentence.semantics)
 
-        if self.use_speaker is not None:
+        if self.use_speaker:
             final_text = [f"[SPK: {response.name}]"] + final_text
 
         final_text = "[INST] " + " ".join(final_text) + " [/INST]"

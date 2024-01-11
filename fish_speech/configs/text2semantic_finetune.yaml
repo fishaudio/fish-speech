@@ -2,17 +2,17 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_finetune
+project: text2semantic_400m_finetune_spk
 max_length: 4096
-# ckpt_path: results/text2semantic_400m_pretrain/checkpoints/step_000065000.ckpt
-# resume_weights_only: true
+ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
+resume_weights_only: true
 
 # Lightning Trainer
 trainer:
   accumulate_grad_batches: 2
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  max_steps: 10000
+  max_steps: 1000
   precision: bf16-true
   limit_val_batches: 10
 
@@ -59,11 +59,12 @@ model:
       norm_eps: 1e-5
       num_codebooks: 4  # single codebook
       codebook_size: 168 # codebook size 160 + 2 special tokens
+      dropout: 0.1 # For small dataset, dropout helps to prevent overfitting
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 1e-5
     weight_decay: 0.1
     betas: [0.9, 0.95]
     eps: 1e-5
@@ -74,11 +75,11 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 2000
+      num_warmup_steps: 100
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
 
 # Callbacks
 callbacks:
   model_checkpoint:
-    every_n_train_steps: 1000
+    every_n_train_steps: 200

@@ -2,8 +2,10 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_pretrain
-max_length: 1024
+project: text2semantic_400m_pretrain_0.3
+max_length: 4096
+# ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
+# resume_weights_only: true
 
 # Lightning Trainer
 trainer:
@@ -24,11 +26,13 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  use_speaker: false
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  use_speaker: false
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule

@@ -166,11 +166,14 @@ huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth -
 
 Finally, you can start the fine-tuning by running the following command:
 ```bash
-python fish_speech/train.py --config-name text2semantic_finetune_spk
+python fish_speech/train.py --config-name text2semantic_finetune
 ```
 
+!!! info
+    If you want to use lora, please use `--config-name text2semantic_finetune_lora` to start fine-tuning.
+
 !!! note
-    You can modify the training parameters such as `batch_size`, `gradient_accumulation_steps`, etc. to fit your GPU memory by modifying `fish_speech/configs/text2semantic_finetune_spk.yaml`.
+    You can modify the training parameters such as `batch_size`, `gradient_accumulation_steps`, etc. to fit your GPU memory by modifying `fish_speech/configs/text2semantic_finetune.yaml`.
 
 After training is complete, you can refer to the [inference](inference.md) section, and use `--speaker SPK1` to generate speech.
 
