@@ -6,10 +6,9 @@ from torch import nn
 def feature_loss(fmap_r: list[torch.Tensor], fmap_g: list[torch.Tensor]):
     loss = 0
     for dr, dg in zip(fmap_r, fmap_g):
-        for rl, gl in zip(dr, dg):
-            rl = rl.float().detach()
-            gl = gl.float()
-            loss += torch.mean(torch.abs(rl - gl))
+        dr = dr.float().detach()
+        dg = dg.float()
+        loss += torch.mean(torch.abs(dr - dg))
 
     return loss * 2
 

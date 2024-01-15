@@ -150,6 +150,7 @@ class HiFiGANGenerator(nn.Module):
         post_conv_kernel_size: int = 7,
         post_activation: Callable = partial(nn.SiLU, inplace=True),
         checkpointing: bool = False,
+        ckpt_path: str = None,
     ):
         super().__init__()
 
@@ -229,6 +230,17 @@ class HiFiGANGenerator(nn.Module):
         # Gradient checkpointing
         self.checkpointing = checkpointing
 
+        if ckpt_path is not None:
+            states = torch.load(ckpt_path, map_location="cpu")
+            if "state_dict" in states:
+                states = states["state_dict"]
+            states = {
+                k.replace("generator.", ""): v
+                for k, v in states.items()
+                if k.startswith("generator")
+            }
+            self.load_state_dict(states, strict=True)
+
     def forward(self, x, template=None):
         if self.use_template and template is None:
             length = x.shape[-1] * self.hop_length
@@ -268,3 +280,36 @@ class HiFiGANGenerator(nn.Module):
             block.remove_parametrizations()
         remove_parametrizations(self.conv_pre)
         remove_parametrizations(self.conv_post)
+
+
+if __name__ == "__main__":
+    import torchaudio
+
+    from fish_speech.models.vqgan.spectrogram import LogMelSpectrogram
+
+    spec = LogMelSpectrogram(n_mels=160)
+    audio, sr = torchaudio.load("test.wav")
+    audio = audio[None, :]
+    spec = spec(audio, sample_rate=sr)
+
+    model = HiFiGANGenerator(
+        hop_length=512,
+        upsample_rates=(8, 8, 2, 2, 2),
+        upsample_kernel_sizes=(16, 16, 4, 4, 4),
+        resblock_kernel_sizes=(3, 7, 11),
+        resblock_dilation_sizes=((1, 3, 5), (1, 3, 5), (1, 3, 5)),
+        num_mels=160,
+        upsample_initial_channel=512,
+        use_template=True,
+        pre_conv_kernel_size=7,
+        post_conv_kernel_size=7,
+        post_activation=partial(nn.SiLU, inplace=True),
+        ckpt_path="checkpoints/hifigan-base-comb-mix-lb-020/step_001200000_weights_only.ckpt",
+    )
+
+    print(model)
+
+    out = model(spec)
+    print(out.shape)
+
+    torchaudio.save("out.wav", out[0], 44100)

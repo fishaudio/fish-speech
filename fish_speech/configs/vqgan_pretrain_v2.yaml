@@ -3,16 +3,14 @@ defaults:
   - _self_
 
 project: vqgan_pretrain_v2
-ckpt_path: checkpoints/hifigan-base-comb-mix-lb-020/step_001200000_weights_only.ckpt
-resume_weights_only: true
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
   devices: auto
   strategy: ddp_find_unused_parameters_true
-  precision: 32
-  max_steps: 1_000_000
+  precision: bf16-mixed
+  max_steps: 10_000_000
   val_check_interval: 5000
 
 sample_rate: 44100
@@ -63,38 +61,31 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  segment_size: 32768
-  mode: pretrain
-  freeze_discriminator: true
 
-  downsample:
-    _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
-    dims: ["${num_mels}", 512, 256]
-    kernel_sizes: [3, 3]
-    strides: [2, 2]
-
-  mel_encoder:
-    _target_: fish_speech.models.vqgan.modules.modules.WN
-    hidden_channels: 256
+  encoder:
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 384
     kernel_size: 3
     dilation_rate: 2
-    n_layers: 12
+    n_layers: 10
+    in_channels: ${num_mels}
 
-  vq_encoder:
+  vq:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
-    in_channels: 256
-    vq_channels: 256
+    in_channels: 384
+    vq_channels: 384
     codebook_size: 256
-    codebook_groups: 4
-    downsample: 1
+    codebook_groups: 2
+    codebook_layers: 2
+    downsample: 4
 
   decoder:
-    _target_: fish_speech.models.vqgan.modules.modules.WN
-    hidden_channels: 256
-    out_channels: ${num_mels}
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 384
     kernel_size: 3
     dilation_rate: 2
-    n_layers: 6
+    n_layers: 10
+    out_channels: ${num_mels}
 
   generator:
     _target_: fish_speech.models.vqgan.modules.decoder_v2.HiFiGANGenerator
@@ -108,27 +99,16 @@ model:
     use_template: true
     pre_conv_kernel_size: 7
     post_conv_kernel_size: 7
+    ckpt_path: checkpoints/hifigan-base-comb-mix-lb-020/step_001200000_weights_only.ckpt
 
-  discriminators:
-    _target_: torch.nn.ModuleDict
-    modules:
-      mpd:
-        _target_: fish_speech.models.vqgan.modules.discriminators.mpd.MultiPeriodDiscriminator
-        periods: [2, 3, 5, 7, 11, 17, 23, 37]
+  discriminator:
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 256
+    kernel_size: 3
+    dilation_rate: 2
+    n_layers: 6
+    in_channels: ${num_mels}
 
-      mrd:
-        _target_: fish_speech.models.vqgan.modules.discriminators.mrd.MultiResolutionDiscriminator
-        resolutions:
-          - ["${n_fft}", "${hop_length}", "${win_length}"]
-          - [1024, 120, 600]
-          - [2048, 240, 1200]
-          - [4096, 480, 2400]
-          - [512, 50, 240]
-
-  multi_resolution_stft_loss:
-    _target_: fish_speech.models.vqgan.losses.MultiResolutionSTFTLoss
-    resolutions: ${model.discriminators.modules.mrd.resolutions}
-  
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}
@@ -140,7 +120,7 @@ model:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 2e-4
     betas: [0.8, 0.99]
     eps: 1e-5
 
@@ -152,8 +132,7 @@ model:
 callbacks:
   grad_norm_monitor:
     sub_module: 
-      - generator
-      - discriminators
-      - mel_encoder
-      - vq_encoder
+      - encoder
+      - vq
       - decoder
+      - discriminator
