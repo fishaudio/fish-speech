@@ -40,7 +40,7 @@ def plot_mel(data, titles=None):
         mel = data[i]
 
         if isinstance(mel, torch.Tensor):
-            mel = mel.detach().cpu().numpy()
+            mel = mel.float().detach().cpu().numpy()
 
         axes[i][0].imshow(mel, origin="lower")
         axes[i][0].set_aspect(2.5, adjustable="box")
@@ -73,9 +73,8 @@ def rand_slice_segments(x, x_lengths=None, segment_size=4):
 
 
 @torch.jit.script
-def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
+def fused_add_tanh_sigmoid_multiply(in_act, n_channels):
     n_channels_int = n_channels[0]
-    in_act = input_a + input_b
     t_act = torch.tanh(in_act[:, :n_channels_int, :])
     s_act = torch.sigmoid(in_act[:, n_channels_int:, :])
     acts = t_act * s_act
