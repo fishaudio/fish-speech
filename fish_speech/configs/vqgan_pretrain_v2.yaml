@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: vqgan_pretrain_v2
+project: vqgan_pretrain_v2_large
 
 # Lightning Trainer
 trainer:
@@ -67,7 +67,7 @@ model:
     hidden_channels: 384
     kernel_size: 3
     dilation_rate: 2
-    n_layers: 10
+    n_layers: 20
     in_channels: ${num_mels}
 
   vq:
@@ -84,7 +84,7 @@ model:
     hidden_channels: 384
     kernel_size: 3
     dilation_rate: 2
-    n_layers: 10
+    n_layers: 20
     out_channels: ${num_mels}
 
   generator:
@@ -99,7 +99,7 @@ model:
     use_template: true
     pre_conv_kernel_size: 7
     post_conv_kernel_size: 7
-    ckpt_path: checkpoints/hifigan-base-comb-mix-lb-020/step_001200000_weights_only.ckpt
+    ckpt_path: checkpoints/hifi-gan-base-002000000.ckpt
 
   discriminator:
     _target_: fish_speech.models.vqgan.modules.modules.WaveNet
