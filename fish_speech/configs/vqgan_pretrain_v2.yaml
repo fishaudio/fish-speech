@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: vqgan_pretrain_v2_large
+project: vqgan_pretrain_v2_large_30
 
 # Lightning Trainer
 trainer:
@@ -64,7 +64,7 @@ model:
 
   encoder:
     _target_: fish_speech.models.vqgan.modules.modules.WaveNet
-    hidden_channels: 384
+    hidden_channels: 512
     kernel_size: 3
     dilation_rate: 2
     n_layers: 20
@@ -72,16 +72,16 @@ model:
 
   vq:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
-    in_channels: 384
-    vq_channels: 384
+    in_channels: 512
+    vq_channels: 512
     codebook_size: 256
-    codebook_groups: 2
+    codebook_groups: 4
     codebook_layers: 2
     downsample: 4
 
   decoder:
     _target_: fish_speech.models.vqgan.modules.modules.WaveNet
-    hidden_channels: 384
+    hidden_channels: 512
     kernel_size: 3
     dilation_rate: 2
     n_layers: 20
