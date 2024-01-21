@@ -28,10 +28,11 @@ import librosa
 import soundfile as sf
 import whisper
 from loguru import logger
+from merge_asr_files import merge_and_delete_files
 from tqdm import tqdm
 
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
-from merge_asr_files import merge_and_delete_files
+
 
 @click.command()
 @click.option("--model-size", default="large", help="Size of the Whisper model")
@@ -64,8 +65,9 @@ def main(model_size, audio_dir, save_dir, sample_rate, language):
         rel_path = Path(file_path).relative_to(audio_dir)
         (save_path / rel_path.parent).mkdir(parents=True, exist_ok=True)
 
-        if (save_path / rel_path.parent / f"{rel_path.stem}.wav").exists() \
-            and (save_path / rel_path.parent / f"{rel_path.stem}.lab").exists():
+        if (save_path / rel_path.parent / f"{rel_path.stem}.wav").exists() and (
+            save_path / rel_path.parent / f"{rel_path.stem}.lab"
+        ).exists():
             continue
 
         audio, sr = librosa.load(file_path, sr=sample_rate, mono=False)
@@ -80,7 +82,9 @@ def main(model_size, audio_dir, save_dir, sample_rate, language):
             )
 
             extract = audio[..., int(start * sr) : int(end * sr)]
-            audio_save_path = save_path / rel_path.parent / f"{file_stem}_{id}{file_suffix}"
+            audio_save_path = (
+                save_path / rel_path.parent / f"{file_stem}_{id}{file_suffix}"
+            )
             sf.write(
                 audio_save_path,
                 extract,
@@ -97,8 +101,8 @@ def main(model_size, audio_dir, save_dir, sample_rate, language):
                 f.write(text)
             original_files.append(transcript_save_path)
 
-
     merge_and_delete_files(save_dir, original_files)
+
 
 if __name__ == "__main__":
     main()
