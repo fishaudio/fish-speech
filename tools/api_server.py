@@ -448,15 +448,8 @@ app = Kui(
         HTTPException: http_execption_handler,
         Exception: other_exception_handler,
     },
-)
-app.router = Router(
-    [],
-    http_middlewares=[
-        app.exception_middleware,
-        allow_cors(),
-    ],
+    cors_config={},
 )
 
 # Swagger UI & routes
-app.router << ("/v1" // routes)
-app.router << ("/docs" // OpenAPI().routes)
+app.router << ("/v1" // routes) << ("/docs" // OpenAPI().routes)
