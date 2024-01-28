@@ -49,51 +49,53 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  segment_size: 8192
-  mode: finetune
 
-  downsample:
-    _target_: fish_speech.models.vqgan.modules.encoders.ConvDownSampler
-    dims: ["${num_mels}", 512, 256]
-    kernel_sizes: [3, 3]
-    strides: [2, 2]
-
-  mel_encoder:
-    _target_: fish_speech.models.vqgan.modules.modules.WN
-    hidden_channels: 256
+  encoder:
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 512
     kernel_size: 3
     dilation_rate: 2
-    n_layers: 6
+    n_layers: 20
+    in_channels: ${num_mels}
 
-  vq_encoder:
+  vq:
     _target_: fish_speech.models.vqgan.modules.encoders.VQEncoder
-    in_channels: 256
-    vq_channels: 256
-    codebook_size: 160
+    in_channels: 512
+    vq_channels: 512
+    codebook_size: 256
     codebook_groups: 4
-    downsample: 1
-    threshold_ema_dead_code: 0  # Disable dead code removal
+    codebook_layers: 2
+    downsample: 4
 
   decoder:
-    _target_: fish_speech.models.vqgan.modules.modules.WN
-    hidden_channels: 256
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 512
+    kernel_size: 3
+    dilation_rate: 2
+    n_layers: 20
     out_channels: ${num_mels}
+
+  generator:
+    _target_: fish_speech.models.vqgan.modules.decoder_v2.HiFiGANGenerator
+    hop_length: ${hop_length}
+    upsample_rates: [8, 8, 2, 2, 2]  # aka. strides
+    upsample_kernel_sizes: [16, 16, 4, 4, 4]
+    resblock_kernel_sizes: [3, 7, 11]
+    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+    num_mels: ${num_mels}
+    upsample_initial_channel: 512
+    use_template: true
+    pre_conv_kernel_size: 7
+    post_conv_kernel_size: 7
+    ckpt_path: checkpoints/hifi-gan-base-002000000.ckpt
+
+  discriminator:
+    _target_: fish_speech.models.vqgan.modules.modules.WaveNet
+    hidden_channels: 256
     kernel_size: 3
     dilation_rate: 2
     n_layers: 6
-
-  generator:
-    _target_: fish_speech.models.vqgan.modules.decoder.Generator
-    initial_channel: ${num_mels}
-    resblock: "1"
-    resblock_kernel_sizes: [3, 7, 11]
-    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
-    upsample_rates: [8, 8, 2, 2]
-    upsample_initial_channel: 512
-    upsample_kernel_sizes: [16, 16, 4, 4]
-
-  discriminator:
-    _target_: fish_speech.models.vqgan.modules.discriminator.EnsembleDiscriminator
+    in_channels: ${num_mels}
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -102,8 +104,6 @@ model:
     hop_length: ${hop_length}
     win_length: ${win_length}
     n_mels: ${num_mels}
-    f_min: 0
-    f_max: 8000
 
   optimizer:
     _target_: torch.optim.AdamW

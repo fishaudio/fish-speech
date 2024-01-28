@@ -33,6 +33,7 @@ class VQEncodeResult:
 @dataclass
 class VQDecodeResult:
     mels: torch.Tensor
+    audios: Optional[torch.Tensor] = None
 
 
 class VQGAN(L.LightningModule):
@@ -417,6 +418,7 @@ class VQGAN(L.LightningModule):
         features=None,
         audio_lengths=None,
         feature_lengths=None,
+        return_audios=False,
     ):
         assert (
             indices is not None or features is not None
@@ -441,4 +443,5 @@ class VQGAN(L.LightningModule):
 
         return VQDecodeResult(
             mels=decoded,
+            audios=self.generator(decoded) if return_audios else None,
         )
