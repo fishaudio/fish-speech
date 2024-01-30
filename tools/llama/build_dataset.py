@@ -28,17 +28,25 @@ def task_generator_yaml(config):
             row["group_parent_level"],
         )
 
+        if isinstance(parent_level, int):
+            parent_level = [parent_level]
+
         # Load the files
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
         grouped_files = defaultdict(list)
         for file in files:
-            if parent_level == 1:
-                p = file.parent.name
-            elif parent_level == 2:
-                p = file.parent.parent.name
-            else:
-                raise ValueError(f"Invalid parent level {parent_level}")
+            all_parents = []
+            pointer = file
+            while pointer.parent.name:
+                all_parents.append(pointer.parent.name)
+                pointer = pointer.parent
+
+            ps = []
+            for level in parent_level:
+                ps.append(all_parents[level - 1])
+
+            p = "-".join(ps)
             grouped_files[p].append(file)
 
         logger.info(f"Found {len(grouped_files)} groups in {root}")
