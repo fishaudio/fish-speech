@@ -31,6 +31,10 @@ pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 pip3 install -e .
 ```
 
+!!! info
+    `flash-attn` 有现成的 whl 包，你可以在[此处](https://github.com/Dao-AILab/flash-attention/releases/latest)查找适合你的系统和相关版本的包
+
+
 ## 更新日志
 
 - 2023/12/28: 添加了 `lora` 微调支持.

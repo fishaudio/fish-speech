@@ -30,6 +30,8 @@ pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 # Install fish-speech
 pip3 install -e .
 ```
+!!! info
+    flash-attn has ready-made whl packages, you can find the package suitable for your system and corresponding version [here](https://github.com/Dao-AILab/flash-attention/releases/latest)
 
 ## Changelog
 
