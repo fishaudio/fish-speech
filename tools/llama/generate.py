@@ -115,9 +115,9 @@ def decode_one_token(
             codebooks.append(
                 sample(
                     logits.codebook_logits[:, :, i],
-                    previous_tokens=previous_tokens[i + 1]
-                    if previous_tokens is not None
-                    else None,
+                    previous_tokens=(
+                        previous_tokens[i + 1] if previous_tokens is not None else None
+                    ),
                     **sampling_kwargs,
                 )[0]
             )
@@ -362,7 +362,11 @@ def load_model(config_name, checkpoint_path, device, precision):
 
 
 @click.command()
-@click.option("--text", type=str, default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.")
+@click.option(
+    "--text",
+    type=str,
+    default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
+)
 @click.option("--prompt-text", type=str, default=None)
 @click.option(
     "--prompt-tokens", type=click.Path(path_type=Path, exists=True), default=None

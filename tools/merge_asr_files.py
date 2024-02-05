@@ -48,4 +48,6 @@ def merge_and_delete_files(save_dir, original_files):
 
 
 if __name__ == "__main__":
-    merge_and_delete_files("/home/spicysama/fish-speech/data/demo/首次揭秘B站百大是怎么选出来的")
+    merge_and_delete_files(
+        "/home/spicysama/fish-speech/data/demo/首次揭秘B站百大是怎么选出来的"
+    )
