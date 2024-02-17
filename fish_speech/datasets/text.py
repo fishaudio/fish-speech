@@ -308,11 +308,10 @@ class AutoAugTextDataset(IterableDataset):
             tokens, labels = self.pack_sentences(
                 final_text,
                 semantics=final_semantic,
-                speaker=None if self.use_speaker else sentence.speaker,
+                speaker=None if self.use_speaker else response.name,
                 add_bos=True,
             )
         else:
-            print(all_tokens[0].shape)
             tokens = torch.cat(all_tokens, dim=1)
             labels = torch.cat(all_labels, dim=1)
 

@@ -3,6 +3,8 @@ import re
 import string
 from typing import Optional
 
+from loguru import logger
+
 from fish_speech.text.chinese import g2p as g2p_chinese
 from fish_speech.text.english import g2p as g2p_english
 from fish_speech.text.japanese import g2p as g2p_japanese
@@ -214,7 +216,9 @@ def segments_to_phones(
                 phones.append(q1)
                 ids.append(symbols_to_id[q1])
             else:
-                raise ValueError(f"Unknown phone: {segment.language} - {phone} -")
+                logger.warning(
+                    f"Unknown phone: {segment.language}: `{phone}`, ignored."
+                )
 
     return phones, ids
 
