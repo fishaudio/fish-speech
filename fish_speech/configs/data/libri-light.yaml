@@ -1,7 +1,7 @@
 datasets:
   - root: /localhome/local-shijial/workspace/eva-gan/data/libri-light
     source: LibriLight
-    languages: [ZH, EN]
+    languages: [EN]
     extension: .txt
     # This controls the grouping of the dataset (i.e. speaker)
     # 1 means we use the parent folder of the file as the group name
