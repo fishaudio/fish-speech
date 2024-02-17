@@ -1,5 +1,6 @@
+import glob
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -32,10 +33,11 @@ def task_generator_yaml(config):
             parent_level = [parent_level]
 
         # Load the files
-        files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        files = list(tqdm(Path(root).rglob("*.npy"), desc=f"Loading {root}"))
+        files = sorted(files)
 
         grouped_files = defaultdict(list)
-        for file in files:
+        for file in tqdm(files, desc=f"Grouping {root}"):
             all_parents = []
             pointer = file
             while pointer.parent.name:

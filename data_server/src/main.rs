@@ -27,6 +27,7 @@ pub struct MyDataService {
 fn read_pb_stream<R: Read>(mut reader: BufReader<R>) -> io::Result<Vec<TextData>> {
     let mut text_data_list = Vec::new();
     let mut index = 0;
+    let mut total_vq_frames = 0;
 
     loop {
         let mut size_buf = [0u8; 4];
@@ -43,14 +44,21 @@ fn read_pb_stream<R: Read>(mut reader: BufReader<R>) -> io::Result<Vec<TextData>
 
         let text_data = TextData::decode(&message_buf[..])
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        text_data.sentences.iter().for_each(|sentence| {
+            total_vq_frames += sentence.semantics[0].values.len();
+        });
+        
         text_data_list.push(text_data);
 
         index += 1;
 
         if index % 10000 == 0 {
-            info!("Loaded {} groups", index);
+            info!("Loaded {} groups, total vq frames: {}", index, total_vq_frames);
         }
     }
+
+    info!("Loaded {} groups, total vq frames: {}", index, total_vq_frames);
 
     Ok(text_data_list)
 }
@@ -70,8 +78,6 @@ impl MyDataService {
                 weights.push(text_data.sentences.len() as f32); // Assuming sentences is a repeated field in TextData
             }
         }
-
-        info!("Loaded {} groups", groups.len());
 
         Ok(MyDataService {
             groups,
