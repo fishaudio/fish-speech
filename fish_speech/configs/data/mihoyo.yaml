@@ -31,13 +31,3 @@ datasets:
     languages: [JP, EN]
     extension: .lab
     group_parent_level: 1
-  - root: data/LibriTTS_R
-    source: LibriTTS_R
-    languages: [EN]
-    extension: .normalized.txt
-    group_parent_level: 2
-  - root: data/WenetSpeech
-    source: WenetSpeech
-    languages: [ZH, EN]
-    extension: .txt
-    group_parent_level: 1
