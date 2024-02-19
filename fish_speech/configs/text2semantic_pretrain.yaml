@@ -2,10 +2,8 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_pretrain_0.3
-max_length: 4096
-# ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
-# resume_weights_only: true
+project: text2semantic_400m_pretrain_1.0
+max_length: 2048
 
 # Lightning Trainer
 trainer:
@@ -59,8 +57,8 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
-      codebook_size: 168 # codebook size 160 + 2 special tokens
+      num_codebooks: 8  # single codebook
+      codebook_size: 264 # codebook size 256 + 2 special tokens
 
   optimizer:
     _target_: torch.optim.AdamW
