@@ -14,21 +14,25 @@ def merge_and_delete_files(save_dir, original_files):
     )
     audio_files = {}
     label_files = {}
-    for file_path in tqdm(audio_slice_files, desc="Processing audio file"):
+    for file_path in tqdm(audio_slice_files, desc="Merging audio files"):
         rel_path = Path(file_path).relative_to(save_path)
         (save_path / rel_path.parent).mkdir(parents=True, exist_ok=True)
         if file_path.suffix == ".wav":
-            prefix = rel_path.parent / file_path.stem.rsplit("_", 1)[0]
+            prefix = rel_path.parent / file_path.stem.rsplit("-", 1)[0]
+            if prefix == rel_path.parent / file_path.stem:
+                continue
             audio = AudioSegment.from_wav(file_path)
             if prefix in audio_files.keys():
                 audio_files[prefix] = audio_files[prefix] + audio
             else:
                 audio_files[prefix] = audio
-        elif file_path.suffix == ".lab":
-            prefix = rel_path.parent / file_path.stem.rsplit("_", 1)[0]
-            with open(file_path, "r") as f:
-                label = f.read()
 
+        elif file_path.suffix == ".lab":
+            prefix = rel_path.parent / file_path.stem.rsplit("-", 1)[0]
+            if prefix == rel_path.parent / file_path.stem:
+                continue
+            with open(file_path, "r", encoding="utf-8") as f:
+                label = f.read()
             if prefix in label_files.keys():
                 label_files[prefix] = label_files[prefix] + ", " + label
             else:
@@ -40,7 +44,7 @@ def merge_and_delete_files(save_dir, original_files):
 
     for prefix, label in label_files.items():
         output_label_path = save_path / f"{prefix}.lab"
-        with open(output_label_path, "w") as f:
+        with open(output_label_path, "w", encoding="utf-8") as f:
             f.write(label)
 
     for file_path in original_files:
@@ -48,4 +52,4 @@ def merge_and_delete_files(save_dir, original_files):
 
 
 if __name__ == "__main__":
-    merge_and_delete_files("/home/spicysama/fish-speech/data/demo/首次揭秘B站百大是怎么选出来的")
+    merge_and_delete_files("/made/by/spicysama/laziman", [__file__])
