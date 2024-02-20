@@ -50,7 +50,11 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 @click.option("--language", default="ZH", help="Language of the transcription")
 def main(model_size, audio_dir, save_dir, sample_rate, device, language):
     logger.info("Loading / Downloading OpenAI Whisper model...")
-    model = whisper.load_model(name=model_size, device=device, download_root=str(Path(".cache/whisper").resolve()))
+    model = whisper.load_model(
+        name=model_size,
+        device=device,
+        download_root=str(Path(".cache/whisper").resolve()),
+    )
     logger.info("Model loaded.")
 
     save_path = Path(save_dir)
