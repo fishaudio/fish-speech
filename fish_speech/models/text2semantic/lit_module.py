@@ -100,7 +100,7 @@ class TextToSemantic(L.LightningModule):
 
         # Generate labels
         labels = batch["labels"]
-        loss = F.cross_entropy(
+        base_loss = F.cross_entropy(
             outputs.token_logits.reshape(-1, outputs.token_logits.size(-1)),
             labels[:, 0].reshape(-1),
             ignore_index=-100,
@@ -108,14 +108,16 @@ class TextToSemantic(L.LightningModule):
 
         # If we have a codebook, add the loss
         if self.model.config.num_codebooks != 0:
-            codebook_labels = labels[:, 1:].mT
+            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
             semantic_loss = F.cross_entropy(
                 outputs.codebook_logits.reshape(-1, outputs.codebook_logits.size(-1)),
                 codebook_labels.reshape(-1),
                 ignore_index=-100,
             )
 
-            loss = loss + semantic_loss
+            loss = base_loss + semantic_loss
+        else:
+            loss = base_loss
 
         self.log(
             f"{stage}/loss",
@@ -126,6 +128,25 @@ class TextToSemantic(L.LightningModule):
             logger=True,
         )
 
+        if self.model.config.num_codebooks != 0:
+            self.log(
+                f"{stage}/base_loss",
+                base_loss,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+            )
+
+            self.log(
+                f"{stage}/semantic_loss",
+                semantic_loss,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=False,
+                logger=True,
+            )
+
         # Top-5 accuracy
         if self.model.config.num_codebooks == 0:
             _, indices = outputs.token_logits.topk(5, dim=-1)
@@ -135,6 +156,8 @@ class TextToSemantic(L.LightningModule):
             accuracy = correct / (labels[:, 0] != -100).sum()
         else:
             _, indices = outputs.codebook_logits.topk(5, dim=-1)
+            # print(codebook_labels[0, :10], torch.argmax(outputs.codebook_logits[0, :10], dim=-1))
+            # print(codebook_labels[codebook_labels != -100][:10], indices[codebook_labels != -100][:10])
             correct = indices.eq(codebook_labels.unsqueeze(-1))
             correct[codebook_labels == -100] = 0
             correct = correct.sum()
