@@ -306,10 +306,10 @@ def encode_tokens(
         return prompt
 
     # Get prompt tokens
-    assert prompt_tokens.ndim == 2
-    data = prompt_tokens + 2
+    assert prompt_tokens[0].ndim == 2
+    data = prompt_tokens[0] + 2
 
-    if prompt_tokens.shape[0] > num_codebooks:
+    if prompt_tokens.shape[1] > num_codebooks:
         logger.warning(
             f"Prompt tokens shape {prompt_tokens.shape} is larger than num_codebooks {num_codebooks}, getting first {num_codebooks} codebooks"
         )
