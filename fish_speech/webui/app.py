@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import html
 import io
 import traceback
@@ -154,14 +156,28 @@ def build_model_config_block():
                 value=True,
             )
 
-    llama_ckpt_path = gr.Textbox(
-        label="Llama 模型路径", value="checkpoints/text2semantic-400m-v0.2-4k.pth"
+    llama_ckpt_path = gr.Dropdown(
+        label="Llama 模型路径",
+        value=str(Path("checkpoints/text2semantic-400m-v0.3-4k.pth")),
+        choices=[str(pth_file) for pth_file in Path("results").rglob("*text*/*.ckpt")] + \
+                     [str(pth_file) for pth_file in Path("checkpoints").rglob("*text*.pth")],
+        allow_custom_value=True
     )
     llama_config_name = gr.Textbox(label="Llama 配置文件", value="text2semantic_finetune")
-    tokenizer = gr.Textbox(label="Tokenizer", value="fishaudio/speech-lm-v1")
+    tokenizer = gr.Dropdown(label="Tokenizer",
+                           value="fishaudio/speech-lm-v1",
+                           choices=["fishaudio/speech-lm-v1", "checkpoints"]
+                           )
 
-    vqgan_ckpt_path = gr.Textbox(label="VQGAN 模型路径", value="checkpoints/vqgan-v1.pth")
-    vqgan_config_name = gr.Textbox(label="VQGAN 配置文件", value="vqgan_pretrain")
+    vqgan_ckpt_path = gr.Dropdown(label="VQGAN 模型路径",
+                                  value=str(Path("checkpoints/vqgan-v1.pth")),
+                                  choices=[str(pth_file) for pth_file in Path("results").rglob("*vqgan*/*.ckpt")] + \
+                                           [str(pth_file) for pth_file in Path("checkpoints").rglob("*vqgan*.pth")],
+                                  allow_custom_value=True
+                                  )
+    vqgan_config_name = gr.Dropdown(label="VQGAN 配置文件",
+                                   value="vqgan_pretrain",
+                                   choices=["vqgan_pretrain", "vqgan_finetune"])
 
     load_model_btn = gr.Button(value="加载模型", variant="primary")
     error = gr.HTML(label="错误信息")
