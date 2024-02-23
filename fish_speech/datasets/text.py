@@ -196,6 +196,7 @@ class AutoAugTextDataset(IterableDataset):
         use_data_server: bool = True,
         proto_files: str = "data",
         causual: bool = True,
+        mix_text_phone_prob: float = 0.5,
     ):
         """
         Args:
@@ -210,9 +211,15 @@ class AutoAugTextDataset(IterableDataset):
             use_data_server: use data server or local data
             proto_files: proto buf files if using local data
             causual: use causual sampling when using local data, disable will lead to random sampling
+            mix_text_phone_prob: probability to mix text and phones, if this is 0, then it will be pure text or pure phones
         """
 
         super().__init__()
+
+        assert 0 <= phones_prob <= 1, "phones_prob must be in [0, 1]"
+        assert 0 <= repetition_prob <= 1, "repetition_prob must be in [0, 1]"
+        assert 0 <= interactive_prob <= 1, "interactive_prob must be in [0, 1]"
+        assert 0 <= mix_text_phone_prob <= 1, "mix_text_phone_prob must be in [0, 1]"
 
         self.seed = seed
         self.phones_prob = phones_prob
@@ -224,6 +231,7 @@ class AutoAugTextDataset(IterableDataset):
         self.use_data_server = use_data_server
         self.proto_files = proto_files
         self.causual = causual
+        self.mix_text_phone_prob = mix_text_phone_prob
 
         if use_data_server is True:
             self.channel = grpc.insecure_channel(server)
@@ -307,8 +315,12 @@ class AutoAugTextDataset(IterableDataset):
     def augment(self):
         # 50% to pure text or pure phones
         mode = "sample"
-        if random.random() < 0.5:
-            mode = random.choice(["text", "phones"])
+        if random.random() > self.mix_text_phone_prob:
+            mode = random.choices(
+                ["text", "phones"],
+                weights=[1 - self.phones_prob, self.phones_prob],
+                k=1,
+            )[0]
 
         # Random sample based on speaker using a truncated normal distribution
         a = torch.tensor([0], dtype=torch.float32)
@@ -392,6 +404,11 @@ class AutoAugTextDataset(IterableDataset):
             sentences = [f"[SPK: {speaker}]"] + sentences
 
         final_text = "[INST] " + " ".join(sentences) + " [/INST]"
+
+        for segment in semantics:
+            for j in segment[0].values:
+                final_text += f" <s:{int(j)}>"
+
         encoded = self.tokenizer.encode(
             final_text,
             add_special_tokens=False,
@@ -399,12 +416,14 @@ class AutoAugTextDataset(IterableDataset):
             max_length=10**6,
         )
         semantic_length = sum([len(i[0].values) for i in semantics])
+        prompt_length = len(encoded) - semantic_length
+
         bos_bias = 1 if add_bos else 0
 
         # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
         tokens = (
             encoded
-            + [self.tokenizer.pad_token_id] * semantic_length
+            # + [self.tokenizer.pad_token_id] * semantic_length
             + [self.tokenizer.eos_token_id]
         )
 
@@ -413,7 +432,7 @@ class AutoAugTextDataset(IterableDataset):
 
         # Codebook bos/padding: 0, eos: 1
         codes = [
-            [CODEBOOK_BOS_TOKEN_ID] * (len(encoded) + bos_bias)
+            [CODEBOOK_BOS_TOKEN_ID] * (prompt_length + bos_bias)
             for _ in range(len(semantics[0]))
         ]
         for segment in semantics:
@@ -431,14 +450,14 @@ class AutoAugTextDataset(IterableDataset):
 
         # Mask out the <s> tokens for semantic, predict semantic tokens only
         # Since we don't mask out the input tokens, the language modeling still works
-        labels[1:, : (len(encoded) + bos_bias)] = -100
+        labels[1:, : (prompt_length + bos_bias)] = -100
 
         tokens = tokens[:, :-1]
         labels = labels[:, 1:]
 
         # Verify the padding is correct, and the last token is eos
         assert add_bos is False or tokens[0, 0] == self.tokenizer.bos_token_id
-        assert (tokens[1:, : len(encoded) + bos_bias] == CODEBOOK_BOS_TOKEN_ID).all()
+        assert (tokens[1:, : prompt_length + bos_bias] == CODEBOOK_BOS_TOKEN_ID).all()
         assert labels[0, -1] == self.tokenizer.eos_token_id
         assert (labels[1:, -1] == CODEBOOK_EOS_TOKEN_ID).all()
 
@@ -558,19 +577,20 @@ class TextDataModule(LightningDataModule):
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    # ds = AutoAugTextDataset(
-    #     tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
-    #     use_speaker=True,
-    #     interactive_prob=1.0,
-    # )
-
     ds = AutoAugTextDataset(
         tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
         use_speaker=True,
         interactive_prob=1.0,
-        use_data_server=False,
-        proto_files=["data/wenet-speech.protos"],
+        phones_prob=1.0,
     )
+
+    # ds = AutoAugTextDataset(
+    #     tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
+    #     use_speaker=True,
+    #     interactive_prob=1.0,
+    #     use_data_server=False,
+    #     proto_files=["data/wenet-speech.protos"],
+    # )
 
     dm = TextDataModule(
         train_dataset=ds,
