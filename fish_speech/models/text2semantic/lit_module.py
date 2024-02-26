@@ -80,6 +80,16 @@ class TextToSemantic(L.LightningModule):
     def forward(self, x):
         return self.model(x)
 
+    def on_save_checkpoint(self, checkpoint):
+        if self.lora_config is None:
+            return
+
+        # Save the LoRA parameters
+        state_dict = checkpoint["state_dict"]
+        for name in list(state_dict.keys()):
+            if "lora" not in name:
+                state_dict.pop(name)
+
     def configure_optimizers(self) -> OptimizerLRScheduler:
         optimizer = self.optimizer_builder(self.parameters())
         lr_scheduler = self.lr_scheduler_builder(optimizer)
