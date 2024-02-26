@@ -61,6 +61,7 @@ model:
       codebook_size: 168 # codebook size 160 + 2 special tokens
       dropout: 0.1 # For small dataset, dropout helps to prevent overfitting
 
+  save_lora_only: true
   lora_config:
     _target_: fish_speech.models.text2semantic.lit_module.LoraConfig
     r: 8
