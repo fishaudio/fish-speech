@@ -27,6 +27,7 @@ train_dataset:
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
+  use_negative_samples: true
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
@@ -35,19 +36,21 @@ val_dataset:
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
+  use_negative_samples: true
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 4
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
+  use_dpo: true
 
   model:
     # ~ 130M parameters, for debug purpose

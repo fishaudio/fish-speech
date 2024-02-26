@@ -197,6 +197,7 @@ class AutoAugTextDataset(IterableDataset):
         proto_files: str = "data",
         causual: bool = True,
         mix_text_phone_prob: float = 0.5,
+        use_negative_samples: bool = False,
     ):
         """
         Args:
@@ -212,6 +213,7 @@ class AutoAugTextDataset(IterableDataset):
             proto_files: proto buf files if using local data
             causual: use causual sampling when using local data, disable will lead to random sampling
             mix_text_phone_prob: probability to mix text and phones, if this is 0, then it will be pure text or pure phones
+            use_negative_samples: generate negative samples
         """
 
         super().__init__()
@@ -232,6 +234,7 @@ class AutoAugTextDataset(IterableDataset):
         self.proto_files = proto_files
         self.causual = causual
         self.mix_text_phone_prob = mix_text_phone_prob
+        self.use_negative_samples = use_negative_samples
 
         if use_data_server is True:
             self.channel = grpc.insecure_channel(server)
@@ -381,9 +384,11 @@ class AutoAugTextDataset(IterableDataset):
                 speaker=None if self.use_speaker else response.name,
                 add_bos=True,
             )
-        else:
-            tokens = torch.cat(all_tokens, dim=1)
-            labels = torch.cat(all_labels, dim=1)
+            all_tokens.append(tokens)
+            all_labels.append(labels)
+
+        tokens = torch.cat(all_tokens, dim=1)
+        labels = torch.cat(all_labels, dim=1)
 
         # Verify that the length is correct
         assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
@@ -391,7 +396,74 @@ class AutoAugTextDataset(IterableDataset):
         # Verify only one <s> token
         assert (tokens[:, 0] == self.tokenizer.bos_token_id).sum() == 1
 
-        return {"tokens": tokens, "labels": labels}
+        data = {"tokens": tokens, "labels": labels}
+
+        if self.use_negative_samples:
+            negative_samples = self.generate_negative_samples(all_tokens, all_labels)
+            data.update(negative_samples)
+
+        return data
+
+    def generate_negative_samples(self, all_tokens, all_labels):
+        new_tokens, new_labels = [], []
+
+        for tokens, labels in zip(all_tokens, all_labels):
+            # If all codebooks are not -100, we find where it starts
+            start = torch.where(labels[1:].sum(0) != -100 * (labels.size(0) - 1))[0][0]
+            assert (labels[1:, start:] != -100).all()  # This shouldn't happen
+
+            mode = random.choice(["repeat", "lost", "noise"])
+            begin = random.randint(start, labels.size(1) - 1)
+            end = random.randint(begin, labels.size(1) - 1)
+
+            if mode == "repeat":
+                tokens = torch.cat(
+                    [
+                        tokens[:, :begin],
+                        tokens[:, begin:end],
+                        tokens[:, begin:end],
+                        tokens[:, end:],
+                    ],
+                    dim=1,
+                )
+                labels = torch.cat(
+                    [
+                        labels[:, :begin],
+                        labels[:, begin:end],
+                        labels[:, begin:end],
+                        labels[:, end:],
+                    ],
+                    dim=1,
+                )
+            elif mode == "lost":
+                tokens = torch.cat([tokens[:, :begin], tokens[:, end:]], dim=1)
+                labels = torch.cat([labels[:, :begin], labels[:, end:]], dim=1)
+            elif mode == "noise":
+                middle_tokens, middle_labels = (
+                    tokens[:, begin:end],
+                    labels[:, begin:end],
+                )
+                random_order0 = torch.randperm(middle_tokens.size(1))
+                random_order1 = torch.randperm(middle_tokens.size(1))
+                middle_tokens = middle_tokens[:, random_order0]
+                middle_labels = middle_labels[:, random_order1]
+                tokens = torch.cat(
+                    [tokens[:, :begin], middle_tokens, tokens[:, end:]], dim=1
+                )
+                labels = torch.cat(
+                    [labels[:, :begin], middle_labels, labels[:, end:]], dim=1
+                )
+
+            new_tokens.append(tokens)
+            new_labels.append(labels)
+
+        tokens = torch.cat(new_tokens, dim=1)
+        labels = torch.cat(new_labels, dim=1)
+
+        # Verify that the length is correct
+        assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
+
+        return {"negative_tokens": tokens, "negative_labels": labels}
 
     def pack_sentences(
         self,
@@ -470,10 +542,33 @@ class TextDataCollator:
     max_length: int = 1024
 
     def __call__(self, examples):
+        if "negative_tokens" in examples:
+            positive_examples = []
+            negative_examples = []
+
+            for i in examples:
+                positive_examples.append(
+                    {
+                        "tokens": i["tokens"],
+                        "labels": i["labels"],
+                    }
+                )
+                negative_examples.append(
+                    {
+                        "tokens": i["negative_tokens"],
+                        "labels": i["negative_labels"],
+                    }
+                )
+
+            examples = positive_examples + negative_examples
+
+        return self.batchify(examples)
+
+    def batchify(self, examples, tokens_key="tokens", labels_key="labels"):
         tokens, attention_masks, labels = [], [], []
         for example in examples:
-            _tokens = example["tokens"][:, : self.max_length]
-            _labels = example["labels"][:, : self.max_length]
+            _tokens = example[tokens_key][:, : self.max_length]
+            _labels = example[labels_key][:, : self.max_length]
             _attention_mask = torch.ones((self.max_length,), dtype=torch.bool)
             tokens_length = _tokens.size(1)
             _attention_mask[:tokens_length] = False
@@ -582,6 +677,7 @@ if __name__ == "__main__":
         use_speaker=True,
         interactive_prob=1.0,
         phones_prob=1.0,
+        use_negative_samples=True,
     )
 
     # ds = AutoAugTextDataset(
