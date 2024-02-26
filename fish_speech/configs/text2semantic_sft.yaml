@@ -83,6 +83,6 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 2000
+      num_warmup_steps: 200
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
