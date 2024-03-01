@@ -2,8 +2,8 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_pretrain_1.0
-max_length: 1024
+project: text2semantic_pretrain_400m_8_codebooks
+max_length: 2048
 
 # Lightning Trainer
 trainer:
@@ -61,8 +61,10 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
+      num_codebooks: 8  # single codebook
       codebook_size: 264 # codebook size 256 + 2 special tokens
+      dropout: 0.1
+      neft_alpha: 10
 
   optimizer:
     _target_: torch.optim.AdamW
