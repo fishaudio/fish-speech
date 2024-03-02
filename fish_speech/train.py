@@ -9,8 +9,6 @@ from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig, OmegaConf
 
-import fish_speech.utils as utils
-
 os.environ.pop("SLURM_NTASKS", None)
 os.environ.pop("SLURM_JOB_NAME", None)
 os.environ.pop("SLURM_NTASKS_PER_NODE", None)
@@ -24,6 +22,8 @@ torch.backends.cudnn.allow_tf32 = True
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
+
+import fish_speech.utils as utils
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
