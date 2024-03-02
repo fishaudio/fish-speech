@@ -26,11 +26,13 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
