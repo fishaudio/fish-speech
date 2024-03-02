@@ -24,6 +24,7 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
@@ -33,6 +34,7 @@ val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
@@ -50,7 +52,6 @@ data:
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
-  use_dpo: true
 
   model:
     # ~ 130M parameters, for debug purpose

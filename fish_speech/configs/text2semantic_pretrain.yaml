@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_pretrain_400m_8_codebooks
+project: text2semantic_pretrain_400m_4_codebooks
 max_length: 2048
 
 # Lightning Trainer
@@ -24,6 +24,7 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
@@ -32,6 +33,7 @@ val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
@@ -61,7 +63,7 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 8  # single codebook
+      num_codebooks: 4  # single codebook
       codebook_size: 264 # codebook size 256 + 2 special tokens
       dropout: 0.1
       neft_alpha: 10
