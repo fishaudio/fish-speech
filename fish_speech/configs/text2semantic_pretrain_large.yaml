@@ -1,0 +1,13 @@
+defaults:
+  - text2semantic_pretrain_small
+  - _self_
+
+project: text2semantic_pretrain_large_4_in_8_codebooks
+
+# Model Configuration
+model:
+  model:
+    config:
+      n_layer: 36
+      n_head: 20
+      dim: 1280
