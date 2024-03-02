@@ -36,7 +36,8 @@ dependencies = [
     "nnAudio>=0.3.2",
     "loralib>=0.1.2",
     "natsort>=8.4.0",
-    "cn2an>=0.5.22"
+    "cn2an>=0.5.22",
+    "pyrootutils>=1.0.4"
 ]
 
 [project.optional-dependencies]
