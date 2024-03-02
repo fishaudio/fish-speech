@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_pretrain_400m_4_codebooks
+project: text2semantic_pretrain_400m_4_in_8_codebooks
 max_length: 2048
 
 # Lightning Trainer
@@ -63,7 +63,8 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
+      num_in_codebooks: 4 # input codebook size
+      num_codebooks: 8  # output codebook size
       codebook_size: 264 # codebook size 256 + 2 special tokens
       dropout: 0.1
       neft_alpha: 10
