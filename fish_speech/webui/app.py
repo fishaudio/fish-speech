@@ -157,10 +157,14 @@ def build_model_config_block():
     llama_ckpt_path = gr.Textbox(
         label="Llama 模型路径", value="checkpoints/text2semantic-400m-v0.2-4k.pth"
     )
-    llama_config_name = gr.Textbox(label="Llama 配置文件", value="text2semantic_finetune")
+    llama_config_name = gr.Textbox(
+        label="Llama 配置文件", value="text2semantic_finetune"
+    )
     tokenizer = gr.Textbox(label="Tokenizer", value="fishaudio/speech-lm-v1")
 
-    vqgan_ckpt_path = gr.Textbox(label="VQGAN 模型路径", value="checkpoints/vqgan-v1.pth")
+    vqgan_ckpt_path = gr.Textbox(
+        label="VQGAN 模型路径", value="checkpoints/vqgan-v1.pth"
+    )
     vqgan_config_name = gr.Textbox(label="VQGAN 配置文件", value="vqgan_pretrain")
 
     load_model_btn = gr.Button(value="加载模型", variant="primary")
@@ -269,7 +273,9 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
 
                 with gr.Row():
                     with gr.Tab(label="合成参数"):
-                        gr.Markdown("配置常见合成参数. 自动音素会在推理时自动将文本转换为音素.")
+                        gr.Markdown(
+                            "配置常见合成参数. 自动音素会在推理时自动将文本转换为音素."
+                        )
 
                         input_mode = gr.Dropdown(
                             choices=["文本", "自动音素"],

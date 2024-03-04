@@ -303,9 +303,11 @@ class VQEncoder(nn.Module):
             in_channels, vq_channels, kernel_size=downsample, stride=downsample
         )
         self.conv_out = nn.Sequential(
-            nn.Upsample(scale_factor=downsample, mode="nearest")
-            if downsample > 1
-            else nn.Identity(),
+            (
+                nn.Upsample(scale_factor=downsample, mode="nearest")
+                if downsample > 1
+                else nn.Identity()
+            ),
             nn.Conv1d(vq_channels, in_channels, kernel_size=1, stride=1),
         )
 

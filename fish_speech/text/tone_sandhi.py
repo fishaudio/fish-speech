@@ -107,7 +107,10 @@ class ToneSandhi:
         # 个做量词
         elif (
             ge_idx >= 1
-            and (word[ge_idx - 1].isnumeric() or word[ge_idx - 1] in "几有两半多各整每做是")
+            and (
+                word[ge_idx - 1].isnumeric()
+                or word[ge_idx - 1] in "几有两半多各整每做是"
+            )
         ) or word == "个":
             finals[ge_idx] = finals[ge_idx][:-1] + "5"
         else:

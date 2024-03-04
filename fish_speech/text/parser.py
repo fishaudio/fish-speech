@@ -236,4 +236,8 @@ if __name__ == "__main__":
     )
     print(segments)
 
-    print(clean_text("测试一下 Hugging face, BGM声音很大吗？那我改一下. 世界、こんにちは。<p:123> <p:aH>"))
+    print(
+        clean_text(
+            "测试一下 Hugging face, BGM声音很大吗？那我改一下. 世界、こんにちは。<p:123> <p:aH>"
+        )
+    )

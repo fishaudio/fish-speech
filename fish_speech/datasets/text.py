@@ -325,9 +325,9 @@ class AutoAugTextDataset(IterableDataset):
 
             tokens = torch.tensor(tokens, dtype=torch.long)
             labels = tokens.clone()
-            labels[
-                1:, : len(encoded) + 1
-            ] = -100  # Mask out the <s> tokens for semantic
+            labels[1:, : len(encoded) + 1] = (
+                -100
+            )  # Mask out the <s> tokens for semantic
 
         return {
             "tokens": tokens[:, :-1],

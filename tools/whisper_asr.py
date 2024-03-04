@@ -21,6 +21,7 @@ to transcribe the second speaker.
 
 Note: Be aware of your audio sample rate, which defaults to 44.1kHz.
 """
+
 from pathlib import Path
 
 import click
