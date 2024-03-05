@@ -11,7 +11,7 @@ This codebase is released under the `BSD-3-Clause` license, and all models are r
 
 ## Requirements
 - GPU Memory: 2GB (for inference), 16GB (for fine-tuning)
-- System: Linux (full functionality), Windows (inference only, no support for `flash-attn`, no support for `torch.compile`)
+- System: Linux (full functionality), Windows (inference only, no support for `torch.compile`)
 
 Therefore, we strongly recommend Windows users to use WSL2 or docker to run the codebase.
 
@@ -23,9 +23,6 @@ conda activate fish-speech
 
 # Install pytorch nightly
 pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
-
-# Install flash-attn (for Linux)
-pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 
 # Install fish-speech
 pip3 install -e .
