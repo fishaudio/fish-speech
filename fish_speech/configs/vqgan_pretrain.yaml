@@ -20,7 +20,6 @@ hop_length: 640
 num_mels: 128
 n_fft: 2048
 win_length: 2048
-segment_size: 128
 
 # Dataset Configuration
 train_dataset:
@@ -28,7 +27,7 @@ train_dataset:
   filelist: data/vq_train_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  slice_frames: ${segment_size}
+  slice_frames: 128
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
@@ -58,7 +57,7 @@ model:
   generator:
     _target_: fish_speech.models.vqgan.modules.models.SynthesizerTrn
     spec_channels: 1025
-    segment_size: 20480
+    segment_size: 32
     inter_channels: 192
     hidden_channels: 192
     filter_channels: 768
