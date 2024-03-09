@@ -165,6 +165,8 @@ class Transformer(nn.Module):
             )
             x += torch.rand_like(x) * scaled_alpha
 
+            print("NEFT alpha:", scaled_alpha)
+
         return x
 
     def compute(

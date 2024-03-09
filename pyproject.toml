@@ -21,7 +21,6 @@ dependencies = [
     "natsort>=8.4.0",
     "einops>=0.7.0",
     "librosa>=0.10.1",
-    "vector-quantize-pytorch>=1.10.0",
     "rich>=13.5.3",
     "gradio>=4.0.0",
     "pypinyin>=0.49.0",
