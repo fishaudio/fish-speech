@@ -109,8 +109,6 @@ def decode_one_token(
 
     # Disable <s> and </s> tokens for codebooks
     if model.config.num_codebooks != 0:
-        logits.codebook_logits[:, :, :, :1] = -float("Inf")
-
         for i in range(model.config.num_codebooks):
             codebooks.append(
                 sample(
@@ -138,10 +136,7 @@ def prefill(
         )[0]
     ]
 
-    # Disable <s> and </s> tokens for codebooks
     if model.config.num_codebooks != 0:
-        logits.codebook_logits[:, :, :, :2] = -float("Inf")
-
         for i in range(model.config.num_codebooks):
             codebooks.append(
                 sample(
@@ -264,16 +259,12 @@ def encode_tokens(
     string,
     bos=True,
     device="cuda",
-    prompt_text=None,
     prompt_tokens=None,
     use_g2p=False,
     speaker=None,
     order="zh,jp,en",
     num_codebooks=4,
 ):
-    if prompt_text is not None:
-        string = prompt_text + " " + string
-
     if use_g2p:
         order = order.split(",")
         prompt = g2p(string, order=order)
@@ -290,13 +281,26 @@ def encode_tokens(
 
     string = f"[INST] {string} [/INST]"
 
-    tokens = tokenizer.encode(
+    # Handle English less frequent words
+    # TODO: update tokenizer to handle this
+    # sub_strings = string.split(" ")
+    # new_tokens = []
+    # for i, string in enumerate(sub_strings):
+    #     tokens = tokenizer.encode(
+    #         string,
+    #         add_special_tokens=i == 0 and bos,
+    #         max_length=10**6,
+    #         truncation=False,
+    #     )
+    #     new_tokens.extend(tokens)
+
+    new_tokens = tokenizer.encode(
         string,
-        max_length=10**6,
         add_special_tokens=bos,
+        max_length=10**6,
         truncation=False,
     )
-    tokens = torch.tensor([tokens], dtype=torch.int, device=device)
+    tokens = torch.tensor([new_tokens], dtype=torch.int, device=device)
 
     # Codebooks
     zeros = torch.zeros((num_codebooks, tokens.size(1)), dtype=torch.int, device=device)
@@ -306,6 +310,12 @@ def encode_tokens(
         return prompt
 
     # Get prompt tokens
+    if prompt_tokens.ndim == 3:
+        assert (
+            prompt_tokens.shape[0] == 1
+        ), f"3 dim prompt tokens should have shape (1, num_codebooks, seq_len)"
+        prompt_tokens = prompt_tokens[0]
+
     assert prompt_tokens.ndim == 2
     data = prompt_tokens + 2
 
@@ -316,9 +326,9 @@ def encode_tokens(
         data = data[:num_codebooks]
 
     # Since 1.0, we use <s:xxx> to replace <semantic>
-    main_tokens = [f"<s:{i}>" for i in data[0]]
-    main_token_ids = tokenizer.convert_tokens_to_ids(main_tokens)
-    main_token_ids = torch.tensor([main_token_ids], dtype=torch.int, device=device)
+    main_token_ids = torch.tensor(
+        [[tokenizer.pad_token_id] * data.size(1)], dtype=torch.int, device=device
+    )
 
     data = torch.cat((main_token_ids, data), dim=0)
     prompt = torch.cat((prompt, data), dim=1)
@@ -369,6 +379,25 @@ def load_model(config_name, checkpoint_path, device, precision):
     return model.eval()
 
 
+def split_text(text, min_length):
+    text = clean_text(text)
+    segments = []
+    curr = ""
+    for char in text:
+        curr += char
+        if char not in [".", ",", "!", "?"]:
+            continue
+
+        if len(curr) >= min_length:
+            segments.append(curr)
+            curr = ""
+
+    if curr:
+        segments.append(curr)
+
+    return segments
+
+
 @click.command()
 @click.option("--text", type=str, default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.")
 @click.option("--prompt-text", type=str, default=None)
@@ -394,6 +423,7 @@ def load_model(config_name, checkpoint_path, device, precision):
 @click.option("--speaker", type=str, default=None)
 @click.option("--order", type=str, default="zh,jp,en")
 @click.option("--half/--no-half", default=False)
+@click.option("--iterative-prompt/--no-iterative-prompt", default=False)
 def main(
     text: str,
     prompt_text: Optional[str],
@@ -413,6 +443,7 @@ def main(
     speaker: Optional[str],
     order: str,
     half: bool,
+    iterative_prompt: bool,
 ) -> None:
     device = "cuda"
 
@@ -432,20 +463,41 @@ def main(
         if prompt_tokens is not None
         else None
     )
-    encoded = encode_tokens(
-        tokenizer,
-        text,
-        prompt_text=prompt_text,
-        prompt_tokens=prompt_tokens,
-        bos=True,
-        device=device,
-        use_g2p=use_g2p,
-        speaker=speaker,
-        order=order,
-        num_codebooks=model.config.num_codebooks,
-    )
-    prompt_length = encoded.size(1)
-    logger.info(f"Encoded prompt shape: {encoded.shape}")
+
+    use_prompt = prompt_text is not None and prompt_tokens is not None
+    encoded = []
+    for text in split_text(text, 20):
+        encoded.append(
+            encode_tokens(
+                tokenizer,
+                text,
+                bos=False,
+                device=device,
+                use_g2p=use_g2p,
+                speaker=None,
+                order=order,
+                num_codebooks=model.config.num_codebooks,
+            )
+        )
+        print(f"Encoded text: {text}")
+
+    if use_prompt and iterative_prompt:
+        encoded_prompt = encode_tokens(
+            tokenizer,
+            prompt_text,
+            prompt_tokens=prompt_tokens,
+            bos=True,
+            device=device,
+            use_g2p=use_g2p,
+            speaker=speaker,
+            order=order,
+            num_codebooks=model.config.num_codebooks,
+        )
+
+        encoded[0] = torch.cat((encoded_prompt, encoded[0]), dim=1)
+
+    # prompt_length = encoded.size(1)
+    # logger.info(f"Encoded prompt shape: {encoded.shape}")
 
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -456,44 +508,74 @@ def main(
             decode_one_token, mode="reduce-overhead", fullgraph=True
         )
 
-    for i in range(num_samples):
+    for idx in range(num_samples):
         torch.cuda.synchronize()
+        global_encoded = []
+        all_codes = []
+        seg_idx = 0
 
-        t0 = time.perf_counter()
-        y = generate(
-            model=model,
-            prompt=encoded,
-            max_new_tokens=max_new_tokens,
-            eos_token_id=tokenizer.eos_token_id,
-            precision=precision,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-        )
+        while seg_idx < len(encoded):
+            seg = encoded[seg_idx]
+            global_encoded.append(seg)
+            cat_encoded = torch.cat(global_encoded, dim=1)
+            prompt_length = cat_encoded.size(1)
 
-        if i == 0 and compile:
-            logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
+            t0 = time.perf_counter()
+            y = generate(
+                model=model,
+                prompt=cat_encoded,
+                max_new_tokens=max_new_tokens,
+                eos_token_id=tokenizer.eos_token_id,
+                precision=precision,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                repetition_penalty=repetition_penalty,
+            )
 
-        torch.cuda.synchronize()
-        t = time.perf_counter() - t0
+            if idx == 0 and compile:
+                logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
 
-        tokens_generated = y.size(1) - prompt_length
-        tokens_sec = tokens_generated / t
-        logger.info(
-            f"Generated {tokens_generated} tokens in {t:.02f} seconds, {tokens_sec:.02f} tokens/sec"
-        )
-        logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
-        logger.info(
-            f"GPU Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB"
-        )
+            torch.cuda.synchronize()
+            t = time.perf_counter() - t0
 
-        codes = y[1:, prompt_length:-1]
-        codes = codes - 2
-        assert (codes >= 0).all(), "Codes should be >= 0"
+            tokens_generated = y.size(1) - prompt_length
+            tokens_sec = tokens_generated / t
+            logger.info(
+                f"Generated {tokens_generated} tokens in {t:.02f} seconds, {tokens_sec:.02f} tokens/sec"
+            )
+            logger.info(
+                f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
+            )
+            logger.info(
+                f"GPU Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB"
+            )
 
-        np.save(f"codes_{i}.npy", codes.cpu().numpy())
-        logger.info(f"Saved codes to codes_{i}.npy")
+            # Put the generated tokens
+            codes = y[1:, prompt_length:-1].clone()
+            new_codes = []
+            for j, code in enumerate(codes):
+                new_codes.append(
+                    code[j : codes.shape[1] - (model.config.num_codebooks - j - 1)]
+                )
+
+            codes = torch.stack(new_codes, dim=0)
+            codes = codes - 2
+            if not (codes >= 0).all():
+                global_encoded.pop()
+                logger.warning(f"Negative code found: {codes}, retrying ...")
+                continue
+
+            global_encoded.append(y[:, prompt_length:-1].clone())
+            all_codes.append(codes)
+            seg_idx += 1
+
+        codes = torch.cat(all_codes, dim=1)
+        assert (codes >= 0).all(), f"Negative code found: {codes}"
+        print(codes)
+
+        np.save(f"codes_{idx}.npy", codes.cpu().numpy())
+        logger.info(f"Saved codes to codes_{idx}.npy")
 
 
 if __name__ == "__main__":

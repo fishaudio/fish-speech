@@ -11,7 +11,7 @@
 
 ## 要求
 - GPU内存: 2GB (用于推理), 16GB (用于微调)
-- 系统: Linux (全部功能), Windows (仅推理, 不支持 `flash-attn`, 不支持 `torch.compile`)
+- 系统: Linux (全部功能), Windows (仅推理, 不支持 `torch.compile`)
 
 因此, 我们强烈建议 Windows 用户使用 WSL2 或 docker 来运行代码库.
 
@@ -23,9 +23,6 @@ conda activate fish-speech
 
 # 安装 pytorch nightly 版本
 pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
-
-# 安装 flash-attn (适用于linux)
-pip3 install ninja && MAX_JOBS=4 pip3 install flash-attn --no-build-isolation
 
 # 安装 fish-speech
 pip3 install -e .

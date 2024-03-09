@@ -5,8 +5,7 @@ services:
     build: .
     container_name: fish-speech
     volumes:
-      - ./data:/exp/data
-      - ./raw_data:/exp/raw_data
+      - ./:/exp
     deploy:
       resources:
         reservations:

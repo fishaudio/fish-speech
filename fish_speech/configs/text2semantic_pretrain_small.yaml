@@ -2,15 +2,15 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_pretrain_1.0
-max_length: 1024
+project: text2semantic_pretrain_small_4_in_8_codebooks
+max_length: 2048
 
 # Lightning Trainer
 trainer:
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  max_steps: 1_000_000
+  max_steps: 100_000
   precision: bf16-true
   limit_val_batches: 10
 
@@ -24,16 +24,18 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
-  phones_prob: 1.0
+  phones_prob: 0.5
   interactive_prob: 0.5
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
+  num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
-  phones_prob: 1.0
+  phones_prob: 0.5
   interactive_prob: 0.5
 
 data:
@@ -56,13 +58,16 @@ model:
       _target_: fish_speech.models.text2semantic.llama.ModelArgs
       max_seq_len: 4096
       vocab_size: 36408
-      n_layer: 24
-      n_head: 16
-      dim: 1024
+      n_layer: 12
+      n_head: 12
+      dim: 768
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
+      num_in_codebooks: 4 # input codebook size
+      num_codebooks: 8  # output codebook size
       codebook_size: 264 # codebook size 256 + 2 special tokens
+      dropout: 0.1
+      neft_alpha: 10
 
   optimizer:
     _target_: torch.optim.AdamW

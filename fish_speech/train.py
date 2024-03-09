@@ -1,13 +1,20 @@
+import os
 from typing import Optional
 
 import hydra
 import lightning as L
+import pyrootutils
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig, OmegaConf
 
-import fish_speech.utils as utils
+os.environ.pop("SLURM_NTASKS", None)
+os.environ.pop("SLURM_JOB_NAME", None)
+os.environ.pop("SLURM_NTASKS_PER_NODE", None)
+
+# register eval resolver and root
+pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 # Allow TF32 on Ampere GPUs
 torch.set_float32_matmul_precision("high")
@@ -15,6 +22,8 @@ torch.backends.cudnn.allow_tf32 = True
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
+
+import fish_speech.utils as utils
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
@@ -74,8 +83,9 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
         ckpt_path = cfg.get("ckpt_path")
         auto_resume = False
 
-        if ckpt_path is None:
-            ckpt_path = utils.get_latest_checkpoint(cfg.paths.ckpt_dir)
+        resume_ckpt_path = utils.get_latest_checkpoint(cfg.paths.ckpt_dir)
+        if resume_ckpt_path is not None:
+            ckpt_path = resume_ckpt_path
             auto_resume = True
 
         if ckpt_path is not None:

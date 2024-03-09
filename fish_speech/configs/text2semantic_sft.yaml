@@ -2,17 +2,15 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_finetune_spk
+project: text2semantic_400m_sft_1.0
 max_length: 4096
-ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
-resume_weights_only: true
 
 # Lightning Trainer
 trainer:
-  accumulate_grad_batches: 2
+  accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  max_steps: 1000
+  max_steps: 20_000
   precision: bf16-true
   limit_val_batches: 10
 
@@ -27,19 +25,27 @@ train_dataset:
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: true
+  phones_prob: 0.5
+  interactive_prob: 0.5
+  use_negative_samples: true
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: true
+  phones_prob: 0.5
+  interactive_prob: 0.5
+  use_negative_samples: true
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 4
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
@@ -60,14 +66,15 @@ model:
       rope_base: 10000
       norm_eps: 1e-5
       num_codebooks: 4  # single codebook
-      codebook_size: 168 # codebook size 160 + 2 special tokens
-      dropout: 0.1 # For small dataset, dropout helps to prevent overfitting
+      codebook_size: 264 # codebook size 256 + 2 special tokens
+      dropout: 0.1
+      neft_alpha: 10
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-5
-    weight_decay: 0
+    lr: 1e-4
+    weight_decay: 0.01
     betas: [0.9, 0.95]
     eps: 1e-5
 
@@ -77,11 +84,6 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 100
+      num_warmup_steps: 200
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
-
-# Callbacks
-callbacks:
-  model_checkpoint:
-    every_n_train_steps: 200
