@@ -1,15 +1,13 @@
+import html
+import io
 import os
+import traceback
 import wave
 from pathlib import Path
 
-import numpy as np
-
-import html
-import io
-import traceback
-
 import gradio as gr
 import librosa
+import numpy as np
 import requests
 
 from fish_speech.text import parse_text_to_segments
@@ -163,25 +161,33 @@ def build_model_config_block():
     llama_ckpt_path = gr.Dropdown(
         label="Llama 模型路径",
         value=str(Path("checkpoints/text2semantic-400m-v0.3-4k.pth")),
-        choices=[str(pth_file) for pth_file in Path("results").rglob("**/text*/**/*.ckpt")] + \
-                [str(pth_file) for pth_file in Path("checkpoints").rglob("**/*text*.pth")],
-        allow_custom_value=True
+        choices=[
+            str(pth_file) for pth_file in Path("results").rglob("**/text*/**/*.ckpt")
+        ]
+        + [str(pth_file) for pth_file in Path("checkpoints").rglob("**/*text*.pth")],
+        allow_custom_value=True,
     )
     llama_config_name = gr.Textbox(label="Llama 配置文件", value="text2semantic_finetune")
-    tokenizer = gr.Dropdown(label="Tokenizer",
-                            value="fishaudio/speech-lm-v1",
-                            choices=["fishaudio/speech-lm-v1", "checkpoints"]
-                            )
+    tokenizer = gr.Dropdown(
+        label="Tokenizer",
+        value="fishaudio/speech-lm-v1",
+        choices=["fishaudio/speech-lm-v1", "checkpoints"],
+    )
 
-    vqgan_ckpt_path = gr.Dropdown(label="VQGAN 模型路径",
-                                  value=str(Path("checkpoints/vqgan-v1.pth")),
-                                  choices=[str(pth_file) for pth_file in Path("results").rglob("**/vqgan*/**/*.ckpt")] + \
-                                          [str(pth_file) for pth_file in Path("checkpoints").rglob("**/*vqgan*.pth")],
-                                  allow_custom_value=True
-                                  )
-    vqgan_config_name = gr.Dropdown(label="VQGAN 配置文件",
-                                    value="vqgan_pretrain",
-                                    choices=["vqgan_pretrain", "vqgan_finetune"])
+    vqgan_ckpt_path = gr.Dropdown(
+        label="VQGAN 模型路径",
+        value=str(Path("checkpoints/vqgan-v1.pth")),
+        choices=[
+            str(pth_file) for pth_file in Path("results").rglob("**/vqgan*/**/*.ckpt")
+        ]
+        + [str(pth_file) for pth_file in Path("checkpoints").rglob("**/*vqgan*.pth")],
+        allow_custom_value=True,
+    )
+    vqgan_config_name = gr.Dropdown(
+        label="VQGAN 配置文件",
+        value="vqgan_pretrain",
+        choices=["vqgan_pretrain", "vqgan_finetune"],
+    )
 
     load_model_btn = gr.Button(value="加载模型", variant="primary")
     error = gr.HTML(label="错误信息")
@@ -278,6 +284,7 @@ def wave_header_chunk(frame_input=b"", channels=1, sample_width=2, sample_rate=2
     wav_buf.seek(0)
     return wav_buf.read()
 
+
 def inference_stream(
     server_url,
     text,
@@ -324,8 +331,9 @@ def inference_stream(
         "speaker": speaker if speaker.strip() != "" else None,
     }
 
-
-    resp = requests.post(f"{server_url}/v1/models/default/invoke_stream", json=payload, stream=True)
+    resp = requests.post(
+        f"{server_url}/v1/models/default/invoke_stream", json=payload, stream=True
+    )
     resp.raise_for_status()
 
     yield wave_header_chunk(), None
@@ -452,13 +460,23 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
             with gr.Row():
                 audio_once = gr.Audio(label="一次合成音频", type="numpy")
             with gr.Row():
-                audio_stream = gr.Audio(label="流式合成音频", autoplay=True, streaming=True, show_label=True, interactive=False)
+                audio_stream = gr.Audio(
+                    label="流式合成音频",
+                    autoplay=True,
+                    streaming=True,
+                    show_label=True,
+                    interactive=False,
+                )
             with gr.Row():
                 with gr.Column(scale=3):
                     generate = gr.Button(value="\U0001F3A7 合成", variant="primary")
-                    stream_generate = gr.Button(value="\U0001F4A7 流式合成", variant="primary")
+                    stream_generate = gr.Button(
+                        value="\U0001F4A7 流式合成", variant="primary"
+                    )
                 with gr.Column(scale=1):
-                    audio_download = gr.Button(value="\U0001F449 下载流式音频", elem_id="audio_download")
+                    audio_download = gr.Button(
+                        value="\U0001F449 下载流式音频", elem_id="audio_download"
+                    )
                     clear = gr.Button(value="清空")
 
     # Language & Text Parsing
@@ -527,15 +545,18 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
         [audio_stream, error],
     ).then(lambda: gr.update(interactive=True), None, [text], queue=False)
 
-    audio_download.click(None, js='() => { '
-                              'var btn = document.getElementById("audio_download"); '
-                              'btn.disabled = true; '
-                              'setTimeout(() => { btn.disabled = false; }, 1000); '
-                              'var win = window.open("http://localhost:8000/v1/models/default/download", '
-                              '"newwindow", "height=100, width=400, toolbar=no, menubar=no, scrollbars=no, '
-                                  'resizable=no, location=no, status=no"); '
-                              'setTimeout(function() { win.close(); }, 1000);'
-                              '}')
+    audio_download.click(
+        None,
+        js="() => { "
+        'var btn = document.getElementById("audio_download"); '
+        "btn.disabled = true; "
+        "setTimeout(() => { btn.disabled = false; }, 1000); "
+        'var win = window.open("http://localhost:8000/v1/models/default/download", '
+        '"newwindow", "height=100, width=400, toolbar=no, menubar=no, scrollbars=no, '
+        'resizable=no, location=no, status=no"); '
+        "setTimeout(function() { win.close(); }, 1000);"
+        "}",
+    )
 
 
 if __name__ == "__main__":
