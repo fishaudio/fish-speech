@@ -83,8 +83,9 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
         ckpt_path = cfg.get("ckpt_path")
         auto_resume = False
 
-        if ckpt_path is None:
-            ckpt_path = utils.get_latest_checkpoint(cfg.paths.ckpt_dir)
+        resume_ckpt_path = utils.get_latest_checkpoint(cfg.paths.ckpt_dir)
+        if resume_ckpt_path is not None:
+            ckpt_path = resume_ckpt_path
             auto_resume = True
 
         if ckpt_path is not None:
