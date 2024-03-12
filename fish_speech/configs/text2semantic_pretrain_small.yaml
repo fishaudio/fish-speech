@@ -4,6 +4,7 @@ defaults:
 
 project: text2semantic_pretrain_small_4_in_8_codebooks
 max_length: 2048
+use_delay_pattern: true
 
 # Lightning Trainer
 trainer:
@@ -28,6 +29,7 @@ train_dataset:
   use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
+  use_delay_pattern: ${use_delay_pattern}
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
@@ -37,6 +39,7 @@ val_dataset:
   use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
+  use_delay_pattern: ${use_delay_pattern}
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule

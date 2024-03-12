@@ -2,17 +2,19 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_sft_1.0
+project: text2semantic_sft_medium
 max_length: 4096
+use_delay_pattern: true
 
 # Lightning Trainer
 trainer:
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  max_steps: 20_000
+  max_steps: 10_000
   precision: bf16-true
   limit_val_batches: 10
+  val_check_interval: 1000
 
 # Dataset Configuration
 tokenizer:
@@ -22,30 +24,37 @@ tokenizer:
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  use_data_server: false
+  proto_files:
+    - data/protos/sft/train_Genshin.protos
+    - data/protos/sft/sft.protos
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
-  use_negative_samples: true
+  use_delay_pattern: ${use_delay_pattern}
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  use_data_server: false
+  proto_files:
+    - data/protos/sft/val_Genshin.protos
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: true
   phones_prob: 0.5
   interactive_prob: 0.5
-  use_negative_samples: true
+  use_delay_pattern: ${use_delay_pattern}
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 4
+  batch_size: 32
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
@@ -65,16 +74,17 @@ model:
       dim: 1024
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
+      num_in_codebooks: 4 # input codebook size
+      num_codebooks: 8  # output codebook size
       codebook_size: 264 # codebook size 256 + 2 special tokens
-      dropout: 0.1
-      neft_alpha: 10
+      dropout: 0
+      neft_alpha: 0
 
   optimizer:
-    _target_: torch.optim.AdamW
+    _target_: bitsandbytes.optim.AdamW8bit
     _partial_: true
     lr: 1e-4
-    weight_decay: 0.01
+    weight_decay: 0
     betas: [0.9, 0.95]
     eps: 1e-5
 
@@ -86,4 +96,4 @@ model:
       _partial_: true
       num_warmup_steps: 200
       num_training_steps: ${trainer.max_steps}
-      final_lr_ratio: 0.1
+      final_lr_ratio: 0

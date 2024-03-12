@@ -194,7 +194,7 @@ class AutoAugTextDataset(IterableDataset):
         tokenizer: AutoTokenizer = None,
         use_speaker: bool = True,
         use_data_server: bool = True,
-        proto_files: str = "data",
+        proto_files: Optional[list[str]] = None,
         causual: bool = True,
         mix_text_phone_prob: float = 0.5,
         use_negative_samples: bool = False,
