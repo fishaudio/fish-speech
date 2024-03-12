@@ -2,15 +2,16 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_400m_sft_1.0
-max_length: 4096
+project: text2semantic_pretrain_small_4_in_8_codebooks
+max_length: 2048
+use_delay_pattern: true
 
 # Lightning Trainer
 trainer:
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
-  max_steps: 20_000
+  max_steps: 100_000
   precision: bf16-true
   limit_val_batches: 10
 
@@ -24,33 +25,34 @@ train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
-  use_speaker: true
+  num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
-  use_negative_samples: true
+  use_delay_pattern: ${use_delay_pattern}
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   tokenizer: ${tokenizer}
   max_length: ${max_length}
-  use_speaker: true
+  num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: false
   phones_prob: 0.5
   interactive_prob: 0.5
-  use_negative_samples: true
+  use_delay_pattern: ${use_delay_pattern}
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 4
+  batch_size: 32
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
-  use_dpo: true
 
   model:
     # ~ 130M parameters, for debug purpose
@@ -59,12 +61,13 @@ model:
       _target_: fish_speech.models.text2semantic.llama.ModelArgs
       max_seq_len: 4096
       vocab_size: 36408
-      n_layer: 24
-      n_head: 16
-      dim: 1024
+      n_layer: 12
+      n_head: 12
+      dim: 768
       rope_base: 10000
       norm_eps: 1e-5
-      num_codebooks: 4  # single codebook
+      num_in_codebooks: 4 # input codebook size
+      num_codebooks: 8  # output codebook size
       codebook_size: 264 # codebook size 256 + 2 special tokens
       dropout: 0.1
       neft_alpha: 10
@@ -72,8 +75,8 @@ model:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
-    weight_decay: 0.01
+    lr: 3e-4
+    weight_decay: 0.1
     betas: [0.9, 0.95]
     eps: 1e-5
 
@@ -83,6 +86,6 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 200
+      num_warmup_steps: 2000
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1

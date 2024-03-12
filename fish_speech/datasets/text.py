@@ -194,10 +194,12 @@ class AutoAugTextDataset(IterableDataset):
         tokenizer: AutoTokenizer = None,
         use_speaker: bool = True,
         use_data_server: bool = True,
-        proto_files: str = "data",
+        proto_files: Optional[list[str]] = None,
         causual: bool = True,
         mix_text_phone_prob: float = 0.5,
         use_negative_samples: bool = False,
+        num_codebooks: Optional[int] = None,
+        use_delay_pattern: bool = True,
     ):
         """
         Args:
@@ -214,6 +216,8 @@ class AutoAugTextDataset(IterableDataset):
             causual: use causual sampling when using local data, disable will lead to random sampling
             mix_text_phone_prob: probability to mix text and phones, if this is 0, then it will be pure text or pure phones
             use_negative_samples: generate negative samples
+            num_codebooks: number of codebooks, if None, it will be automatically detected
+            use_delay_pattern: use delay pattern for codebooks
         """
 
         super().__init__()
@@ -235,6 +239,8 @@ class AutoAugTextDataset(IterableDataset):
         self.causual = causual
         self.mix_text_phone_prob = mix_text_phone_prob
         self.use_negative_samples = use_negative_samples
+        self.num_codebooks = num_codebooks
+        self.use_delay_pattern = use_delay_pattern
 
         if use_data_server is True:
             self.channel = grpc.insecure_channel(server)
@@ -484,14 +490,19 @@ class AutoAugTextDataset(IterableDataset):
         )
         semantic_length = sum([len(i[0].values) for i in semantics])
         prompt_length = len(encoded)
-        num_codebooks = len(semantics[0])
+        num_codebooks = (
+            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
+        )
 
         bos_bias = 1 if add_bos else 0
 
         # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
+        pad_token_length = semantic_length + (
+            num_codebooks - 1 if self.use_delay_pattern else 0
+        )
         tokens = (
             encoded
-            + [self.tokenizer.pad_token_id] * (semantic_length + num_codebooks - 1)
+            + [self.tokenizer.pad_token_id] * pad_token_length
             + [self.tokenizer.eos_token_id]
         )
 
@@ -501,16 +512,18 @@ class AutoAugTextDataset(IterableDataset):
         # Codebook bos/padding: 0, eos: 1
         # Implement delay pattern
         codes = [
-            [CODEBOOK_PAD_TOKEN_ID] * (prompt_length + bos_bias + i)
+            [CODEBOOK_PAD_TOKEN_ID]
+            * (prompt_length + bos_bias + (i if self.use_delay_pattern else 0))
             for i in range(num_codebooks)
         ]
         for segment in semantics:
-            for book_idx, book in enumerate(segment):
+            for book_idx, book in zip(range(num_codebooks), segment):
                 for j in book.values:
                     codes[book_idx].append(int(j) + 2)
 
         for idx, book in enumerate(codes):
-            book.extend([CODEBOOK_PAD_TOKEN_ID] * (len(codes) - idx - 1))
+            if self.use_delay_pattern:
+                book.extend([CODEBOOK_PAD_TOKEN_ID] * (len(codes) - idx - 1))
             book.append(CODEBOOK_EOS_TOKEN_ID)
 
         tokens = [tokens] + codes
@@ -520,8 +533,7 @@ class AutoAugTextDataset(IterableDataset):
 
         # Mask out the <s> tokens for semantic, predict semantic tokens only
         # Since we don't mask out the input tokens, the language modeling still works
-        # labels[1:, : (prompt_length + bos_bias)] = -100
-        labels[:, : (prompt_length + bos_bias)] = -100
+        labels[1:, : (prompt_length + bos_bias)] = -100
 
         tokens = tokens[:, :-1]
         labels = labels[:, 1:]
@@ -677,6 +689,7 @@ if __name__ == "__main__":
         interactive_prob=1.0,
         phones_prob=1.0,
         use_negative_samples=False,
+        num_codebooks=4,
     )
 
     # ds = AutoAugTextDataset(
