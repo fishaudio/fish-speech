@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from collections import defaultdict
 from multiprocessing import Pool
 from pathlib import Path
