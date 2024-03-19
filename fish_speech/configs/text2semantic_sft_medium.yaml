@@ -2,9 +2,11 @@ defaults:
   - base
   - _self_
 
-project: text2semantic_sft_medium
+project: text2semantic_sft_medium_delay
 max_length: 4096
-use_delay_pattern: true
+use_delay_pattern: false
+ckpt_path: results/text2semantic_pretrain_medium_4_in_8_codebooks/checkpoints/step_000100000.ckpt
+resume_weights_only: true
 
 # Lightning Trainer
 trainer:
@@ -14,7 +16,7 @@ trainer:
   max_steps: 10_000
   precision: bf16-true
   limit_val_batches: 10
-  val_check_interval: 1000
+  val_check_interval: 500
 
 # Dataset Configuration
 tokenizer:
@@ -54,7 +56,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 16
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
@@ -83,7 +85,7 @@ model:
   optimizer:
     _target_: bitsandbytes.optim.AdamW8bit
     _partial_: true
-    lr: 1e-4
+    lr: 4e-5
     weight_decay: 0
     betas: [0.9, 0.95]
     eps: 1e-5
@@ -94,6 +96,11 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 200
+      num_warmup_steps: 100
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0
+
+callbacks:
+  model_checkpoint:
+    every_n_train_steps: 1000
+    save_top_k: 10
