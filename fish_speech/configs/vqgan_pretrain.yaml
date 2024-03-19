@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: vqgan_pretrain
+project: vqgan_pretrain_lfq
 ckpt_path: checkpoints/gpt_sovits_488k.pth
 resume_weights_only: true
 
@@ -13,7 +13,7 @@ trainer:
   strategy: ddp_find_unused_parameters_true
   precision: 32
   max_steps: 1_000_000
-  val_check_interval: 5000
+  val_check_interval: 2000
 
 sample_rate: 32000
 hop_length: 640
@@ -48,22 +48,23 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  freeze_discriminator: true
+  freeze_discriminator: false
 
-  weight_mel: 45
+  weight_mel: 45.0
   weight_kl: 0.1
   weight_vq: 1.0
+  weight_aux_mel: 1.0
 
   generator:
     _target_: fish_speech.models.vqgan.modules.models.SynthesizerTrn
     spec_channels: 1025
     segment_size: 32
     inter_channels: 192
-    hidden_channels: 192
-    filter_channels: 768
-    n_heads: 2
-    n_layers: 6
-    kernel_size: 3
+    prior_hidden_channels: 192
+    posterior_hidden_channels: 192
+    prior_n_layers: 16
+    posterior_n_layers: 16
+    kernel_size: 5
     p_dropout: 0.1
     resblock: "1"
     resblock_kernel_sizes: [3, 7, 11]
@@ -73,8 +74,11 @@ model:
     upsample_kernel_sizes: [16, 16, 8, 2, 2]
     gin_channels: 512
     freeze_quantizer: false
+    freeze_decoder: false
+    freeze_posterior_encoder: false
     codebook_size: 1024
     num_codebooks: 2
+    aux_spec_channels: ${num_mels}
 
   discriminator:
     _target_: fish_speech.models.vqgan.modules.models.EnsembledDiscriminator

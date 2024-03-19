@@ -19,53 +19,57 @@ class FeatureEncoder(nn.Module):
         spec_channels,
         out_channels,
         hidden_channels,
-        filter_channels,
-        n_heads,
         n_layers,
         kernel_size,
         p_dropout,
         codebook_size=1024,
         num_codebooks=2,
         gin_channels=0,
+        aux_spec_channels=None,
     ):
         super().__init__()
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
-        self.n_heads = n_heads
         self.n_layers = n_layers
         self.kernel_size = kernel_size
         self.p_dropout = p_dropout
 
+        if aux_spec_channels is None:
+            aux_spec_channels = spec_channels
+
         self.spec_proj = nn.Conv1d(spec_channels, hidden_channels, 1)
 
-        self.encoder = attentions.Encoder(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers // 2,
-            kernel_size,
-            p_dropout,
+        self.encoder = modules.WN(
+            hidden_channels=hidden_channels,
+            kernel_size=kernel_size,
+            dilation_rate=1,
+            n_layers=n_layers // 2,
         )
 
         self.vq = DownsampleResidualVectorQuantizer(
             input_dim=hidden_channels,
             n_codebooks=num_codebooks,
             codebook_size=codebook_size,
+            codebook_dim=hidden_channels,
             min_quantizers=num_codebooks,
             downsample_factor=(2,),
         )
 
-        self.decoder = attentions.Encoder(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers // 2,
-            kernel_size,
-            p_dropout,
-            isflow=True,
+        self.decoder = modules.WN(
+            hidden_channels=hidden_channels,
+            kernel_size=kernel_size,
+            dilation_rate=1,
+            n_layers=n_layers // 2,
             gin_channels=gin_channels,
         )
+
+        self.aux_decoder = modules.WN(
+            hidden_channels=hidden_channels,
+            kernel_size=kernel_size,
+            dilation_rate=1,
+            n_layers=4,
+        )
+        self.aux_proj = nn.Conv1d(hidden_channels, aux_spec_channels, 1)
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
@@ -75,13 +79,15 @@ class FeatureEncoder(nn.Module):
         )
 
         y = self.spec_proj(y * y_mask) * y_mask
-        y = self.encoder(y * y_mask, y_mask)
-        quantized = self.vq(y)
-        y = self.decoder(quantized.z * y_mask, y_mask, g=ge)
+        y = self.encoder(y, y_mask) * y_mask
+        z, indices, loss_vq = self.vq(y)
+        y = self.decoder(z, y_mask, g=ge) * y_mask
+        decoded_aux_mel = self.aux_decoder(y, y_mask)
+        decoded_aux_mel = self.aux_proj(decoded_aux_mel) * y_mask
 
         stats = self.proj(y) * y_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        return y, m, logs, y_mask, quantized
+        return y, m, logs, y_mask, loss_vq, decoded_aux_mel
 
 
 class ResidualCouplingBlock(nn.Module):
@@ -436,10 +442,10 @@ class SynthesizerTrn(nn.Module):
         spec_channels,
         segment_size,
         inter_channels,
-        hidden_channels,
-        filter_channels,
-        n_heads,
-        n_layers,
+        prior_hidden_channels,
+        prior_n_layers,
+        posterior_hidden_channels,
+        posterior_n_layers,
         kernel_size,
         p_dropout,
         resblock,
@@ -452,14 +458,17 @@ class SynthesizerTrn(nn.Module):
         freeze_quantizer=False,
         codebook_size=1024,
         num_codebooks=2,
+        freeze_decoder=False,
+        freeze_posterior_encoder=False,
+        aux_spec_channels=None,
     ):
         super().__init__()
         self.spec_channels = spec_channels
         self.inter_channels = inter_channels
-        self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
-        self.n_heads = n_heads
-        self.n_layers = n_layers
+        self.prior_hidden_channels = prior_hidden_channels
+        self.prior_n_layers = prior_n_layers
+        self.posterior_hidden_channels = posterior_hidden_channels
+        self.posterior_n_layers = posterior_n_layers
         self.kernel_size = kernel_size
         self.p_dropout = p_dropout
         self.resblock = resblock
@@ -472,39 +481,43 @@ class SynthesizerTrn(nn.Module):
         self.gin_channels = gin_channels
 
         self.enc_p = FeatureEncoder(
-            spec_channels,
-            inter_channels,
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers,
-            kernel_size,
-            p_dropout,
+            spec_channels=spec_channels,
+            out_channels=inter_channels,
+            hidden_channels=prior_hidden_channels,
+            n_layers=prior_n_layers,
+            kernel_size=kernel_size,
+            p_dropout=p_dropout,
             codebook_size=codebook_size,
             num_codebooks=num_codebooks,
             gin_channels=gin_channels,
+            aux_spec_channels=aux_spec_channels,
         )
         self.dec = Generator(
-            inter_channels,
-            resblock,
-            resblock_kernel_sizes,
-            resblock_dilation_sizes,
-            upsample_rates,
-            upsample_initial_channel,
-            upsample_kernel_sizes,
+            initial_channel=inter_channels,
+            resblock=resblock,
+            resblock_kernel_sizes=resblock_kernel_sizes,
+            resblock_dilation_sizes=resblock_dilation_sizes,
+            upsample_rates=upsample_rates,
+            upsample_initial_channel=upsample_initial_channel,
+            upsample_kernel_sizes=upsample_kernel_sizes,
             gin_channels=gin_channels,
         )
         self.enc_q = PosteriorEncoder(
-            spec_channels,
-            inter_channels,
-            hidden_channels,
-            5,
-            1,
-            16,
+            in_channels=spec_channels,
+            out_channels=inter_channels,
+            hidden_channels=posterior_hidden_channels,
+            kernel_size=5,
+            dilation_rate=1,
+            n_layers=posterior_n_layers,
             gin_channels=gin_channels,
         )
         self.flow = ResidualCouplingBlock(
-            inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
+            inter_channels,
+            posterior_hidden_channels,
+            5,
+            1,
+            4,
+            gin_channels=gin_channels,
         )
 
         self.ref_enc = modules.MelStyleEncoder(
@@ -516,13 +529,21 @@ class SynthesizerTrn(nn.Module):
             self.enc_p.encoder.requires_grad_(False)
             self.enc_p.vq.requires_grad_(False)
 
+        if freeze_decoder:
+            self.dec.requires_grad_(False)
+
+        if freeze_posterior_encoder:
+            self.enc_q.requires_grad_(False)
+
     def forward(self, y, y_lengths):
         y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
             y.dtype
         )
         ge = self.ref_enc(y * y_mask, y_mask)
 
-        x, m_p, logs_p, y_mask, quantized = self.enc_p(y, y_lengths, ge)
+        x, m_p, logs_p, y_mask, quantized, decoded_aux_mel = self.enc_p(
+            y, y_lengths, ge
+        )
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
         z_p = self.flow(z, y_mask, g=ge)
 
@@ -538,6 +559,7 @@ class SynthesizerTrn(nn.Module):
             y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
             quantized,
+            decoded_aux_mel,
         )
 
     def infer(self, y, y_lengths, noise_scale=0.5):
@@ -545,7 +567,7 @@ class SynthesizerTrn(nn.Module):
             y.dtype
         )
         ge = self.ref_enc(y * y_mask, y_mask)
-        x, m_p, logs_p, y_mask, quantized = self.enc_p(y, y_lengths, ge)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(y, y_lengths, ge)
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
@@ -600,10 +622,10 @@ if __name__ == "__main__":
         spec_channels=1025,
         segment_size=20480,
         inter_channels=192,
-        hidden_channels=192,
-        filter_channels=768,
-        n_heads=2,
-        n_layers=6,
+        prior_hidden_channels=384,
+        posterior_hidden_channels=192,
+        prior_n_layers=16,
+        posterior_n_layers=16,
         kernel_size=3,
         p_dropout=0.1,
         resblock="1",
@@ -617,18 +639,21 @@ if __name__ == "__main__":
     )
 
     state_dict_g = torch.load("checkpoints/gpt_sovits_g_488k.pth", map_location="cpu")
-    # state_dict_d = torch.load("checkpoints/gpt_sovits_d_488k.pth", map_location="cpu")
-    # keys = set(model.state_dict().keys())
-    # state_dict_g = {k.replace("encoder2.", "decoder."): v for k, v in state_dict_g.items() if k in keys}
+    state_dict_d = torch.load("checkpoints/gpt_sovits_d_488k.pth", map_location="cpu")
+    keys = set(model.state_dict().keys())
+    state_dict_g = {
+        k: v for k, v in state_dict_g.items() if k in keys and "enc_p" not in k
+    }
 
-    # new_state = {}
-    # for k, v in state_dict_g.items():
-    #     new_state["generator." + k] = v
+    new_state = {}
+    for k, v in state_dict_g.items():
+        new_state["generator." + k] = v
 
-    # for k, v in state_dict_d.items():
-    #     new_state["discriminator." + k] = v
+    for k, v in state_dict_d.items():
+        new_state["discriminator." + k] = v
 
-    # torch.save(new_state, "checkpoints/gpt_sovits_488k.pth")
+    torch.save(new_state, "checkpoints/gpt_sovits_488k.pth")
+    exit()
 
     # print(EnsembledDiscriminator().load_state_dict(state_dict_d, strict=False))
     print(model.load_state_dict(state_dict_g, strict=False))

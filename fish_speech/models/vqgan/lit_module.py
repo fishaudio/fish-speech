@@ -50,6 +50,7 @@ class VQGAN(L.LightningModule):
         weight_mel: float = 45,
         weight_kl: float = 0.1,
         weight_vq: float = 1.0,
+        weight_aux_mel: float = 20.0,
     ):
         super().__init__()
 
@@ -68,6 +69,7 @@ class VQGAN(L.LightningModule):
         self.weight_mel = weight_mel
         self.weight_kl = weight_kl
         self.weight_vq = weight_vq
+        self.weight_aux_mel = weight_aux_mel
 
         # Other parameters
         self.hop_length = hop_length
@@ -131,10 +133,14 @@ class VQGAN(L.LightningModule):
             y_mask,
             y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
-            quantized,
+            loss_vq,
+            decoded_aux_mels,
         ) = self.generator(gt_specs, spec_lengths)
 
         gt_mels = slice_segments(gt_mels, ids_slice, self.generator.segment_size)
+        decoded_aux_mels = slice_segments(
+            decoded_aux_mels, ids_slice, self.generator.segment_size
+        )
         spec_masks = slice_segments(spec_masks, ids_slice, self.generator.segment_size)
         audios = slice_segments(
             audios,
@@ -205,6 +211,9 @@ class VQGAN(L.LightningModule):
 
         with torch.autocast(device_type=audios.device.type, enabled=False):
             loss_mel = F.l1_loss(gt_mels * spec_masks, fake_mels * spec_masks)
+            loss_aux_mel = F.l1_loss(
+                gt_mels * spec_masks, decoded_aux_mels * spec_masks
+            )
 
         self.log(
             "train/generator/loss_mel",
@@ -216,7 +225,16 @@ class VQGAN(L.LightningModule):
             sync_dist=True,
         )
 
-        loss_vq = quantized.commitment_loss + quantized.codebook_loss
+        self.log(
+            "train/generator/loss_aux_mel",
+            loss_aux_mel,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+            sync_dist=True,
+        )
+
         self.log(
             "train/generator/loss_vq",
             loss_vq,
@@ -241,6 +259,7 @@ class VQGAN(L.LightningModule):
 
         loss = (
             loss_mel * self.weight_mel
+            + loss_aux_mel * self.weight_aux_mel
             + loss_vq * self.weight_vq
             + loss_kl * self.weight_kl
             + loss_adv
