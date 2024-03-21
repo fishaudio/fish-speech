@@ -387,7 +387,7 @@ class AutoAugTextDataset(IterableDataset):
             tokens, labels = self.pack_sentences(
                 final_text,
                 semantics=final_semantic,
-                speaker=None if self.use_speaker else response.name,
+                speaker=response.name if self.use_speaker else None,
                 add_bos=True,
             )
             all_tokens.append(tokens)
