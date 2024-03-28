@@ -111,13 +111,7 @@ def decode_one_token(
     if model.config.num_codebooks != 0:
         for i in range(model.config.num_codebooks):
             codebooks.append(
-                sample(
-                    logits.codebook_logits[:, :, i],
-                    previous_tokens=previous_tokens[i + 1]
-                    if previous_tokens is not None
-                    else None,
-                    **sampling_kwargs,
-                )[0]
+                torch.argmax(logits.codebook_logits[:, :, i], dim=-1).view(1)
             )
 
     return torch.stack(codebooks, dim=0)
@@ -139,11 +133,7 @@ def prefill(
     if model.config.num_codebooks != 0:
         for i in range(model.config.num_codebooks):
             codebooks.append(
-                sample(
-                    logits.codebook_logits[:, :, i],
-                    previous_tokens=None,
-                    **sampling_kwargs,
-                )[0]
+                torch.argmax(logits.codebook_logits[:, :, i], dim=-1).view(1)
             )
 
     return torch.stack(codebooks, dim=0)
@@ -340,8 +330,7 @@ def load_model(config_name, checkpoint_path, device, precision):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
 
-    with torch.device("meta"):
-        model: Transformer = instantiate(cfg.model).model
+    model: Transformer = instantiate(cfg.model).model
 
     if "int8" in str(checkpoint_path):
         logger.info("Using int8 weight-only quantization!")
