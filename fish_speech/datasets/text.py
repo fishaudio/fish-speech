@@ -199,7 +199,6 @@ class AutoAugTextDataset(IterableDataset):
         mix_text_phone_prob: float = 0.5,
         use_negative_samples: bool = False,
         num_codebooks: Optional[int] = None,
-        use_delay_pattern: bool = True,
     ):
         """
         Args:
@@ -217,7 +216,6 @@ class AutoAugTextDataset(IterableDataset):
             mix_text_phone_prob: probability to mix text and phones, if this is 0, then it will be pure text or pure phones
             use_negative_samples: generate negative samples
             num_codebooks: number of codebooks, if None, it will be automatically detected
-            use_delay_pattern: use delay pattern for codebooks
         """
 
         super().__init__()
@@ -240,7 +238,8 @@ class AutoAugTextDataset(IterableDataset):
         self.mix_text_phone_prob = mix_text_phone_prob
         self.use_negative_samples = use_negative_samples
         self.num_codebooks = num_codebooks
-        self.use_delay_pattern = use_delay_pattern
+
+        self.semantic_token_id = self.tokenizer.convert_tokens_to_ids("<s:0>")
 
         if use_data_server is True:
             self.channel = grpc.insecure_channel(server)
@@ -497,12 +496,9 @@ class AutoAugTextDataset(IterableDataset):
         bos_bias = 1 if add_bos else 0
 
         # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
-        pad_token_length = semantic_length + (
-            num_codebooks - 1 if self.use_delay_pattern else 0
-        )
         tokens = (
             encoded
-            + [self.tokenizer.pad_token_id] * pad_token_length
+            + [self.semantic_token_id] * semantic_length
             + [self.tokenizer.eos_token_id]
         )
 
@@ -510,10 +506,8 @@ class AutoAugTextDataset(IterableDataset):
             tokens = [self.tokenizer.bos_token_id] + tokens
 
         # Codebook bos/padding: 0, eos: 1
-        # Implement delay pattern
         codes = [
-            [CODEBOOK_PAD_TOKEN_ID]
-            * (prompt_length + bos_bias + (i if self.use_delay_pattern else 0))
+            [CODEBOOK_PAD_TOKEN_ID] * (prompt_length + bos_bias)
             for i in range(num_codebooks)
         ]
         for segment in semantics:
@@ -522,8 +516,6 @@ class AutoAugTextDataset(IterableDataset):
                     codes[book_idx].append(int(j) + 2)
 
         for idx, book in enumerate(codes):
-            if self.use_delay_pattern:
-                book.extend([CODEBOOK_PAD_TOKEN_ID] * (len(codes) - idx - 1))
             book.append(CODEBOOK_EOS_TOKEN_ID)
 
         tokens = [tokens] + codes
@@ -577,10 +569,17 @@ class TextDataCollator:
 
     def batchify(self, examples, tokens_key="tokens", labels_key="labels"):
         tokens, attention_masks, labels = [], [], []
+
+        # Calculate the max length
+        max_tokens_length = 0
         for example in examples:
-            _tokens = example[tokens_key][:, : self.max_length]
-            _labels = example[labels_key][:, : self.max_length]
-            _attention_mask = torch.ones((self.max_length,), dtype=torch.bool)
+            max_tokens_length = max(max_tokens_length, example[tokens_key].size(1))
+        max_tokens_length = min(max_tokens_length, self.max_length)
+
+        for example in examples:
+            _tokens = example[tokens_key][:, :max_tokens_length]
+            _labels = example[labels_key][:, :max_tokens_length]
+            _attention_mask = torch.ones((max_tokens_length,), dtype=torch.bool)
             tokens_length = _tokens.size(1)
             _attention_mask[:tokens_length] = False
 
@@ -588,15 +587,15 @@ class TextDataCollator:
                 1
             ), f"{tokens_length} != {_labels.size(1)}"
 
-            if tokens_length < self.max_length:
+            if tokens_length < max_tokens_length:
                 _tokens = F.pad(
                     _tokens,
-                    (0, self.max_length - tokens_length),
+                    (0, max_tokens_length - tokens_length),
                     value=self.tokenizer.eos_token_id,
                 )
                 _tokens[1:, tokens_length:] = CODEBOOK_EOS_TOKEN_ID
                 _labels = F.pad(
-                    _labels, (0, self.max_length - _labels.size(1)), value=-100
+                    _labels, (0, max_tokens_length - _labels.size(1)), value=-100
                 )
 
             tokens.append(_tokens)

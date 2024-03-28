@@ -163,11 +163,11 @@ class TextToSemantic(L.LightningModule):
 
     def _step(self, batch, batch_idx, stage: str):
         # Do positive and negative samples in the same batch to speed up training
+        labels = batch["labels"]
         outputs = self.model(
             x=batch["inputs"],
             key_padding_mask=batch["attention_masks"],
         )
-        labels = batch["labels"]
         token_logits = outputs.token_logits
         codebook_logits = outputs.codebook_logits
 
@@ -186,7 +186,12 @@ class TextToSemantic(L.LightningModule):
 
         # If we have a codebook, add the loss
         if self.model.config.num_codebooks != 0:
-            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
+            # We want to shift the labels by one to the right
+            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks, :-1]
+            codebook_labels = torch.nn.functional.pad(
+                codebook_labels, (0, 1), value=-100
+            ).mT
+
             semantic_loss = F.cross_entropy(
                 codebook_logits.reshape(-1, codebook_logits.size(-1)),
                 codebook_labels.reshape(-1),
@@ -311,27 +316,6 @@ class TextToSemantic(L.LightningModule):
             prog_bar=True,
             logger=True,
         )
-
-        if self.model.config.num_codebooks != self.model.config.num_in_codebooks:
-            _, indices = codebook_logits[
-                :, :, : self.model.config.num_in_codebooks
-            ].topk(5, dim=-1)
-            codebook_labels = codebook_labels[
-                :, :, : self.model.config.num_in_codebooks
-            ]
-            correct = indices.eq(codebook_labels.unsqueeze(-1))
-            correct[codebook_labels == -100] = 0
-            correct = correct.sum()
-            accuracy = correct / (codebook_labels != -100).sum()
-
-            self.log(
-                f"{stage}/top_5_accuracy_in",
-                accuracy,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=True,
-                logger=True,
-            )
 
         return loss
 
