@@ -148,6 +148,7 @@ class Transformer(nn.Module):
         self.max_seq_len = max_seq_len
         self.max_batch_size = max_batch_size
 
+        # Slow transformer
         for b in self.slow_layers:
             b.attention.kv_cache = KVCache(
                 max_batch_size,
@@ -157,7 +158,16 @@ class Transformer(nn.Module):
                 dtype=dtype,
             )
 
-        # TODO: add fast transformer kv cache
+        # Fast transformer
+        # The max seq len here is the number of codebooks
+        for b in self.fast_layers:
+            b.attention.kv_cache = KVCache(
+                max_batch_size,
+                self.config.num_codebooks,
+                self.config.n_local_heads,
+                head_dim,
+                dtype=dtype,
+            )
 
     def embed(self, x: Tensor) -> Tensor:
         # Here we want to merge the embeddings of the codebooks
@@ -244,7 +254,9 @@ class Transformer(nn.Module):
             codebook_logits=codebook_logits,
         )
 
-    def forward_generate(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward_generate_slow(
+        self, x: Tensor, input_pos: Optional[Tensor] = None
+    ) -> Tensor:
         ### TODO: fix this
         # x: (batch, num_codebooks + 1, 1)
 
@@ -270,43 +282,27 @@ class Transformer(nn.Module):
         slow_out = self.slow_norm(x)
         token_logits = self.slow_output(slow_out)
 
+        return x, token_logits
+
+    def forward_generate_fast(
+        self, x: Tensor, input_pos: Optional[Tensor] = None
+    ) -> Tensor:
         # Fast transformer
-        fast_features = [x[:, None]]
-        fast_logits = []
+        x = x.view(1, 1, -1)
 
-        for _ in range(self.config.num_codebooks):
-            x = torch.cat(fast_features, dim=1)  # (B, N + 1, S, D)
-            b, s = x.size(0), x.size(2)
-            x = rearrange(x, "b n s d -> (b s) n d")  # flatten the batch and seq_len
+        fast_mask = self.causal_mask[
+            None, None, input_pos, : self.config.num_codebooks
+        ]  # (B, N, Q, K)
+        fast_freqs_cis = self.freqs_cis[input_pos]
 
-            fast_seq_len = x.size(1)
-            fast_mask = self.causal_mask[
-                None, None, :fast_seq_len, :fast_seq_len
-            ]  # (B, N, Q, K)
-            fast_freqs_cis = self.freqs_cis[:fast_seq_len]
+        for layer in self.fast_layers:
+            x = layer(x, fast_freqs_cis, fast_mask, input_pos=input_pos)
 
-            for layer in self.fast_layers:
-                x = layer(x, fast_freqs_cis, fast_mask)
+        # unflatten the batch and num_codebooks
+        fast_out = self.fast_norm(x)  # only take the last token
+        codebook_logits = self.fast_output(fast_out)
 
-            # unflatten the batch and num_codebooks
-            fast_out = self.fast_norm(x[:, -1:])  # only take the last token
-            codebook_logits = self.fast_output(fast_out)
-            fast_logits.append(codebook_logits)
-
-            # Get the argmax
-            codebook_idx = codebook_logits.argmax(dim=-1)
-            codebook_embeddings = self.fast_embeddings(codebook_idx)
-            fast_features.append(codebook_embeddings.view(b, 1, s, -1))
-
-        codebook_logits = torch.stack(fast_logits, dim=1)
-        assert codebook_logits.shape[1] == self.config.num_codebooks
-
-        codebook_logits = rearrange(codebook_logits, "b c n d -> b n c d")
-
-        return TransformerForwardResult(
-            token_logits=token_logits,
-            codebook_logits=codebook_logits,
-        )
+        return codebook_logits
 
 
 class TransformerBlock(nn.Module):
