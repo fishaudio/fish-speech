@@ -165,7 +165,7 @@ class TextToSemantic(L.LightningModule):
         # Do positive and negative samples in the same batch to speed up training
         labels = batch["labels"]
         outputs = self.model(
-            x=batch["inputs"],
+            inp=batch["inputs"],
             key_padding_mask=batch["attention_masks"],
         )
         token_logits = outputs.token_logits
@@ -186,12 +186,7 @@ class TextToSemantic(L.LightningModule):
 
         # If we have a codebook, add the loss
         if self.model.config.num_codebooks != 0:
-            # We want to shift the labels by one to the right
-            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks, :-1]
-            codebook_labels = torch.nn.functional.pad(
-                codebook_labels, (1, 0), value=-100
-            ).mT
-
+            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
             semantic_loss = F.cross_entropy(
                 codebook_logits.reshape(-1, codebook_logits.size(-1)),
                 codebook_labels.reshape(-1),
