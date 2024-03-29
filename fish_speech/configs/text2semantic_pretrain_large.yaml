@@ -8,6 +8,7 @@ project: text2semantic_pretrain_large_dual_ar
 model:
   model:
     config:
-      n_layer: 36
+      n_slow_layer: 36
+      n_fast_layer: 8
       n_head: 20
       dim: 1280
