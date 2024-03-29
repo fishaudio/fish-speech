@@ -2,7 +2,7 @@ defaults:
   - text2semantic_pretrain_small
   - _self_
 
-project: text2semantic_pretrain_medium_4_in_8_codebooks
+project: text2semantic_pretrain_medium_dual_ar
 
 # Model Configuration
 model:
