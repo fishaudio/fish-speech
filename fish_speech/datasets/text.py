@@ -593,7 +593,7 @@ class TextDataCollator:
                     (0, max_tokens_length - tokens_length),
                     value=self.tokenizer.eos_token_id,
                 )
-                _tokens[1:, tokens_length:] = CODEBOOK_EOS_TOKEN_ID
+                _tokens[1:, tokens_length:] = CODEBOOK_PAD_TOKEN_ID
                 _labels = F.pad(
                     _labels, (0, max_tokens_length - _labels.size(1)), value=-100
                 )
