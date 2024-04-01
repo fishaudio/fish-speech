@@ -366,9 +366,10 @@ def encode_tokens(
         data = data[:num_codebooks]
 
     # Since 1.0, we use <s:xxx> to replace <semantic>
+    s0_token_id = tokenizer.convert_tokens_to_ids("<s:0>")
     main_token_ids = torch.tensor(
         # TODO: replace this
-        [[tokenizer.pad_token_id] * data.size(1)],
+        [[s0_token_id] * data.size(1)],
         dtype=torch.int,
         device=device,
     )

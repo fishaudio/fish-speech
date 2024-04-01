@@ -43,7 +43,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 8
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
