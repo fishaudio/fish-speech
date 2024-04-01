@@ -525,7 +525,7 @@ def main(
         )
         print(f"Encoded text: {text}")
 
-    if use_prompt and iterative_prompt:
+    if use_prompt:
         encoded_prompt = encode_tokens(
             tokenizer,
             prompt_text,
