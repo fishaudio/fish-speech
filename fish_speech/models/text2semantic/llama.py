@@ -248,7 +248,13 @@ class Transformer(nn.Module):
         codebook_logits = self.fast_output(fast_out)
 
         # Re-pad the codebook_logits
-        buffer = torch.zeros(x_bs, x_len, codebook_logits.size(-1), device=x.device)
+        buffer = torch.zeros(
+            x_bs,
+            x_len,
+            codebook_logits.size(-1),
+            device=codebook_logits.device,
+            dtype=codebook_logits.dtype,
+        )
         buffer[~codebook_mask] = codebook_logits
         codebook_logits = buffer
 
