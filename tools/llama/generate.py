@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import click
 import numpy as np
@@ -25,7 +25,7 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
     torch._inductor.config.fx_graph_cache = True
 
 
-from fish_speech.models.text2semantic.llama import Transformer
+from fish_speech.models.text2semantic.llama import DualARTransformer, NaiveTransformer
 from fish_speech.text import g2p
 from fish_speech.text.symbols import pad as pad_symbol
 from fish_speech.text.symbols import pu_symbols
@@ -89,8 +89,8 @@ def sample(
     return idx_next, probs
 
 
-def decode_one_token(
-    model: Transformer,
+def decode_one_token_ar(
+    model: NaiveTransformer,
     x: torch.Tensor,
     input_pos: torch.Tensor,
     previous_tokens: torch.Tensor = None,
@@ -115,7 +115,6 @@ def decode_one_token(
     for codebook_idx in range(model.config.num_codebooks):
         input_pos = torch.tensor([codebook_idx], device=x.device, dtype=torch.long)
         logits = model.forward_generate_fast(x, input_pos)
-        # print(x.shape, logits.shape)
         a = sample(
             logits,
             previous_tokens=(
@@ -127,73 +126,49 @@ def decode_one_token(
         )[0]
         x = model.fast_embeddings(a)
         codebooks.append(a)
-        # x = torch.cat(buffer, dim=1)
-        # logits = model.forward_fast(x)[:, -1:, :]
-        # a = sample(
-        #     logits,
-        #     previous_tokens=(
-        #         previous_tokens[codebook_idx + 1]
-        #         if previous_tokens is not None
-        #         else None
-        #     ),
-        #     **sampling_kwargs,
-        # )[0]
-        # x = model.fast_embeddings(a)
-        # codebooks.append(a)
-        # buffer.append(x.view(1, 1, -1))
 
     return torch.stack(codebooks, dim=0)
 
 
-def prefill(
-    model: Transformer, x: torch.Tensor, input_pos: torch.Tensor, **sampling_kwargs
+def decode_one_token_naive(
+    model: NaiveTransformer,
+    x: torch.Tensor,
+    input_pos: torch.Tensor,
+    previous_tokens: torch.Tensor = None,
+    **sampling_kwargs,
 ) -> torch.Tensor:
-    # input_pos: [B, S]
-    x, logits = model.forward_generate_slow(x, input_pos)
+    assert input_pos.shape[-1] == 1
 
+    x, logits = model.forward_generate_slow(x, input_pos)
     codebooks = [
         sample(
             logits,
-            previous_tokens=None,
+            previous_tokens=None,  # Disable repetition penalty for the token codebook
             **sampling_kwargs,
         )[0]
     ]
 
-    # Cleanup the cache
-    for layer in model.fast_layers:
-        layer.attention.kv_cache.k_cache.fill_(0)
-        layer.attention.kv_cache.v_cache.fill_(0)
-
-    for codebook_idx in range(model.config.num_codebooks):
-        input_pos = torch.tensor([codebook_idx], device=x.device, dtype=torch.long)
-        logits = model.forward_generate_fast(x, input_pos)
-        # print(x.shape, logits.shape)
-        a = sample(
-            logits,
-            previous_tokens=None,
-            **sampling_kwargs,
-        )[0]
-        x = model.fast_embeddings(a)
-        codebooks.append(a)
-        # x = torch.cat(buffer, dim=1)
-        # logits = model.forward_fast(x)[:, -1:, :]
-        # a = sample(
-        #     logits,
-        #     **sampling_kwargs,
-        # )[0]
-        # x = model.fast_embeddings(a)
-        # codebooks.append(a)
-        # buffer.append(x.view(1, 1, -1))
+    for i in range(model.config.num_codebooks):
+        codebooks.append(
+            sample(
+                logits.codebook_logits[:, :, i],
+                previous_tokens=previous_tokens[i + 1]
+                if previous_tokens is not None
+                else None,
+                **sampling_kwargs,
+            )[0]
+        )
 
     return torch.stack(codebooks, dim=0)
 
 
 def decode_n_tokens(
-    model: Transformer,
+    model: NaiveTransformer,
     cur_token: torch.Tensor,
     input_pos: torch.Tensor,
     num_new_tokens: int,
     eos_token_id: int = 2,
+    decode_one_token=decode_one_token_naive,
     **sampling_kwargs,
 ):
     previous_tokens = torch.zeros(
@@ -238,10 +213,11 @@ def decode_n_tokens(
 @torch.inference_mode()
 def generate(
     *,
-    model: Transformer,
+    model: NaiveTransformer,
     prompt: torch.Tensor,
     max_new_tokens: int,
     eos_token_id: int = 2,
+    decode_one_token=decode_one_token_naive,
     precision: torch.dtype = torch.bfloat16,
     **sampling_kwargs,
 ) -> torch.Tensor:
@@ -273,7 +249,7 @@ def generate(
     seq = empty
     input_pos = torch.arange(0, T, device=device)
 
-    next_token = prefill(
+    next_token = decode_one_token(
         model, prompt.view(1, codebook_dim, -1), input_pos, **sampling_kwargs
     )
     seq[:, T : T + 1] = next_token
@@ -285,6 +261,7 @@ def generate(
         input_pos,
         max_new_tokens - 1,
         eos_token_id=eos_token_id,
+        decode_one_token=decode_one_token,
         **sampling_kwargs,
     )
     # x = torch.cat(generated_tokens, dim=1)
@@ -320,20 +297,6 @@ def encode_tokens(
         string = f"[SPK: {speaker}] {string}"
 
     string = f"[INST] {string} [/INST]"
-
-    # Handle English less frequent words
-    # TODO: update tokenizer to handle this
-    # sub_strings = string.split(" ")
-    # new_tokens = []
-    # for i, string in enumerate(sub_strings):
-    #     tokens = tokenizer.encode(
-    #         string,
-    #         add_special_tokens=i == 0 and bos,
-    #         max_length=10**6,
-    #         truncation=False,
-    #     )
-    #     new_tokens.extend(tokens)
-
     new_tokens = tokenizer.encode(
         string,
         add_special_tokens=bos,
@@ -384,7 +347,7 @@ def load_model(config_name, checkpoint_path, device, precision):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
 
-    model: Transformer = instantiate(cfg.model).model
+    model: Union[NaiveTransformer, DualARTransformer] = instantiate(cfg.model).model
 
     if "int8" in str(checkpoint_path):
         logger.info("Using int8 weight-only quantization!")
@@ -523,7 +486,7 @@ def main(
                 num_codebooks=model.config.num_codebooks,
             )
         )
-        print(f"Encoded text: {text}")
+        logger.info(f"Encoded text: {text}")
 
     if use_prompt:
         encoded_prompt = encode_tokens(
@@ -540,14 +503,16 @@ def main(
 
         encoded[0] = torch.cat((encoded_prompt, encoded[0]), dim=1)
 
-    # prompt_length = encoded.size(1)
-    # logger.info(f"Encoded prompt shape: {encoded.shape}")
-
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
+    decode_one_token = (
+        decode_one_token_ar
+        if isinstance(model, DualARTransformer)
+        else decode_one_token_naive
+    )
+
     if compile:
-        global decode_one_token
         decode_one_token = torch.compile(
             decode_one_token, mode="reduce-overhead", fullgraph=True
         )
@@ -573,12 +538,11 @@ def main(
             if i != 0 and i % 2 == 0:
                 i -= 1
 
+            # Rotate the list
             if i < len(global_encoded) - 2:
                 partial_encoded = global_encoded[-i:]
-                print(f"Loaded partial encoded")
             else:
                 partial_encoded = global_encoded
-                print(f"Using full encoded")
 
             cat_encoded = torch.cat(partial_encoded, dim=1)
             prompt_length = cat_encoded.size(1)
@@ -589,6 +553,7 @@ def main(
                 prompt=cat_encoded,
                 max_new_tokens=max_new_tokens,
                 eos_token_id=tokenizer.eos_token_id,
+                decode_one_token=decode_one_token,
                 precision=precision,
                 temperature=temperature,
                 top_k=top_k,
@@ -617,15 +582,6 @@ def main(
             # Put the generated tokens
             codes = y[1:, prompt_length:-1].clone()
 
-            # if getattr(cfg, "use_delay_pattern", True):
-            #     new_codes = []
-            #     for j, code in enumerate(codes):
-            #         new_codes.append(
-            #             code[j : codes.shape[1] - (model.config.num_codebooks - j - 1)]
-            #         )
-
-            #     codes = torch.stack(new_codes, dim=0)
-
             codes = codes - 2
             if not (codes >= 0).all():
                 global_encoded.pop()
@@ -638,7 +594,6 @@ def main(
 
         codes = torch.cat(all_codes, dim=1)
         assert (codes >= 0).all(), f"Negative code found: {codes}"
-        print(codes)
 
         np.save(f"codes_{idx}.npy", codes.cpu().numpy())
         logger.info(f"Saved codes to codes_{idx}.npy")

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
-from fish_speech.models.text2semantic.llama import Transformer
+from fish_speech.models.text2semantic.llama import NaiveTransformer
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
@@ -23,7 +23,7 @@ class LoraConfig:
 class TextToSemantic(L.LightningModule):
     def __init__(
         self,
-        model: Transformer,
+        model: NaiveTransformer,
         optimizer: Any,
         lr_scheduler: Any,
         lora_config: Optional[LoraConfig] = None,
@@ -184,18 +184,14 @@ class TextToSemantic(L.LightningModule):
             ignore_index=-100,
         )
 
-        # If we have a codebook, add the loss
-        if self.model.config.num_codebooks != 0:
-            codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
-            semantic_loss = F.cross_entropy(
-                codebook_logits.reshape(-1, codebook_logits.size(-1)),
-                codebook_labels.reshape(-1),
-                ignore_index=-100,
-            )
+        codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
+        semantic_loss = F.cross_entropy(
+            codebook_logits.reshape(-1, codebook_logits.size(-1)),
+            codebook_labels.reshape(-1),
+            ignore_index=-100,
+        )
 
-            loss = base_loss + semantic_loss
-        else:
-            loss = base_loss
+        loss = base_loss + semantic_loss
 
         # If we use dpo
         if self.use_dpo:
@@ -270,39 +266,26 @@ class TextToSemantic(L.LightningModule):
             logger=True,
         )
 
-        if self.model.config.num_codebooks != 0:
-            self.log(
-                f"{stage}/base_loss",
-                base_loss,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=False,
-                logger=True,
-            )
+        self.log(
+            f"{stage}/base_loss",
+            base_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+        )
 
-            self.log(
-                f"{stage}/semantic_loss",
-                semantic_loss,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=False,
-                logger=True,
-            )
+        self.log(
+            f"{stage}/semantic_loss",
+            semantic_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+        )
 
         # Top-5 accuracy
-        if self.model.config.num_codebooks == 0:
-            _, indices = token_logits.topk(5, dim=-1)
-            correct = indices.eq(labels[:, 0].unsqueeze(-1))
-            correct[labels[:, 0] == -100] = 0
-            correct = correct.sum()
-            accuracy = correct / (labels[:, 0] != -100).sum()
-        else:
-            _, indices = codebook_logits.topk(5, dim=-1)
-            correct = indices.eq(codebook_labels.unsqueeze(-1))
-            correct[codebook_labels == -100] = 0
-            correct = correct.sum()
-            accuracy = correct / (codebook_labels != -100).sum()
-
+        accuracy = self.get_accuracy(codebook_logits, codebook_labels)
         self.log(
             f"{stage}/top_5_accuracy",
             accuracy,
@@ -312,7 +295,31 @@ class TextToSemantic(L.LightningModule):
             logger=True,
         )
 
+        if self.model.config.num_codebooks != self.model.config.num_in_codebooks:
+            accuracy = self.get_accuracy(
+                codebook_logits[:, :, : self.model.config.num_in_codebooks],
+                codebook_labels[:, :, : self.model.config.num_in_codebooks],
+            )
+
+            self.log(
+                f"{stage}/top_5_accuracy_in",
+                accuracy,
+                on_step=True,
+                on_epoch=False,
+                prog_bar=True,
+                logger=True,
+            )
+
         return loss
+
+    def get_accuracy(self, logits, labels):
+        _, indices = logits.topk(5, dim=-1)
+        correct = indices.eq(labels.unsqueeze(-1))
+        correct[labels == -100] = 0
+        correct = correct.sum()
+        accuracy = correct / (labels != -100).sum()
+
+        return accuracy
 
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, "train")
