@@ -1,5 +1,6 @@
 defaults:
   - base
+  - model@model.model: dual_ar_8_codebook_small
   - _self_
 
 project: text2semantic_sft_medium_dual_ar
@@ -60,21 +61,7 @@ data:
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
-
-  model:
-    _target_: fish_speech.models.text2semantic.llama.DualARTransformer
-    config:
-      _target_: fish_speech.models.text2semantic.llama.DualARModelArgs
-      max_seq_len: ${max_length}
-      vocab_size: 36408
-      n_layer: 24
-      n_fast_layer: 6
-      n_head: 16
-      dim: 1024
-      rope_base: 10000
-      norm_eps: 1e-5
-      num_codebooks: 8  # input/output codebook size
-      codebook_size: 264 # codebook size 256 + 2 special tokens
+  model: {}
 
   optimizer:
     _target_: torch.optim.AdamW
