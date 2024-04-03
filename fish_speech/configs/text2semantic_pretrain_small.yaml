@@ -53,12 +53,12 @@ model:
 
   model:
     # ~ 130M parameters, for debug purpose
-    _target_: fish_speech.models.text2semantic.llama.Transformer
+    _target_: fish_speech.models.text2semantic.llama.DualARTransformer
     config:
-      _target_: fish_speech.models.text2semantic.llama.ModelArgs
+      _target_: fish_speech.models.text2semantic.llama.DualARModelArgs
       max_seq_len: ${max_length}
       vocab_size: 36408
-      n_slow_layer: 12
+      n_layer: 12
       n_fast_layer: 4
       n_head: 12
       dim: 768
