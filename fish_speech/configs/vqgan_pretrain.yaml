@@ -2,36 +2,36 @@ defaults:
   - base
   - _self_
 
-project: vqgan_pretrain_lfq
-ckpt_path: checkpoints/gpt_sovits_488k.pth
-resume_weights_only: true
+project: vq_reflow_debug
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
   devices: auto
   strategy: ddp_find_unused_parameters_true
-  precision: 32
+  precision: 16-mixed
   max_steps: 1_000_000
   val_check_interval: 2000
+  gradient_clip_algorithm: norm
+  gradient_clip_val: 1.0
 
-sample_rate: 32000
-hop_length: 640
-num_mels: 128
+sample_rate: 44100
+hop_length: 512
+num_mels: 160
 n_fft: 2048
 win_length: 2048
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/vq_train_filelist.txt
+  filelist: /localhome/local-shijial/workspace/diffusion-test/data/HiFi-TTS/vq_train_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
-  slice_frames: 128
+  slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/vq_val_filelist.txt
+  filelist: /localhome/local-shijial/workspace/diffusion-test/data/HiFi-TTS/vq_val_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
 
@@ -40,49 +40,48 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 16
+  batch_size: 32
   val_batch_size: 4
 
 # Model Configuration
 model:
   _target_: fish_speech.models.vqgan.VQGAN
-  sample_rate: ${sample_rate}
-  hop_length: ${hop_length}
-  freeze_discriminator: false
 
-  weight_mel: 45.0
-  weight_kl: 0.1
+  sampling_rate: ${sample_rate}
+  weight_reflow: 1.0
   weight_vq: 1.0
   weight_aux_mel: 1.0
 
-  generator:
-    _target_: fish_speech.models.vqgan.modules.models.SynthesizerTrn
-    spec_channels: 1025
-    segment_size: 32
-    inter_channels: 192
-    prior_hidden_channels: 192
-    posterior_hidden_channels: 192
-    prior_n_layers: 16
-    posterior_n_layers: 16
-    kernel_size: 5
-    p_dropout: 0.1
-    resblock: "1"
-    resblock_kernel_sizes: [3, 7, 11]
-    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
-    upsample_rates: [10, 8, 2, 2, 2]
-    upsample_initial_channel: 512
-    upsample_kernel_sizes: [16, 16, 8, 2, 2]
-    gin_channels: 512
-    freeze_quantizer: false
-    freeze_decoder: false
-    freeze_posterior_encoder: false
-    codebook_size: 1024
-    num_codebooks: 2
-    aux_spec_channels: ${num_mels}
+  encoder:
+    _target_: fish_speech.models.vqgan.modules.convnext.ConvNeXtEncoder
+    input_channels: ${num_mels}
+    depths: [3, 3, 9, 3]
+    dims: [128, 256, 384, 512]
+  
+  quantizer:
+    _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
+    input_dim: 512
+    n_codebooks: 8
+    levels: [8, 5, 5, 5]
+  
+  aux_decoder:
+    _target_: fish_speech.models.vqgan.modules.convnext.ConvNeXtEncoder
+    input_channels: 512
+    output_channels: ${num_mels}
+    depths: [6]
+    dims: [384]
 
-  discriminator:
-    _target_: fish_speech.models.vqgan.modules.models.EnsembledDiscriminator
-    periods: [2, 3, 5, 7, 11]
+  reflow:
+    _target_: fish_speech.models.vqgan.modules.dit.DiT
+    hidden_size: 768
+    num_heads: 12
+    diffusion_num_layers: 12
+    channels: ${num_mels}
+    condition_dim: 512
+
+  vocoder:
+    _target_: fish_speech.models.vqgan.modules.firefly.FireflyBase
+    ckpt_path: checkpoints/firefly-gan-base-002000000.ckpt
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -92,13 +91,6 @@ model:
     win_length: ${win_length}
     n_mels: ${num_mels}
 
-  spec_transform:
-    _target_: fish_speech.models.vqgan.spectrogram.LinearSpectrogram
-    n_fft: ${n_fft}
-    hop_length: ${hop_length}
-    win_length: ${win_length}
-    mode: pow2_sqrt
-  
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
@@ -107,12 +99,19 @@ model:
     eps: 1e-5
 
   lr_scheduler:
-    _target_: torch.optim.lr_scheduler.ExponentialLR
+    _target_: torch.optim.lr_scheduler.LambdaLR
     _partial_: true
-    gamma: 0.99999
+    lr_lambda:
+      _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+      _partial_: true
+      num_warmup_steps: 100
+      num_training_steps: ${trainer.max_steps}
+      final_lr_ratio: 0
 
 callbacks:
   grad_norm_monitor:
     sub_module: 
-      - generator
-      - discriminator
+      - encoder
+      - aux_decoder
+      - quantizer
+      - reflow
