@@ -21,7 +21,7 @@ class LinearSpectrogram(nn.Module):
         self.center = center
         self.mode = mode
 
-        self.register_buffer("window", torch.hann_window(win_length))
+        self.register_buffer("window", torch.hann_window(win_length), persistent=False)
 
     def forward(self, y: Tensor) -> Tensor:
         if y.ndim == 3:
@@ -78,17 +78,23 @@ class LogMelSpectrogram(nn.Module):
         self.center = center
         self.n_mels = n_mels
         self.f_min = f_min
-        self.f_max = f_max or sample_rate // 2
+        self.f_max = f_max or float(sample_rate // 2)
 
         self.spectrogram = LinearSpectrogram(n_fft, win_length, hop_length, center)
-        self.mel_scale = MelScale(
-            self.n_mels,
-            self.sample_rate,
-            self.f_min,
-            self.f_max,
-            self.n_fft // 2 + 1,
-            "slaney",
-            "slaney",
+
+        fb = F.melscale_fbanks(
+            n_freqs=self.n_fft // 2 + 1,
+            f_min=self.f_min,
+            f_max=self.f_max,
+            n_mels=self.n_mels,
+            sample_rate=self.sample_rate,
+            norm="slaney",
+            mel_scale="slaney",
+        )
+        self.register_buffer(
+            "fb",
+            fb,
+            persistent=False,
         )
 
     def compress(self, x: Tensor) -> Tensor:
@@ -97,6 +103,9 @@ class LogMelSpectrogram(nn.Module):
     def decompress(self, x: Tensor) -> Tensor:
         return torch.exp(x)
 
+    def apply_mel_scale(self, x: Tensor) -> Tensor:
+        return torch.matmul(x.transpose(-1, -2), self.fb).transpose(-1, -2)
+
     def forward(
         self, x: Tensor, return_linear: bool = False, sample_rate: int = None
     ) -> Tensor:
@@ -104,7 +113,7 @@ class LogMelSpectrogram(nn.Module):
             x = F.resample(x, orig_freq=sample_rate, new_freq=self.sample_rate)
 
         linear = self.spectrogram(x)
-        x = self.mel_scale(linear)
+        x = self.apply_mel_scale(linear)
         x = self.compress(x)
 
         if return_linear:
