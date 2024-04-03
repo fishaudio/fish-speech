@@ -8,7 +8,7 @@ project: text2semantic_pretrain_medium_dual_ar
 model:
   model:
     config:
-      n_slow_layer: 24
+      n_layer: 24
       n_fast_layer: 6
       n_head: 16
       dim: 1024
