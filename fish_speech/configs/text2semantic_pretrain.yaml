@@ -1,8 +1,9 @@
 defaults:
   - base
+  - model@model.model: dual_ar_8_codebook_small
   - _self_
 
-project: text2semantic_pretrain_small_dual_ar
+project: text2semantic_pretrain_dual_ar_debug
 max_length: 2048
 
 # Lightning Trainer
@@ -50,22 +51,7 @@ data:
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.TextToSemantic
-
-  model:
-    _target_: fish_speech.models.text2semantic.llama.NaiveTransformer
-    config:
-      _target_: fish_speech.models.text2semantic.llama.DualARModelArgs
-      max_seq_len: ${max_length}
-      vocab_size: 36408
-      n_layer: 12
-      # n_fast_layer: 4
-      n_head: 12
-      dim: 768
-      rope_base: 10000
-      norm_eps: 1e-5
-      num_in_codebooks: 4
-      num_codebooks: 8  # input/output codebook size
-      codebook_size: 264 # codebook size 256 + 2 special tokens
+  model: {}
 
   optimizer:
     _target_: torch.optim.AdamW
