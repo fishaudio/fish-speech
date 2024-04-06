@@ -2,18 +2,32 @@ defaults:
   - base
   - _self_
 
-project: vq_reflow_debug
+project: vq_reflow_wavenet_group_fsq
+ckpt_path: results/vq_reflow_bf16/checkpoints/step_000248000.ckpt
+resume_weights_only: true
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
   devices: auto
-  strategy: ddp_find_unused_parameters_true
-  precision: 16-mixed
+  precision: 32
   max_steps: 1_000_000
+  # max_steps: 100
   val_check_interval: 2000
   gradient_clip_algorithm: norm
   gradient_clip_val: 1.0
+  # limit_val_batches: 0.0
+
+  strategy: ddp #_find_unused_parameters_true
+  # strategy:
+  #   _target_: lightning.pytorch.strategies.DeepSpeedStrategy
+  #   stage: 1
+  #   overlap_comm: true
+
+  # profiler:
+  #   _target_: lightning.pytorch.profilers.PyTorchProfiler
+  #   export_to_chrome: true
+  #   filename: prof.txt
 
 sample_rate: 44100
 hop_length: 512
@@ -61,7 +75,8 @@ model:
   quantizer:
     _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
     input_dim: 512
-    n_codebooks: 8
+    n_codebooks: 1
+    n_groups: 8
     levels: [8, 5, 5, 5]
   
   aux_decoder:
@@ -71,13 +86,20 @@ model:
     depths: [6]
     dims: [384]
 
+  # reflow:
+  #   _target_: fish_speech.models.vqgan.modules.dit.DiT
+  #   hidden_size: 768
+  #   num_heads: 12
+  #   diffusion_num_layers: 12
+  #   channels: ${num_mels}
+  #   condition_dim: 512
+
   reflow:
-    _target_: fish_speech.models.vqgan.modules.dit.DiT
-    hidden_size: 768
-    num_heads: 12
-    diffusion_num_layers: 12
-    channels: ${num_mels}
-    condition_dim: 512
+    _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
+    mel_channels: ${num_mels}
+    d_encoder: 512
+    residual_channels: 512
+    residual_layers: 20
 
   vocoder:
     _target_: fish_speech.models.vqgan.modules.firefly.FireflyBase
@@ -97,6 +119,7 @@ model:
     lr: 1e-4
     betas: [0.8, 0.99]
     eps: 1e-5
+    weight_decay: 0.01
 
   lr_scheduler:
     _target_: torch.optim.lr_scheduler.LambdaLR
@@ -115,3 +138,6 @@ callbacks:
       - aux_decoder
       - quantizer
       - reflow
+
+  model_checkpoint:
+    every_n_train_steps: ${trainer.val_check_interval}

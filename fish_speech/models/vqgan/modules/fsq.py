@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 from torch.nn.utils import weight_norm
-from vector_quantize_pytorch import ResidualFSQ
+from vector_quantize_pytorch import GroupedResidualFSQ
 
 from .convnext import ConvNeXtBlock
 
@@ -24,6 +24,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
         self,
         input_dim: int = 512,
         n_codebooks: int = 9,
+        n_groups: int = 1,
         levels: tuple[int] = (8, 5, 5, 5),  # Approximate 2**10
         downsample_factor: tuple[int] = (2, 2),
         downsample_dims: tuple[int] | None = None,
@@ -35,10 +36,11 @@ class DownsampleFiniteScalarQuantize(nn.Module):
 
         all_dims = (input_dim,) + tuple(downsample_dims)
 
-        self.residual_fsq = ResidualFSQ(
+        self.residual_fsq = GroupedResidualFSQ(
             dim=all_dims[-1],
             levels=levels,
             num_quantizers=n_codebooks,
+            groups=n_groups,
         )
 
         self.downsample_factor = downsample_factor
