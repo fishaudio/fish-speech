@@ -69,6 +69,7 @@ class VQGAN(L.LightningModule):
         self.spec_min = -12
         self.spec_max = 3
         self.sampling_rate = sampling_rate
+        self.strict_loading = False
 
     def on_save_checkpoint(self, checkpoint):
         # Do not save vocoder
@@ -96,6 +97,7 @@ class VQGAN(L.LightningModule):
     def denorm_spec(self, x):
         return (x + 1) / 2 * (self.spec_max - self.spec_min) + self.spec_min
 
+    # @torch.autocast(device_type="cuda", dtype=torch.bfloat16)
     def training_step(self, batch, batch_idx):
         audios, audio_lengths = batch["audios"], batch["audio_lengths"]
 
@@ -124,7 +126,7 @@ class VQGAN(L.LightningModule):
         )
 
         # Reflow
-        x_1 = self.norm_spec(gt_mels.mT)
+        x_1 = self.norm_spec(gt_mels)
         t = torch.rand(gt_mels.shape[0], device=gt_mels.device)
         x_0 = torch.randn_like(x_1)
 
@@ -134,8 +136,9 @@ class VQGAN(L.LightningModule):
         v_pred = self.reflow(
             x_t,
             1000 * t,
-            condition=vq_recon_features.mT,
-            self_mask=mel_masks,
+            vq_recon_features,  # .detach()
+            x_masks=mel_masks_float_conv,
+            cond_masks=mel_masks_float_conv,
         )
 
         # Log L2 loss with
@@ -143,7 +146,7 @@ class VQGAN(L.LightningModule):
         loss_reflow = weights[:, None, None] * F.mse_loss(
             x_1 - x_0, v_pred, reduction="none"
         )
-        loss_reflow = (loss_reflow * mel_masks_float_conv.mT).mean()
+        loss_reflow = (loss_reflow * mel_masks_float_conv).mean()
 
         # Total loss
         loss = (
@@ -218,8 +221,12 @@ class VQGAN(L.LightningModule):
 
         # Reflow inference
         t_start = 0.0
-        infer_step = 20
-        gen_mels = torch.randn(gt_mels.shape, device=gt_mels.device).mT
+        infer_step = 10
+
+        x_1 = self.norm_spec(aux_mels)
+        x_0 = torch.randn_like(x_1)
+        gen_mels = (1 - t_start) * x_0 + t_start * x_1
+
         t = torch.zeros(gt_mels.shape[0], device=gt_mels.device)
         dt = (1.0 - t_start) / infer_step
 
@@ -228,14 +235,15 @@ class VQGAN(L.LightningModule):
                 self.reflow(
                     gen_mels,
                     1000 * t,
-                    condition=vq_result.z.mT,
-                    self_mask=mel_masks,
+                    vq_result.z,
+                    x_masks=mel_masks_float_conv,
+                    cond_masks=mel_masks_float_conv,
                 )
                 * dt
             )
             t += dt
 
-        gen_mels = self.denorm_spec(gen_mels).mT
+        gen_mels = self.denorm_spec(gen_mels)
         loss_recon_reflow = F.l1_loss(
             gen_mels * mel_masks_float_conv, gt_mels * mel_masks_float_conv
         )
