@@ -2,36 +2,20 @@ defaults:
   - base
   - _self_
 
-project: vq_reflow_wavenet_group_fsq
-ckpt_path: results/vq_reflow_bf16/checkpoints/step_000248000.ckpt
-resume_weights_only: true
+project: vq_reflow_shallow_group_fsq_8x1024_wavenet
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
   devices: auto
-  precision: 32
+  precision: bf16-mixed
   max_steps: 1_000_000
-  # max_steps: 100
-  val_check_interval: 2000
-  gradient_clip_algorithm: norm
-  gradient_clip_val: 1.0
-  # limit_val_batches: 0.0
-
-  strategy: ddp #_find_unused_parameters_true
-  # strategy:
-  #   _target_: lightning.pytorch.strategies.DeepSpeedStrategy
-  #   stage: 1
-  #   overlap_comm: true
-
-  # profiler:
-  #   _target_: lightning.pytorch.profilers.PyTorchProfiler
-  #   export_to_chrome: true
-  #   filename: prof.txt
+  val_check_interval: 1000
+  strategy: ddp_find_unused_parameters_true
 
 sample_rate: 44100
 hop_length: 512
-num_mels: 160
+num_mels: 128
 n_fft: 2048
 win_length: 2048
 
@@ -64,46 +48,48 @@ model:
   sampling_rate: ${sample_rate}
   weight_reflow: 1.0
   weight_vq: 1.0
-  weight_aux_mel: 1.0
+  weight_mel: 1.0
+  freeze_encoder: false
+
+  # Reflow configs
+  reflow_use_shallow: true
+  reflow_inference_steps: 10
+  reflow_inference_start_t: 0.5
 
   encoder:
-    _target_: fish_speech.models.vqgan.modules.convnext.ConvNeXtEncoder
+    _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
     input_channels: ${num_mels}
-    depths: [3, 3, 9, 3]
-    dims: [128, 256, 384, 512]
+    residual_channels: 512
+    residual_layers: 20
+    dilation_cycle: 4
   
   quantizer:
     _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
     input_dim: 512
-    n_codebooks: 1
-    n_groups: 8
+    n_codebooks: 8
+    n_groups: 1
     levels: [8, 5, 5, 5]
   
-  aux_decoder:
-    _target_: fish_speech.models.vqgan.modules.convnext.ConvNeXtEncoder
-    input_channels: 512
+  decoder:
+    _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
     output_channels: ${num_mels}
-    depths: [6]
-    dims: [384]
-
-  # reflow:
-  #   _target_: fish_speech.models.vqgan.modules.dit.DiT
-  #   hidden_size: 768
-  #   num_heads: 12
-  #   diffusion_num_layers: 12
-  #   channels: ${num_mels}
-  #   condition_dim: 512
+    residual_channels: 512
+    residual_layers: 20
+    dilation_cycle: 4
 
   reflow:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
-    mel_channels: ${num_mels}
-    d_encoder: 512
+    input_channels: ${num_mels}
+    output_channels: ${num_mels}
     residual_channels: 512
+    condition_channels: 512
     residual_layers: 20
+    dilation_cycle: 4
+    is_diffusion: true
 
   vocoder:
     _target_: fish_speech.models.vqgan.modules.firefly.FireflyBase
-    ckpt_path: checkpoints/firefly-gan-base-002000000.ckpt
+    ckpt_path: null # You may download the pretrained vocoder and set the path here
 
   mel_transform:
     _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
@@ -132,12 +118,16 @@ model:
       final_lr_ratio: 0
 
 callbacks:
-  grad_norm_monitor:
-    sub_module: 
-      - encoder
-      - aux_decoder
-      - quantizer
-      - reflow
+  model_summary:
+    _target_: lightning.pytorch.callbacks.ModelSummary
+    max_depth: 1
 
   model_checkpoint:
     every_n_train_steps: ${trainer.val_check_interval}
+
+  grad_norm_monitor:
+    sub_module: 
+      - encoder
+      - decoder
+      - quantizer
+      - reflow
