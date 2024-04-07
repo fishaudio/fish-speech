@@ -9,7 +9,7 @@ from einops import rearrange
 from torch.nn.utils import weight_norm
 from vector_quantize_pytorch import GroupedResidualFSQ
 
-from .convnext import ConvNeXtBlock
+from .firefly import ConvNeXtBlock
 
 
 @dataclass
@@ -56,7 +56,6 @@ class DownsampleFiniteScalarQuantize(nn.Module):
                         stride=factor,
                     ),
                     ConvNeXtBlock(dim=all_dims[idx + 1]),
-                    ConvNeXtBlock(dim=all_dims[idx + 1]),
                 )
                 for idx, factor in enumerate(downsample_factor)
             ]
@@ -72,11 +71,17 @@ class DownsampleFiniteScalarQuantize(nn.Module):
                         stride=factor,
                     ),
                     ConvNeXtBlock(dim=all_dims[idx]),
-                    ConvNeXtBlock(dim=all_dims[idx]),
                 )
                 for idx, factor in reversed(list(enumerate(downsample_factor)))
             ]
         )
+
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, (nn.Conv1d, nn.Linear)):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            nn.init.constant_(m.bias, 0)
 
     def forward(self, z) -> FSQResult:
         original_shape = z.shape
