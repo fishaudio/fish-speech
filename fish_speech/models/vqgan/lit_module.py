@@ -148,7 +148,7 @@ class VQGAN(L.LightningModule):
         v_pred = self.reflow(
             x_t,
             1000 * t,
-            vq_recon_features,
+            vq_recon_features.detach(),  # Stop gradients, avoid reflow to destroy the VQ
         )
 
         # Log L2 loss with
