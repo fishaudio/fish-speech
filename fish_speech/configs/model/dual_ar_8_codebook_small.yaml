@@ -1,4 +1,4 @@
-_target_: fish_speech.models.text2semantic.llama.NaiveTransformer
+_target_: fish_speech.models.text2semantic.llama.DualARTransformer
 config:
   _target_: fish_speech.models.text2semantic.llama.DualARModelArgs
   max_seq_len: ${max_length}
