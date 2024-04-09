@@ -7,7 +7,7 @@ project: vq_reflow_shallow_group_fsq_8x1024_wavenet
 # Lightning Trainer
 trainer:
   accelerator: gpu
-  devices: auto
+  devices: 1
   precision: bf16-mixed
   max_steps: 1_000_000
   val_check_interval: 1000
@@ -38,7 +38,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
+  batch_size: 128
   val_batch_size: 4
 
 # Model Configuration
@@ -52,9 +52,8 @@ model:
   freeze_encoder: false
 
   # Reflow configs
-  reflow_use_shallow: true
   reflow_inference_steps: 10
-  reflow_inference_start_t: 0.5
+  reflow_inference_start_t: 0.0
 
   encoder:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
