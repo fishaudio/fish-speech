@@ -26,14 +26,18 @@ OmegaConf.register_new_resolver("eval", eval)
 @click.option(
     "--input-path",
     "-i",
-    default="data/Genshin/Chinese/派蒙/vo_WYLQ103_10_paimon_04.wav",
+    default="data/sft/Rail_ZH/三月七/1fe0cc6fc3fe3e6d.wav",
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
 @click.option("--config-name", "-cfg", default="vqgan_pretrain")
-@click.option("--checkpoint-path", "-ckpt", default="checkpoints/vqgan-v1.pth")
+@click.option(
+    "--checkpoint-path",
+    "-ckpt",
+    default="results/vq-group-fsq-8x1024-wn-20x512-cond-e009/checkpoints/step_000355000.ckpt",
+)
 def main(input_path, output_path, config_name, checkpoint_path):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
@@ -45,7 +49,7 @@ def main(input_path, output_path, config_name, checkpoint_path):
     )
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
-    model.load_state_dict(state_dict, strict=True)
+    model.load_state_dict(state_dict, strict=False)
     model.eval()
     model.cuda()
     logger.info("Restored model from checkpoint")
@@ -67,8 +71,7 @@ def main(input_path, output_path, config_name, checkpoint_path):
         audio_lengths = torch.tensor(
             [audios.shape[2]], device=model.device, dtype=torch.long
         )
-        encoded = model.encode(audios, audio_lengths)
-        indices = encoded.indices[0]
+        indices = model.encode(audios, audio_lengths)[0][0]
 
         logger.info(f"Generated indices of shape {indices.shape}")
 
@@ -82,12 +85,15 @@ def main(input_path, output_path, config_name, checkpoint_path):
     else:
         raise ValueError(f"Unknown input type: {input_path}")
 
+    # random destroy 10% of indices
+    # mask = torch.rand_like(indices, dtype=torch.float) > 0.9
+    # indices[mask] = torch.randint(0, 1000, mask.shape, device=indices.device, dtype=indices.dtype)[mask]
+
     # Restore
     feature_lengths = torch.tensor([indices.shape[1]], device=model.device)
-    decoded = model.decode(
+    fake_audios = model.decode(
         indices=indices[None], feature_lengths=feature_lengths, return_audios=True
     )
-    fake_audios = decoded.audios
     audio_time = fake_audios.shape[-1] / model.sampling_rate
 
     logger.info(
