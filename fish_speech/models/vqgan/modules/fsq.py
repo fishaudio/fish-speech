@@ -1,12 +1,9 @@
 from dataclasses import dataclass
-from typing import Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
-from torch.nn.utils import weight_norm
 from vector_quantize_pytorch import GroupedResidualFSQ
 
 from .firefly import ConvNeXtBlock
@@ -106,10 +103,17 @@ class DownsampleFiniteScalarQuantize(nn.Module):
 
         return result
 
-    # def from_codes(self, codes: torch.Tensor):
-    #     z_q, z_p, codes = self.residual_fsq.get_output_from_indices(codes)
-    #     z_q = self.upsample(z_q)
-    #     return z_q, z_p, codes
+    def encode(self, z):
+        z = self.downsample(z)
+        _, indices = self.residual_fsq(z.mT)
+        indices = rearrange(indices, "g b l r -> b (g r) l")
+        return indices
+
+    def decode(self, indices: torch.Tensor):
+        indices = rearrange(indices, "b (g r) l -> g b l r", g=self.residual_fsq.groups)
+        z_q = self.residual_fsq.get_output_from_indices(indices)
+        z_q = self.upsample(z_q.mT)
+        return z_q
 
     # def from_latents(self, latents: torch.Tensor):
     #     z_q, z_p, codes = super().from_latents(latents)

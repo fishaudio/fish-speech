@@ -11,14 +11,12 @@ import click
 import numpy as np
 import torch
 import torchaudio
-from einops import rearrange
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from lightning import LightningModule
 from loguru import logger
 from omegaconf import OmegaConf
 
-from fish_speech.models.vqgan.utils import sequence_mask
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 # register eval resolver
@@ -57,7 +55,7 @@ def get_model(
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
 
-    model.load_state_dict(state_dict, strict=True)
+    model.load_state_dict(state_dict, strict=False)
     model.eval()
     model.cuda()
 
@@ -90,8 +88,7 @@ def process_batch(files: list[Path], model) -> float:
 
     # Calculate lengths
     with torch.no_grad():
-        out = model.encode(audios, audio_lengths)
-        indices, feature_lengths = out.indices, out.feature_lengths
+        indices, feature_lengths = model.encode(audios, audio_lengths)
 
     # Save to disk
     outputs = indices.cpu().numpy()

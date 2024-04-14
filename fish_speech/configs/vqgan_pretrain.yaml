@@ -2,7 +2,7 @@ defaults:
   - base
   - _self_
 
-project: vq_reflow_shallow_group_fsq_8x1024_wavenet
+project: vq-group-fsq-8x1024-wn-20x768-cond
 
 # Lightning Trainer
 trainer:
@@ -10,8 +10,8 @@ trainer:
   devices: 1
   precision: bf16-mixed
   max_steps: 1_000_000
-  val_check_interval: 1000
-  strategy: ddp
+  val_check_interval: 5000
+  strategy: ddp_find_unused_parameters_true
 
 sample_rate: 44100
 hop_length: 512
@@ -38,8 +38,8 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 128
-  val_batch_size: 4
+  batch_size: 64
+  val_batch_size: 64
 
 # Model Configuration
 model:
@@ -58,33 +58,24 @@ model:
   encoder:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
     input_channels: ${num_mels}
-    residual_channels: 512
+    residual_channels: 768
     residual_layers: 20
     dilation_cycle: 4
   
   quantizer:
     _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
-    input_dim: 512
-    n_codebooks: 8
-    n_groups: 1
+    input_dim: 768
+    n_codebooks: 1
+    n_groups: 8
     levels: [8, 5, 5, 5]
-  
+
   decoder:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
     output_channels: ${num_mels}
-    residual_channels: 512
+    residual_channels: 768
     residual_layers: 20
     dilation_cycle: 4
-
-  reflow:
-    _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
-    input_channels: ${num_mels}
-    output_channels: ${num_mels}
-    residual_channels: 512
-    condition_channels: 512
-    residual_layers: 20
-    dilation_cycle: 4
-    is_diffusion: true
+    condition_channels: 768
 
   vocoder:
     _target_: fish_speech.models.vqgan.modules.firefly.FireflyBase
@@ -129,4 +120,3 @@ callbacks:
       - encoder
       - decoder
       - quantizer
-      - reflow
