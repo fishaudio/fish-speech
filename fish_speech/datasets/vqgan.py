@@ -122,7 +122,7 @@ class VQGANDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.val_batch_size,
             collate_fn=VQGANCollator(),
             num_workers=self.num_workers,
         )

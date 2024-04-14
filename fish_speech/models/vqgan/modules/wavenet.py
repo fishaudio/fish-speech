@@ -89,7 +89,6 @@ class ResidualBlock(nn.Module):
         residual_channels,
         use_linear_bias=False,
         dilation=1,
-        has_condition=True,
         condition_channels=None,
     ):
         super(ResidualBlock, self).__init__()
@@ -102,7 +101,7 @@ class ResidualBlock(nn.Module):
             dilation=dilation,
         )
 
-        if has_condition:
+        if condition_channels is not None:
             self.diffusion_projection = LinearNorm(
                 residual_channels, residual_channels, use_linear_bias
             )
@@ -159,6 +158,8 @@ class WaveNet(nn.Module):
         if input_channels is None:
             input_channels = residual_channels
 
+        self.input_channels = input_channels
+
         # Residual layers
         self.residual_layers = nn.ModuleList(
             [
@@ -166,7 +167,6 @@ class WaveNet(nn.Module):
                     residual_channels=residual_channels,
                     use_linear_bias=False,
                     dilation=2 ** (i % dilation_cycle) if dilation_cycle else 1,
-                    has_condition=is_diffusion,
                     condition_channels=condition_channels,
                 )
                 for i in range(residual_layers)
