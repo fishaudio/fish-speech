@@ -2,12 +2,12 @@ defaults:
   - base
   - _self_
 
-project: vq-group-fsq-8x1024-wn-20x768-cond
+project: vq-gan-group-fsq-8x1024-wn-20x768-cond
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
-  devices: 1
+  devices: auto
   precision: bf16-mixed
   max_steps: 1_000_000
   val_check_interval: 5000
@@ -21,15 +21,22 @@ win_length: 2048
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: /***REMOVED***/workspace/diffusion-test/data/HiFi-TTS/vq_train_filelist.txt
-  sample_rate: ${sample_rate}
-  hop_length: ${hop_length}
-  slice_frames: 512
+  _target_: torch.utils.data.ConcatDataset
+  datasets:
+    - _target_: fish_speech.datasets.vqgan.VQGANDataset
+      filelist: data/libri-light-pack/filelist.txt
+      sample_rate: ${sample_rate}
+      hop_length: ${hop_length}
+      slice_frames: 512
+    - _target_: fish_speech.datasets.vqgan.VQGANDataset
+      filelist: data/sft/vq_train_filelist.txt
+      sample_rate: ${sample_rate}
+      hop_length: ${hop_length}
+      slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: /***REMOVED***/workspace/diffusion-test/data/HiFi-TTS/vq_val_filelist.txt
+  filelist: data/sft/vq_val_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
 
@@ -38,22 +45,18 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 64
-  val_batch_size: 64
+  batch_size: 32
+  val_batch_size: 32
 
 # Model Configuration
 model:
   _target_: fish_speech.models.vqgan.VQGAN
 
   sampling_rate: ${sample_rate}
-  weight_reflow: 1.0
+  weight_adv: 0.5
   weight_vq: 1.0
   weight_mel: 1.0
   freeze_encoder: false
-
-  # Reflow configs
-  reflow_inference_steps: 10
-  reflow_inference_start_t: 0.0
 
   encoder:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet
@@ -76,6 +79,9 @@ model:
     residual_layers: 20
     dilation_cycle: 4
     condition_channels: 768
+  
+  discriminator:
+    _target_: fish_speech.models.vqgan.modules.discriminator.Discriminator
 
   vocoder:
     _target_: fish_speech.models.vqgan.modules.firefly.FireflyBase
