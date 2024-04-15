@@ -1,6 +1,0 @@
-datasets:
-  - root: data/wenet-speech-vocals/data
-    source: WenetSpeech
-    languages: [ZH, EN]
-    extension: .txt
-    group_parent_level: 1
