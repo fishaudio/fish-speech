@@ -63,6 +63,7 @@ def get_model(
     return model
 
 
+@torch.inference_mode()
 def process_batch(files: list[Path], model) -> float:
     wavs = []
     audio_lengths = []
@@ -87,8 +88,7 @@ def process_batch(files: list[Path], model) -> float:
     audio_lengths = torch.tensor(audio_lengths, device=model.device, dtype=torch.long)
 
     # Calculate lengths
-    with torch.no_grad():
-        indices, feature_lengths = model.encode(audios, audio_lengths)
+    indices, feature_lengths = model.encode(audios, audio_lengths)
 
     # Save to disk
     outputs = indices.cpu().numpy()
@@ -111,7 +111,7 @@ def process_batch(files: list[Path], model) -> float:
 @click.option("--config-name", default="vqgan_pretrain")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/vqgan-v1.pth",
+    default="checkpoints/vq-gan-group-fsq-8x1024-wn-20x768-30kh.pth",
 )
 @click.option("--batch-size", default=64)
 @click.option("--filelist", default=None, type=Path)

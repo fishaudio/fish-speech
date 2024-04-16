@@ -252,7 +252,7 @@ struct Args {
     files: Vec<String>,
 
     /// Causual sampling
-    #[clap(short, long, default_value = "false")]
+    #[clap(short, long, default_value = "true")]
     causal: bool,
 
     /// Address to bind to

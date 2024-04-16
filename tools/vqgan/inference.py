@@ -5,15 +5,12 @@ import librosa
 import numpy as np
 import soundfile as sf
 import torch
-import torch.nn.functional as F
-from einops import rearrange
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from lightning import LightningModule
 from loguru import logger
 from omegaconf import OmegaConf
 
-from fish_speech.models.vqgan.utils import sequence_mask
 from fish_speech.utils.file import AUDIO_EXTENSIONS
 
 # register eval resolver
@@ -84,10 +81,6 @@ def main(input_path, output_path, config_name, checkpoint_path):
         assert indices.ndim == 2, f"Expected 2D indices, got {indices.ndim}"
     else:
         raise ValueError(f"Unknown input type: {input_path}")
-
-    # random destroy 10% of indices
-    # mask = torch.rand_like(indices, dtype=torch.float) > 0.9
-    # indices[mask] = torch.randint(0, 1000, mask.shape, device=indices.device, dtype=indices.dtype)[mask]
 
     # Restore
     feature_lengths = torch.tensor([indices.shape[1]], device=model.device)
