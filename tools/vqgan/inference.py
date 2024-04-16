@@ -26,7 +26,7 @@ OmegaConf.register_new_resolver("eval", eval)
 @click.option(
     "--input-path",
     "-i",
-    default="data/sft/Rail_ZH/三月七/1fe0cc6fc3fe3e6d.wav",
+    default="test.wav",
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
@@ -36,7 +36,7 @@ OmegaConf.register_new_resolver("eval", eval)
 @click.option(
     "--checkpoint-path",
     "-ckpt",
-    default="results/vq-group-fsq-8x1024-wn-20x512-cond-e009/checkpoints/step_000355000.ckpt",
+    default="checkpoints/vq-gan-group-fsq-8x1024-wn-20x768-30kh.pth",
 )
 def main(input_path, output_path, config_name, checkpoint_path):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):

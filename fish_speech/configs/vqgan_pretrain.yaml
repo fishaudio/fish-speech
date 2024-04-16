@@ -126,3 +126,4 @@ callbacks:
       - encoder
       - decoder
       - quantizer
+      - discriminator

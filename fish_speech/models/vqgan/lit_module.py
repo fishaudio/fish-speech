@@ -213,6 +213,14 @@ class VQGAN(L.LightningModule):
             prog_bar=False,
             logger=True,
         )
+        self.log(
+            "train/generator/loss_adv",
+            loss_adv,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+        )
 
         # Generator backward
         optim_g.zero_grad()
