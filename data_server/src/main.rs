@@ -22,7 +22,7 @@ use text_data::{
 pub struct RSSentence {
     text: String,
     phones: Vec<String>,
-    semantics: Vec<Vec<u8>>,
+    semantics: Vec<Vec<u32>>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -63,12 +63,6 @@ async fn read_pb_stream<R: Read>(mut reader: BufReader<R>) -> io::Result<Vec<RST
 
         text_data.sentences.iter().for_each(|sentence| {
             total_vq_frames += sentence.semantics[0].values.len();
-
-            // Check that all values are in the range 0-255
-            sentence
-                .semantics
-                .iter()
-                .for_each(|semantics| semantics.values.iter().for_each(|v| assert!(*v <= 255)));
         });
         
         text_data_list.push(RSTextData {
@@ -84,7 +78,7 @@ async fn read_pb_stream<R: Read>(mut reader: BufReader<R>) -> io::Result<Vec<RST
                     semantics: sentence
                         .semantics
                         .iter()
-                        .map(|semantics| semantics.values.iter().map(|v| *v as u8).collect())
+                        .map(|semantics| semantics.values.iter().map(|v| *v).collect())
                         .collect(),
                 })
                 .collect(),
