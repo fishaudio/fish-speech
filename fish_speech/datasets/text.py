@@ -1,6 +1,7 @@
 import random
 from dataclasses import dataclass
 from itertools import chain
+from pathlib import Path
 from random import Random
 from typing import Optional, Union
 
@@ -185,7 +186,7 @@ class AutoAugTextDataset(IterableDataset):
 
     def __init__(
         self,
-        server: str = "localhost:50051",
+        proto_files: list[str],
         seed: int = 42,
         phones_prob: float = 0.3,
         repetition_prob: float = 0.0,
@@ -193,8 +194,6 @@ class AutoAugTextDataset(IterableDataset):
         max_length: int = 1024,
         tokenizer: AutoTokenizer = None,
         use_speaker: bool = True,
-        use_data_server: bool = True,
-        proto_files: Optional[list[str]] = None,
         causual: bool = True,
         mix_text_phone_prob: float = 0.5,
         use_negative_samples: bool = False,
@@ -202,7 +201,7 @@ class AutoAugTextDataset(IterableDataset):
     ):
         """
         Args:
-            server: gRPC server address
+            proto_files: proto buf files if using local data
             seed: random seed
             phones_prob: probability to use phones
             repetition_prob: probability to repeat the same sentence
@@ -210,8 +209,6 @@ class AutoAugTextDataset(IterableDataset):
             max_length: max length of the text
             tokenizer: tokenizer
             use_speaker: include speaker information in the prompt
-            use_data_server: use data server or local data
-            proto_files: proto buf files if using local data
             causual: use causual sampling when using local data, disable will lead to random sampling
             mix_text_phone_prob: probability to mix text and phones, if this is 0, then it will be pure text or pure phones
             use_negative_samples: generate negative samples
@@ -232,7 +229,6 @@ class AutoAugTextDataset(IterableDataset):
         self.repetition_prob = repetition_prob
         self.interactive_prob = interactive_prob
         self.use_speaker = use_speaker
-        self.use_data_server = use_data_server
         self.proto_files = proto_files
         self.causual = causual
         self.mix_text_phone_prob = mix_text_phone_prob
@@ -240,24 +236,40 @@ class AutoAugTextDataset(IterableDataset):
         self.num_codebooks = num_codebooks
 
         self.semantic_token_id = self.tokenizer.convert_tokens_to_ids("<s:0>")
-
-        if use_data_server is True:
-            self.channel = grpc.insecure_channel(server)
-            self.stub = DataServiceStub(self.channel)
-        else:
-            self.init_mock_data_server()
+        self.groups = None
 
     def init_mock_data_server(self):
-        self.groups = []
-        count = 0
+        if self.groups is not None:
+            return
+
+        # Expand the proto files
+        expanded_proto_files = []
         for filename in self.proto_files:
+            for i in braceexpand(filename):
+                i = Path(i)
+                if i.is_file():
+                    expanded_proto_files.append(i)
+                elif i.is_dir():
+                    expanded_proto_files.extend(i.rglob("*.proto"))
+                    expanded_proto_files.extend(i.rglob("*.protos"))
+                else:
+                    raise ValueError(f"{i} is not a file or directory")
+
+        expanded_proto_files = sorted(expanded_proto_files)
+        Random(self.seed).shuffle(expanded_proto_files)
+
+        self.groups = []
+        shard_proto_files = split_by_rank_worker(expanded_proto_files)
+        log.info(
+            f"Reading {len(shard_proto_files)} / {len(expanded_proto_files)} files"
+        )
+
+        count = 0
+        for filename in shard_proto_files:
             with open(filename, "rb") as f:
                 for text_data in read_pb_stream(f):
                     self.groups.append(text_data)
                     count += 1
-
-                    if count % 1000 == 0:
-                        log.info(f"Read {count} groups of data")
 
         log.info(f"Read total {count} groups of data")
 
@@ -280,6 +292,7 @@ class AutoAugTextDataset(IterableDataset):
             )
         else:
             sentence = clean_text(sentence)
+            sentence = " ".join([f"<s:{i:d}>" for i in sentence.encode("utf-8")])
 
         tokens = self.tokenizer.encode(
             f"{sentence}",
@@ -290,12 +303,11 @@ class AutoAugTextDataset(IterableDataset):
         return sentence, len(tokens)
 
     def sample_data(self):
+        if self.groups is None:
+            self.init_mock_data_server()
+
         # Shuffle unique lines, estimate that each sample is at least 20 tokens
         num_samples = self.max_length // 20
-
-        if self.use_data_server:
-            request = SampleDataRequest(num_samples=num_samples)
-            return self.stub.SampleData(request)
 
         # choice group based on their number of samples
         group = random.choices(
@@ -690,14 +702,6 @@ if __name__ == "__main__":
         use_negative_samples=False,
         num_codebooks=4,
     )
-
-    # ds = AutoAugTextDataset(
-    #     tokenizer=AutoTokenizer.from_pretrained("fishaudio/speech-lm-v1"),
-    #     use_speaker=True,
-    #     interactive_prob=1.0,
-    #     use_data_server=False,
-    #     proto_files=["data/wenet-speech.protos"],
-    # )
 
     dm = TextDataModule(
         train_dataset=ds,
