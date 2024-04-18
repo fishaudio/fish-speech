@@ -23,6 +23,9 @@ tokenizer:
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  proto_files:
+    - data/protos/gigaspeech
+    - data/protos/libirtts-train
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
@@ -32,6 +35,8 @@ train_dataset:
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  proto_files:
+    - data/protos/libirtts-test
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}

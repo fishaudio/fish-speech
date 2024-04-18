@@ -24,7 +24,7 @@ train_dataset:
   _target_: torch.utils.data.ConcatDataset
   datasets:
     - _target_: fish_speech.datasets.vqgan.VQGANDataset
-      filelist: data/libri-light-pack/filelist.txt
+      filelist: data/gigaspeech/vq_train_filelist.txt
       sample_rate: ${sample_rate}
       hop_length: ${hop_length}
       slice_frames: 512
@@ -53,7 +53,7 @@ model:
   _target_: fish_speech.models.vqgan.VQGAN
 
   sampling_rate: ${sample_rate}
-  weight_adv: 0.5
+  weight_adv: 0.2
   weight_vq: 1.0
   weight_mel: 1.0
   freeze_encoder: false
@@ -69,7 +69,7 @@ model:
     _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
     input_dim: 768
     n_codebooks: 1
-    n_groups: 8
+    n_groups: 2
     levels: [8, 5, 5, 5]
 
   decoder:

@@ -95,7 +95,7 @@ def main(input_path, output_path, config_name, checkpoint_path):
 
     # Save audio
     fake_audio = fake_audios[0, 0].cpu().numpy().astype(np.float32)
-    sf.write("fake.wav", fake_audio, model.sampling_rate)
+    sf.write(output_path, fake_audio, model.sampling_rate)
     logger.info(f"Saved audio to {output_path}")
 
 

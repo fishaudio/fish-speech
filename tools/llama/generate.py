@@ -290,6 +290,7 @@ def encode_tokens(
         string = " ".join(prompt)
     else:
         string = clean_text(string)
+        string = " ".join([f"<s:{i:d}>" for i in string.encode("utf-8")])
 
     if speaker is not None:
         string = f"[SPK: {speaker}] {string}"
@@ -413,8 +414,8 @@ def split_text(text, min_length):
 @click.option("--num-samples", type=int, default=1)
 @click.option("--max-new-tokens", type=int, default=0)
 @click.option("--top-k", type=int, default=None)
-@click.option("--top-p", type=float, default=0.9)
-@click.option("--repetition-penalty", type=float, default=1.2)
+@click.option("--top-p", type=float, default=0.7)
+@click.option("--repetition-penalty", type=float, default=1.5)
 @click.option("--temperature", type=float, default=0.7)
 @click.option(
     "--checkpoint-path",
