@@ -2,7 +2,7 @@ _target_: fish_speech.models.text2semantic.llama.DualARTransformer
 config:
   _target_: fish_speech.models.text2semantic.llama.DualARModelArgs
   max_seq_len: ${max_length}
-  vocab_size: 36408
+  vocab_size: 264 # pad 262 to 8x
   n_layer: 12
   n_fast_layer: 4
   n_head: 12

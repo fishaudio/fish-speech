@@ -18,30 +18,27 @@ trainer:
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/speech-lm-v1
+  pretrained_model_name_or_path: fishaudio/fish-speech-1
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   proto_files:
-    - data/protos/gigaspeech
-    - data/protos/libirtts-train
+    - data/protos/train
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
-  phones_prob: 0.5
   interactive_prob: 0.5
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   proto_files:
-    - data/protos/libirtts-test
+    - data/protos/test
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
-  phones_prob: 0.5
   interactive_prob: 0.5
 
 data:

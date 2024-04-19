@@ -14,7 +14,7 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from fish_speech.text.parser import clean_text
+from fish_speech.text.clean import clean_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -26,9 +26,6 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
 
 
 from fish_speech.models.text2semantic.llama import DualARTransformer, NaiveTransformer
-from fish_speech.text import g2p
-from fish_speech.text.symbols import pad as pad_symbol
-from fish_speech.text.symbols import pu_symbols
 
 
 def multinomial_sample_one_no_sync(
@@ -275,27 +272,17 @@ def encode_tokens(
     bos=True,
     device="cuda",
     prompt_tokens=None,
-    use_g2p=False,
     speaker=None,
-    order="zh,jp,en",
     num_codebooks=4,
 ):
-    if use_g2p:
-        order = order.split(",")
-        prompt = g2p(string, order=order)
-        prompt = [
-            (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
-            for _, i in prompt
-        ]
-        string = " ".join(prompt)
-    else:
-        string = clean_text(string)
-        string = " ".join([f"<s:{i:d}>" for i in string.encode("utf-8")])
+    string = clean_text(string)
 
     if speaker is not None:
         string = f"[SPK: {speaker}] {string}"
 
-    string = f"[INST] {string} [/INST]"
+    string = (
+        f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>assistant<|im_sep|>"
+    )
     new_tokens = tokenizer.encode(
         string,
         add_special_tokens=bos,
@@ -327,10 +314,9 @@ def encode_tokens(
         )
         data = data[:num_codebooks]
 
-    # Since 1.0, we use <s:xxx> to replace <semantic>
-    s0_token_id = tokenizer.convert_tokens_to_ids("<s:0>")
+    # Since 1.0, we use <|semantic|>
+    s0_token_id = tokenizer.convert_tokens_to_ids("<|semantic|>")
     main_token_ids = torch.tensor(
-        # TODO: replace this
         [[s0_token_id] * data.size(1)],
         dtype=torch.int,
         device=device,
@@ -423,12 +409,10 @@ def split_text(text, min_length):
     default="results/text2semantic_400m_finetune/step_000002000.pth",
 )
 @click.option("--config-name", type=str, default="dual_ar_8_codebook_small")
-@click.option("--tokenizer", type=str, default="fishaudio/speech-lm-v1")
+@click.option("--tokenizer", type=str, default="fishaudio/fish-speech-1")
 @click.option("--compile/--no-compile", default=False)
-@click.option("--use-g2p/--no-g2p", default=True)
 @click.option("--seed", type=int, default=42)
 @click.option("--speaker", type=str, default=None)
-@click.option("--order", type=str, default="zh,jp,en")
 @click.option("--half/--no-half", default=False)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=False)
 @click.option("--max-length", type=int, default=2048)
@@ -447,10 +431,8 @@ def main(
     config_name: str,
     tokenizer: str,
     compile: bool,
-    use_g2p: bool,
     seed: int,
     speaker: Optional[str],
-    order: str,
     half: bool,
     iterative_prompt: bool,
     max_length: int,
@@ -485,9 +467,7 @@ def main(
                 string=text,
                 bos=idx == 0 and not use_prompt,
                 device=device,
-                use_g2p=use_g2p,
                 speaker=None,
-                order=order,
                 num_codebooks=model.config.num_codebooks,
             )
         )
@@ -500,9 +480,7 @@ def main(
             prompt_tokens=prompt_tokens,
             bos=True,
             device=device,
-            use_g2p=use_g2p,
             speaker=speaker,
-            order=order,
             num_codebooks=model.config.num_codebooks,
         )
 
@@ -588,7 +566,8 @@ def main(
             )
 
             # Put the generated tokens
-            codes = y[1:, prompt_length:-1].clone()
+            # since there is <im_end> and <eos> tokens, we remove last 2 tokens
+            codes = y[1:, prompt_length:-2].clone()
 
             codes = codes - 2
             if not (codes >= 0).all():
@@ -596,6 +575,7 @@ def main(
                 logger.warning(f"Negative code found: {codes}, retrying ...")
                 continue
 
+            # But for global encoding, we should keep the <im_end> token
             global_encoded.append(y[:, prompt_length:-1].clone())
             all_codes.append(codes)
             seg_idx += 1

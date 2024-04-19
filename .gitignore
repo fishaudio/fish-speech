@@ -13,6 +13,7 @@ filelists
 /data_server/target
 /*.npy
 /*.wav
+/*.mp3
 /results
 /data
 /.idea
