@@ -444,7 +444,7 @@ class AutoAugTextDataset(IterableDataset):
             sentences = [f"[SPK: {speaker}]"] + sentences
 
         final_text = "<|im_start|>user<|im_sep|>" + " ".join(sentences) + "<|im_end|>"
-        final_text += final_text + "<|im_start|>assistant<|im_sep|>"
+        final_text = final_text + "<|im_start|>assistant<|im_sep|>"
 
         encoded = self.tokenizer.encode(
             final_text,
@@ -650,13 +650,15 @@ if __name__ == "__main__":
     from tqdm import tqdm
 
     ds = AutoAugTextDataset(
-        ["data/protos/libirtts-test"],
+        ["data/protos/test"],
         tokenizer=AutoTokenizer.from_pretrained("fishaudio/fish-speech-1"),
-        use_speaker=True,
+        use_speaker=False,
         interactive_prob=1.0,
         use_negative_samples=False,
     )
 
     for i in ds:
         print(ds.tokenizer.decode(i["tokens"][0], skip_special_tokens=False))
+        # i["labels"][0][i["labels"][0] == -100] = 0
+        # print(ds.tokenizer.decode(i["labels"][0], skip_special_tokens=False))
         break
