@@ -1,5 +1,5 @@
 defaults:
-  - dual_ar_8_codebook_small
+  - dual_ar_2_codebook_small
   - _self_
 
 config:
