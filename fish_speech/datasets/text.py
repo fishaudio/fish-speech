@@ -163,7 +163,6 @@ class AutoAugTextDataset(IterableDataset):
 
     1. Random concatenate multiple sentences from the same speaker to form a longer sentence
     2. Automatically normalize the text
-    3. Mix text and phones
 
     For interactive mode, we use the following format (multiple sequences):
     <s> [INST] [SPK: speaker] text [/INST] ... [INST] text [/INST] </s>
@@ -176,7 +175,6 @@ class AutoAugTextDataset(IterableDataset):
         self,
         proto_files: list[str],
         seed: int = 42,
-        phones_prob: float = 0.3,
         interactive_prob: float = 0.5,
         max_length: int = 1024,
         tokenizer: AutoTokenizer = None,
@@ -203,7 +201,6 @@ class AutoAugTextDataset(IterableDataset):
         assert 0 <= interactive_prob <= 1, "interactive_prob must be in [0, 1]"
 
         self.seed = seed
-        self.phones_prob = phones_prob
         self.max_length = max_length
         self.tokenizer = tokenizer
         self.interactive_prob = interactive_prob
@@ -324,7 +321,8 @@ class AutoAugTextDataset(IterableDataset):
         while remaining_tokens > 0 and len(samples) > 0:
             sentence = samples.pop()
 
-            text, length = self.tokenize_sentence(sentence.text)
+            text = random.choice(sentence.texts)
+            text, length = self.tokenize_sentence(text)
             remaining_tokens -= length + len(sentence.semantics[0].values)
 
             if use_interactive is False:

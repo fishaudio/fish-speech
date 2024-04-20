@@ -33,7 +33,7 @@ OmegaConf.register_new_resolver("eval", eval)
 @click.option(
     "--checkpoint-path",
     "-ckpt",
-    default="checkpoints/vq-gan-group-fsq-8x1024-wn-20x768-30kh.pth",
+    default="checkpoints/vq-gan-group-fsq-2x1024.pth",
 )
 def main(input_path, output_path, config_name, checkpoint_path):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):

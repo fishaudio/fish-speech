@@ -27,7 +27,17 @@ def task_generator_folder(root: Path, text_extension: str):
     grouped_files = defaultdict(list)
     for file in tqdm(files, desc=f"Grouping {root}"):
         p = str(file.parent)
-        grouped_files[p].append((file, file.with_suffix(text_extension).read_text()))
+
+        try:
+            if isinstance(text_extension, str):
+                texts = [file.with_suffix(text_extension).read_text()]
+            else:
+                texts = [file.with_suffix(ext).read_text() for ext in text_extension]
+        except Exception as e:
+            logger.error(f"Failed to read text {file}: {e}")
+            continue
+
+        grouped_files[p].append((file, texts))
 
     logger.info(
         f"Found {len(grouped_files)} groups in {root}, {list(grouped_files.keys())[:5]}..."
@@ -39,31 +49,34 @@ def task_generator_folder(root: Path, text_extension: str):
 def task_generator_filelist(filelist):
     grouped_files = defaultdict(list)
     for filename, speaker, _, text in load_filelist(filelist):
-        grouped_files[speaker].append((Path(filename), text))
+        grouped_files[speaker].append((Path(filename), [text]))
 
     logger.info(f"Found {len(grouped_files)} groups in {filelist}")
     for speaker, values in grouped_files.items():
         yield speaker, values, "filelist"
 
 
-def run_task(task, output):
-    group_idx, task = task
+def run_task(task):
     name, subset, source = task
 
     # Parse the files
     sentences = []
     for file in subset:
-        file, text = file
+        file, texts = file
 
         np_file = file.with_suffix(".npy")
         if np_file.exists() is False:
             logger.warning(f"Can't find {np_file}")
             continue
 
-        # Simple cleaning: replace { xxx } and < xxx > with space
-        text = re.sub(r"\{.*?\}", " ", text)
-        text = re.sub(r"<.*?>", " ", text)
-        text = re.sub(r"\s+", " ", text)
+        new_texts = []
+
+        for text in texts:
+            # Simple cleaning: replace { xxx } and < xxx > with space
+            text = re.sub(r"\{.*?\}", " ", text)
+            text = re.sub(r"<.*?>", " ", text)
+            text = re.sub(r"\s+", " ", text)
+            new_texts.append(text)
 
         try:
             semantics = np.load(np_file)
@@ -76,8 +89,7 @@ def run_task(task, output):
 
         sentences.append(
             Sentence(
-                text=text,
-                phones=[],
+                texts=new_texts,
                 semantics=[Semantics(values=s) for s in semantics],
             )
         )
@@ -87,7 +99,6 @@ def run_task(task, output):
         TextData(
             source=source,
             name=name,
-            languages=[],
             sentences=sentences,
         )
     )
@@ -105,7 +116,7 @@ def run_task(task, output):
     "--output", type=click.Path(path_type=Path), default="data/quantized-dataset-ft"
 )
 @click.option("--num-workers", type=int, default=16)
-@click.option("--text-extension", type=str, default=".txt")
+@click.option("--text-extension", type=str, default=[".txt"], multiple=True)
 @click.option(
     "--shard-size", type=int, default=10, help="The maximum size of each shard in mb"
 )
@@ -123,7 +134,6 @@ def main(input, output, num_workers, text_extension, shard_size):
         generator_fns.append(generator_fn)
 
     generator_fn = itertools.chain(*generator_fns)
-    run_task_p = partial(run_task, output=output)
     output.mkdir(parents=True, exist_ok=True)
 
     dataset_fp = None
@@ -131,7 +141,7 @@ def main(input, output, num_workers, text_extension, shard_size):
     written_size = 0
 
     with Pool(num_workers) as p:
-        for result in tqdm(p.imap_unordered(run_task_p, enumerate(generator_fn))):
+        for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             if dataset_fp is None:
                 dataset_fp = open(Path(output) / f"{tar_idx:08d}.protos", "wb")
 
