@@ -540,9 +540,9 @@ def main(
             if i != 0 and i % 2 == 0:
                 i -= 1
 
-            # Rotate the list
+            # Rotate the list, always make sure first segment is included to avoid drift
             if i < len(global_encoded) - 2:
-                partial_encoded = global_encoded[-i:]
+                partial_encoded = global_encoded[:2] + global_encoded[-i:]
             else:
                 partial_encoded = global_encoded
 
