@@ -319,7 +319,7 @@ class AutoAugTextDataset(IterableDataset):
 
         all_tokens, all_labels = [], []
         while remaining_tokens > 0 and len(samples) > 0:
-            sentence = samples.pop()
+            sentence = samples.pop(0)
 
             text = random.choice(sentence.texts)
             text, length = self.tokenize_sentence(text)
@@ -648,7 +648,7 @@ if __name__ == "__main__":
     from tqdm import tqdm
 
     ds = AutoAugTextDataset(
-        ["data/protos/test"],
+        ["data/protos"],
         tokenizer=AutoTokenizer.from_pretrained("fishaudio/fish-speech-1"),
         use_speaker=False,
         interactive_prob=1.0,
