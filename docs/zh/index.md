@@ -21,8 +21,8 @@
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 
-# 安装 pytorch nightly 版本
-pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
+# 安装 pytorch 版本
+pip3 install torch torchvision torchaudio
 
 # 安装 fish-speech
 pip3 install -e .
@@ -30,6 +30,7 @@ pip3 install -e .
 
 ## 更新日志
 
+- 2024/04/22: 完成了 Fish-Speech 1.0 版本, 大幅修改了 VQGAN 和 LLAMA 模型.
 - 2023/12/28: 添加了 `lora` 微调支持.
 - 2023/12/27: 添加了 `gradient checkpointing`, `causual sampling` 和 `flash-attn` 支持.
 - 2023/12/19: 更新了 Webui 和 HTTP API.

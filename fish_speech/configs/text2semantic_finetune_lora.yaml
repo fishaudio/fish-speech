@@ -2,7 +2,8 @@ defaults:
   - text2semantic_finetune
   - _self_
 
-project: text2semantic_400m_finetune_lora
+project: text2semantic_finetune_dual_ar_lora
+
 # Model Configuration
 model:
   save_lora_only: true

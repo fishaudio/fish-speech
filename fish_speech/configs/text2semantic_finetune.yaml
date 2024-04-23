@@ -1,39 +1,46 @@
 defaults:
   - base
-  - model@model.model: dual_ar_8_codebook_small
+  - model@model.model: dual_ar_2_codebook_small
   - _self_
 
-project: text2semantic_400m_finetune_spk
-max_length: 4096
-ckpt_path: checkpoints/text2semantic-400m-v0.2-4k.pth
+project: text2semantic_finetune_dual_ar
+max_length: 2048
+ckpt_path: checkpoints/text2semantic-medium-v1-2k.pth
 resume_weights_only: true
 
 # Lightning Trainer
 trainer:
-  accumulate_grad_batches: 2
+  accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
   max_steps: 1000
   precision: bf16-true
   limit_val_batches: 10
+  val_check_interval: 100
 
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/speech-lm-v1
+  pretrained_model_name_or_path: fishaudio/fish-speech-1
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  proto_files:
+    - data/protos
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: false
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
+  proto_files:
+    - data/protos
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
+  use_speaker: false
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
@@ -65,9 +72,8 @@ model:
       _partial_: true
       num_warmup_steps: 100
       num_training_steps: ${trainer.max_steps}
-      final_lr_ratio: 0.1
 
 # Callbacks
 callbacks:
   model_checkpoint:
-    every_n_train_steps: 200
+    every_n_train_steps: 100

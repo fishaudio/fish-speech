@@ -68,6 +68,9 @@ class VQGANDataset(Dataset):
         try:
             return self.get_item(idx)
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             logger.error(f"Error loading {self.files[idx]}: {e}")
             return None
 

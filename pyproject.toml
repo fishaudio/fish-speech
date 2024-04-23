@@ -30,7 +30,10 @@ dependencies = [
     "loguru>=0.6.0",
     "loralib>=0.1.2",
     "natsort>=8.4.0",
-    "pyrootutils>=1.0.4"
+    "pyrootutils>=1.0.4",
+    "vector_quantize_pytorch>=1.14.7",
+    "samplerate>=0.2.1",
+    "resampy>=0.4.3",
 ]
 
 [project.optional-dependencies]

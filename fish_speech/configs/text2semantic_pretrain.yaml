@@ -1,6 +1,6 @@
 defaults:
   - base
-  - model@model.model: dual_ar_8_codebook_small
+  - model@model.model: dual_ar_2_codebook_small
   - _self_
 
 project: text2semantic_pretrain_dual_ar_debug
