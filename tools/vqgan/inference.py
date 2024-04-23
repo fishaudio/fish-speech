@@ -17,8 +17,28 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS
 OmegaConf.register_new_resolver("eval", eval)
 
 
+def load_model(config_name, checkpoint_path, device="cuda"):
+    with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
+        cfg = compose(config_name=config_name)
+
+    model: LightningModule = instantiate(cfg.model)
+    state_dict = torch.load(
+        checkpoint_path,
+        map_location=model.device,
+    )
+
+    if "state_dict" in state_dict:
+        state_dict = state_dict["state_dict"]
+
+    model.load_state_dict(state_dict, strict=False)
+    model.eval()
+    model.to(device)
+    logger.info("Restored model from checkpoint")
+
+    return model
+
+
 @torch.no_grad()
-@torch.autocast(device_type="cuda", enabled=True)
 @click.command()
 @click.option(
     "--input-path",
@@ -35,21 +55,13 @@ OmegaConf.register_new_resolver("eval", eval)
     "-ckpt",
     default="checkpoints/vq-gan-group-fsq-2x1024.pth",
 )
-def main(input_path, output_path, config_name, checkpoint_path):
-    with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
-        cfg = compose(config_name=config_name)
-
-    model: LightningModule = instantiate(cfg.model)
-    state_dict = torch.load(
-        checkpoint_path,
-        map_location=model.device,
-    )
-    if "state_dict" in state_dict:
-        state_dict = state_dict["state_dict"]
-    model.load_state_dict(state_dict, strict=False)
-    model.eval()
-    model.cuda()
-    logger.info("Restored model from checkpoint")
+@click.option(
+    "--device",
+    "-d",
+    default="cuda",
+)
+def main(input_path, output_path, config_name, checkpoint_path, device):
+    model = load_model(config_name, checkpoint_path, device=device)
 
     if input_path.suffix in AUDIO_EXTENSIONS:
         logger.info(f"Processing in-place reconstruction of {input_path}")
@@ -94,7 +106,7 @@ def main(input_path, output_path, config_name, checkpoint_path):
     )
 
     # Save audio
-    fake_audio = fake_audios[0, 0].cpu().numpy().astype(np.float32)
+    fake_audio = fake_audios[0, 0].float().cpu().numpy()
     sf.write(output_path, fake_audio, model.sampling_rate)
     logger.info(f"Saved audio to {output_path}")
 
