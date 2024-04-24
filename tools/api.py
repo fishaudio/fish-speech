@@ -7,7 +7,6 @@ from threading import Lock
 from typing import Annotated, Literal, Optional
 
 import librosa
-import numpy as np
 import soundfile as sf
 import torch
 from kui.wsgi import (
@@ -212,18 +211,14 @@ app = Kui(
 
 # Swagger UI & routes
 app.router << ("/v1" // routes) << ("/docs" // OpenAPI().routes)
-args = parse_args()
 
 
 if __name__ == "__main__":
-    from zibai import Options, main
+    import threading
 
-    options = Options(
-        app="tools.api:app",
-        listen=[args.listen],
-    )
-    main(options)
-else:
+    from zibai import create_bind_socket, serve
+
+    args = parse_args()
     args.precision = torch.half if args.half else torch.bfloat16
 
     logger.info("Loading Llama model...")
@@ -249,7 +244,7 @@ else:
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     inference(
         InvokeRequest(
-            text="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
+            text="A warm-up sentence.",
             reference_text=None,
             reference_audio=None,
             max_new_tokens=0,
@@ -263,4 +258,14 @@ else:
         )
     )
 
-    logger.info("Warming up done.")
+    logger.info(f"Warming up done, starting server at http://{args.listen}")
+    sock = create_bind_socket(args.listen)
+    sock.listen()
+
+    # Start server
+    serve(
+        app=app,
+        bind_sockets=[sock],
+        max_workers=10,
+        graceful_exit=threading.Event(),
+    )
