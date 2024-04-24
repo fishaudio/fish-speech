@@ -7,7 +7,7 @@
 <a target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093">
 <img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
 </a>
-<a target="_blank" href="https://hub.docker.com/lengyue233/fish-speech">
+<a target="_blank" href="https://hub.docker.com/r/lengyue233/fish-speech">
 <img alt="Docker" src="https://img.shields.io/docker/automated/lengyue233/fish-speech&style=flat-square"/>
 </a>
 </div>
