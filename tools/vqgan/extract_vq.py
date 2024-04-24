@@ -41,7 +41,7 @@ logger.add(sys.stderr, format=logger_format)
 
 @lru_cache(maxsize=1)
 def get_model(
-    config_name: str = "vqgan",
+    config_name: str = "vqgan_pretrain",
     checkpoint_path: str = "checkpoints/vqgan/step_000380000.ckpt",
 ):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
@@ -72,7 +72,7 @@ def process_batch(files: list[Path], model) -> float:
 
     for file in files:
         try:
-            wav, sr = torchaudio.load(file)
+            wav, sr = torchaudio.load(str(file), backend="sox")  # Need to install libsox-dev
         except Exception as e:
             logger.error(f"Error reading {file}: {e}")
             continue
