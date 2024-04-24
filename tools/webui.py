@@ -64,6 +64,7 @@ def inference(
         return None, "Text is too long, please keep it under 1000 characters."
 
     # Parse reference audio aka prompt
+    prompt_tokens = None
     if enable_reference_audio and reference_audio is not None:
         # reference_audio_sr, reference_audio_content = reference_audio
         reference_audio_content, _ = librosa.load(
