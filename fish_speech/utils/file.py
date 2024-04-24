@@ -44,10 +44,11 @@ def list_files(
     if not path.exists():
         raise FileNotFoundError(f"Directory {path} does not exist.")
 
-    files = [Path(f) for f in glob(str(path / "**/*"), recursive=recursive)]
+    # files = [Path(f) for f in glob(str(path / "**/*"), recursive=recursive)]
+    files = [file for ext in extensions for file in directory.glob(f"**/*{ext}")]
 
-    if extensions is not None:
-        files = [f for f in files if f.suffix in extensions]
+    # if extensions is not None:
+    #    files = [f for f in files if f.suffix in extensions]
 
     if sort:
         files = natsorted(files)
