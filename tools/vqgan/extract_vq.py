@@ -188,8 +188,13 @@ def main(
 
     for n_batch, idx in enumerate(range(0, len(files), batch_size)):
         batch = files[idx : idx + batch_size]
-        batch_time = process_batch(batch, model)
-
+        try:
+            batch_time = process_batch(batch, model)
+        except:
+            torch.cuda.empty_cache()  # To pervent coom caused abnormal terminal.
+            continue
+        if np.random.rand() > 0.8:
+            torch.cuda.empty_cache()   # Clean GPU memory randomly, to prevent coom. Set the probability to 0.2 so it won't slow down the process (Because of the GPU memory realloc)
         total_time += batch_time
         processed_files += len(batch)
 
