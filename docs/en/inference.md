@@ -67,7 +67,7 @@ python tools/vqgan/inference.py \
 We provide a HTTP API for inference. You can use the following command to start the server:
 
 ```bash
-python -m zibai tools.api_server:app --listen 127.0.0.1:8000
+python -m tools.api --listen 0.0.0.0:8000
 ```
 
 After that, you can view and test the API at http://127.0.0.1:8000/docs.  
