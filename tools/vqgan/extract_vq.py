@@ -169,11 +169,10 @@ def main(
     if filelist:
         files = [i[0] for i in load_filelist(filelist)]
     else:
-        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
 
     print(f"Found {len(files)} files")
-    files = [Path(f) for f in files if not Path(f).with_suffix(".npy").exists()]
-    Random(42).shuffle(files)
+    # files = [Path(f) for f in files if not Path(f).with_suffix(".npy").exists()]
 
     total_files = len(files)
     files = files[RANK::WORLD_SIZE]
