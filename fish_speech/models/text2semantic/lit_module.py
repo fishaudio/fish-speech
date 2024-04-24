@@ -244,6 +244,7 @@ class TextToSemantic(L.LightningModule):
                 on_epoch=not is_train,
                 prog_bar=False,
                 logger=True,
+                sync_dist=not is_train,
             )
 
             self.log(
@@ -253,6 +254,7 @@ class TextToSemantic(L.LightningModule):
                 on_epoch=not is_train,
                 prog_bar=False,
                 logger=True,
+                sync_dist=not is_train,
             )
 
             self.log(
@@ -262,6 +264,7 @@ class TextToSemantic(L.LightningModule):
                 on_epoch=not is_train,
                 prog_bar=False,
                 logger=True,
+                sync_dist=not is_train,
             )
 
             self.log(
@@ -271,6 +274,7 @@ class TextToSemantic(L.LightningModule):
                 on_epoch=not is_train,
                 prog_bar=False,
                 logger=True,
+                sync_dist=not is_train,
             )
 
         self.log(
@@ -280,6 +284,7 @@ class TextToSemantic(L.LightningModule):
             on_epoch=not is_train,
             prog_bar=True,
             logger=True,
+            sync_dist=not is_train,
         )
 
         self.log(
@@ -289,6 +294,7 @@ class TextToSemantic(L.LightningModule):
             on_epoch=not is_train,
             prog_bar=False,
             logger=True,
+            sync_dist=not is_train,
         )
 
         self.log(
@@ -298,6 +304,7 @@ class TextToSemantic(L.LightningModule):
             on_epoch=not is_train,
             prog_bar=False,
             logger=True,
+            sync_dist=not is_train,
         )
 
         # Top-5 accuracy
@@ -309,6 +316,7 @@ class TextToSemantic(L.LightningModule):
             on_epoch=not is_train,
             prog_bar=True,
             logger=True,
+            sync_dist=not is_train,
         )
 
         if self.model.config.num_codebooks != self.model.config.num_in_codebooks:
@@ -324,6 +332,7 @@ class TextToSemantic(L.LightningModule):
                 on_epoch=not is_train,
                 prog_bar=True,
                 logger=True,
+                sync_dist=not is_train,
             )
 
         return loss
