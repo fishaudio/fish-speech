@@ -60,6 +60,9 @@ def inference(
     temperature,
     speaker,
 ):
+    if args.max_gradio_length > 0 and len(text) > args.max_gradio_length:
+        return None, "Text is too long, please keep it under 1000 characters."
+
     # Parse reference audio aka prompt
     if enable_reference_audio and reference_audio is not None:
         # reference_audio_sr, reference_audio_content = reference_audio
@@ -255,6 +258,7 @@ def parse_args():
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--compile", action="store_true")
+    parser.add_argument("--max-gradio-length", type=int, default=0)
 
     return parser.parse_args()
 
