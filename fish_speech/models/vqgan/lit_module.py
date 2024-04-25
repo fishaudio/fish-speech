@@ -1,6 +1,6 @@
 import itertools
-from dataclasses import dataclass
-from typing import Any, Callable, Literal, Optional
+import math
+from typing import Any, Callable
 
 import lightning as L
 import torch
@@ -9,30 +9,10 @@ import wandb
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from matplotlib import pyplot as plt
 from torch import nn
-from torch.utils.checkpoint import checkpoint as gradient_checkpoint
 
-from fish_speech.models.vqgan.losses import (
-    MultiResolutionSTFTLoss,
-    discriminator_loss,
-    feature_loss,
-    generator_loss,
-    kl_loss,
-)
-from fish_speech.models.vqgan.utils import plot_mel, sequence_mask, slice_segments
-
-
-@dataclass
-class VQEncodeResult:
-    features: torch.Tensor
-    indices: torch.Tensor
-    loss: torch.Tensor
-    feature_lengths: torch.Tensor
-
-
-@dataclass
-class VQDecodeResult:
-    mels: torch.Tensor
-    audios: Optional[torch.Tensor] = None
+from fish_speech.models.vqgan.modules.discriminator import Discriminator
+from fish_speech.models.vqgan.modules.wavenet import WaveNet
+from fish_speech.models.vqgan.utils import avg_with_mask, plot_mel, sequence_mask
 
 
 class VQGAN(L.LightningModule):
@@ -40,17 +20,18 @@ class VQGAN(L.LightningModule):
         self,
         optimizer: Callable,
         lr_scheduler: Callable,
-        generator: nn.Module,
-        discriminator: nn.Module,
-        mel_transform: nn.Module,
-        spec_transform: nn.Module,
-        hop_length: int = 640,
-        sample_rate: int = 32000,
-        freeze_discriminator: bool = False,
-        weight_mel: float = 45,
-        weight_kl: float = 0.1,
+        encoder: WaveNet,
+        quantizer: nn.Module,
+        decoder: WaveNet,
+        discriminator: Discriminator,
+        vocoder: nn.Module,
+        encode_mel_transform: nn.Module,
+        gt_mel_transform: nn.Module,
+        weight_adv: float = 1.0,
         weight_vq: float = 1.0,
-        weight_aux_mel: float = 20.0,
+        weight_mel: float = 1.0,
+        sampling_rate: int = 44100,
+        freeze_encoder: bool = False,
     ):
         super().__init__()
 
@@ -58,33 +39,59 @@ class VQGAN(L.LightningModule):
         self.optimizer_builder = optimizer
         self.lr_scheduler_builder = lr_scheduler
 
-        # Generator and discriminator
-        self.generator = generator
+        # Modules
+        self.encoder = encoder
+        self.quantizer = quantizer
+        self.decoder = decoder
+        self.vocoder = vocoder
         self.discriminator = discriminator
-        self.mel_transform = mel_transform
-        self.spec_transform = spec_transform
-        self.freeze_discriminator = freeze_discriminator
+        self.encode_mel_transform = encode_mel_transform
+        self.gt_mel_transform = gt_mel_transform
+
+        # A simple linear layer to project quality to condition channels
+        self.quality_projection = nn.Linear(1, 768)
+
+        # Freeze vocoder
+        for param in self.vocoder.parameters():
+            param.requires_grad = False
 
         # Loss weights
-        self.weight_mel = weight_mel
-        self.weight_kl = weight_kl
+        self.weight_adv = weight_adv
         self.weight_vq = weight_vq
-        self.weight_aux_mel = weight_aux_mel
+        self.weight_mel = weight_mel
 
         # Other parameters
-        self.hop_length = hop_length
-        self.sampling_rate = sample_rate
+        self.sampling_rate = sampling_rate
 
-        # Disable automatic optimization
+        # Disable strict loading
+        self.strict_loading = False
+
+        # If encoder is frozen
+        if freeze_encoder:
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+
+            for param in self.quantizer.parameters():
+                param.requires_grad = False
+
         self.automatic_optimization = False
 
-        if self.freeze_discriminator:
-            for p in self.discriminator.parameters():
-                p.requires_grad = False
+    def on_save_checkpoint(self, checkpoint):
+        # Do not save vocoder
+        state_dict = checkpoint["state_dict"]
+        for name in list(state_dict.keys()):
+            if "vocoder" in name:
+                state_dict.pop(name)
 
     def configure_optimizers(self):
-        # Need two optimizers and two schedulers
-        optimizer_generator = self.optimizer_builder(self.generator.parameters())
+        optimizer_generator = self.optimizer_builder(
+            itertools.chain(
+                self.encoder.parameters(),
+                self.quantizer.parameters(),
+                self.decoder.parameters(),
+                self.quality_projection.parameters(),
+            )
+        )
         optimizer_discriminator = self.optimizer_builder(
             self.discriminator.parameters()
         )
@@ -120,121 +127,101 @@ class VQGAN(L.LightningModule):
         audios = audios[:, None, :]
 
         with torch.no_grad():
-            gt_mels = self.mel_transform(audios)
-            gt_specs = self.spec_transform(audios)
+            encoded_mels = self.encode_mel_transform(audios)
+            gt_mels = self.gt_mel_transform(audios)
+            quality = ((gt_mels.mean(-1) > -8).sum(-1) - 90) / 10
+            quality = quality.unsqueeze(-1)
 
-        spec_lengths = audio_lengths // self.hop_length
-        spec_masks = torch.unsqueeze(
-            sequence_mask(spec_lengths, gt_mels.shape[2]), 1
-        ).to(gt_mels.dtype)
-        (
-            fake_audios,
-            ids_slice,
-            y_mask,
-            y_mask,
-            (z, z_p, m_p, logs_p, m_q, logs_q),
-            loss_vq,
-            decoded_aux_mels,
-        ) = self.generator(gt_specs, spec_lengths)
+        mel_lengths = audio_lengths // self.gt_mel_transform.hop_length
+        mel_masks = sequence_mask(mel_lengths, gt_mels.shape[2])
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        gt_mels = gt_mels * mel_masks_float_conv
+        encoded_mels = encoded_mels * mel_masks_float_conv
 
-        gt_mels = slice_segments(gt_mels, ids_slice, self.generator.segment_size)
-        decoded_aux_mels = slice_segments(
-            decoded_aux_mels, ids_slice, self.generator.segment_size
+        # Encode
+        encoded_features = self.encoder(encoded_mels) * mel_masks_float_conv
+
+        # Quantize
+        vq_result = self.quantizer(encoded_features)
+        loss_vq = getattr("vq_result", "loss", 0.0)
+        vq_recon_features = vq_result.z * mel_masks_float_conv
+        vq_recon_features = (
+            vq_recon_features + self.quality_projection(quality)[:, :, None]
         )
-        spec_masks = slice_segments(spec_masks, ids_slice, self.generator.segment_size)
-        audios = slice_segments(
-            audios,
-            ids_slice * self.hop_length,
-            self.generator.segment_size * self.hop_length,
-        )
-        fake_mels = self.mel_transform(fake_audios.squeeze(1))
 
-        assert (
-            audios.shape == fake_audios.shape
-        ), f"{audios.shape} != {fake_audios.shape}"
+        # VQ Decode
+        gen_mel = (
+            self.decoder(
+                torch.randn_like(vq_recon_features) * mel_masks_float_conv,
+                condition=vq_recon_features,
+            )
+            * mel_masks_float_conv
+        )
 
         # Discriminator
-        if self.freeze_discriminator is False:
-            y_d_hat_r, y_d_hat_g, _, _ = self.discriminator(
-                audios, fake_audios.detach()
-            )
+        real_logits = self.discriminator(gt_mels)
+        fake_logits = self.discriminator(gen_mel.detach())
+        d_mask = F.interpolate(
+            mel_masks_float_conv, size=(real_logits.shape[2],), mode="nearest"
+        )
 
-            with torch.autocast(device_type=audios.device.type, enabled=False):
-                loss_disc, _, _ = discriminator_loss(y_d_hat_r, y_d_hat_g)
+        loss_real = avg_with_mask((real_logits - 1) ** 2, d_mask)
+        loss_fake = avg_with_mask(fake_logits**2, d_mask)
 
-            self.log(
-                f"train/discriminator/loss",
-                loss_disc,
-                on_step=True,
-                on_epoch=False,
-                prog_bar=False,
-                logger=True,
-                sync_dist=True,
-            )
+        loss_d = loss_real + loss_fake
 
-            optim_d.zero_grad()
-            self.manual_backward(loss_disc)
-            self.clip_gradients(
-                optim_d, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
-            )
-            optim_d.step()
+        self.log(
+            "train/discriminator/loss",
+            loss_d,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=True,
+        )
 
-        # Adv Loss
-        y_d_hat_r, y_d_hat_g, _, _ = self.discriminator(audios, fake_audios)
+        # Discriminator backward
+        optim_d.zero_grad()
+        self.manual_backward(loss_d)
+        self.clip_gradients(
+            optim_d, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
+        )
+        optim_d.step()
+
+        # Mel Loss, applying l1, using a weighted sum
+        mel_distance = (
+            gen_mel - gt_mels
+        ).abs()  # * 0.5 + self.ssim(gen_mel, gt_mels) * 0.5
+        loss_mel_low_freq = avg_with_mask(mel_distance[:, :40, :], mel_masks_float_conv)
+        loss_mel_mid_freq = avg_with_mask(
+            mel_distance[:, 40:70, :], mel_masks_float_conv
+        )
+        loss_mel_high_freq = avg_with_mask(
+            mel_distance[:, 70:, :], mel_masks_float_conv
+        )
+        loss_mel = (
+            loss_mel_low_freq * 0.6 + loss_mel_mid_freq * 0.3 + loss_mel_high_freq * 0.1
+        )
 
         # Adversarial Loss
-        with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_adv, _ = generator_loss(y_d_hat_g)
+        fake_logits = self.discriminator(gen_mel)
+        loss_adv = avg_with_mask((fake_logits - 1) ** 2, d_mask)
 
-        self.log(
-            f"train/generator/adv",
-            loss_adv,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
+        # Total loss
+        loss = (
+            self.weight_vq * loss_vq
+            + self.weight_mel * loss_mel
+            + self.weight_adv * loss_adv
         )
 
-        with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_fm = feature_loss(y_d_hat_r, y_d_hat_g)
-
+        # Log losses
         self.log(
-            f"train/generator/adv_fm",
-            loss_fm,
+            "train/generator/loss",
+            loss,
             on_step=True,
             on_epoch=False,
-            prog_bar=False,
+            prog_bar=True,
             logger=True,
-            sync_dist=True,
         )
-
-        with torch.autocast(device_type=audios.device.type, enabled=False):
-            loss_mel = F.l1_loss(gt_mels * spec_masks, fake_mels * spec_masks)
-            loss_aux_mel = F.l1_loss(
-                gt_mels * spec_masks, decoded_aux_mels * spec_masks
-            )
-
-        self.log(
-            "train/generator/loss_mel",
-            loss_mel,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
-
-        self.log(
-            "train/generator/loss_aux_mel",
-            loss_aux_mel,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
-
         self.log(
             "train/generator/loss_vq",
             loss_vq,
@@ -242,49 +229,32 @@ class VQGAN(L.LightningModule):
             on_epoch=False,
             prog_bar=False,
             logger=True,
-            sync_dist=True,
         )
-
-        loss_kl = kl_loss(z_p, logs_q, m_p, logs_p, y_mask)
-
         self.log(
-            "train/generator/loss_kl",
-            loss_kl,
+            "train/generator/loss_mel",
+            loss_mel,
             on_step=True,
             on_epoch=False,
             prog_bar=False,
             logger=True,
-            sync_dist=True,
-        )
-
-        loss = (
-            loss_mel * self.weight_mel
-            + loss_aux_mel * self.weight_aux_mel
-            + loss_vq * self.weight_vq
-            + loss_kl * self.weight_kl
-            + loss_adv
-            + loss_fm
         )
         self.log(
-            "train/generator/loss",
-            loss,
+            "train/generator/loss_adv",
+            loss_adv,
             on_step=True,
             on_epoch=False,
             prog_bar=False,
             logger=True,
-            sync_dist=True,
         )
 
-        # Backward
+        # Generator backward
         optim_g.zero_grad()
-
         self.manual_backward(loss)
         self.clip_gradients(
             optim_g, gradient_clip_val=1000.0, gradient_clip_algorithm="norm"
         )
         optim_g.step()
 
-        # Manual LR Scheduler
         scheduler_g, scheduler_d = self.lr_schedulers()
         scheduler_g.step()
         scheduler_d.step()
@@ -295,33 +265,43 @@ class VQGAN(L.LightningModule):
         audios = audios.float()
         audios = audios[:, None, :]
 
-        gt_mels = self.mel_transform(audios)
-        gt_specs = self.spec_transform(audios)
-        spec_lengths = audio_lengths // self.hop_length
-        spec_masks = torch.unsqueeze(
-            sequence_mask(spec_lengths, gt_mels.shape[2]), 1
-        ).to(gt_mels.dtype)
+        encoded_mels = self.encode_mel_transform(audios)
+        gt_mels = self.gt_mel_transform(audios)
 
-        prior_audios, _, _ = self.generator.infer(gt_specs, spec_lengths)
-        posterior_audios, _, _ = self.generator.infer_posterior(gt_specs, spec_lengths)
-        prior_mels = self.mel_transform(prior_audios.squeeze(1))
-        posterior_mels = self.mel_transform(posterior_audios.squeeze(1))
+        mel_lengths = audio_lengths // self.gt_mel_transform.hop_length
+        mel_masks = sequence_mask(mel_lengths, gt_mels.shape[2])
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        gt_mels = gt_mels * mel_masks_float_conv
+        encoded_mels = encoded_mels * mel_masks_float_conv
 
-        min_mel_length = min(
-            gt_mels.shape[-1], prior_mels.shape[-1], posterior_mels.shape[-1]
+        # Encode
+        encoded_features = self.encoder(encoded_mels) * mel_masks_float_conv
+
+        # Quantize
+        vq_recon_features = self.quantizer(encoded_features).z * mel_masks_float_conv
+        vq_recon_features = (
+            vq_recon_features
+            + self.quality_projection(
+                torch.ones(
+                    vq_recon_features.shape[0], 1, device=vq_recon_features.device
+                )
+                * 2
+            )[:, :, None]
         )
-        gt_mels = gt_mels[:, :, :min_mel_length]
-        prior_mels = prior_mels[:, :, :min_mel_length]
-        posterior_mels = posterior_mels[:, :, :min_mel_length]
 
-        prior_mel_loss = F.l1_loss(gt_mels * spec_masks, prior_mels * spec_masks)
-        posterior_mel_loss = F.l1_loss(
-            gt_mels * spec_masks, posterior_mels * spec_masks
+        # VQ Decode
+        gen_aux_mels = (
+            self.decoder(
+                torch.randn_like(vq_recon_features) * mel_masks_float_conv,
+                condition=vq_recon_features,
+            )
+            * mel_masks_float_conv
         )
+        loss_mel = avg_with_mask((gen_aux_mels - gt_mels).abs(), mel_masks_float_conv)
 
         self.log(
-            "val/prior_mel_loss",
-            prior_mel_loss,
+            "val/loss_mel",
+            loss_mel,
             on_step=False,
             on_epoch=True,
             prog_bar=False,
@@ -329,51 +309,43 @@ class VQGAN(L.LightningModule):
             sync_dist=True,
         )
 
-        self.log(
-            "val/posterior_mel_loss",
-            posterior_mel_loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=False,
-            logger=True,
-            sync_dist=True,
-        )
+        recon_audios = self.vocoder(gt_mels)
+        gen_aux_audios = self.vocoder(gen_aux_mels)
 
         # only log the first batch
         if batch_idx != 0:
             return
 
         for idx, (
-            mel,
-            prior_mel,
-            posterior_mel,
+            gt_mel,
+            gen_aux_mel,
             audio,
-            prior_audio,
-            posterior_audio,
+            gen_aux_audio,
+            recon_audio,
             audio_len,
         ) in enumerate(
             zip(
                 gt_mels,
-                prior_mels,
-                posterior_mels,
-                audios.detach().float(),
-                prior_audios.detach().float(),
-                posterior_audios.detach().float(),
+                gen_aux_mels,
+                audios.cpu().float(),
+                gen_aux_audios.cpu().float(),
+                recon_audios.cpu().float(),
                 audio_lengths,
             )
         ):
-            mel_len = audio_len // self.hop_length
+            if idx > 4:
+                break
+
+            mel_len = audio_len // self.gt_mel_transform.hop_length
 
             image_mels = plot_mel(
                 [
-                    prior_mel[:, :mel_len],
-                    posterior_mel[:, :mel_len],
-                    mel[:, :mel_len],
+                    gt_mel[:, :mel_len],
+                    gen_aux_mel[:, :mel_len],
                 ],
                 [
-                    "Prior (VQ)",
-                    "Posterior (Reconstruction)",
                     "Ground-Truth",
+                    "Auxiliary",
                 ],
             )
 
@@ -388,14 +360,14 @@ class VQGAN(L.LightningModule):
                                 caption="gt",
                             ),
                             wandb.Audio(
-                                prior_audio[0, :audio_len],
+                                gen_aux_audio[0, :audio_len],
                                 sample_rate=self.sampling_rate,
-                                caption="prior",
+                                caption="aux",
                             ),
                             wandb.Audio(
-                                posterior_audio[0, :audio_len],
+                                recon_audio[0, :audio_len],
                                 sample_rate=self.sampling_rate,
-                                caption="posterior",
+                                caption="recon",
                             ),
                         ],
                     },
@@ -414,91 +386,57 @@ class VQGAN(L.LightningModule):
                     sample_rate=self.sampling_rate,
                 )
                 self.logger.experiment.add_audio(
-                    f"sample-{idx}/wavs/prior",
-                    prior_audio[0, :audio_len],
+                    f"sample-{idx}/wavs/gen",
+                    gen_aux_audio[0, :audio_len],
                     self.global_step,
                     sample_rate=self.sampling_rate,
                 )
                 self.logger.experiment.add_audio(
-                    f"sample-{idx}/wavs/posterior",
-                    posterior_audio[0, :audio_len],
+                    f"sample-{idx}/wavs/recon",
+                    recon_audio[0, :audio_len],
                     self.global_step,
                     sample_rate=self.sampling_rate,
                 )
 
             plt.close(image_mels)
 
-    # def encode(self, audios, audio_lengths=None):
-    #     if audio_lengths is None:
-    #         audio_lengths = torch.tensor(
-    #             [audios.shape[-1]] * audios.shape[0],
-    #             device=audios.device,
-    #             dtype=torch.long,
-    #         )
+    def encode(self, audios, audio_lengths):
+        audios = audios.float()
 
-    #     with torch.no_grad():
-    #         features = self.mel_transform(audios, sample_rate=self.sampling_rate)
+        mels = self.encode_mel_transform(audios)
+        mel_lengths = audio_lengths // self.encode_mel_transform.hop_length
+        mel_masks = sequence_mask(mel_lengths, mels.shape[2])
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        mels = mels * mel_masks_float_conv
 
-    #     feature_lengths = (
-    #         audio_lengths
-    #         / self.hop_length
-    #         # / self.vq.downsample
-    #     ).long()
+        # Encode
+        encoded_features = self.encoder(mels) * mel_masks_float_conv
+        feature_lengths = mel_lengths // math.prod(self.quantizer.downsample_factor)
 
-    #     # print(features.shape, feature_lengths.shape, torch.max(feature_lengths))
+        return self.quantizer.encode(encoded_features), feature_lengths
 
-    #     feature_masks = torch.unsqueeze(
-    #         sequence_mask(feature_lengths, features.shape[2]), 1
-    #     ).to(features.dtype)
+    def decode(self, indices, feature_lengths, return_audios=False):
+        factor = math.prod(self.quantizer.downsample_factor)
+        mel_masks = sequence_mask(feature_lengths * factor, indices.shape[2] * factor)
+        mel_masks_float_conv = mel_masks[:, None, :].float()
 
-    #     features = (
-    #         gradient_checkpoint(
-    #             self.encoder, features, feature_masks, use_reentrant=False
-    #         )
-    #         * feature_masks
-    #     )
-    #     vq_features, indices, loss = self.vq(features, feature_masks)
+        z = self.quantizer.decode(indices) * mel_masks_float_conv
+        z = (
+            z
+            + self.quality_projection(torch.ones(z.shape[0], 1, device=z.device) * 2)[
+                :, :, None
+            ]
+        )
 
-    #     return VQEncodeResult(
-    #         features=vq_features,
-    #         indices=indices,
-    #         loss=loss,
-    #         feature_lengths=feature_lengths,
-    #     )
+        gen_mel = (
+            self.decoder(
+                torch.randn_like(z) * mel_masks_float_conv,
+                condition=z,
+            )
+            * mel_masks_float_conv
+        )
 
-    # def calculate_audio_lengths(self, feature_lengths):
-    #     return feature_lengths * self.hop_length * self.vq.downsample
+        if return_audios:
+            return self.vocoder(gen_mel)
 
-    # def decode(
-    #     self,
-    #     indices=None,
-    #     features=None,
-    #     audio_lengths=None,
-    #     feature_lengths=None,
-    #     return_audios=False,
-    # ):
-    #     assert (
-    #         indices is not None or features is not None
-    #     ), "indices or features must be provided"
-    #     assert (
-    #         feature_lengths is not None or audio_lengths is not None
-    #     ), "feature_lengths or audio_lengths must be provided"
-
-    #     if audio_lengths is None:
-    #         audio_lengths = self.calculate_audio_lengths(feature_lengths)
-
-    #     mel_lengths = audio_lengths // self.hop_length
-    #     mel_masks = torch.unsqueeze(
-    #         sequence_mask(mel_lengths, torch.max(mel_lengths)), 1
-    #     ).float()
-
-    #     if indices is not None:
-    #         features = self.vq.decode(indices)
-
-    #     # Sample mels
-    #     decoded = gradient_checkpoint(self.decoder, features, use_reentrant=False)
-
-    #     return VQDecodeResult(
-    #         mels=decoded,
-    #         audios=self.generator(decoded) if return_audios else None,
-    #     )
+        return gen_mel

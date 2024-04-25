@@ -1,8 +1,0 @@
-datasets:
-  - root: data/demo
-    source: MyFinetune
-    languages: [ZH, EN]
-    extension: .lab
-    # This controls the grouping of the dataset (i.e. speaker)
-    # 1 means we use the parent folder of the file as the group name
-    group_parent_level: 1

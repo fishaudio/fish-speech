@@ -1,49 +1,57 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from tokenizers import Tokenizer, decoders, models, pre_tokenizers, processors, trainers
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from fish_speech.text.symbols import en_symbols, jp_symbols, zh_symbols
+# Initialize a tokenizer
+tokenizer = Tokenizer(models.BPE())
 
-# reuse the tokenizer from the llama
-model_type = "meta-llama/Llama-2-7b-hf"
-tokenizer = AutoTokenizer.from_pretrained(model_type)
+# Customize pre-tokenization and decoding
+tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+tokenizer.decoder = decoders.ByteLevel()
+tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)
 
-# new tokens
-new_tokens = list(set(zh_symbols + jp_symbols + en_symbols))
-new_tokens = [f"<p:{token}>" for token in new_tokens] + [
-    f"<s:{i}>" for i in range(4096)
-]
-tokenizer.add_tokens(new_tokens)
-tokenizer.add_special_tokens({"pad_token": "<pad>"})
+# Don't train the tokenizer
+trainer = trainers.BpeTrainer(
+    vocab_size=0,
+    min_frequency=2,
+    initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
+    special_tokens=[
+        "<|begin_of_sequence|>",
+        "<|end_of_sequence|>",
+        "<|im_start|>",
+        "<|im_sep|>",  # system, user, assistant, etc.
+        "<|im_end|>",
+        "<|semantic|>",  # audio features
+        "<|pad|>",
+    ],
+)
 
-# pad token
-tokenizer.padding_side = "right"
-tokenizer.truncation_side = "right"
+# <|im_start|>user<|im_sep|>...<|im_end|>
+# <|im_start|>assistant<|im_sep|><|semantic|><|semantic|><|semantic|><|semantic|><|semantic|><|im_end|>
+tokenizer.train_from_iterator([], trainer=trainer)
 
-length = len(tokenizer)
-if length % 8 != 0:
-    length += 8 - (length % 8)
+print(len(tokenizer.get_vocab()))
+x = tokenizer.encode(
+    "Hello, how are you? dfgnviadfjoiviouajeiodfjv 你好世界 🈶<|semantic|>"
+).ids
+print(x, len(x))
+print(tokenizer.decode(x, skip_special_tokens=True))
 
-print(f"Vocab size: {len(tokenizer)}, padded to {length}")
 
-# model = AutoModelForCausalLM.from_pretrained(
-#     "fishaudio/speech-lm-300m", revision="mqtts-proto"
-# )
-
-# Resize the token embeddings to include the new tokens
-# Make sure it's a multiple of 8 for faster training
-# model.resize_token_embeddings(len(tokenizer), pad_to_multiple_of=8)
-
-# total_params = sum(p.numel() for p in model.parameters())
-# print(f"Total parameters: {total_params / 1e6:.2f}M")
+tokenizer = PreTrainedTokenizerFast(
+    tokenizer_object=tokenizer,
+    pad_token="<|pad|>",
+    bos_token="<|begin_of_sequence|>",
+    eos_token="<|end_of_sequence|>",
+)
 
 # Try tokenizing a new sequence
-sequence = "All around, too, lay vast quantities of the costliest merchandise, and treasures were heaped in every cranny of the rocks, but all these things only added to the desolation of the scene."
-encoded = tokenizer.encode(sequence)
+sequence = "All around, too, lay vast quantities of the costliest merchandise, and treasures were heaped in every cranny of the rocks, but all these things only added to the desolation of the scene. 测试中文, 你好世界 🈶<|semantic|>"
+encoded = tokenizer(sequence).input_ids
+
 print("Test encoding....")
 print(f"\tSentence: {sequence}")
 print(f"\tEncoded: {encoded}")
 print(f"\tDecoded: {tokenizer.batch_decode(encoded)}")
+print(f"\tDecoded: {tokenizer.decode(encoded)}")
 
-# model.push_to_hub(
-#     "fishaudio/speech-lm-300m", private=True, revision="text-pretrain-10k-phones"
-# )
-tokenizer.push_to_hub("fishaudio/speech-lm-v1", private=True)
+tokenizer.push_to_hub("fishaudio/fish-speech-1", private=True)

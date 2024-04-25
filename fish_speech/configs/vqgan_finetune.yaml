@@ -2,14 +2,16 @@ defaults:
   - base
   - _self_
 
-project: vq-gan-pretrain
+project: vq-gan-finetune
+ckpt_path: checkpoints/vq-gan-group-fsq-2x1024.pth
+resume_weights_only: true
 
 # Lightning Trainer
 trainer:
   accelerator: gpu
   devices: auto
   precision: bf16-mixed
-  max_steps: 1_000_000
+  max_steps: 100_000
   val_check_interval: 5000
   strategy: ddp_find_unused_parameters_true
 
@@ -18,25 +20,19 @@ hop_length: 512
 num_mels: 128
 n_fft: 2048
 win_length: 2048
+freeze_encoder: true
 
 # Dataset Configuration
 train_dataset:
-  _target_: torch.utils.data.ConcatDataset
-  datasets:
-    - _target_: fish_speech.datasets.vqgan.VQGANDataset
-      filelist: data/gigaspeech/vq_train_filelist.txt
-      sample_rate: ${sample_rate}
-      hop_length: ${hop_length}
-      slice_frames: 512
-    - _target_: fish_speech.datasets.vqgan.VQGANDataset
-      filelist: data/sft/vq_train_filelist.txt
-      sample_rate: ${sample_rate}
-      hop_length: ${hop_length}
-      slice_frames: 512
+  _target_: fish_speech.datasets.vqgan.VQGANDataset
+  filelist: data/filelist.train.txt
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/sft/vq_val_filelist.txt
+  filelist: data/filelist.val.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
 
@@ -45,8 +41,8 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 32
-  val_batch_size: 32
+  batch_size: 16
+  val_batch_size: 16
 
 # Model Configuration
 model:
@@ -108,7 +104,7 @@ model:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 4e-5
     betas: [0.8, 0.99]
     eps: 1e-5
     weight_decay: 0.01

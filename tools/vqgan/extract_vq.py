@@ -11,14 +11,12 @@ import click
 import numpy as np
 import torch
 import torchaudio
-from einops import rearrange
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from lightning import LightningModule
 from loguru import logger
 from omegaconf import OmegaConf
 
-from fish_speech.models.vqgan.utils import sequence_mask
 from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 
 # register eval resolver
@@ -43,7 +41,7 @@ logger.add(sys.stderr, format=logger_format)
 
 @lru_cache(maxsize=1)
 def get_model(
-    config_name: str = "vqgan",
+    config_name: str = "vqgan_pretrain",
     checkpoint_path: str = "checkpoints/vqgan/step_000380000.ckpt",
 ):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
@@ -57,7 +55,7 @@ def get_model(
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
 
-    model.load_state_dict(state_dict, strict=True)
+    model.load_state_dict(state_dict, strict=False)
     model.eval()
     model.cuda()
 
@@ -65,21 +63,34 @@ def get_model(
     return model
 
 
+@torch.inference_mode()
 def process_batch(files: list[Path], model) -> float:
     wavs = []
     audio_lengths = []
+    new_files = []
     max_length = total_time = 0
 
     for file in files:
-        wav, sr = torchaudio.load(file)
+        try:
+            wav, sr = torchaudio.load(
+                str(file), backend="sox"
+            )  # Need to install libsox-dev
+        except Exception as e:
+            logger.error(f"Error reading {file}: {e}")
+            continue
+
         if wav.shape[0] > 1:
             wav = wav.mean(dim=0, keepdim=True)
 
         wav = torchaudio.functional.resample(wav.cuda(), sr, model.sampling_rate)[0]
-        wavs.append(wav)
         total_time += len(wav) / model.sampling_rate
         max_length = max(max_length, len(wav))
+
+        wavs.append(wav)
         audio_lengths.append(len(wav))
+        new_files.append(file)
+
+    files = new_files
 
     # Pad to max length
     for i, wav in enumerate(wavs):
@@ -89,9 +100,7 @@ def process_batch(files: list[Path], model) -> float:
     audio_lengths = torch.tensor(audio_lengths, device=model.device, dtype=torch.long)
 
     # Calculate lengths
-    with torch.no_grad():
-        out = model.encode(audios, audio_lengths)
-        indices, feature_lengths = out.indices, out.feature_lengths
+    indices, feature_lengths = model.encode(audios, audio_lengths)
 
     # Save to disk
     outputs = indices.cpu().numpy()
@@ -114,7 +123,7 @@ def process_batch(files: list[Path], model) -> float:
 @click.option("--config-name", default="vqgan_pretrain")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/vqgan-v1.pth",
+    default="checkpoints/vq-gan-group-fsq-8x1024-wn-20x768-30kh.pth",
 )
 @click.option("--batch-size", default=64)
 @click.option("--filelist", default=None, type=Path)
@@ -162,9 +171,10 @@ def main(
     if filelist:
         files = [i[0] for i in load_filelist(filelist)]
     else:
-        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
 
-    Random(42).shuffle(files)
+    print(f"Found {len(files)} files")
+    # files = [Path(f) for f in files if not Path(f).with_suffix(".npy").exists()]
 
     total_files = len(files)
     files = files[RANK::WORLD_SIZE]

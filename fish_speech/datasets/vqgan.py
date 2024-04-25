@@ -68,6 +68,9 @@ class VQGANDataset(Dataset):
         try:
             return self.get_item(idx)
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             logger.error(f"Error loading {self.files[idx]}: {e}")
             return None
 
@@ -122,7 +125,7 @@ class VQGANDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.val_batch_size,
             collate_fn=VQGANCollator(),
             num_workers=self.num_workers,
         )

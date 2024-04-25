@@ -80,3 +80,15 @@ def fused_add_tanh_sigmoid_multiply(in_act, n_channels):
     acts = t_act * s_act
 
     return acts
+
+
+def avg_with_mask(x, mask):
+    assert mask.dtype == torch.float, "Mask should be float"
+
+    if mask.ndim == 2:
+        mask = mask.unsqueeze(1)
+
+    if mask.shape[1] == 1:
+        mask = mask.expand_as(x)
+
+    return (x * mask).sum() / mask.sum()

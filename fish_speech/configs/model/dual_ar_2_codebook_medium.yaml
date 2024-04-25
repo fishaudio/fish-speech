@@ -1,0 +1,9 @@
+defaults:
+  - dual_ar_2_codebook_small
+  - _self_
+
+config:
+  n_layer: 24
+  n_fast_layer: 6
+  n_head: 16
+  dim: 1024

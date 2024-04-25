@@ -1,0 +1,12 @@
+_target_: fish_speech.models.text2semantic.llama.NaiveTransformer
+config:
+  _target_: fish_speech.models.text2semantic.llama.NaiveModelArgs
+  max_seq_len: ${max_length}
+  vocab_size: 36408
+  n_layer: 12
+  n_head: 12
+  dim: 768
+  rope_base: 10000
+  norm_eps: 1e-5
+  num_codebooks: 2  # input/output codebook size
+  codebook_size: 1032 # codebook size 1024 + 2 special tokens

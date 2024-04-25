@@ -23,20 +23,19 @@ dependencies = [
     "librosa>=0.10.1",
     "rich>=13.5.3",
     "gradio>=4.0.0",
-    "pypinyin>=0.49.0",
-    "jieba>=0.42.1",
-    "g2p-en>=2.1.0",
-    "pyopenjtalk>=0.3.2",
     "wandb>=0.15.11",
     "grpcio>=1.58.0",
     "kui>=1.6.0",
     "zibai-server>=0.9.0",
     "loguru>=0.6.0",
-    "nnAudio>=0.3.2",
     "loralib>=0.1.2",
     "natsort>=8.4.0",
-    "cn2an>=0.5.22",
-    "pyrootutils>=1.0.4"
+    "pyrootutils>=1.0.4",
+    "vector_quantize_pytorch>=1.14.7",
+    "samplerate>=0.2.1",
+    "resampy>=0.4.3",
+    "spaces>=0.26.1",
+    "einx[torch]==0.2.0"
 ]
 
 [project.optional-dependencies]

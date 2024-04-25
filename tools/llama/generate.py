@@ -14,7 +14,8 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from fish_speech.text.parser import clean_text
+from fish_speech.datasets.text import CODEBOOK_EOS_TOKEN_ID
+from fish_speech.text.clean import clean_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -26,9 +27,6 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
 
 
 from fish_speech.models.text2semantic.llama import DualARTransformer, NaiveTransformer
-from fish_speech.text import g2p
-from fish_speech.text.symbols import pad as pad_symbol
-from fish_speech.text.symbols import pu_symbols
 
 
 def multinomial_sample_one_no_sync(
@@ -150,9 +148,9 @@ def decode_one_token_naive(
         codebooks.append(
             sample(
                 x.codebook_logits[:, :, i],
-                previous_tokens=previous_tokens[i + 1]
-                if previous_tokens is not None
-                else None,
+                previous_tokens=(
+                    previous_tokens[i + 1] if previous_tokens is not None else None
+                ),
                 **sampling_kwargs,
             )[0]
         )
@@ -166,6 +164,7 @@ def decode_n_tokens(
     input_pos: torch.Tensor,
     num_new_tokens: int,
     eos_token_id: int = 2,
+    im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
     **sampling_kwargs,
 ):
@@ -200,8 +199,11 @@ def decode_n_tokens(
             model.config.num_codebooks + 1, -1
         )
 
-        # TODO: use tokenizer's eos
-        if cur_token[0, 0, -1] == eos_token_id or (cur_token[0, 1:, -1] == 1).any():
+        if (
+            cur_token[0, 0, -1] == eos_token_id
+            or cur_token[0, 0, -1] == im_end_id
+            or (cur_token[0, 1:, -1] == CODEBOOK_EOS_TOKEN_ID).any()
+        ):
             break
 
     return previous_tokens[:, : i + 1]
@@ -215,8 +217,8 @@ def generate(
     prompt: torch.Tensor,
     max_new_tokens: int,
     eos_token_id: int = 2,
+    im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
-    precision: torch.dtype = torch.bfloat16,
     **sampling_kwargs,
 ) -> torch.Tensor:
     """
@@ -238,7 +240,9 @@ def generate(
 
     device, dtype = prompt.device, prompt.dtype
     with torch.device(device):
-        model.setup_caches(max_batch_size=1, max_seq_len=T_new, dtype=precision)
+        model.setup_caches(
+            max_batch_size=1, max_seq_len=T_new, dtype=next(model.parameters()).dtype
+        )
 
     codebook_dim = 1 + model.config.num_codebooks
     # create an empty tensor of the expected final shape and fill in the current tokens
@@ -247,7 +251,13 @@ def generate(
     seq = empty
     input_pos = torch.arange(0, T, device=device)
 
-    next_token = decode_one_token(
+    # Use non-accelerated version for now, to avoid compilation overhead
+    prefill_decode = (
+        decode_one_token_naive
+        if isinstance(model, NaiveTransformer)
+        else decode_one_token_ar
+    )
+    next_token = prefill_decode(
         model, prompt.view(1, codebook_dim, -1), input_pos, **sampling_kwargs
     )
     seq[:, T : T + 1] = next_token
@@ -259,6 +269,7 @@ def generate(
         input_pos,
         max_new_tokens - 1,
         eos_token_id=eos_token_id,
+        im_end_id=im_end_id,
         decode_one_token=decode_one_token,
         **sampling_kwargs,
     )
@@ -275,29 +286,23 @@ def encode_tokens(
     bos=True,
     device="cuda",
     prompt_tokens=None,
-    use_g2p=False,
     speaker=None,
-    order="zh,jp,en",
     num_codebooks=4,
 ):
-    if use_g2p:
-        order = order.split(",")
-        prompt = g2p(string, order=order)
-        prompt = [
-            (f"<p:{i}>" if i not in pu_symbols and i != pad_symbol else i)
-            for _, i in prompt
-        ]
-        string = " ".join(prompt)
-    else:
-        string = clean_text(string)
+    string = clean_text(string)
 
     if speaker is not None:
         string = f"[SPK: {speaker}] {string}"
 
-    string = f"[INST] {string} [/INST]"
+    string = (
+        f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>assistant<|im_sep|>"
+    )
+    if bos:
+        string = f"<|begin_of_sequence|>{string}"
+
     new_tokens = tokenizer.encode(
         string,
-        add_special_tokens=bos,
+        add_special_tokens=False,
         max_length=10**6,
         truncation=False,
     )
@@ -326,10 +331,9 @@ def encode_tokens(
         )
         data = data[:num_codebooks]
 
-    # Since 1.0, we use <s:xxx> to replace <semantic>
-    s0_token_id = tokenizer.convert_tokens_to_ids("<s:0>")
+    # Since 1.0, we use <|semantic|>
+    s0_token_id = tokenizer.convert_tokens_to_ids("<|semantic|>")
     main_token_ids = torch.tensor(
-        # TODO: replace this
         [[s0_token_id] * data.size(1)],
         dtype=torch.int,
         device=device,
@@ -341,7 +345,9 @@ def encode_tokens(
     return prompt
 
 
-def load_model(config_name, checkpoint_path, device, precision, max_length):
+def load_model(
+    config_name, checkpoint_path, device, precision, max_length, compile=False
+):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs/model"):
         cfg = compose(
             config_name=config_name, overrides=[f"config.max_seq_len={max_length}"]
@@ -382,7 +388,20 @@ def load_model(config_name, checkpoint_path, device, precision, max_length):
     model = model.to(device=device, dtype=precision)
     logger.info("Restored model from checkpoint")
 
-    return model.eval(), cfg
+    if isinstance(model, DualARTransformer):
+        decode_one_token = decode_one_token_ar
+        logger.info("Using DualARTransformer")
+    else:
+        decode_one_token = decode_one_token_naive
+        logger.info("Using NaiveTransformer")
+
+    if compile:
+        logger.info("Compiling function...")
+        decode_one_token = torch.compile(
+            decode_one_token, mode="reduce-overhead", fullgraph=True
+        )
+
+    return model.eval(), decode_one_token
 
 
 def split_text(text, min_length):
@@ -404,75 +423,29 @@ def split_text(text, min_length):
     return segments
 
 
-@click.command()
-@click.option("--text", type=str, default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.")
-@click.option("--prompt-text", type=str, default=None)
-@click.option(
-    "--prompt-tokens", type=click.Path(path_type=Path, exists=True), default=None
-)
-@click.option("--num-samples", type=int, default=1)
-@click.option("--max-new-tokens", type=int, default=0)
-@click.option("--top-k", type=int, default=None)
-@click.option("--top-p", type=float, default=0.9)
-@click.option("--repetition-penalty", type=float, default=1.2)
-@click.option("--temperature", type=float, default=0.7)
-@click.option(
-    "--checkpoint-path",
-    type=click.Path(path_type=Path, exists=True),
-    default="results/text2semantic_400m_finetune/step_000002000.pth",
-)
-@click.option("--config-name", type=str, default="dual_ar_8_codebook_small")
-@click.option("--tokenizer", type=str, default="fishaudio/speech-lm-v1")
-@click.option("--compile/--no-compile", default=False)
-@click.option("--use-g2p/--no-g2p", default=True)
-@click.option("--seed", type=int, default=42)
-@click.option("--speaker", type=str, default=None)
-@click.option("--order", type=str, default="zh,jp,en")
-@click.option("--half/--no-half", default=False)
-@click.option("--iterative-prompt/--no-iterative-prompt", default=False)
-@click.option("--max-length", type=int, default=2048)
-@click.option("--chunk-length", type=int, default=30)
-def main(
+def generate_long(
+    *,
+    model,
+    tokenizer: callable,
+    device: str | torch.device,
+    decode_one_token: callable,
     text: str,
-    prompt_text: Optional[str],
-    prompt_tokens: Optional[Path],
-    num_samples: int,
-    max_new_tokens: int,
-    top_k: int,
-    top_p: int,
-    repetition_penalty: float,
-    temperature: float,
-    checkpoint_path: Path,
-    config_name: str,
-    tokenizer: str,
-    compile: bool,
-    use_g2p: bool,
-    seed: int,
-    speaker: Optional[str],
-    order: str,
-    half: bool,
-    iterative_prompt: bool,
-    max_length: int,
-    chunk_length: int,
-) -> None:
-    device = "cuda"
-
-    precision = torch.half if half else torch.bfloat16
-
-    logger.info("Loading model ...")
-    t0 = time.time()
-    model, cfg = load_model(config_name, checkpoint_path, device, precision, max_length)
+    num_samples: int = 1,
+    max_new_tokens: int = 0,
+    top_k: int = None,
+    top_p: int = 0.7,
+    repetition_penalty: float = 1.5,
+    temperature: float = 0.7,
+    compile: bool = False,
+    iterative_prompt: bool = True,
+    max_length: int = 2048,
+    chunk_length: int = 30,
+    speaker: Optional[str] = None,
+    prompt_text: Optional[str] = None,
+    prompt_tokens: Optional[torch.Tensor] = None,
+):
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-    torch.cuda.synchronize()
-    logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
-
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer)
-    prompt_tokens = (
-        torch.from_numpy(np.load(prompt_tokens)).to(device)
-        if prompt_tokens is not None
-        else None
-    )
+    im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
 
     use_prompt = prompt_text is not None and prompt_tokens is not None
     encoded = []
@@ -484,9 +457,7 @@ def main(
                 string=text,
                 bos=idx == 0 and not use_prompt,
                 device=device,
-                use_g2p=use_g2p,
                 speaker=None,
-                order=order,
                 num_codebooks=model.config.num_codebooks,
             )
         )
@@ -499,37 +470,23 @@ def main(
             prompt_tokens=prompt_tokens,
             bos=True,
             device=device,
-            use_g2p=use_g2p,
             speaker=speaker,
-            order=order,
             num_codebooks=model.config.num_codebooks,
         )
 
         encoded[0] = torch.cat((encoded_prompt, encoded[0]), dim=1)
 
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-
-    if isinstance(model, DualARTransformer):
-        decode_one_token = decode_one_token_ar
-        logger.info("Using DualARTransformer")
-    else:
-        decode_one_token = decode_one_token_naive
-        logger.info("Using NaiveTransformer")
-
-    if compile:
-        logger.info("Compiling function...")
-        decode_one_token = torch.compile(
-            decode_one_token, mode="reduce-overhead", fullgraph=True
-        )
-
-    for idx in range(num_samples):
+    for sample_idx in range(num_samples):
         torch.cuda.synchronize()
         global_encoded = []
         all_codes = []
         seg_idx = 0
 
         while seg_idx < len(encoded):
+            logger.info(
+                f"Generating sentence {seg_idx + 1}/{len(encoded)} of sample {sample_idx + 1}/{num_samples}"
+            )
+
             seg = encoded[seg_idx]
             global_encoded.append(seg)
 
@@ -545,9 +502,9 @@ def main(
             if i != 0 and i % 2 == 0:
                 i -= 1
 
-            # Rotate the list
+            # Rotate the list, always make sure first segment is included to avoid drift
             if i < len(global_encoded) - 2:
-                partial_encoded = global_encoded[-i:]
+                partial_encoded = global_encoded[:2] + global_encoded[-i:]
             else:
                 partial_encoded = global_encoded
 
@@ -560,15 +517,15 @@ def main(
                 prompt=cat_encoded,
                 max_new_tokens=max_new_tokens,
                 eos_token_id=tokenizer.eos_token_id,
+                im_end_id=im_end_id,
                 decode_one_token=decode_one_token,
-                precision=precision,
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
                 repetition_penalty=repetition_penalty,
             )
 
-            if idx == 0 and seg_idx == 0 and compile:
+            if sample_idx == 0 and seg_idx == 0 and compile:
                 logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
 
             torch.cuda.synchronize()
@@ -587,7 +544,8 @@ def main(
             )
 
             # Put the generated tokens
-            codes = y[1:, prompt_length:-1].clone()
+            # since there is <im_end> and <eos> tokens, we remove last 2 tokens
+            codes = y[1:, prompt_length:-2].clone()
 
             codes = codes - 2
             if not (codes >= 0).all():
@@ -595,13 +553,119 @@ def main(
                 logger.warning(f"Negative code found: {codes}, retrying ...")
                 continue
 
-            global_encoded.append(y[:, prompt_length:-1].clone())
+            decoded = y[:, prompt_length:-1].clone()
+            if decoded[0, -1] != im_end_id:  # <im_end>
+                val = [[im_end_id]] + [[CODEBOOK_EOS_TOKEN_ID]] * (decoded.size(0) - 1)
+                decoded = torch.cat(
+                    (decoded, torch.tensor(val, device=device, dtype=torch.int)), dim=1
+                )
+
+            # But for global encoding, we should keep the <im_end> token
+            global_encoded.append(decoded)
             all_codes.append(codes)
             seg_idx += 1
 
         codes = torch.cat(all_codes, dim=1)
         assert (codes >= 0).all(), f"Negative code found: {codes}"
 
+        yield codes
+
+
+@click.command()
+@click.option(
+    "--text",
+    type=str,
+    default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
+)
+@click.option("--prompt-text", type=str, default=None)
+@click.option(
+    "--prompt-tokens", type=click.Path(path_type=Path, exists=True), default=None
+)
+@click.option("--num-samples", type=int, default=1)
+@click.option("--max-new-tokens", type=int, default=0)
+@click.option("--top-k", type=int, default=None)
+@click.option("--top-p", type=float, default=0.7)
+@click.option("--repetition-penalty", type=float, default=1.5)
+@click.option("--temperature", type=float, default=0.7)
+@click.option(
+    "--checkpoint-path",
+    type=click.Path(path_type=Path, exists=True),
+    default="results/text2semantic_400m_finetune/step_000002000.pth",
+)
+@click.option("--config-name", type=str, default="dual_ar_8_codebook_small")
+@click.option("--tokenizer", type=str, default="fishaudio/fish-speech-1")
+@click.option("--compile/--no-compile", default=False)
+@click.option("--seed", type=int, default=42)
+@click.option("--speaker", type=str, default=None)
+@click.option("--half/--no-half", default=False)
+@click.option("--iterative-prompt/--no-iterative-prompt", default=True)
+@click.option("--max-length", type=int, default=2048)
+@click.option("--chunk-length", type=int, default=30)
+def main(
+    text: str,
+    prompt_text: Optional[str],
+    prompt_tokens: Optional[Path],
+    num_samples: int,
+    max_new_tokens: int,
+    top_k: int,
+    top_p: int,
+    repetition_penalty: float,
+    temperature: float,
+    checkpoint_path: Path,
+    config_name: str,
+    tokenizer: str,
+    compile: bool,
+    seed: int,
+    speaker: Optional[str],
+    half: bool,
+    iterative_prompt: bool,
+    max_length: int,
+    chunk_length: int,
+) -> None:
+    device = "cuda"
+
+    precision = torch.half if half else torch.bfloat16
+
+    logger.info("Loading model ...")
+    t0 = time.time()
+    model, decode_one_token = load_model(
+        config_name, checkpoint_path, device, precision, max_length, compile=compile
+    )
+    torch.cuda.synchronize()
+    logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
+
+    prompt_tokens = (
+        torch.from_numpy(np.load(prompt_tokens)).to(device)
+        if prompt_tokens is not None
+        else None
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+    generator = generate_long(
+        model=model,
+        device=device,
+        decode_one_token=decode_one_token,
+        text=text,
+        num_samples=num_samples,
+        max_new_tokens=max_new_tokens,
+        top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        temperature=temperature,
+        tokenizer=tokenizer,
+        compile=compile,
+        speaker=speaker,
+        iterative_prompt=iterative_prompt,
+        max_length=max_length,
+        chunk_length=chunk_length,
+        prompt_text=prompt_text,
+        prompt_tokens=prompt_tokens,
+    )
+
+    for idx, codes in enumerate(generator):
         np.save(f"codes_{idx}.npy", codes.cpu().numpy())
         logger.info(f"Saved codes to codes_{idx}.npy")
 
