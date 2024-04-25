@@ -233,6 +233,7 @@ def build_app():
                 speaker,
             ],
             [audio, error],
+            concurrency_limit=1,
         )
 
     return app

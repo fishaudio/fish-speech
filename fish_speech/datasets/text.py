@@ -178,7 +178,7 @@ class AutoAugTextDataset(IterableDataset):
         interactive_prob: float = 0.5,
         max_length: int = 1024,
         tokenizer: AutoTokenizer = None,
-        use_speaker: bool = True,
+        use_speaker: bool | float = True,
         causual: bool = True,
         use_negative_samples: bool = False,
         num_codebooks: Optional[int] = None,
@@ -319,6 +319,12 @@ class AutoAugTextDataset(IterableDataset):
         else:
             remaining_tokens = self.max_length
 
+        # Use speaker
+        if isinstance(self.use_speaker, float):
+            use_speaker = random.random() < self.use_speaker
+        else:
+            use_speaker = self.use_speaker
+
         all_tokens, all_labels = [], []
         while remaining_tokens > 0 and len(samples) > 0:
             sentence = samples.pop(0)
@@ -336,7 +342,7 @@ class AutoAugTextDataset(IterableDataset):
                 tokens, labels = self.pack_sentences(
                     sentences=[text],
                     semantics=[sentence.semantics],
-                    speaker=response.name if (self.use_speaker and idx == 0) else None,
+                    speaker=response.name if use_speaker else None,
                     add_bos=idx == 0,
                 )
 
@@ -349,7 +355,7 @@ class AutoAugTextDataset(IterableDataset):
             tokens, labels = self.pack_sentences(
                 final_text,
                 semantics=final_semantic,
-                speaker=response.name if self.use_speaker else None,
+                speaker=response.name if use_speaker else None,
                 add_bos=True,
             )
             all_tokens.append(tokens)
@@ -440,7 +446,7 @@ class AutoAugTextDataset(IterableDataset):
         speaker: Optional[str] = None,
         add_bos: bool = True,
     ):
-        if speaker is not None:
+        if speaker is None:
             speaker = "assistant"
 
         final_text = "<|im_start|>user<|im_sep|>" + " ".join(sentences) + "<|im_end|>"
