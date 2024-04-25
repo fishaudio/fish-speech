@@ -498,6 +498,7 @@ def generate_long(
 
         if use_prompt:
             seg_idx = 1
+            global_encoded.append(encoded[0])
 
         while seg_idx < len(encoded):
             logger.info(
