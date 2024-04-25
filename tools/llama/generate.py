@@ -496,6 +496,9 @@ def generate_long(
         all_codes = []
         seg_idx = 0
 
+        if use_prompt:
+            seg_idx = 1
+
         while seg_idx < len(encoded):
             logger.info(
                 f"Generating sentence {seg_idx + 1}/{len(encoded)} of sample {sample_idx + 1}/{num_samples}"
