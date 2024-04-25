@@ -292,10 +292,10 @@ def encode_tokens(
     string = clean_text(string)
 
     if speaker is not None:
-        string = f"[SPK: {speaker}] {string}"
+        speaker = "assistant"
 
     string = (
-        f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>assistant<|im_sep|>"
+        f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>{speaker}<|im_sep|>"
     )
     if bos:
         string = f"<|begin_of_sequence|>{string}"

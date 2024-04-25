@@ -441,10 +441,10 @@ class AutoAugTextDataset(IterableDataset):
         add_bos: bool = True,
     ):
         if speaker is not None:
-            sentences = [f"[SPK: {speaker}]"] + sentences
+            speaker = "assistant"
 
         final_text = "<|im_start|>user<|im_sep|>" + " ".join(sentences) + "<|im_end|>"
-        final_text = final_text + "<|im_start|>assistant<|im_sep|>"
+        final_text = final_text + f"<|im_start|>{speaker}<|im_sep|>"
 
         encoded = self.tokenizer.encode(
             final_text,
