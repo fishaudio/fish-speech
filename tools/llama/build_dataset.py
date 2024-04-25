@@ -43,8 +43,10 @@ def task_generator_folder(root: Path, text_extension: str):
     logger.info(
         f"Found {len(grouped_files)} groups in {root}, {list(grouped_files.keys())[:5]}..."
     )
-    for speaker, file, texts in grouped_files.values():
-        yield speaker, (file, texts), "folder"
+
+    for i in grouped_files.values():
+        subset = [(f, t) for _, f, t in i]
+        yield i[0][0], subset, "folder"
 
 
 def task_generator_filelist(filelist):
@@ -62,9 +64,7 @@ def run_task(task):
 
     # Parse the files
     sentences = []
-    for file in subset:
-        file, texts = file
-
+    for file, texts in subset:
         np_file = file.with_suffix(".npy")
         if np_file.exists() is False:
             logger.warning(f"Can't find {np_file}")
