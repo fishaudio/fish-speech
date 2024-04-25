@@ -44,7 +44,7 @@ def list_files(
     if not path.exists():
         raise FileNotFoundError(f"Directory {path} does not exist.")
 
-    files = [file for ext in extensions for file in path.iglob(f"**/*{ext}")]
+    files = [file for ext in extensions for file in path.rglob(f"*{ext}")]
 
     if sort:
         files = natsorted(files)
