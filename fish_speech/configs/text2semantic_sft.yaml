@@ -1,11 +1,11 @@
 defaults:
   - base
-  - model@model.model: dual_ar_8_codebook_small
+  - model@model.model: dual_ar_2_codebook_small
   - _self_
 
-project: text2semantic_sft_medium_dual_ar
+project: text2semantic_sft_dual_ar
 max_length: 4096
-ckpt_path: results/text2semantic_pretrain_medium_dual_ar/checkpoints/step_000060000.ckpt
+ckpt_path: checkpoints/text2semantic-medium-v1-2k.pth
 resume_weights_only: true
 
 # Lightning Trainer
@@ -21,33 +21,28 @@ trainer:
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/speech-lm-v1
+  pretrained_model_name_or_path: fishaudio/fish-speech-1
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
-  use_data_server: false
   proto_files:
-    - data/protos/sft/train_Genshin.protos
-    - data/protos/sft/sft.protos
+    - data/protos/sft/train
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: false
-  phones_prob: 0.5
-  interactive_prob: 0.5
+  use_speaker: 0.5
+  interactive_prob: 0.7
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
-  use_data_server: false
   proto_files:
-    - data/protos/sft/val_Genshin.protos
+    - data/protos/sft/test
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: false
-  phones_prob: 0.5
-  interactive_prob: 0.5
+  use_speaker: 0.5
+  interactive_prob: 0.7
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
