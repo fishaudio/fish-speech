@@ -27,6 +27,7 @@ def task_generator_folder(root: Path, text_extension: str):
     grouped_files = defaultdict(list)
     for file in tqdm(files, desc=f"Grouping {root}"):
         p = str(file.parent)
+        speaker = file.parent.name
 
         try:
             if isinstance(text_extension, str):
@@ -37,13 +38,13 @@ def task_generator_folder(root: Path, text_extension: str):
             logger.error(f"Failed to read text {file}: {e}")
             continue
 
-        grouped_files[p].append((file, texts))
+        grouped_files[p].append((speaker, file, texts))
 
     logger.info(
         f"Found {len(grouped_files)} groups in {root}, {list(grouped_files.keys())[:5]}..."
     )
-    for name, subset in grouped_files.items():
-        yield name, subset, "folder"
+    for speaker, file, texts in grouped_files.values():
+        yield speaker, (file, texts), "folder"
 
 
 def task_generator_filelist(filelist):
