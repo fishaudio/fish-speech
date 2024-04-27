@@ -359,7 +359,6 @@ def train_process(
     llama_precision,
     llama_check_interval,
 ):
-
     if option == "VQGAN" or option == "all":
         subprocess.run(
             [
