@@ -322,7 +322,7 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
                         env=env,
                     )
                 except Exception:
-                    print("Transcription error occured")
+                    print("Transcription error occurred")
 
             if content["method"] == "复制一份":
                 os.makedirs(tar_path, exist_ok=True)
