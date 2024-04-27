@@ -35,7 +35,7 @@ dependencies = [
     "samplerate>=0.2.1",
     "resampy>=0.4.3",
     "spaces>=0.26.1",
-    "einx[torch]==0.2.0"
+    "einx[torch]==0.2.2"
 ]
 
 [project.optional-dependencies]

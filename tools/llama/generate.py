@@ -1,4 +1,6 @@
 import os
+import queue
+import threading
 import time
 from pathlib import Path
 from typing import Optional, Tuple, Union
@@ -567,10 +569,7 @@ def generate_long(
             codes = y[1:, prompt_length:-2].clone()
 
             codes = codes - 2
-            if not (codes >= 0).all():
-                global_encoded.pop()
-                logger.warning(f"Negative code found: {codes}, retrying ...")
-                continue
+            assert (codes >= 0).all(), f"Negative code found"
 
             decoded = y[:, prompt_length:-1].clone()
             if decoded[0, -1] != im_end_id:  # <im_end>
@@ -597,6 +596,47 @@ def generate_long(
             all_codes = torch.cat(all_codes, dim=1)
             assert (all_codes >= 0).all(), f"Negative code found: {codes}"
             yield all_codes
+
+
+def launch_thread_safe_queue(
+    config_name,
+    checkpoint_path,
+    device,
+    precision,
+    max_length,
+    compile=False,
+):
+    input_queue = queue.Queue()
+
+    def worker():
+        model, decode_one_token = load_model(
+            config_name, checkpoint_path, device, precision, max_length, compile=compile
+        )
+
+        while True:
+            item = input_queue.get()
+            if item is None:
+                break
+
+            kwargs = item["request"]
+            event = item["event"]
+
+            try:
+                item["success"] = True
+                item["response"] = list(
+                    generate_long(
+                        model=model, decode_one_token=decode_one_token, **kwargs
+                    )
+                )
+            except Exception as e:
+                item["success"] = False
+                item["response"] = e
+
+            event.set()
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    return input_queue
 
 
 @click.command()

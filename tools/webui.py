@@ -1,5 +1,6 @@
 import html
 import os
+import threading
 from argparse import ArgumentParser
 from io import BytesIO
 from pathlib import Path
@@ -12,8 +13,7 @@ from loguru import logger
 from torchaudio import functional as AF
 from transformers import AutoTokenizer
 
-from tools.llama.generate import generate_long
-from tools.llama.generate import load_model as load_llama_model
+from tools.llama.generate import launch_thread_safe_queue
 from tools.vqgan.inference import load_model as load_vqgan_model
 
 # Make einx happy
@@ -85,11 +85,9 @@ def inference(
         prompt_tokens = vqgan_model.encode(audios, audio_lengths)[0][0]
 
     # LLAMA Inference
-    result = generate_long(
-        model=llama_model,
+    request = dict(
         tokenizer=llama_tokenizer,
         device=vqgan_model.device,
-        decode_one_token=decode_one_token,
         max_new_tokens=max_new_tokens,
         text=text,
         top_k=int(top_k) if top_k > 0 else None,
@@ -105,7 +103,18 @@ def inference(
         prompt_text=reference_text if enable_reference_audio else None,
     )
 
-    codes = next(result)
+    payload = dict(
+        event=threading.Event(),
+        request=request,
+    )
+    llama_queue.put(payload)
+
+    # Wait for the result
+    payload["event"].wait()
+    if payload["success"] is False:
+        raise payload["response"]
+
+    codes = payload["response"][0]
 
     # VQGAN Inference
     feature_lengths = torch.tensor([codes.shape[1]], device=vqgan_model.device)
@@ -270,7 +279,7 @@ if __name__ == "__main__":
     args.precision = torch.half if args.half else torch.bfloat16
 
     logger.info("Loading Llama model...")
-    llama_model, decode_one_token = load_llama_model(
+    llama_queue = launch_thread_safe_queue(
         config_name=args.llama_config_name,
         checkpoint_path=args.llama_checkpoint_path,
         device=args.device,
