@@ -359,6 +359,7 @@ def train_process(
     llama_precision,
     llama_check_interval,
 ):
+    backend = "nccl" if sys.platform == "linux" else "gloo"
     if option == "VQGAN" or option == "all":
         subprocess.run(
             [
@@ -372,6 +373,7 @@ def train_process(
             "fish_speech/train.py",
             "--config-name",
             "vqgan_finetune",
+            f"trainer.strategy.process_group_backend={backend}",
             f"model.optimizer.lr={vqgan_lr}",
             f"trainer.max_steps={vqgan_maxsteps}",
             f"data.num_workers={vqgan_data_num_workers}",
@@ -421,6 +423,7 @@ def train_process(
             "fish_speech/train.py",
             "--config-name",
             "text2semantic_sft",
+            f"trainer.strategy.process_group_backend={backend}",
             "model@model.model=dual_ar_2_codebook_medium",
             "tokenizer.pretrained_model_name_or_path=checkpoints",
             f"train_dataset.proto_files={str(protos_list)}",
