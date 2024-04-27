@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import click
+import hydra
 import librosa
 import numpy as np
 import soundfile as sf
@@ -18,6 +19,7 @@ OmegaConf.register_new_resolver("eval", eval)
 
 
 def load_model(config_name, checkpoint_path, device="cuda"):
+    hydra.core.global_hydra.GlobalHydra.instance().clear()
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
 

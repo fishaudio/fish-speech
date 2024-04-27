@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import click
+import hydra
 import numpy as np
 import torch
 import torch._dynamo.config
@@ -363,6 +364,7 @@ def encode_tokens(
 def load_model(
     config_name, checkpoint_path, device, precision, max_length, compile=False
 ):
+    hydra.core.global_hydra.GlobalHydra.instance().clear()
     with initialize(version_base="1.3", config_path="../../fish_speech/configs/model"):
         cfg = compose(
             config_name=config_name, overrides=[f"config.max_seq_len={max_length}"]
