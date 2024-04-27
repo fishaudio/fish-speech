@@ -7,7 +7,7 @@ from pathlib import Path
 
 import gradio as gr
 import librosa
-import spaces
+# import spaces
 import torch
 from loguru import logger
 from torchaudio import functional as AF
@@ -40,13 +40,14 @@ TEXTBOX_PLACEHOLDER = """Put your text here. 在此处输入文本."""
 
 def build_html_error_message(error):
     return f"""
-    <div style="color: red; font-weight: bold;">
+    <div style="color: red; 
+    font-weight: bold;">
         {html.escape(error)}
     </div>
     """
 
 
-@spaces.GPU
+# @spaces.GPU
 def inference(
     text,
     enable_reference_audio,

@@ -73,7 +73,7 @@ def process_batch(files: list[Path], model) -> float:
     for file in files:
         try:
             wav, sr = torchaudio.load(
-                str(file), backend="sox"
+                str(file), backend="sox" if sys.platform == "linux" else "soundfile"
             )  # Need to install libsox-dev
         except Exception as e:
             logger.error(f"Error reading {file}: {e}")

@@ -496,8 +496,8 @@ class AutoAugTextDataset(IterableDataset):
         tokens = torch.tensor(tokens, dtype=torch.long)
         labels = tokens.clone()
 
-        # Mask out the <s> tokens for semantic, predict semantic tokens only
-        # Since we don't mask out the input tokens, the language modeling still works
+        # Mask text-labeler the <s> tokens for semantic, predict semantic tokens only
+        # Since we don't mask text-labeler the input tokens, the language modeling still works
         labels[1:, : (prompt_length + bos_bias)] = -100
 
         tokens = tokens[:, :-1]
