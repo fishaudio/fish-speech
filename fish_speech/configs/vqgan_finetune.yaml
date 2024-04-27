@@ -13,7 +13,8 @@ trainer:
   precision: bf16-mixed
   max_steps: 100_000
   val_check_interval: 5000
-  strategy: ddp_find_unused_parameters_true
+  strategy:
+    find_unused_parameters: true
 
 sample_rate: 44100
 hop_length: 512
