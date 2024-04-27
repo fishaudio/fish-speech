@@ -66,12 +66,6 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
         cfg.trainer,
         callbacks=callbacks,
         logger=logger,
-        strategy=DDPStrategy(
-            process_group_backend="nccl" if sys.platform == "linux" else "gloo",
-            find_unused_parameters=True
-            if cfg.get("trainer").get("strategy") == "ddp_find_unused_parameters_true"
-            else False,
-        ),
     )
 
     object_dict = {

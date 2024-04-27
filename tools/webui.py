@@ -8,7 +8,6 @@ from pathlib import Path
 import gradio as gr
 import librosa
 
-# import spaces
 import torch
 from loguru import logger
 from torchaudio import functional as AF
@@ -38,6 +37,14 @@ We are not responsible for any misuse of the model, please consider your local l
 
 TEXTBOX_PLACEHOLDER = """Put your text here. 在此处输入文本."""
 
+try:
+    import spaces
+    GPU_DECORATOR = spaces.GPU
+except ImportError:
+    def GPU_DECORATOR(func):
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
 
 def build_html_error_message(error):
     return f"""
@@ -48,7 +55,7 @@ def build_html_error_message(error):
     """
 
 
-# @spaces.GPU
+@GPU_DECORATOR
 def inference(
     text,
     enable_reference_audio,
