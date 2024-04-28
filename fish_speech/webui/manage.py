@@ -359,7 +359,7 @@ def train_process(
     llama_precision,
     llama_check_interval,
     llama_grad_batches,
-    llama_use_speaker
+    llama_use_speaker,
 ):
     backend = "nccl" if sys.platform == "linux" else "gloo"
     if option == "VQGAN" or option == "all":
@@ -794,7 +794,7 @@ with gr.Blocks(
             llama_precision_dropdown,
             llama_check_interval_slider,
             llama_grad_batches,
-            llama_use_speaker
+            llama_use_speaker,
         ],
         outputs=[train_error],
     )

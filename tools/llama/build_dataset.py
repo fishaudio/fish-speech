@@ -33,7 +33,10 @@ def task_generator_folder(root: Path, text_extension: str):
             if isinstance(text_extension, str):
                 texts = [file.with_suffix(text_extension).read_text(encoding="utf-8")]
             else:
-                texts = [file.with_suffix(ext).read_text(encoding="utf-8") for ext in text_extension]
+                texts = [
+                    file.with_suffix(ext).read_text(encoding="utf-8")
+                    for ext in text_extension
+                ]
         except Exception as e:
             logger.error(f"Failed to read text {file}: {e}")
             continue
