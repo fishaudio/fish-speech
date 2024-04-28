@@ -144,10 +144,10 @@ def api_invoke_model(
     Invoke model and generate audio
     """
 
-    if args.max_gradio_length > 0 and len(req.text) > args.max_gradio_length:
+    if args.max_text_length > 0 and len(req.text) > args.max_text_length:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
-            content=f"Text is too long, max length is {args.max_gradio_length}",
+            content=f"Text is too long, max length is {args.max_text_length}",
         )
 
     try:
@@ -208,7 +208,7 @@ def parse_args():
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--compile", action="store_true")
-    parser.add_argument("--max-gradio-length", type=int, default=0)
+    parser.add_argument("--max-text-length", type=int, default=0)
     parser.add_argument("--listen", type=str, default="127.0.0.1:8000")
 
     return parser.parse_args()

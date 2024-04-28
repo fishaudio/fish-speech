@@ -30,7 +30,7 @@ tokenizer:
 train_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   proto_files:
-    - data/protos/sft/train
+    - data/protos/sft
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
@@ -40,7 +40,7 @@ train_dataset:
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
   proto_files:
-    - data/protos/sft/test
+    - data/protos/sft
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}

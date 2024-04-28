@@ -1,7 +1,7 @@
 # Samples
 
 !!! note
-    Due to insufficient Japanese to English training data, we first phonemicize the text and then use it for generation.
+    Samples in this page are generated using the 0.4 version and have not been updated.
 
 ## Chinese Sentence 1
 ```
