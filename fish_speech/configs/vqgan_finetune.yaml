@@ -14,6 +14,8 @@ trainer:
   max_steps: 100_000
   val_check_interval: 5000
   strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    process_group_backend: nccl  # This should be override when training on windows
     find_unused_parameters: true
 
 sample_rate: 44100

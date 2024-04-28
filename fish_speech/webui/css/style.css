@@ -1,0 +1,161 @@
+:root {
+  --my-200: #80eeee;
+  --my-50: #ecfdf5;
+  --water-width: 300px;
+  --water-heigh: 300px;
+}
+
+
+/* general styled components */
+.tools {
+  align-items: center;
+  justify-content: center;
+}
+
+.gradio-button {
+    max-width: 2.2em;
+    min-width: 2.2em !important;
+    height: 2.4em;
+    align-self: end;
+    line-height: 1em;
+    border-radius: 0.5em;
+
+}
+
+.gradio-button.secondary-down, .gradio-button.secondary-down:hover{
+    box-shadow: 1px 1px 1px rgba(0,0,0,0.25) inset, 0px 0px 3px rgba(0,0,0,0.15) inset;
+}
+
+/* replace original footer with ours */
+a{
+    font-weight: bold;
+    cursor: pointer;
+    color: #030C14 !important;
+}
+
+footer {
+    display: none !important;
+}
+
+#footer{
+    text-align: center;
+}
+
+#footer div{
+    display: inline-block;
+}
+
+#footer .versions{
+    font-size: 85%;
+    opacity: 0.85;
+}
+
+/*@keyframes moveBackground {*/
+/*  0% {*/
+/*    background-position: 0 0;*/
+/*  }*/
+/*  100% {*/
+/*    background-position: -100px 100px;*/
+/*  }*/
+/*}*/
+@keyframes moveJellyBackground {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradio-container {
+  position: absolute;
+  z-index: 10;
+}
+
+
+.quan {
+  position: absolute;
+  bottom: 0;
+  width: var(--water-width);
+  height: var(--water-heigh);
+  border-radius: 0;
+  /*border: 3px solid rgb(246, 247, 248);*/
+  /*box-shadow: 0 0 0 3px rgb(41, 134, 196);*/
+  z-index: 0;
+
+}
+
+.quan:last-child {
+  margin-right: 0;
+}
+
+.shui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(23, 106, 201);
+  border-radius: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.shui::after {
+
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  border-radius: 40%;
+  background-image: radial-gradient(circle at 0% 50%, #dcfcf1, var(--my-50) 50%);
+  animation: shi 5s linear infinite;
+}
+
+@keyframes shi {
+  0% {
+    transform: translate(-50%, -65%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -65%) rotate(360deg);
+  }
+}
+
+.shui::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  border-radius: 42%;
+  background-color: rgb(240, 228, 228, 0.2);
+  animation: xu 7s linear infinite;
+}
+
+@keyframes xu {
+  0% {
+    transform: translate(-50%, -60%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -60%) rotate(360deg);
+  }
+}
+
+fieldset.data_src div.wrap label {
+  background: #f8bffee0 !important;
+}
+
+.scrollable-component {
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+#file_accordion {
+  max-height: 220px !important;
+}

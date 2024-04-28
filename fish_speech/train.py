@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Optional
 
 import hydra
@@ -7,6 +8,7 @@ import pyrootutils
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
+from lightning.pytorch.strategies import DDPStrategy
 from omegaconf import DictConfig, OmegaConf
 
 os.environ.pop("SLURM_NTASKS", None)
@@ -61,7 +63,9 @@ def train(cfg: DictConfig) -> tuple[dict, dict]:
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(
-        cfg.trainer, callbacks=callbacks, logger=logger
+        cfg.trainer,
+        callbacks=callbacks,
+        logger=logger,
     )
 
     object_dict = {

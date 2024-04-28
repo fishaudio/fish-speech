@@ -28,7 +28,7 @@ class VQGANDataset(Dataset):
 
         self.files = [
             root / line.strip()
-            for line in filelist.read_text().splitlines()
+            for line in filelist.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
         self.sample_rate = sample_rate
@@ -120,6 +120,7 @@ class VQGANDataModule(LightningDataModule):
             collate_fn=VQGANCollator(),
             num_workers=self.num_workers,
             shuffle=True,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
@@ -128,6 +129,7 @@ class VQGANDataModule(LightningDataModule):
             batch_size=self.val_batch_size,
             collate_fn=VQGANCollator(),
             num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
 
