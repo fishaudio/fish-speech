@@ -8,7 +8,7 @@
 <img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
 </a>
 <a target="_blank" href="https://hub.docker.com/r/lengyue233/fish-speech">
-<img alt="Docker" src="https://img.shields.io/docker/automated/lengyue233/fish-speech&style=flat-square"/>
+<img alt="Docker" src="https://img.shields.io/docker/pulls/lengyue233/fish-speech?style=flat-square&logo=docker"/>
 </a>
 </div>
 

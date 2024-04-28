@@ -26,19 +26,19 @@
     └── 38.79-40.85.mp3
 ```
 
-你需要将数据集转为以上格式, 并放到 `data/demo` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`.
+你需要将数据集转为以上格式, 并放到 `data` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`.
 
 ### 2. 分割训练集和验证集
 
 ```bash
-python tools/vqgan/create_train_split.py data/demo
+python tools/vqgan/create_train_split.py data
 ```
 
-该命令会在 `data/demo` 目录下创建 `data/demo/vq_train_filelist.txt` 和 `data/demo/vq_val_filelist.txt` 文件, 分别用于训练和验证.  
+该命令会在 `data` 目录下创建 `data/vq_train_filelist.txt` 和 `data/vq_val_filelist.txt` 文件, 分别用于训练和验证.  
 
 !!!info
     对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.  
-    请注意, `filelist` 所指向的音频文件必须也位于 `data/demo` 文件夹下.
+    请注意, `filelist` 所指向的音频文件必须也位于 `data` 文件夹下.
 
 ### 3. 启动训练
 
@@ -77,15 +77,12 @@ python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_fine
     └── 38.79-40.85.mp3
 ```
 
-你需要将数据集转为以上格式, 并放到 `data/demo` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`, 标注文件后缀可以为 `.lab` 或 `.txt`.
-
-!!! note
-    你可以通过修改 `fish_speech/configs/data/finetune.yaml` 来修改数据集路径, 以及混合数据集.
+你需要将数据集转为以上格式, 并放到 `data` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`, 标注文件后缀建议为 `.lab`.
 
 !!! warning
     建议先对数据集进行响度匹配, 你可以使用 [fish-audio-preprocess](https://github.com/fishaudio/audio-preprocess) 来完成这一步骤. 
     ```bash
-    fap loudness-norm demo-raw demo --clean
+    fap loudness-norm data-raw data --clean
     ```
 
 ### 2. 批量提取语义 token
@@ -93,29 +90,29 @@ python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_fine
 确保你已经下载了 vqgan 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
 ```
 
 随后可运行以下命令来提取语义 token:
 
 ```bash
-python tools/vqgan/extract_vq.py data/demo \
+python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
     --config-name "vqgan_pretrain" \
-    --checkpoint-path "checkpoints/vqgan-v1.pth"
+    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
 
 !!! note
     你可以调整 `--num-workers` 和 `--batch-size` 来提高提取速度, 但是请注意不要超过你的显存限制.  
     对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
 
-该命令会在 `data/demo` 目录下创建 `.npy` 文件, 如下所示:
+该命令会在 `data` 目录下创建 `.npy` 文件, 如下所示:
 
 ```
 .
@@ -139,8 +136,9 @@ python tools/vqgan/extract_vq.py data/demo \
 
 ```bash
 python tools/llama/build_dataset.py \
-    --config "fish_speech/configs/data/finetune.yaml" \
+    --input "data" \
     --output "data/quantized-dataset-ft.protos" \
+    --text-extension .lab \
     --num-workers 16
 ```
 
@@ -149,51 +147,35 @@ python tools/llama/build_dataset.py \
 !!! note
     对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
 
-### 4. 启动 Rust 数据服务器
-
-由于加载和打乱数据集非常缓慢且占用内存, 因此我们使用 rust 服务器来加载和打乱数据. 该服务器基于 GRPC, 可以通过以下方式安装:
-
-```bash
-cd data_server
-cargo build --release
-```
-
-编译完成后你可以使用以下命令来启动服务器:
-
-```bash
-export RUST_LOG=info # 可选, 用于调试
-data_server/target/release/data_server \
-    --files "data/quantized-dataset-ft.protos" 
-```
-
-!!! note
-    你可以指定多个 `--files` 参数来加载多个数据集.
-
-### 5. 最后, 启动微调
+### 4. 最后, 启动微调
 
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
 ```
 
 最后, 你可以运行以下命令来启动微调:
 
 ```bash
-python fish_speech/train.py --config-name text2semantic_finetune
+python fish_speech/train.py --config-name text2semantic_finetune \
+    model@model.model=dual_ar_2_codebook_large
 ```
 
 !!! note
-    如果你想使用 lora, 请使用 `--config-name text2semantic_finetune_lora` 来启动微调.
+    如果你想使用 lora, 请使用 `--config-name text2semantic_finetune_lora` 来启动微调 (仍在开发中).
 
 !!! note
     你可以通过修改 `fish_speech/configs/text2semantic_finetune.yaml` 来修改训练参数如 `batch_size`, `gradient_accumulation_steps` 等, 来适应你的显存.
+
+!!! note
+    对于 Windows 用户, 你可以使用 `trainer.strategy.process_group_backend=gloo` 来避免 `nccl` 的问题.
 
 训练结束后, 你可以参考 [推理](inference.md) 部分, 并携带 `--speaker SPK1` 参数来测试你的模型.
 

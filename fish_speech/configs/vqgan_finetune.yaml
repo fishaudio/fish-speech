@@ -14,8 +14,6 @@ trainer:
   max_steps: 100_000
   val_check_interval: 5000
   strategy:
-    _target_: lightning.pytorch.strategies.DDPStrategy
-    process_group_backend: nccl  # This should be override when training on windows
     find_unused_parameters: true
 
 sample_rate: 44100
@@ -23,19 +21,18 @@ hop_length: 512
 num_mels: 128
 n_fft: 2048
 win_length: 2048
-freeze_encoder: true
 
 # Dataset Configuration
 train_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/filelist.train.txt
+  filelist: data/vq_train_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
   slice_frames: 512
 
 val_dataset:
   _target_: fish_speech.datasets.vqgan.VQGANDataset
-  filelist: data/filelist.val.txt
+  filelist: data/vq_val_filelist.txt
   sample_rate: ${sample_rate}
   hop_length: ${hop_length}
 
@@ -55,7 +52,9 @@ model:
   weight_adv: 0.2
   weight_vq: 1.0
   weight_mel: 1.0
-  freeze_encoder: false
+
+  # Important: Set the freeze_encoder to true to only train the decoder
+  freeze_encoder: true
 
   encoder:
     _target_: fish_speech.models.vqgan.modules.wavenet.WaveNet

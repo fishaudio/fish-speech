@@ -42,7 +42,7 @@ logger.add(sys.stderr, format=logger_format)
 @lru_cache(maxsize=1)
 def get_model(
     config_name: str = "vqgan_pretrain",
-    checkpoint_path: str = "checkpoints/vqgan/step_000380000.ckpt",
+    checkpoint_path: str = "checkpoints/vq-gan-group-fsq-2x1024.pth",
 ):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
@@ -123,7 +123,7 @@ def process_batch(files: list[Path], model) -> float:
 @click.option("--config-name", default="vqgan_pretrain")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/vq-gan-group-fsq-8x1024-wn-20x768-30kh.pth",
+    default="checkpoints/vq-gan-group-fsq-2x1024.pth",
 )
 @click.option("--batch-size", default=64)
 @click.option("--filelist", default=None, type=Path)
@@ -174,7 +174,7 @@ def main(
         files = list_files(folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
 
     print(f"Found {len(files)} files")
-    # files = [Path(f) for f in files if not Path(f).with_suffix(".npy").exists()]
+    files = [Path(f) for f in files if not Path(f).with_suffix(".npy").exists()]
 
     total_files = len(files)
     files = files[RANK::WORLD_SIZE]

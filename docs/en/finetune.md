@@ -26,19 +26,19 @@ Obviously, when you opened this page, you were not satisfied with the performanc
     └── 38.79-40.85.mp3
 ```
 
-You need to format your dataset as shown above and place it under `data/demo`. Audio files can have `.mp3`, `.wav`, or `.flac` extensions.
+You need to format your dataset as shown above and place it under `data`. Audio files can have `.mp3`, `.wav`, or `.flac` extensions.
 
 ### 2. Split Training and Validation Sets
 
 ```bash
-python tools/vqgan/create_train_split.py data/demo
+python tools/vqgan/create_train_split.py data
 ```
 
-This command will create `data/demo/vq_train_filelist.txt` and `data/demo/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
+This command will create `data/vq_train_filelist.txt` and `data/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
 
 !!!info
     For the VITS format, you can specify a file list using `--filelist xxx.list`.  
-    Please note that the audio files in `filelist` must also be located in the `data/demo` folder.
+    Please note that the audio files in `filelist` must also be located in the `data` folder.
 
 ### 3. Start Training
 
@@ -77,33 +77,38 @@ You can review `fake.wav` to assess the fine-tuning results.
     └── 38.79-40.85.mp3
 ```
 
-You need to convert your dataset into the above format and place it under `data/demo`. The audio file can have the extensions `.mp3`, `.wav`, or `.flac`, and the annotation file can have the extensions `.lab` or `.txt`.
+You need to convert your dataset into the above format and place it under `data`. The audio file can have the extensions `.mp3`, `.wav`, or `.flac`, and the annotation file should have the extensions `.lab`.
 
-!!! note
-    You can modify the dataset path and mix datasets by modifying `fish_speech/configs/data/finetune.yaml`.
+!!! warning
+    It's recommended to apply loudness normalization to the dataset. You can use [fish-audio-preprocess](https://github.com/fishaudio/audio-preprocess) to do this.
+
+    ```bash
+    fap loudness-norm data-raw data --clean
+    ```
+
 
 ### 2. Batch extraction of semantic tokens
 
 Make sure you have downloaded the VQGAN weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
 ```
 
 You can then run the following command to extract semantic tokens:
 
 ```bash
-python tools/vqgan/extract_vq.py data/demo \
+python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
     --config-name "vqgan_pretrain" \
-    --checkpoint-path "checkpoints/vqgan-v1.pth"
+    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
 
 !!! note
     You can adjust `--num-workers` and `--batch-size` to increase extraction speed, but please make sure not to exceed your GPU memory limit.  
     For the VITS format, you can specify a file list using `--filelist xxx.list`.
 
-This command will create `.npy` files in the `data/demo` directory, as shown below:
+This command will create `.npy` files in the `data` directory, as shown below:
 
 ```
 .
@@ -127,8 +132,10 @@ This command will create `.npy` files in the `data/demo` directory, as shown bel
 
 ```bash
 python tools/llama/build_dataset.py \
-    --config "fish_speech/configs/data/finetune.yaml" \
-    --output "data/quantized-dataset-ft.protos"
+    --input "data" \
+    --output "data/quantized-dataset-ft.protos" \
+    --text-extension .lab \
+    --num-workers 16
 ```
 
 After the command finishes executing, you should see the `quantized-dataset-ft.protos` file in the `data` directory.
@@ -136,44 +143,28 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 !!!info
     For the VITS format, you can specify a file list using `--filelist xxx.list`.
 
-### 4. Start the Rust data server
-
-Loading and shuffling the dataset is very slow and memory-consuming. Therefore, we use a Rust server to load and shuffle the data. This server is based on GRPC and can be installed using the following method:
-
-```bash
-cd data_server
-cargo build --release
-```
-
-After the compilation is complete, you can start the server using the following command:
-
-```bash
-export RUST_LOG=info # Optional, for debugging
-data_server/target/release/data_server \
-    --files "data/quantized-dataset-ft.protos" 
-```
-
-!!! note
-    You can specify multiple `--files` parameters to load multiple datasets.
-
-### 5. Finally, start the fine-tuning
+### 4. Finally, start the fine-tuning
 
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
 ```bash
-python fish_speech/train.py --config-name text2semantic_finetune
+python fish_speech/train.py --config-name text2semantic_finetune \
+    model@model.model=dual_ar_2_codebook_large
 ```
 
 !!! info
-    If you want to use lora, please use `--config-name text2semantic_finetune_lora` to start fine-tuning.
+    If you want to use lora, please use `--config-name text2semantic_finetune_lora` to start fine-tuning (still under development).
 
 !!! note
     You can modify the training parameters such as `batch_size`, `gradient_accumulation_steps`, etc. to fit your GPU memory by modifying `fish_speech/configs/text2semantic_finetune.yaml`.
+
+!!! note
+    For Windows users, you can use `trainer.strategy.process_group_backend=gloo` to avoid `nccl` issues.
 
 After training is complete, you can refer to the [inference](inference.md) section, and use `--speaker SPK1` to generate speech.
 
