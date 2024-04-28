@@ -71,6 +71,7 @@ class InvokeRequest(BaseModel):
     format: Literal["wav", "mp3", "flac"] = "wav"
 
 
+@torch.inference_mode()
 def inference(req: InvokeRequest):
     # Parse reference audio aka prompt
     prompt_tokens = None
