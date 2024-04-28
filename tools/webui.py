@@ -59,6 +59,7 @@ def build_html_error_message(error):
 
 
 @GPU_DECORATOR
+@torch.inference_mode()
 def inference(
     text,
     enable_reference_audio,
