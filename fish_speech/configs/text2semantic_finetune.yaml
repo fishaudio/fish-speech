@@ -31,7 +31,8 @@ train_dataset:
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: false
+  use_speaker: 0.5
+  interactive_prob: 0.7
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
@@ -40,7 +41,8 @@ val_dataset:
   tokenizer: ${tokenizer}
   max_length: ${max_length}
   num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: false
+  use_speaker: 0.5
+  interactive_prob: 0.7
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule

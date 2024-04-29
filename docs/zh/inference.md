@@ -58,8 +58,7 @@ python tools/llama/generate.py \
     对于不支持 bf16 的 GPU, 你可能需要使用 `--half` 参数.
 
 !!! warning
-    如果你在使用自己微调的模型, 请务必携带 `--speaker` 参数来保证发音的稳定性.  
-    如果你使用了 lora, 请使用 `--config-name text2semantic_finetune_lora` 来加载模型.
+    如果你在使用自己微调的模型, 请务必携带 `--speaker` 参数来保证发音的稳定性.
 
 ### 3. 从语义 token 生成人声: 
 ```bash

@@ -53,8 +53,7 @@ This command will create a `codes_N` file in the working directory, where N is a
     For GPUs that do not support bf16, you may need to use the `--half` parameter.
 
 !!! warning
-    If you are using your own fine-tuned model, please be sure to carry the `--speaker` parameter to ensure the stability of pronunciation.  
-    If you are using lora, please use `--config-name text2semantic_finetune_lora` to load the model.
+    If you are using your own fine-tuned model, please be sure to carry the `--speaker` parameter to ensure the stability of pronunciation.
 
 ### 3. Generate vocals from semantic tokens:
 ```bash

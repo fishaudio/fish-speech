@@ -17,9 +17,6 @@ trainer:
   precision: bf16-true
   limit_val_batches: 10
   val_check_interval: 500
-  strategy:
-    _target_: lightning.pytorch.strategies.DDPStrategy
-    process_group_backend: nccl  # This should be override when training on windows
 
 # Dataset Configuration
 tokenizer:

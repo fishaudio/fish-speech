@@ -1,0 +1,3 @@
+_target_: fish_speech.models.text2semantic.lora_utils.LoraConfig
+r: 8
+lora_alpha: 16
