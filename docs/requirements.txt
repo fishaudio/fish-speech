@@ -1,3 +1,4 @@
 mkdocs-material
 mkdocs-static-i18n[material]
 mkdocs[i18n]
+mkdocs-minify-plugin

@@ -15,8 +15,8 @@ Inference support command line, HTTP API and web UI.
 Download the required `vqgan` and `text2semantic` models from our Hugging Face repository.
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
 
 ### 1. Generate prompt from voice:
@@ -27,7 +27,7 @@ huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth -
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
 You should get a `fake.npy` file.
 
@@ -37,8 +37,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_large \
-    --checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
+    --checkpoint-path "checkpoints/text2semantic-400m-v0.2-4k.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -60,7 +59,7 @@ This command will create a `codes_N` file in the working directory, where N is a
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
 
 ## HTTP API Inference
@@ -68,24 +67,21 @@ python tools/vqgan/inference.py \
 We provide a HTTP API for inference. You can use the following command to start the server:
 
 ```bash
-python -m tools.api \
-    --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
-    --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+python -m zibai tools.api_server:app --listen 127.0.0.1:8000
 ```
 
-After that, you can view and test the API at http://127.0.0.1:8000/.  
+After that, you can view and test the API at http://127.0.0.1:8000/docs.  
+
+Generally, you need to first call PUT /v1/models/default to load the model, and then use POST /v1/models/default/invoke for inference. For specific parameters, please refer to the API documentation.
 
 ## WebUI Inference
 
-You can start the WebUI using the following command:
+Before running the WebUI, you need to start the HTTP service as described above.
+
+Then you can start the WebUI using the following command:
 
 ```bash
-python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
-    --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+python fish_speech/webui/app.py
 ```
 
 Enjoy!

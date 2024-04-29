@@ -15,13 +15,13 @@
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `text2semantic` 模型。
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
 对于中国大陆用户，可使用mirror下载。
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 vqgan-v1.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/speech-lm-v1 text2semantic-400m-v0.2-4k.pth --local-dir checkpoints
 ```
 
 ### 1. 从语音生成 prompt: 
@@ -32,7 +32,7 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
 你应该能得到一个 `fake.npy` 文件.
 
@@ -42,8 +42,7 @@ python tools/llama/generate.py \
     --text "要转换的文本" \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_large \
-    --checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
+    --checkpoint-path "checkpoints/text2semantic-400m-v0.2-4k.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -65,7 +64,7 @@ python tools/llama/generate.py \
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/vqgan-v1.pth"
 ```
 
 ## HTTP API 推理
@@ -73,27 +72,30 @@ python tools/vqgan/inference.py \
 运行以下命令来启动 HTTP 服务:
 
 ```bash
-python -m tools.api \
-    --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
-    --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
-
+python -m zibai tools.api_server:app --listen 127.0.0.1:8000
 # 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
-HF_ENDPOINT=https://hf-mirror.com python -m ...
+HF_ENDPOINT=https://hf-mirror.com python -m zibai tools.api_server:app --listen 127.0.0.1:8000
 ```
 
-随后, 你可以在 `http://127.0.0.1:8000/` 中查看并测试 API.
+随后, 你可以在 `http://127.0.0.1:8000/docs` 中查看并测试 API.  
+一般来说, 你需要先调用 `PUT /v1/models/default` 来加载模型, 然后调用 `POST /v1/models/default/invoke` 来进行推理.
+具体的参数请参考 API 文档.
 
 ## WebUI 推理
 
-你可以使用以下命令来启动 WebUI:
+在运行 WebUI 之前, 你需要先启动 HTTP 服务, 如上所述.
+
+随后你可以使用以下命令来启动 WebUI:
 
 ```bash
-python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
-    --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+python fish_speech/webui/app.py
+```
+
+或附带参数来启动 WebUI:
+
+```bash
+# 以临时环境变量的方式启动:
+GRADIO_SERVER_NAME=127.0.0.1 GRADIO_SERVER_PORT=7860 python fish_speech/webui/app.py
 ```
 
 祝大家玩得开心!

@@ -70,19 +70,17 @@ nav:
     - 首页: zh/index.md
     - 概述: zh/overview.md
     - 感谢名单: zh/thankslist.md
-    - 更新日志: zh/changelog.md
   - 安装:
     - 安装: zh/installation/overview.md
     - 背景知识: 
       - 观前提示: zh/installation/background/overview.md
-      - 前置工作: zh/installation/background/prework.md
-      - conda环境: zh/installation/background/conda.md
       - git: zh/installation/background/git.md
+      - conda环境: zh/installation/background/conda.md
       - 模型站的使用: zh/installation/background/hf.md
     - 在不同位置安装fish-speech:
       - linux: zh/installation/linux.md
-      - WSL: zh/installation/wsl.md
       - docker: zh/installation/docker.md
+      - WSL: zh/installation/wsl.md
       - windows: zh/installation/windows.md
       - 使用云服务器: zh/installation/cloud.md
   - 快速开始: 
@@ -129,7 +127,7 @@ plugins:
             - Intallation:
               - Intallation: en/installation/overview.md
               - Background knowledges: 
-                - Precautions: en/installation/background/overview.md
+                - Precautions: en/iinstallation/background/overview.md
                 - Git: en/installation/background/git.md
                 - Conda environment: en/installation/background/conda.md
                 - Hugging Face: en/installation/background/hf.md
@@ -140,7 +138,7 @@ plugins:
                 - windows: en/installation/windows.md
                 - Use cloud server: en/installation/cloud.md
             - Quick Start: 
-              - Quick Start: en/quick-start/overview.md
+              - Quick Start: en/quick-start
               - Terminal: en/quick-start/terminal.md
               - API: en/quick-start/api.md
               - Webui: en/quick-start/webui.md
@@ -150,8 +148,8 @@ plugins:
               - VQ-GAN: en/frameworks/vq-gan.md
               - Llama: en/frameworks/llama.md
             - Fine-Tuning:
-              - VQ-GAN: en/finetuning/vq-gan.md
-              - Llama: en/finetuning/llama.md
+              - VQ-GAN: en/fine-tuning/vq-gan.md
+              - Llama: en/fine-tuning/llama.md
             - Sample: en/samples.md
             - More Features:
               - whisper: en/utils/whisper.md
