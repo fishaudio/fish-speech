@@ -18,4 +18,3 @@
     # 安装 fish-speech
     pip3 install -e .
 ```
-

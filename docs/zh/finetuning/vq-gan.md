@@ -43,5 +43,3 @@ python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_fine
 
 !!! note
     你也可以尝试其他的 checkpoint, 我们建议你使用最早的满足你要求的 checkpoint, 他们通常在 OOD 上表现更好.
-
-
