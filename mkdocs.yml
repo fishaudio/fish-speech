@@ -61,9 +61,6 @@ theme:
       primary: black
       font:
         code: Roboto Mono
-  
-extra:
-  homepage: https://speech.fish.audio
 
 nav:
   - 首页: 
@@ -179,3 +176,4 @@ extra:
   social:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/Es5qTB9BcN
+  homepage: https://speech.fish.audio
