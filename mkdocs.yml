@@ -126,8 +126,8 @@ plugins:
               - Home: en/index.md
               - Overview: en/overview.md
               - Thankslist: en/thankslist.md
-            - Intallation:
-              - Intallation: en/installation/overview.md
+            - Installation:
+              - Installation: en/installation/overview.md
               - Background knowledges: 
                 - Precautions: en/installation/background/overview.md
                 - Git: en/installation/background/git.md
@@ -179,9 +179,3 @@ extra:
   social:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/Es5qTB9BcN
-
-extra_language:
-  zh:
-    site_name: Fish Speech
-    site_url: https://speech.fish.audio/zh/
-    

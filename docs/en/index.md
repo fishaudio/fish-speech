@@ -24,4 +24,4 @@ This codebase is released under the 'BSD-3-Clause' license, and all models are r
 !!! success ""
     If you think our project is helpful, we will very happy if you can give [fish-speech](https://github.com/fishaudio/fish-speech) a STAR
 
-    If you are interesed in our program，you can join our [QQ group](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093) or [Discord](https://discord.gg/Es5qTB9BcN) to commuticate with us.
+    If you are interested in our program，you can join our [QQ group](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093) or [Discord](https://discord.gg/Es5qTB9BcN) to commuticate with us.

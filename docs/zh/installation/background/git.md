@@ -4,7 +4,7 @@ git是一个版本管理工具，我们使用git来拉取github上我们的项�
 
 [windows版官网下载链接](https://gitforwindows.org/)
 
-linux执行命令`sudu apt install git`
+linux执行命令`sudo apt install git`
 
 !!! warning "警告"
     在安装过程中请务必选择添加到环境变量或者是添加到PATH
