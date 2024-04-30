@@ -26,7 +26,7 @@ cur_work_dir = Path(os.getcwd()).resolve()
 print("You are in ", str(cur_work_dir))
 config_path = cur_work_dir / "fish_speech" / "configs"
 vqgan_yml_path = config_path / "vqgan_finetune.yaml"
-llama_yml_path = config_path / "text2semantic_sft.yaml"
+llama_yml_path = config_path / "text2semantic_finetune.yaml"
 
 env = os.environ.copy()
 env["no_proxy"] = "127.0.0.1, localhost, 0.0.0.0"
@@ -121,6 +121,8 @@ def change_infer(
                 infer_vqgan_model,
                 "--llama-checkpoint-path",
                 infer_llama_model,
+                "--llama-config-name",
+                "dual_ar_2_codebook_large",
                 "--tokenizer",
                 "checkpoints",
             ]
@@ -360,6 +362,7 @@ def train_process(
     llama_check_interval,
     llama_grad_batches,
     llama_use_speaker,
+    llama_use_lora
 ):
     backend = "nccl" if sys.platform == "linux" else "gloo"
     if option == "VQGAN" or option == "all":
@@ -419,7 +422,7 @@ def train_process(
             ]
         )
 
-        train_cmd = [
+        train_cmd = ([
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
@@ -439,11 +442,41 @@ def train_process(
             f"trainer.val_check_interval={llama_check_interval}",
             f"trainer.accumulate_grad_batches={llama_grad_batches}",
             f"train_dataset.use_speaker={llama_use_speaker}",
-        ]
+        ] + (
+            [f"+lora@model.lora_config=r_8_alpha_16"] if llama_use_lora else [])
+        )
         logger.info(train_cmd)
         subprocess.run(train_cmd)
 
     return build_html_ok_message("训练终止")
+
+def llama_lora_merge(
+    llama_weight,
+    lora_weight,
+    llama_lora_output
+):
+    if (lora_weight is None
+            or not Path(lora_weight).exists()
+            or not Path(llama_weight).exists()):
+        return build_html_error_message("路径错误，请检查模型文件是否存在于对应路径")
+
+    merge_cmd = [
+        PYTHON,
+        "tools/llama/merge_lora.py",
+        "--llama-config",
+        "dual_ar_2_codebook_large",
+        "--lora-config",
+        "r_8_alpha_16",
+        "--llama-weight",
+        llama_weight,
+        "--lora-weight",
+        lora_weight,
+        "--output",
+        llama_lora_output
+    ]
+    logger.info(merge_cmd)
+    subprocess.run(merge_cmd)
+    return build_html_ok_message("融合终止")
 
 
 init_vqgan_yml = load_yaml_data_in_fact(vqgan_yml_path)
@@ -511,173 +544,207 @@ with gr.Blocks(
                     )
 
             with gr.Tab("\U0001F6E0 训练配置项"):  # hammer
-                with gr.Column():
-                    with gr.Row():
-                        model_type_radio = gr.Radio(
-                            label="选择要训练的模型类型",
-                            interactive=True,
-                            choices=["VQGAN", "LLAMA", "all"],
-                            value="all",
-                        )
-                    with gr.Row():
-                        with gr.Accordion("VQGAN配置项", open=False):
-                            with gr.Row(equal_height=False):
-                                vqgan_lr_slider = gr.Slider(
-                                    label="初始学习率",
-                                    interactive=True,
-                                    minimum=1e-5,
-                                    maximum=1e-4,
-                                    step=1e-5,
-                                    value=init_vqgan_yml["model"]["optimizer"]["lr"],
-                                )
-                                vqgan_maxsteps_slider = gr.Slider(
-                                    label="训练最大步数",
-                                    interactive=True,
-                                    minimum=1000,
-                                    maximum=100000,
-                                    step=1000,
-                                    value=init_vqgan_yml["trainer"]["max_steps"],
-                                )
 
-                            with gr.Row(equal_height=False):
-                                vqgan_data_num_workers_slider = gr.Slider(
-                                    label="num_workers",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=16,
-                                    step=1,
-                                    value=init_vqgan_yml["data"]["num_workers"],
-                                )
+                with gr.Row():
+                    model_type_radio = gr.Radio(
+                        label="选择要训练的模型类型",
+                        interactive=True,
+                        choices=["VQGAN", "LLAMA", "all"],
+                        value="all",
+                    )
+                with gr.Row():
+                    with gr.Tab(label="VQGAN配置项"):
+                        with gr.Row(equal_height=False):
+                            vqgan_lr_slider = gr.Slider(
+                                label="初始学习率",
+                                interactive=True,
+                                minimum=1e-5,
+                                maximum=1e-4,
+                                step=1e-5,
+                                value=init_vqgan_yml["model"]["optimizer"]["lr"],
+                            )
+                            vqgan_maxsteps_slider = gr.Slider(
+                                label="训练最大步数",
+                                interactive=True,
+                                minimum=1000,
+                                maximum=100000,
+                                step=1000,
+                                value=init_vqgan_yml["trainer"]["max_steps"],
+                            )
 
-                                vqgan_data_batch_size_slider = gr.Slider(
-                                    label="batch_size",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=32,
-                                    step=1,
-                                    value=init_vqgan_yml["data"]["batch_size"],
-                                )
-                            with gr.Row(equal_height=False):
-                                vqgan_data_val_batch_size_slider = gr.Slider(
-                                    label="val_batch_size",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=32,
-                                    step=1,
-                                    value=init_vqgan_yml["data"]["val_batch_size"],
-                                )
-                                vqgan_precision_dropdown = gr.Dropdown(
-                                    label="训练精度",
-                                    interactive=True,
-                                    choices=["32", "bf16-true", "bf16-mixed"],
-                                    value=str(init_vqgan_yml["trainer"]["precision"]),
-                                )
-                            with gr.Row(equal_height=False):
-                                vqgan_check_interval_slider = gr.Slider(
-                                    label="每n步保存一个模型",
-                                    interactive=True,
-                                    minimum=500,
-                                    maximum=10000,
-                                    step=500,
-                                    value=init_vqgan_yml["trainer"][
-                                        "val_check_interval"
-                                    ],
-                                )
+                        with gr.Row(equal_height=False):
+                            vqgan_data_num_workers_slider = gr.Slider(
+                                label="num_workers",
+                                interactive=True,
+                                minimum=1,
+                                maximum=16,
+                                step=1,
+                                value=init_vqgan_yml["data"]["num_workers"],
+                            )
 
-                    with gr.Row():
-                        with gr.Accordion("LLAMA配置项", open=False):
-                            with gr.Row(equal_height=False):
-                                llama_lr_slider = gr.Slider(
-                                    label="初始学习率",
-                                    interactive=True,
-                                    minimum=1e-5,
-                                    maximum=1e-4,
-                                    step=1e-5,
-                                    value=init_llama_yml["model"]["optimizer"]["lr"],
-                                )
-                                llama_maxsteps_slider = gr.Slider(
-                                    label="训练最大步数",
-                                    interactive=True,
-                                    minimum=1000,
-                                    maximum=100000,
-                                    step=1000,
-                                    value=init_llama_yml["trainer"]["max_steps"],
-                                )
-                            with gr.Row(equal_height=False):
-                                llama_limit_val_batches_slider = gr.Slider(
-                                    label="limit_val_batches",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=20,
-                                    step=1,
-                                    value=init_llama_yml["trainer"][
-                                        "limit_val_batches"
-                                    ],
-                                )
-                                llama_data_num_workers_slider = gr.Slider(
-                                    label="num_workers",
-                                    minimum=0,
-                                    maximum=16,
-                                    step=1,
-                                    value=init_llama_yml["data"]["num_workers"]
-                                    if sys.platform == "linux"
-                                    else 0,
-                                )
-                            with gr.Row(equal_height=False):
-                                llama_data_batch_size_slider = gr.Slider(
-                                    label="batch_size",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=32,
-                                    step=1,
-                                    value=init_llama_yml["data"]["batch_size"],
-                                )
-                                llama_data_max_length_slider = gr.Slider(
-                                    label="max_length",
-                                    interactive=True,
-                                    minimum=1024,
-                                    maximum=4096,
-                                    step=128,
-                                    value=init_llama_yml["max_length"],
-                                )
-                            with gr.Row(equal_height=False):
-                                llama_precision_dropdown = gr.Dropdown(
-                                    label="训练精度",
-                                    interactive=True,
-                                    choices=["32", "bf16-true", "16-mixed"],
-                                    value="bf16-true",
-                                )
-                                llama_check_interval_slider = gr.Slider(
-                                    label="每n步保存一个模型",
-                                    interactive=True,
-                                    minimum=500,
-                                    maximum=10000,
-                                    step=500,
-                                    value=init_llama_yml["trainer"][
-                                        "val_check_interval"
-                                    ],
-                                )
-                            with gr.Row(equal_height=False):
-                                llama_grad_batches = gr.Slider(
-                                    label="accumulate_grad_batches",
-                                    interactive=True,
-                                    minimum=1,
-                                    maximum=20,
-                                    step=1,
-                                    value=init_llama_yml["trainer"][
-                                        "accumulate_grad_batches"
-                                    ],
-                                )
-                                llama_use_speaker = gr.Slider(
-                                    label="use_speaker_ratio",
-                                    interactive=True,
-                                    minimum=0.1,
-                                    maximum=1.0,
-                                    step=0.05,
-                                    value=init_llama_yml["train_dataset"][
-                                        "use_speaker"
-                                    ],
-                                )
+                            vqgan_data_batch_size_slider = gr.Slider(
+                                label="batch_size",
+                                interactive=True,
+                                minimum=1,
+                                maximum=32,
+                                step=1,
+                                value=init_vqgan_yml["data"]["batch_size"],
+                            )
+                        with gr.Row(equal_height=False):
+                            vqgan_data_val_batch_size_slider = gr.Slider(
+                                label="val_batch_size",
+                                interactive=True,
+                                minimum=1,
+                                maximum=32,
+                                step=1,
+                                value=init_vqgan_yml["data"]["val_batch_size"],
+                            )
+                            vqgan_precision_dropdown = gr.Dropdown(
+                                label="训练精度",
+                                interactive=True,
+                                choices=["32", "bf16-true", "bf16-mixed"],
+                                value=str(init_vqgan_yml["trainer"]["precision"]),
+                            )
+                        with gr.Row(equal_height=False):
+                            vqgan_check_interval_slider = gr.Slider(
+                                label="每n步保存一个模型",
+                                interactive=True,
+                                minimum=500,
+                                maximum=10000,
+                                step=500,
+                                value=init_vqgan_yml["trainer"][
+                                    "val_check_interval"
+                                ],
+                            )
+
+                    with gr.Tab(label="LLAMA配置项"):
+                        with gr.Row(equal_height=False):
+                            llama_use_lora = gr.Checkbox(label="使用lora训练？", value=True,)
+                        with gr.Row(equal_height=False):
+                            llama_lr_slider = gr.Slider(
+                                label="初始学习率",
+                                interactive=True,
+                                minimum=1e-5,
+                                maximum=1e-4,
+                                step=1e-5,
+                                value=init_llama_yml["model"]["optimizer"]["lr"],
+                            )
+                            llama_maxsteps_slider = gr.Slider(
+                                label="训练最大步数",
+                                interactive=True,
+                                minimum=1000,
+                                maximum=100000,
+                                step=1000,
+                                value=init_llama_yml["trainer"]["max_steps"],
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_limit_val_batches_slider = gr.Slider(
+                                label="limit_val_batches",
+                                interactive=True,
+                                minimum=1,
+                                maximum=20,
+                                step=1,
+                                value=init_llama_yml["trainer"][
+                                    "limit_val_batches"
+                                ],
+                            )
+                            llama_data_num_workers_slider = gr.Slider(
+                                label="num_workers",
+                                minimum=0,
+                                maximum=16,
+                                step=1,
+                                value=init_llama_yml["data"]["num_workers"]
+                                if sys.platform == "linux"
+                                else 0,
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_data_batch_size_slider = gr.Slider(
+                                label="batch_size",
+                                interactive=True,
+                                minimum=1,
+                                maximum=32,
+                                step=1,
+                                value=init_llama_yml["data"]["batch_size"],
+                            )
+                            llama_data_max_length_slider = gr.Slider(
+                                label="max_length",
+                                interactive=True,
+                                minimum=1024,
+                                maximum=4096,
+                                step=128,
+                                value=init_llama_yml["max_length"],
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_precision_dropdown = gr.Dropdown(
+                                label="训练精度",
+                                interactive=True,
+                                choices=["32", "bf16-true", "16-mixed"],
+                                value="bf16-true",
+                            )
+                            llama_check_interval_slider = gr.Slider(
+                                label="每n步保存一个模型",
+                                interactive=True,
+                                minimum=500,
+                                maximum=10000,
+                                step=500,
+                                value=init_llama_yml["trainer"][
+                                    "val_check_interval"
+                                ],
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_grad_batches = gr.Slider(
+                                label="accumulate_grad_batches",
+                                interactive=True,
+                                minimum=1,
+                                maximum=20,
+                                step=1,
+                                value=init_llama_yml["trainer"][
+                                    "accumulate_grad_batches"
+                                ],
+                            )
+                            llama_use_speaker = gr.Slider(
+                                label="use_speaker_ratio",
+                                interactive=True,
+                                minimum=0.1,
+                                maximum=1.0,
+                                step=0.05,
+                                value=init_llama_yml["train_dataset"][
+                                    "use_speaker"
+                                ],
+                            )
+
+                    with gr.Tab(label="LLAMA_lora融合"):
+                        with gr.Row(equal_height=False):
+                            llama_weight = gr.Dropdown(
+                                label="要融入的原模型",
+                                info="输入路径，或者下拉选择",
+                                choices=[init_llama_yml["ckpt_path"]],
+                                value=init_llama_yml["ckpt_path"],
+                                allow_custom_value=True,
+                                interactive=True
+                            )
+                        with gr.Row(equal_height=False):
+                            lora_weight = gr.Dropdown(
+                                label="要融入的lora模型",
+                                info="输入路径，或者下拉选择",
+                                choices=[str(p) for p in Path("results").glob("text2*lora/**/*.ckpt")],
+                                allow_custom_value=True,
+                                interactive=True
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_lora_output = gr.Dropdown(
+                                label="输出的lora模型",
+                                info="输出路径",
+                                value="checkpoints/merged.ckpt",
+                                choices=["checkpoints/merged.ckpt"],
+                                allow_custom_value=True,
+                                interactive=True
+                            )
+                        with gr.Row(equal_height=False):
+                            llama_lora_merge_btn = gr.Button(
+                                value="开始融合",
+                                variant="primary"
+                            )
 
             with gr.Tab("\U0001F9E0 进入推理界面"):
                 with gr.Column():
@@ -694,13 +761,13 @@ with gr.Blocks(
                                 infer_vqgan_model = gr.Textbox(
                                     label="VQGAN模型位置",
                                     placeholder="填写pth/ckpt文件路径",
-                                    value="checkpoints/vq-gan-group-fsq-2x1024.pth",
+                                    value=init_vqgan_yml["ckpt_path"],
                                 )
                             with gr.Row():
                                 infer_llama_model = gr.Textbox(
                                     label="LLAMA模型位置",
                                     placeholder="填写pth/ckpt文件路径",
-                                    value="checkpoints/text2semantic-medium-v1-2k.pth",
+                                    value=init_llama_yml["ckpt_path"],
                                 )
                             with gr.Row():
                                 infer_compile = gr.Radio(
@@ -795,6 +862,7 @@ with gr.Blocks(
             llama_check_interval_slider,
             llama_grad_batches,
             llama_use_speaker,
+            llama_use_lora,
         ],
         outputs=[train_error],
     )
@@ -806,7 +874,15 @@ with gr.Blocks(
     fresh_btn.click(
         fn=new_explorer, inputs=[train_box, tree_slider], outputs=[file_markdown]
     )
-
+    llama_lora_merge_btn.click(
+        fn=llama_lora_merge,
+        inputs=[
+            llama_weight,
+            lora_weight,
+            llama_lora_output
+        ],
+        outputs=[train_error]
+    )
     infer_checkbox.change(
         fn=change_infer,
         inputs=[

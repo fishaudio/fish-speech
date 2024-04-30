@@ -1,3 +1,4 @@
+import gc
 import html
 import os
 import threading
@@ -137,6 +138,10 @@ def inference(
     )[0, 0]
 
     fake_audios = fake_audios.float().cpu().numpy()
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
 
     return (vqgan_model.sampling_rate, fake_audios), None
 
