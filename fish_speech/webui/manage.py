@@ -104,7 +104,10 @@ def change_label(if_label):
 
 
 def change_infer(
-    if_infer, host, port, infer_vqgan_model, infer_llama_model, infer_compile
+    if_infer, host, port,
+    infer_vqgan_model, infer_llama_model,
+    infer_llama_config,
+    infer_compile
 ):
     global p_infer
     if if_infer == True and p_infer == None:
@@ -123,7 +126,7 @@ def change_infer(
                 "--llama-checkpoint-path",
                 infer_llama_model,
                 "--llama-config-name",
-                "dual_ar_2_codebook_large",
+                infer_llama_config,
                 "--tokenizer",
                 "checkpoints",
             ]
@@ -196,12 +199,10 @@ def new_explorer(data_path, max_depth):
     )
 
 
-def add_item(folder: str, method: str, filelist: str, label_lang: str):
+def add_item(folder: str, method: str, label_lang: str):
     folder = folder.strip(" ").strip('"')
-    filelist = filelist.strip(" ").strip('"')
 
     folder_path = Path(folder)
-    filelist_path = Path(filelist)
 
     if folder and folder not in items and data_pre_output not in folder_path.parents:
         if folder_path.is_dir():
@@ -213,22 +214,6 @@ def add_item(folder: str, method: str, filelist: str, label_lang: str):
             err = folder
             return gr.Checkboxgroup(choices=items), build_html_error_message(
                 f"添加文件夹路径无效: {err}"
-            )
-
-    if (
-        filelist
-        and filelist not in items
-        and data_pre_output not in filelist_path.parents
-    ):
-        if filelist_path.is_file():
-            items.append(filelist)
-            dict_items[filelist] = dict(
-                type="file", method=method, label_lang=label_lang
-            )
-        elif filelist:
-            err = filelist
-            return gr.Checkboxgroup(choices=items), build_html_error_message(
-                f"添加文件路径无效: {err}"
             )
 
     formatted_data = json.dumps(dict_items, ensure_ascii=False, indent=4)
@@ -353,9 +338,9 @@ def train_process(
     vqgan_precision,
     vqgan_check_interval,
     # llama config
+    llama_base_config,
     llama_lr,
     llama_maxsteps,
-    llama_limit_val_batches,
     llama_data_num_workers,
     llama_data_batch_size,
     llama_data_max_length,
@@ -429,13 +414,12 @@ def train_process(
             "--config-name",
             "text2semantic_finetune",
             f"trainer.strategy.process_group_backend={backend}",
-            "model@model.model=dual_ar_2_codebook_large",
+            f"model@model.model={llama_base_config}",
             "tokenizer.pretrained_model_name_or_path=checkpoints",
             f"train_dataset.proto_files={str(['data/quantized-dataset-ft'])}",
             f"val_dataset.proto_files={str(['data/quantized-dataset-ft'])}",
             f"model.optimizer.lr={llama_lr}",
             f"trainer.max_steps={llama_maxsteps}",
-            f"trainer.limit_val_batches={llama_limit_val_batches}",
             f"data.num_workers={llama_data_num_workers}",
             f"data.batch_size={llama_data_batch_size}",
             f"max_length={llama_data_max_length}",
@@ -494,11 +478,6 @@ with gr.Blocks(
                     textbox = gr.Textbox(
                         label="\U0000270F 输入音频&转写源文件夹路径",
                         info="音频装在一个以说话人命名的文件夹内作为区分",
-                        interactive=True,
-                    )
-                    transcript_path = gr.Textbox(
-                        label="\U0001F4DD 转写文本filelist所在路径",
-                        info="支持 Bert-Vits2 / GPT-SoVITS 格式",
                         interactive=True,
                     )
                 with gr.Row(equal_height=False):
@@ -636,13 +615,13 @@ with gr.Blocks(
                                 value=init_llama_yml["trainer"]["max_steps"],
                             )
                         with gr.Row(equal_height=False):
-                            llama_limit_val_batches_slider = gr.Slider(
-                                label="limit_val_batches",
-                                interactive=True,
-                                minimum=1,
-                                maximum=20,
-                                step=1,
-                                value=init_llama_yml["trainer"]["limit_val_batches"],
+                            llama_base_config = gr.Dropdown(
+                                label="模型基础属性",
+                                choices=[
+                                    "dual_ar_2_codebook_large",
+                                    "dual_ar_2_codebook_medium"
+                                ],
+                                value="dual_ar_2_codebook_large"
                             )
                             llama_data_num_workers_slider = gr.Slider(
                                 label="num_workers",
@@ -722,7 +701,7 @@ with gr.Blocks(
                                 choices=[
                                     str(p)
                                     for p in Path("results").glob(
-                                        "text2*lora/**/*.ckpt"
+                                        "text2*ar/**/*.ckpt"
                                     )
                                 ],
                                 allow_custom_value=True,
@@ -768,6 +747,14 @@ with gr.Blocks(
                             with gr.Row():
                                 infer_compile = gr.Radio(
                                     label="是否编译模型？", choices=["Yes", "No"], value="Yes"
+                                )
+                                infer_llama_config = gr.Dropdown(
+                                    label="LLAMA模型基础属性",
+                                    choices=[
+                                        "dual_ar_2_codebook_large",
+                                        "dual_ar_2_codebook_medium"
+                                    ],
+                                    value="dual_ar_2_codebook_large"
                                 )
 
                     with gr.Row():
@@ -821,7 +808,7 @@ with gr.Blocks(
 
     add_button.click(
         fn=add_item,
-        inputs=[textbox, output_radio, transcript_path, label_radio],
+        inputs=[textbox, output_radio, label_radio],
         outputs=[checkbox_group, error],
     )
     remove_button.click(
@@ -848,9 +835,9 @@ with gr.Blocks(
             vqgan_precision_dropdown,
             vqgan_check_interval_slider,
             # llama config
+            llama_base_config,
             llama_lr_slider,
             llama_maxsteps_slider,
-            llama_limit_val_batches_slider,
             llama_data_num_workers_slider,
             llama_data_batch_size_slider,
             llama_data_max_length_slider,
@@ -883,6 +870,7 @@ with gr.Blocks(
             infer_port_textbox,
             infer_vqgan_model,
             infer_llama_model,
+            infer_llama_config,
             infer_compile,
         ],
         outputs=[infer_error],
