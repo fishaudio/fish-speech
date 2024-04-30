@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import webbrowser
-
 import html
 import json
 import os
@@ -11,6 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import webbrowser
 from pathlib import Path
 
 import gradio as gr
@@ -96,7 +95,7 @@ def change_label(if_label):
     global p_label
     if if_label == True:
         # 设置要访问的URL
-        url = 'https://text-labeler.pages.dev/'
+        url = "https://text-labeler.pages.dev/"
         webbrowser.open(url)
         yield f"已打开网址"
     elif if_label == False:
@@ -364,7 +363,7 @@ def train_process(
     llama_check_interval,
     llama_grad_batches,
     llama_use_speaker,
-    llama_use_lora
+    llama_use_lora,
 ):
     backend = "nccl" if sys.platform == "linux" else "gloo"
     if option == "VQGAN" or option == "all":
@@ -424,7 +423,7 @@ def train_process(
             ]
         )
 
-        train_cmd = ([
+        train_cmd = [
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
@@ -444,22 +443,19 @@ def train_process(
             f"trainer.val_check_interval={llama_check_interval}",
             f"trainer.accumulate_grad_batches={llama_grad_batches}",
             f"train_dataset.use_speaker={llama_use_speaker}",
-        ] + (
-            [f"+lora@model.lora_config=r_8_alpha_16"] if llama_use_lora else [])
-        )
+        ] + ([f"+lora@model.lora_config=r_8_alpha_16"] if llama_use_lora else [])
         logger.info(train_cmd)
         subprocess.run(train_cmd)
 
     return build_html_ok_message("训练终止")
 
-def llama_lora_merge(
-    llama_weight,
-    lora_weight,
-    llama_lora_output
-):
-    if (lora_weight is None
-            or not Path(lora_weight).exists()
-            or not Path(llama_weight).exists()):
+
+def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
+    if (
+        lora_weight is None
+        or not Path(lora_weight).exists()
+        or not Path(llama_weight).exists()
+    ):
         return build_html_error_message("路径错误，请检查模型文件是否存在于对应路径")
 
     merge_cmd = [
@@ -474,7 +470,7 @@ def llama_lora_merge(
         "--lora-weight",
         lora_weight,
         "--output",
-        llama_lora_output
+        llama_lora_output,
     ]
     logger.info(merge_cmd)
     subprocess.run(merge_cmd)
@@ -546,7 +542,6 @@ with gr.Blocks(
                     )
 
             with gr.Tab("\U0001F6E0 训练配置项"):  # hammer
-
                 with gr.Row():
                     model_type_radio = gr.Radio(
                         label="选择要训练的模型类型",
@@ -614,14 +609,15 @@ with gr.Blocks(
                                 minimum=500,
                                 maximum=10000,
                                 step=500,
-                                value=init_vqgan_yml["trainer"][
-                                    "val_check_interval"
-                                ],
+                                value=init_vqgan_yml["trainer"]["val_check_interval"],
                             )
 
                     with gr.Tab(label="LLAMA配置项"):
                         with gr.Row(equal_height=False):
-                            llama_use_lora = gr.Checkbox(label="使用lora训练？", value=True,)
+                            llama_use_lora = gr.Checkbox(
+                                label="使用lora训练？",
+                                value=True,
+                            )
                         with gr.Row(equal_height=False):
                             llama_lr_slider = gr.Slider(
                                 label="初始学习率",
@@ -646,9 +642,7 @@ with gr.Blocks(
                                 minimum=1,
                                 maximum=20,
                                 step=1,
-                                value=init_llama_yml["trainer"][
-                                    "limit_val_batches"
-                                ],
+                                value=init_llama_yml["trainer"]["limit_val_batches"],
                             )
                             llama_data_num_workers_slider = gr.Slider(
                                 label="num_workers",
@@ -689,9 +683,7 @@ with gr.Blocks(
                                 minimum=500,
                                 maximum=10000,
                                 step=500,
-                                value=init_llama_yml["trainer"][
-                                    "val_check_interval"
-                                ],
+                                value=init_llama_yml["trainer"]["val_check_interval"],
                             )
                         with gr.Row(equal_height=False):
                             llama_grad_batches = gr.Slider(
@@ -710,9 +702,7 @@ with gr.Blocks(
                                 minimum=0.1,
                                 maximum=1.0,
                                 step=0.05,
-                                value=init_llama_yml["train_dataset"][
-                                    "use_speaker"
-                                ],
+                                value=init_llama_yml["train_dataset"]["use_speaker"],
                             )
 
                     with gr.Tab(label="LLAMA_lora融合"):
@@ -723,15 +713,20 @@ with gr.Blocks(
                                 choices=[init_llama_yml["ckpt_path"]],
                                 value=init_llama_yml["ckpt_path"],
                                 allow_custom_value=True,
-                                interactive=True
+                                interactive=True,
                             )
                         with gr.Row(equal_height=False):
                             lora_weight = gr.Dropdown(
                                 label="要融入的lora模型",
                                 info="输入路径，或者下拉选择",
-                                choices=[str(p) for p in Path("results").glob("text2*lora/**/*.ckpt")],
+                                choices=[
+                                    str(p)
+                                    for p in Path("results").glob(
+                                        "text2*lora/**/*.ckpt"
+                                    )
+                                ],
                                 allow_custom_value=True,
-                                interactive=True
+                                interactive=True,
                             )
                         with gr.Row(equal_height=False):
                             llama_lora_output = gr.Dropdown(
@@ -740,12 +735,11 @@ with gr.Blocks(
                                 value="checkpoints/merged.ckpt",
                                 choices=["checkpoints/merged.ckpt"],
                                 allow_custom_value=True,
-                                interactive=True
+                                interactive=True,
                             )
                         with gr.Row(equal_height=False):
                             llama_lora_merge_btn = gr.Button(
-                                value="开始融合",
-                                variant="primary"
+                                value="开始融合", variant="primary"
                             )
 
             with gr.Tab("\U0001F9E0 进入推理界面"):
@@ -878,12 +872,8 @@ with gr.Blocks(
     )
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
-        inputs=[
-            llama_weight,
-            lora_weight,
-            llama_lora_output
-        ],
-        outputs=[train_error]
+        inputs=[llama_weight, lora_weight, llama_lora_output],
+        outputs=[train_error],
     )
     infer_checkbox.change(
         fn=change_infer,
