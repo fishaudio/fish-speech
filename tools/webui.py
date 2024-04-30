@@ -1,3 +1,4 @@
+import gc
 import html
 import os
 import threading
@@ -138,6 +139,10 @@ def inference(
 
     fake_audios = fake_audios.float().cpu().numpy()
 
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
+
     return (vqgan_model.sampling_rate, fake_audios), None
 
 
@@ -217,7 +222,6 @@ def build_app():
                         )
                         reference_audio = gr.Audio(
                             label="Reference Audio / 参考音频",
-                            value="docs/assets/audios/0_input.wav",
                             type="filepath",
                         )
                         reference_text = gr.Textbox(
