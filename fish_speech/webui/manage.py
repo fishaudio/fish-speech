@@ -839,6 +839,7 @@ with gr.Blocks(
                                             "vqgan*/**/*.ckpt"
                                         )
                                     ],
+                                    allow_custom_value=True,
                                 )
                             with gr.Row():
                                 infer_llama_model = gr.Dropdown(
@@ -852,6 +853,7 @@ with gr.Blocks(
                                             "text2sem*/**/*.ckpt"
                                         )
                                     ],
+                                    allow_custom_value=True,
                                 )
                             with gr.Row():
                                 infer_compile = gr.Radio(
@@ -864,6 +866,7 @@ with gr.Blocks(
                                         "dual_ar_2_codebook_medium",
                                     ],
                                     value="dual_ar_2_codebook_large",
+                                    allow_custom_value=True,
                                 )
 
                     with gr.Row():
