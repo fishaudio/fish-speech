@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import webbrowser
+
 import html
 import json
 import os
@@ -92,14 +94,14 @@ def kill_process(pid):
 
 def change_label(if_label):
     global p_label
-    if if_label == True and p_label == None:
-        cmd = ["asr-label-win-x64.exe"]
-        yield f"打标工具WebUI已开启, 访问：http://localhost:{3000}"
-        p_label = subprocess.Popen(cmd, shell=True, env=env)
-    elif if_label == False and p_label != None:
-        kill_process(p_label.pid)
+    if if_label == True:
+        # 设置要访问的URL
+        url = 'https://text-labeler.pages.dev/'
+        webbrowser.open(url)
+        yield f"已打开网址"
+    elif if_label == False:
         p_label = None
-        yield "打标工具WebUI已关闭"
+        yield "Nothing"
 
 
 def change_infer(
@@ -426,9 +428,9 @@ def train_process(
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
-            "text2semantic_sft",
+            "text2semantic_finetune",
             f"trainer.strategy.process_group_backend={backend}",
-            "model@model.model=dual_ar_2_codebook_medium",
+            "model@model.model=dual_ar_2_codebook_large",
             "tokenizer.pretrained_model_name_or_path=checkpoints",
             f"train_dataset.proto_files={str(['data/quantized-dataset-ft'])}",
             f"val_dataset.proto_files={str(['data/quantized-dataset-ft'])}",
