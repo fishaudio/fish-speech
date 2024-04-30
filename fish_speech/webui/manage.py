@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import html
 import json
 import os
@@ -352,6 +353,7 @@ def train_process(
     llama_use_lora,
 ):
     import datetime
+
     def generate_folder_name():
         now = datetime.datetime.now()
         folder_name = now.strftime("%Y%m%d_%H%M%S")
@@ -420,9 +422,11 @@ def train_process(
                 "16",
             ]
         )
-        ckpt_path = "text2semantic-pretrain-medium-2k-v1.pth" \
-            if llama_base_config == "dual_ar_2_codebook_medium" \
+        ckpt_path = (
+            "text2semantic-pretrain-medium-2k-v1.pth"
+            if llama_base_config == "dual_ar_2_codebook_medium"
             else "text2semantic-sft-large-v1-4k.pth"
+        )
         train_cmd = [
             PYTHON,
             "fish_speech/train.py",
