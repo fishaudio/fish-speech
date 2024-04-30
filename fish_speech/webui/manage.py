@@ -1,10 +1,8 @@
 from __future__ import annotations
-
 import html
 import json
 import os
 import platform
-import random
 import shutil
 import signal
 import subprocess
@@ -353,7 +351,18 @@ def train_process(
     llama_use_speaker,
     llama_use_lora,
 ):
+    import datetime
+    def generate_folder_name():
+        now = datetime.datetime.now()
+        folder_name = now.strftime("%Y%m%d_%H%M%S")
+        return folder_name
+
     backend = "nccl" if sys.platform == "linux" else "gloo"
+
+    new_project = generate_folder_name()
+
+    print("New Project Name: ", new_project)
+
     if option == "VQGAN" or option == "all":
         subprocess.run(
             [
@@ -367,6 +376,7 @@ def train_process(
             "fish_speech/train.py",
             "--config-name",
             "vqgan_finetune",
+            f"project={new_project}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model.optimizer.lr={vqgan_lr}",
             f"trainer.max_steps={vqgan_maxsteps}",
@@ -410,12 +420,16 @@ def train_process(
                 "16",
             ]
         )
-
+        ckpt_path = "text2semantic-pretrain-medium-2k-v1.pth" \
+            if llama_base_config == "dual_ar_2_codebook_medium" \
+            else "text2semantic-sft-large-v1-4k.pth"
         train_cmd = [
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
             "text2semantic_finetune",
+            f"project={new_project}",
+            f"ckpt_path=checkpoints/{ckpt_path}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model@model.model={llama_base_config}",
             "tokenizer.pretrained_model_name_or_path=checkpoints",

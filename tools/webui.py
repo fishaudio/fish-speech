@@ -222,7 +222,6 @@ def build_app():
                         )
                         reference_audio = gr.Audio(
                             label="Reference Audio / 参考音频",
-                            value="docs/assets/audios/0_input.wav",
                             type="filepath",
                         )
                         reference_text = gr.Textbox(
