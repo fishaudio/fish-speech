@@ -35,7 +35,7 @@ def versions_html():
     hash = commit.strip("'").split(" ")[0]
 
     return f"""
-version: <a href="https://github.com/AnyaCoder/fish-speech/commit/{hash}">{hash}</a>
+version: <a href="https://github.com/fishaudio/fish-speech/commit/{hash}">{hash}</a>
 &#x2000;•&#x2000;
 python: <span title="{sys.version}">{python_version}</span>
 &#x2000;•&#x2000;
@@ -43,7 +43,7 @@ torch: {getattr(torch, '__long_version__',torch.__version__)}
 &#x2000;•&#x2000;
 gradio: {gr.__version__}
 &#x2000;•&#x2000;
-author: <a href="https://github.com/AnyaCoder">laziman/AnyaCoder</a>
+author: <a href="https://github.com/fishaudio">fishaudio</a>
 """
 
 
@@ -52,7 +52,7 @@ def version_check(commit):
         import requests
 
         commits = requests.get(
-            "https://api.github.com/repos/AnyaCoder/fish-speech/branches/main"
+            "https://api.github.com/repos/fishaudio/fish-speech/branches/main"
         ).json()
         if commit != "<none>" and commits["commit"]["sha"] != commit:
             print("--------------------------------------------------------")
