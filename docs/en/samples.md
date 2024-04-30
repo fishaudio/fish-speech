@@ -1,8 +1,5 @@
 # Samples
 
-!!! note
-    Samples in this page are generated using the 0.4 version and have not been updated.
-
 ## Chinese Sentence 1
 ```
 人间灯火倒映湖中，她的渴望让静水泛起涟漪。若代价只是孤独，那就让这份愿望肆意流淌。
@@ -20,34 +17,34 @@
     <tbody>
     <tr>
         <td>Nahida (Genshin Impact)</td>
-        <td><audio controls preload="auto" src="/assets/audios/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/0_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_output.wav" /></td>
     </tr>
     <tr>
         <td>Zhongli (Genshin Impact)</td>
-        <td><audio controls preload="auto" src="/assets/audios/1_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/1_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/1_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/1_output.wav" /></td>
     </tr>
     <tr>
         <td>Furina (Genshin Impact)</td>
-        <td><audio controls preload="auto" src="/assets/audios/2_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/2_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/2_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/2_output.wav" /></td>
     </tr>
     <tr>
         <td>Random Speaker 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/3_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/4_output.wav" /></td>
     </tr>
     <tr>
         <td>Random Speaker 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/4_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/5_output.wav" /></td>
     </tr>
     </tbody>
 </table>
 
 
-## Chinese Sentence 2 (Long Sentence)
+## Chinese Sentence 2
 ```
 你们这个是什么群啊，你们这是害人不浅啊你们这个群！谁是群主，出来！真的太过分了。你们搞这个群干什么？
 我儿子每一科的成绩都不过那个平均分呐，他现在初二，你叫我儿子怎么办啊？他现在还不到高中啊？
@@ -67,18 +64,44 @@
     <tbody>
     <tr>
         <td>Nahida (Genshin Impact)</td>
-        <td><audio controls preload="auto" src="/assets/audios/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/5_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/6_output.wav" /></td>
     </tr>
     <tr>
-        <td>Seiki (Honkai: StarRail)</td>
-        <td><audio controls preload="auto" src="/assets/audios/6_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/6_output.wav" /></td>
+        <td>Random Speaker</td>
+        <td> - </td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/7_output.wav" /></td>
     </tr>
     </tbody>
 </table>
 
-## English Sentence
+
+## Chinese Sentence 3
+```
+大家好，我是 Fish Audio 开发的开源文本转语音模型。经过十五万小时的数据训练，
+我已经能够熟练掌握中文、日语和英语，我的语言处理能力接近人类水平，声音表现形式丰富多变。
+作为一个仅有亿级参数的模型，我相信社区成员能够在个人设备上轻松运行和微调，让我成为您的私人语音助手。
+```
+
+
+<table>
+    <thead>
+    <tr>
+        <th>Speaker</th>
+        <th>Input Audio</th>
+        <th>Synthesized Audio</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Random Speaker</td>
+        <td> - </td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/8_output.wav" /></td>
+    </tr>
+    </tbody>
+</table>
+
+## English Sentence 1
 
 ```
 In the realm of advanced technology, the evolution of artificial intelligence stands as a 
@@ -97,30 +120,54 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
     </thead>
     <tbody>
     <tr>
-        <td>Speaker 200 (LibriTTS)</td>
-        <td><audio controls preload="auto" src="/assets/audios/7_input.wav" /></td>
-        <td><audio controls preload="auto" src="/assets/audios/7_output.wav" /></td>
-    </tr>
-    <tr>
         <td>Random Speaker 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/8_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/0_output.wav" /></td>
     </tr>
     <tr>
         <td>Random Speaker 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/9_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/1_output.wav" /></td>
     </tr>
     </tbody>
 </table>
 
-## Japanese Sentence
+## English Sentence 2
+```
+Hello everyone, I am an open-source text-to-speech model developed by 
+Fish Audio. After training with 150,000 hours of data, I have become proficient 
+in Chinese, Japanese, and English, and my language processing abilities 
+are close to human level. My voice is capable of a wide range of expressions. 
+As a model with only hundreds of millions of parameters, I believe community 
+members can easily run and fine-tune me on their personal devices, allowing 
+me to serve as your personal voice assistant.
+```
+
+<table>
+    <thead>
+    <tr>
+        <th>Speaker</th>
+        <th>Input Audio</th>
+        <th>Synthesized Audio</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Random Speaker</td>
+        <td> - </td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/2_output.wav" /></td>
+    </tr>
+    </tbody>
+</table>
+
+## Japanese Sentence 1
 
 ```
 先進技術の領域において、人工知能の進化は画期的な成果として立っています。常に機械ができることの限界を
 押し広げているこのダイナミックな分野は、急速な成長と革新を見せています。複雑なデータパターンの解読か
 ら自動運転車の操縦まで、AIの応用は広範囲に及びます。
 ```
+
 
 <table>
     <thead>
@@ -134,12 +181,39 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
     <tr>
         <td>Random Speaker 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/10_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/0_output.wav" /></td>
     </tr>
     <tr>
         <td>Random Speaker 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="/assets/audios/11_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/1_output.wav" /></td>
+    </tr>
+    </tbody>
+</table>
+
+## Japanese Sentence 2
+```
+皆さん、こんにちは。私はフィッシュオーディオによって開発されたオープンソースのテ
+キストから音声への変換モデルです。15万時間のデータトレーニングを経て、
+中国語、日本語、英語を熟知しており、言語処理能力は人間に近いレベルです。
+声の表現も多彩で豊かです。数億のパラメータを持つこのモデルは、コミュニティ
+のメンバーが個人のデバイスで簡単に実行し、微調整することができると
+信じています。これにより、私を個人の音声アシスタントとして活用できます。
+```
+
+<table>
+    <thead>
+    <tr>
+        <th>Speaker</th>
+        <th>Input Audio</th>
+        <th>Synthesized Audio</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Random Speaker</td>
+        <td> - </td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/2_output.wav" /></td>
     </tr>
     </tbody>
 </table>
