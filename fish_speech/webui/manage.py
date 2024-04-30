@@ -104,10 +104,13 @@ def change_label(if_label):
 
 
 def change_infer(
-    if_infer, host, port,
-    infer_vqgan_model, infer_llama_model,
+    if_infer,
+    host,
+    port,
+    infer_vqgan_model,
+    infer_llama_model,
     infer_llama_config,
-    infer_compile
+    infer_compile,
 ):
     global p_infer
     if if_infer == True and p_infer == None:
@@ -619,9 +622,9 @@ with gr.Blocks(
                                 label="模型基础属性",
                                 choices=[
                                     "dual_ar_2_codebook_large",
-                                    "dual_ar_2_codebook_medium"
+                                    "dual_ar_2_codebook_medium",
                                 ],
-                                value="dual_ar_2_codebook_large"
+                                value="dual_ar_2_codebook_large",
                             )
                             llama_data_num_workers_slider = gr.Slider(
                                 label="num_workers",
@@ -700,9 +703,7 @@ with gr.Blocks(
                                 info="输入路径，或者下拉选择",
                                 choices=[
                                     str(p)
-                                    for p in Path("results").glob(
-                                        "text2*ar/**/*.ckpt"
-                                    )
+                                    for p in Path("results").glob("text2*ar/**/*.ckpt")
                                 ],
                                 allow_custom_value=True,
                                 interactive=True,
@@ -752,9 +753,9 @@ with gr.Blocks(
                                     label="LLAMA模型基础属性",
                                     choices=[
                                         "dual_ar_2_codebook_large",
-                                        "dual_ar_2_codebook_medium"
+                                        "dual_ar_2_codebook_medium",
                                     ],
-                                    value="dual_ar_2_codebook_large"
+                                    value="dual_ar_2_codebook_large",
                                 )
 
                     with gr.Row():
