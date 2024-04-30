@@ -148,7 +148,7 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
@@ -156,9 +156,6 @@ Finally, you can start the fine-tuning by running the following command:
 python fish_speech/train.py --config-name text2semantic_finetune \
     model@model.model=dual_ar_2_codebook_large
 ```
-
-!!! info
-    If you want to use lora, please use `--config-name text2semantic_finetune_lora` to start fine-tuning (still under development).
 
 !!! note
     You can modify the training parameters such as `batch_size`, `gradient_accumulation_steps`, etc. to fit your GPU memory by modifying `fish_speech/configs/text2semantic_finetune.yaml`.
@@ -171,3 +168,21 @@ After training is complete, you can refer to the [inference](inference.md) secti
 !!! info
     By default, the model will only learn the speaker's speech patterns and not the timbre. You still need to use prompts to ensure timbre stability.
     If you want to learn the timbre, you can increase the number of training steps, but this may lead to overfitting.
+
+#### Fine-tuning with LoRA
+
+!!! note
+    LoRA can reduce the risk of overfitting in models, but it may also lead to underfitting on large datasets. 
+
+If you want to use LoRA, please add the following parameter: `+lora@model.lora_config=r_8_alpha_16`. 
+
+After training, you need to convert the LoRA weights to regular weights before performing inference.
+
+```bash
+python tools/llama/merge_lora.py \
+    --llama-config dual_ar_2_codebook_large \
+    --lora-config r_8_alpha_16 \
+    --llama-weight checkpoints/text2semantic-sft-large-v1-4k.pth \
+    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
+    --output checkpoints/merged.ckpt
+```

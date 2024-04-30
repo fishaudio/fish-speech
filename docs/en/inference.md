@@ -16,7 +16,7 @@ Download the required `vqgan` and `text2semantic` models from our Hugging Face r
     
 ```bash
 huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
 ```
 
 ### 1. Generate prompt from voice:
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
     --config-name dual_ar_2_codebook_large \
-    --checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
+    --checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -53,8 +53,7 @@ This command will create a `codes_N` file in the working directory, where N is a
     For GPUs that do not support bf16, you may need to use the `--half` parameter.
 
 !!! warning
-    If you are using your own fine-tuned model, please be sure to carry the `--speaker` parameter to ensure the stability of pronunciation.  
-    If you are using lora, please use `--config-name text2semantic_finetune_lora` to load the model.
+    If you are using your own fine-tuned model, please be sure to carry the `--speaker` parameter to ensure the stability of pronunciation.
 
 ### 3. Generate vocals from semantic tokens:
 ```bash
@@ -70,7 +69,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_large \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
@@ -83,7 +82,7 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-large-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_large \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```

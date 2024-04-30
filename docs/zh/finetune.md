@@ -152,13 +152,13 @@ python tools/llama/build_dataset.py \
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-large-v1-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
 ```
 
 最后, 你可以运行以下命令来启动微调:
@@ -167,9 +167,6 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 python fish_speech/train.py --config-name text2semantic_finetune \
     model@model.model=dual_ar_2_codebook_large
 ```
-
-!!! note
-    如果你想使用 lora, 请使用 `--config-name text2semantic_finetune_lora` 来启动微调 (仍在开发中).
 
 !!! note
     你可以通过修改 `fish_speech/configs/text2semantic_finetune.yaml` 来修改训练参数如 `batch_size`, `gradient_accumulation_steps` 等, 来适应你的显存.
@@ -182,3 +179,20 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 !!! info
     默认配置下, 基本只会学到说话人的发音方式, 而不包含音色, 你依然需要使用 prompt 来保证音色的稳定性.  
     如果你想要学到音色, 请将训练步数调大, 但这有可能会导致过拟合.
+
+#### 使用 lora 进行微调
+!!! note
+    lora 可以减少模型过拟合的风险, 但是相应的会导致在大数据集上欠拟合.   
+
+如果你想使用 lora, 请添加以下参数 `+lora@model.lora_config=r_8_alpha_16`.  
+
+训练完成后, 你需要先将 lora 的权重转为普通权重, 然后再进行推理.
+
+```bash
+python tools/llama/merge_lora.py \
+    --llama-config dual_ar_2_codebook_large \
+    --lora-config r_8_alpha_16 \
+    --llama-weight checkpoints/text2semantic-sft-large-v1-4k.pth \
+    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
+    --output checkpoints/merged.ckpt
+```
