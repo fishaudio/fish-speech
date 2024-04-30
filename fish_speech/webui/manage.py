@@ -79,6 +79,7 @@ def kill_proc_tree(pid, including_parent=True):
 system = platform.system()
 p_label = None
 p_infer = None
+p_tensorboard = None
 
 
 def kill_process(pid):
@@ -378,7 +379,7 @@ def train_process(
             "fish_speech/train.py",
             "--config-name",
             "vqgan_finetune",
-            f"project={new_project}",
+            f"project={'vqgan_' + new_project}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model.optimizer.lr={vqgan_lr}",
             f"trainer.max_steps={vqgan_maxsteps}",
@@ -432,7 +433,7 @@ def train_process(
             "fish_speech/train.py",
             "--config-name",
             "text2semantic_finetune",
-            f"project={new_project}",
+            f"project={'text2semantic_' + new_project}",
             f"ckpt_path=checkpoints/{ckpt_path}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model@model.model={llama_base_config}",
@@ -454,6 +455,47 @@ def train_process(
 
     return build_html_ok_message("训练终止")
 
+
+def tensorboard_process(
+        if_tensorboard: bool,
+        tensorboard_dir: str,
+        host: str,
+        port: str,
+):
+    global p_tensorboard
+    if if_tensorboard == True and p_tensorboard == None:
+        yield build_html_ok_message(f"Tensorboard界面已开启, 访问 http://{host}:{port}")
+        p_tensorboard = subprocess.Popen(
+            [
+                "fishenv/python.exe",
+                "fishenv/Scripts/tensorboard.exe"
+                if Path("fishenv").exists() else "tensorboard",
+                "--logdir",
+                tensorboard_dir,
+                "--host",
+                host,
+                "--port",
+                port,
+                "--reload_interval",
+                "120",
+            ]
+        )
+    elif if_tensorboard == False and p_tensorboard != None:
+        kill_process(p_tensorboard.pid)
+        p_tensorboard = None
+        yield build_html_error_message("Tensorboard界面已关闭")
+
+
+def fresh_tb_dir():
+    return gr.Dropdown(choices=[str(p) for p in Path("results").glob("**/tensorboard/version_*/")])
+
+def fresh_vqgan_model():
+    return gr.Dropdown(choices=[init_vqgan_yml["ckpt_path"]] +
+                               [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")])
+
+def fresh_llama_model():
+    return gr.Dropdown(choices=[init_llama_yml["ckpt_path"]] +
+                               [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")])
 
 def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
     if (
@@ -740,6 +782,27 @@ with gr.Blocks(
                                 value="开始融合", variant="primary"
                             )
 
+                    with gr.Tab(label="Tensorboard"):
+                        with gr.Row(equal_height=False):
+                            tb_host = gr.Textbox(
+                                label="Tensorboard Host",
+                                value='127.0.0.1'
+                            )
+                            tb_port = gr.Textbox(
+                                label="Tensorboard Port",
+                                value='11451'
+                            )
+                        with gr.Row(equal_height=False):
+                            tb_dir = gr.Dropdown(
+                                label="Tensorboard 日志文件夹",
+                                allow_custom_value=True,
+                                choices=[str(p) for p in Path("results").glob("**/tensorboard/version_*/")]
+                            )
+                        with gr.Row(equal_height=False):
+                            if_tb = gr.Checkbox(
+                                label="是否打开tensorboard?",
+                            )
+
             with gr.Tab("\U0001F9E0 进入推理界面"):
                 with gr.Column():
                     with gr.Row():
@@ -752,16 +815,20 @@ with gr.Blocks(
                                     label="Webui启动服务器端口", value="7862"
                                 )
                             with gr.Row():
-                                infer_vqgan_model = gr.Textbox(
+                                infer_vqgan_model = gr.Dropdown(
                                     label="VQGAN模型位置",
-                                    placeholder="填写pth/ckpt文件路径",
+                                    info="填写pth/ckpt文件路径",
                                     value=init_vqgan_yml["ckpt_path"],
+                                    choices=[init_vqgan_yml["ckpt_path"]] +
+                                            [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
                                 )
                             with gr.Row():
-                                infer_llama_model = gr.Textbox(
+                                infer_llama_model = gr.Dropdown(
                                     label="LLAMA模型位置",
-                                    placeholder="填写pth/ckpt文件路径",
+                                    info="填写pth/ckpt文件路径",
                                     value=init_llama_yml["ckpt_path"],
+                                    choices=[init_llama_yml["ckpt_path"]] +
+                                            [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
                                 )
                             with gr.Row():
                                 infer_compile = gr.Radio(
@@ -867,6 +934,36 @@ with gr.Blocks(
             llama_use_lora,
         ],
         outputs=[train_error],
+    )
+    if_tb.change(
+        fn=tensorboard_process,
+        inputs=[
+            if_tb,
+            tb_dir,
+            tb_host,
+            tb_port
+        ],
+        outputs=[train_error]
+    )
+    tb_dir.change(
+        fn=fresh_tb_dir,
+        inputs=[],
+        outputs=[tb_dir]
+    )
+    infer_vqgan_model.change(
+        fn=fresh_vqgan_model,
+        inputs=[],
+        outputs=[infer_vqgan_model]
+    )
+    infer_llama_model.change(
+        fn=fresh_llama_model,
+        inputs=[],
+        outputs=[infer_llama_model]
+    )
+    llama_weight.change(
+        fn=fresh_llama_model,
+        inputs=[],
+        outputs=[llama_weight]
     )
     admit_btn.click(
         fn=check_files,
