@@ -220,12 +220,14 @@ def add_item(folder: str, method: str, label_lang: str):
         elif folder:
             err = folder
             return gr.Checkboxgroup(choices=items), build_html_error_message(
-                f"添加文件夹路径无效: {err}"
+                i18n("Invalid path: {}").format(err)
             )
 
     formatted_data = json.dumps(dict_items, ensure_ascii=False, indent=4)
     logger.info(formatted_data)
-    return gr.Checkboxgroup(choices=items), build_html_ok_message("添加文件(夹)路径成功!")
+    return gr.Checkboxgroup(choices=items), build_html_ok_message(
+        i18n("Added path successfully!")
+    )
 
 
 def remove_items(selected_items):
@@ -237,13 +239,17 @@ def remove_items(selected_items):
     formatted_data = json.dumps(dict_items, ensure_ascii=False, indent=4)
     logger.info(formatted_data)
     return gr.Checkboxgroup(choices=items, value=[]), build_html_ok_message(
-        "删除文件(夹)路径成功!"
+        i18n("Removed path successfully!")
     )
 
 
 def show_selected(options):
     selected_options = ", ".join(options)
-    return f"你选中了: {selected_options}" if options else "你没有选中任何选项"
+
+    if options:
+        return i18n("Selected: {}").format(selected_options)
+    else:
+        return i18n("No selected options")
 
 
 def list_copy(list_file_path, method):
@@ -260,7 +266,7 @@ def list_copy(list_file_path, method):
             if target_wav_path.is_file():
                 continue
             target_wav_path.parent.mkdir(parents=True, exist_ok=True)
-            if method == "复制一份":
+            if method == i18n("Copy"):
                 shutil.copy(original_wav_path, target_wav_path)
             else:
                 shutil.move(original_wav_path, target_wav_path.parent)
@@ -273,22 +279,20 @@ def list_copy(list_file_path, method):
             )
             if target_lab_path.is_file():
                 continue
-            if method == "复制一份":
+            if method == i18n("Copy"):
                 shutil.copy(original_lab_path, target_lab_path)
             else:
                 shutil.move(original_lab_path, target_lab_path.parent)
 
-    if method == "直接移动":
+    if method == i18n("Move"):
         with list_file_path.open("w", encoding="utf-8") as file:
             file.writelines("\n".join(lst))
 
     del lst
-    return build_html_ok_message("使用filelist")
+    return build_html_ok_message(i18n("Use filelist"))
 
 
 def check_files(data_path: str, max_depth: int, label_model: str, label_device: str):
-    dict_to_language = {"中文": "ZH", "英文": "EN", "日文": "JP", "不打标": "WTF"}
-
     global dict_items
     data_path = Path(data_path)
     for item, content in dict_items.items():
@@ -296,8 +300,8 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         tar_path = data_path / item_path.name
 
         if content["type"] == "folder" and item_path.is_dir():
-            cur_lang = dict_to_language[content["label_lang"]]
-            if cur_lang != "WTF":
+            cur_lang = content["label_lang"]
+            if cur_lang != "IGNORE":
                 try:
                     subprocess.run(
                         [
@@ -319,7 +323,7 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
                 except Exception:
                     print("Transcription error occurred")
 
-            if content["method"] == "复制一份":
+            if content["method"] == i18n("Copy"):
                 os.makedirs(tar_path, exist_ok=True)
                 shutil.copytree(
                     src=str(item_path), dst=str(tar_path), dirs_exist_ok=True
@@ -330,7 +334,9 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         elif content["type"] == "file" and item_path.is_file():
             list_copy(item_path, content["method"])
 
-    return build_html_ok_message("文件移动完毕"), new_explorer(data_path, max_depth=max_depth)
+    return build_html_ok_message(i18n("Move files successfully")), new_explorer(
+        data_path, max_depth=max_depth
+    )
 
 
 def train_process(
@@ -457,7 +463,7 @@ def train_process(
         logger.info(train_cmd)
         subprocess.run(train_cmd)
 
-    return build_html_ok_message("训练终止")
+    return build_html_ok_message(i18n("Training stopped"))
 
 
 def tensorboard_process(
@@ -468,13 +474,17 @@ def tensorboard_process(
 ):
     global p_tensorboard
     if if_tensorboard == True and p_tensorboard == None:
-        yield build_html_ok_message(f"Tensorboard界面已开启, 访问 http://{host}:{port}")
+        url = f"http://{host}:{port}"
+        yield build_html_ok_message(
+            i18n("Tensorboard interface is launched at {}").format(url)
+        )
+        prefix = ["tensorboard"]
+        if Path("fishenv").exists():
+            prefix = ["fishenv/python.exe", "fishenv/Scripts/tensorboard.exe"]
+
         p_tensorboard = subprocess.Popen(
-            [
-                "fishenv/python.exe",
-                "fishenv/Scripts/tensorboard.exe"
-                if Path("fishenv").exists()
-                else "tensorboard",
+            prefix
+            + [
                 "--logdir",
                 tensorboard_dir,
                 "--host",
@@ -488,7 +498,7 @@ def tensorboard_process(
     elif if_tensorboard == False and p_tensorboard != None:
         kill_process(p_tensorboard.pid)
         p_tensorboard = None
-        yield build_html_error_message("Tensorboard界面已关闭")
+        yield build_html_error_message(i18n("Tensorboard interface is closed"))
 
 
 def fresh_tb_dir():
@@ -517,7 +527,11 @@ def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
         or not Path(lora_weight).exists()
         or not Path(llama_weight).exists()
     ):
-        return build_html_error_message("路径错误，请检查模型文件是否存在于对应路径")
+        return build_html_error_message(
+            i18n(
+                "Path error, please check the model file exists in the corresponding path"
+            )
+        )
 
     merge_cmd = [
         PYTHON,
@@ -535,7 +549,7 @@ def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
     ]
     logger.info(merge_cmd)
     subprocess.run(merge_cmd)
-    return build_html_ok_message("融合终止")
+    return build_html_ok_message(i18n("Merge successfully"))
 
 
 init_vqgan_yml = load_yaml_data_in_fact(vqgan_yml_path)
@@ -546,70 +560,88 @@ with gr.Blocks(
     js=js,
     theme=seafoam,
     analytics_enabled=False,
-    title="Fish-Speech 鱼语",
+    title="Fish Speech",
 ) as demo:
     with gr.Row():
         with gr.Column():
-            with gr.Tab("\U0001F4D6 数据集准备"):
+            with gr.Tab("\U0001F4D6 " + i18n("Data Preprocessing")):
                 with gr.Row():
                     textbox = gr.Textbox(
-                        label="\U0000270F 输入音频&转写源文件夹路径",
-                        info="音频装在一个以说话人命名的文件夹内作为区分",
+                        label="\U0000270F "
+                        + i18n("Input Audio & Source Path for Transcription"),
+                        info=i18n("Speaker is identified by the folder name"),
                         interactive=True,
                     )
                 with gr.Row(equal_height=False):
                     with gr.Column():
                         output_radio = gr.Radio(
-                            label="\U0001F4C1 选择源文件(夹)处理方式",
-                            choices=["复制一份", "直接移动"],
-                            value="复制一份",
+                            label="\U0001F4C1 "
+                            + i18n("Select source file processing method"),
+                            choices=[i18n("Copy"), i18n("Move")],
+                            value=i18n("Copy"),
                             interactive=True,
                         )
                     with gr.Column():
-                        error = gr.HTML(label="错误信息")
+                        error = gr.HTML(label=i18n("Error Message"))
                         if_label = gr.Checkbox(
-                            label="是否开启打标WebUI", scale=0, show_label=True
+                            label=i18n("Open Labeler WebUI"), scale=0, show_label=True
                         )
                 with gr.Row():
-                    add_button = gr.Button("\U000027A1提交到处理区", variant="primary")
-                    remove_button = gr.Button("\U000026D4 取消所选内容")
+                    add_button = gr.Button(
+                        "\U000027A1 " + i18n("Add to Processing Area"),
+                        variant="primary",
+                    )
+                    remove_button = gr.Button(
+                        "\U000026D4 " + i18n("Remove Selected Data")
+                    )
 
                 with gr.Row():
                     label_device = gr.Dropdown(
-                        label="打标设备",
-                        info="建议使用cuda, 实在是低配置再用cpu",
+                        label=i18n("Labeling Device"),
+                        info=i18n(
+                            "It is recommended to use CUDA, if you have low configuration, use CPU"
+                        ),
                         choices=["cpu", "cuda"],
                         value="cuda",
                         interactive=True,
                     )
                     label_model = gr.Dropdown(
-                        label="打标模型大小",
-                        info="显存10G以上用large, 5G用medium, 2G用small",
+                        label=i18n("Whisper Model"),
+                        info=i18n(
+                            "Use large for 10G+ GPU, medium for 5G, small for 2G"
+                        ),
                         choices=["large", "medium", "small"],
                         value="small",
                         interactive=True,
                     )
                     label_radio = gr.Dropdown(
-                        label="(可选)打标语言",
-                        info="如果没有音频对应的文本，则进行辅助打标, 支持.txt或.lab格式",
-                        choices=["中文", "日文", "英文", "不打标"],
-                        value="不打标",
+                        label=i18n("Optional Label Language"),
+                        info=i18n(
+                            "If there is no corresponding text for the audio, apply ASR for assistance, support .txt or .lab format"
+                        ),
+                        choices=[
+                            (i18n("Chinese"), "ZH"),
+                            (i18n("English"), "EN"),
+                            (i18n("Japanese"), "JA"),
+                            (i18n("Disabled"), "IGNORE"),
+                        ],
+                        value="IGNORE",
                         interactive=True,
                     )
 
-            with gr.Tab("\U0001F6E0 训练配置项"):  # hammer
+            with gr.Tab("\U0001F6E0 " + i18n("Training Configuration")):
                 with gr.Row():
                     model_type_radio = gr.Radio(
-                        label="选择要训练的模型类型",
+                        label=i18n("Select the model to be trained"),
                         interactive=True,
                         choices=["VQGAN", "LLAMA", "all"],
                         value="all",
                     )
                 with gr.Row():
-                    with gr.Tab(label="VQGAN配置项"):
+                    with gr.Tab(label=i18n("VQGAN Configuration")):
                         with gr.Row(equal_height=False):
                             vqgan_lr_slider = gr.Slider(
-                                label="初始学习率",
+                                label=i18n("Initial Learning Rate"),
                                 interactive=True,
                                 minimum=1e-5,
                                 maximum=1e-4,
@@ -617,7 +649,7 @@ with gr.Blocks(
                                 value=init_vqgan_yml["model"]["optimizer"]["lr"],
                             )
                             vqgan_maxsteps_slider = gr.Slider(
-                                label="训练最大步数",
+                                label=i18n("Maximum Training Steps"),
                                 interactive=True,
                                 minimum=1000,
                                 maximum=100000,
@@ -627,7 +659,7 @@ with gr.Blocks(
 
                         with gr.Row(equal_height=False):
                             vqgan_data_num_workers_slider = gr.Slider(
-                                label="num_workers",
+                                label=i18n("Number of Workers"),
                                 interactive=True,
                                 minimum=1,
                                 maximum=16,
@@ -636,7 +668,7 @@ with gr.Blocks(
                             )
 
                             vqgan_data_batch_size_slider = gr.Slider(
-                                label="batch_size",
+                                label=i18n("Batch Size"),
                                 interactive=True,
                                 minimum=1,
                                 maximum=32,
@@ -645,7 +677,7 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             vqgan_data_val_batch_size_slider = gr.Slider(
-                                label="val_batch_size",
+                                label=i18n("Validation Batch Size"),
                                 interactive=True,
                                 minimum=1,
                                 maximum=32,
@@ -653,14 +685,17 @@ with gr.Blocks(
                                 value=init_vqgan_yml["data"]["val_batch_size"],
                             )
                             vqgan_precision_dropdown = gr.Dropdown(
-                                label="训练精度",
+                                label=i18n("Precision"),
                                 interactive=True,
                                 choices=["32", "bf16-true", "bf16-mixed"],
+                                info=i18n(
+                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
+                                ),
                                 value=str(init_vqgan_yml["trainer"]["precision"]),
                             )
                         with gr.Row(equal_height=False):
                             vqgan_check_interval_slider = gr.Slider(
-                                label="每n步保存一个模型",
+                                label=i18n("Save model every n steps"),
                                 interactive=True,
                                 minimum=500,
                                 maximum=10000,
@@ -668,15 +703,18 @@ with gr.Blocks(
                                 value=init_vqgan_yml["trainer"]["val_check_interval"],
                             )
 
-                    with gr.Tab(label="LLAMA配置项"):
+                    with gr.Tab(label=i18n("LLAMA Configuration")):
                         with gr.Row(equal_height=False):
                             llama_use_lora = gr.Checkbox(
-                                label="使用lora训练？",
+                                label=i18n("Use LoRA"),
+                                info=i18n(
+                                    "Use LoRA can save GPU memory, but may reduce the quality of the model"
+                                ),
                                 value=True,
                             )
                         with gr.Row(equal_height=False):
                             llama_lr_slider = gr.Slider(
-                                label="初始学习率",
+                                label=i18n("Initial Learning Rate"),
                                 interactive=True,
                                 minimum=1e-5,
                                 maximum=1e-4,
@@ -684,7 +722,7 @@ with gr.Blocks(
                                 value=init_llama_yml["model"]["optimizer"]["lr"],
                             )
                             llama_maxsteps_slider = gr.Slider(
-                                label="训练最大步数",
+                                label=i18n("Maximum Training Steps"),
                                 interactive=True,
                                 minimum=1000,
                                 maximum=100000,
@@ -693,7 +731,7 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_base_config = gr.Dropdown(
-                                label="模型基础属性",
+                                label=i18n("Model Size"),
                                 choices=[
                                     "dual_ar_2_codebook_large",
                                     "dual_ar_2_codebook_medium",
@@ -701,7 +739,7 @@ with gr.Blocks(
                                 value="dual_ar_2_codebook_large",
                             )
                             llama_data_num_workers_slider = gr.Slider(
-                                label="num_workers",
+                                label=i18n("Number of Workers"),
                                 minimum=0,
                                 maximum=16,
                                 step=1,
@@ -711,7 +749,7 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_data_batch_size_slider = gr.Slider(
-                                label="batch_size",
+                                label=i18n("Batch Size"),
                                 interactive=True,
                                 minimum=1,
                                 maximum=32,
@@ -719,7 +757,7 @@ with gr.Blocks(
                                 value=init_llama_yml["data"]["batch_size"],
                             )
                             llama_data_max_length_slider = gr.Slider(
-                                label="max_length",
+                                label=i18n("Maximum Length per Sample"),
                                 interactive=True,
                                 minimum=1024,
                                 maximum=4096,
@@ -728,13 +766,16 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_precision_dropdown = gr.Dropdown(
-                                label="训练精度",
+                                label=i18n("Precision"),
+                                info=i18n(
+                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
+                                ),
                                 interactive=True,
                                 choices=["32", "bf16-true", "16-mixed"],
                                 value="bf16-true",
                             )
                             llama_check_interval_slider = gr.Slider(
-                                label="每n步保存一个模型",
+                                label=i18n("Save model every n steps"),
                                 interactive=True,
                                 minimum=500,
                                 maximum=10000,
@@ -743,7 +784,7 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_grad_batches = gr.Slider(
-                                label="accumulate_grad_batches",
+                                label=i18n("Accumulate Gradient Batches"),
                                 interactive=True,
                                 minimum=1,
                                 maximum=20,
@@ -753,7 +794,7 @@ with gr.Blocks(
                                 ],
                             )
                             llama_use_speaker = gr.Slider(
-                                label="use_speaker_ratio",
+                                label=i18n("Probability of applying Speaker Condition"),
                                 interactive=True,
                                 minimum=0.1,
                                 maximum=1.0,
@@ -761,11 +802,11 @@ with gr.Blocks(
                                 value=init_llama_yml["train_dataset"]["use_speaker"],
                             )
 
-                    with gr.Tab(label="LLAMA_lora融合"):
+                    with gr.Tab(label=i18n("Merge LoRA")):
                         with gr.Row(equal_height=False):
                             llama_weight = gr.Dropdown(
-                                label="要融入的原模型",
-                                info="输入路径，或者下拉选择",
+                                label=i18n("Base LLAMA Model"),
+                                info=i18n("Type the path or select from the dropdown"),
                                 choices=[init_llama_yml["ckpt_path"]],
                                 value=init_llama_yml["ckpt_path"],
                                 allow_custom_value=True,
@@ -773,8 +814,8 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             lora_weight = gr.Dropdown(
-                                label="要融入的lora模型",
-                                info="输入路径，或者下拉选择",
+                                label=i18n("LoRA Model to be merged"),
+                                info=i18n("Type the path or select from the dropdown"),
                                 choices=[
                                     str(p)
                                     for p in Path("results").glob("text2*ar/**/*.ckpt")
@@ -784,8 +825,8 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_lora_output = gr.Dropdown(
-                                label="输出的lora模型",
-                                info="输出路径",
+                                label=i18n("Output Path"),
+                                info=i18n("Type the path or select from the dropdown"),
                                 value="checkpoints/merged.ckpt",
                                 choices=["checkpoints/merged.ckpt"],
                                 allow_custom_value=True,
@@ -793,20 +834,20 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             llama_lora_merge_btn = gr.Button(
-                                value="开始融合", variant="primary"
+                                value=i18n("Merge"), variant="primary"
                             )
 
                     with gr.Tab(label="Tensorboard"):
                         with gr.Row(equal_height=False):
                             tb_host = gr.Textbox(
-                                label="Tensorboard Host", value="127.0.0.1"
+                                label=i18n("Tensorboard Host"), value="127.0.0.1"
                             )
                             tb_port = gr.Textbox(
-                                label="Tensorboard Port", value="11451"
+                                label=i18n("Tensorboard Port"), value="11451"
                             )
                         with gr.Row(equal_height=False):
                             tb_dir = gr.Dropdown(
-                                label="Tensorboard 日志文件夹",
+                                label=i18n("Tensorboard Log Path"),
                                 allow_custom_value=True,
                                 choices=[
                                     str(p)
@@ -817,24 +858,30 @@ with gr.Blocks(
                             )
                         with gr.Row(equal_height=False):
                             if_tb = gr.Checkbox(
-                                label="是否打开tensorboard?",
+                                label=i18n("Open Tensorboard"),
                             )
 
-            with gr.Tab("\U0001F9E0 进入推理界面"):
+            with gr.Tab("\U0001F9E0 " + i18n("Inference Configuration")):
                 with gr.Column():
                     with gr.Row():
-                        with gr.Accordion(label="\U0001F5A5 推理服务器配置", open=False):
+                        with gr.Accordion(
+                            label="\U0001F5A5 "
+                            + i18n("Inference Server Configuration"),
+                            open=False,
+                        ):
                             with gr.Row():
                                 infer_host_textbox = gr.Textbox(
-                                    label="Webui启动服务器地址", value="127.0.0.1"
+                                    label=i18n("WebUI Host"), value="127.0.0.1"
                                 )
                                 infer_port_textbox = gr.Textbox(
-                                    label="Webui启动服务器端口", value="7862"
+                                    label=i18n("WebUI Port"), value="7862"
                                 )
                             with gr.Row():
                                 infer_vqgan_model = gr.Dropdown(
-                                    label="VQGAN模型位置",
-                                    info="填写pth/ckpt文件路径",
+                                    label=i18n("VQGAN Model Path"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     value=init_vqgan_yml["ckpt_path"],
                                     choices=[init_vqgan_yml["ckpt_path"]]
                                     + [
@@ -847,8 +894,10 @@ with gr.Blocks(
                                 )
                             with gr.Row():
                                 infer_llama_model = gr.Dropdown(
-                                    label="LLAMA模型位置",
-                                    info="填写pth/ckpt文件路径",
+                                    label=i18n("LLAMA Model Path"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     value=init_llama_yml["ckpt_path"],
                                     choices=[init_llama_yml["ckpt_path"]]
                                     + [
@@ -861,10 +910,15 @@ with gr.Blocks(
                                 )
                             with gr.Row():
                                 infer_compile = gr.Radio(
-                                    label="是否编译模型？", choices=["Yes", "No"], value="Yes"
+                                    label=i18n("Compile Model"),
+                                    info=i18n(
+                                        "Compile the model can significantly reduce the inference time, but will increase cold start time"
+                                    ),
+                                    choices=["Yes", "No"],
+                                    value="Yes",
                                 )
                                 infer_llama_config = gr.Dropdown(
-                                    label="LLAMA模型基础属性",
+                                    label=i18n("LLAMA Model Config"),
                                     choices=[
                                         "dual_ar_2_codebook_large",
                                         "dual_ar_2_codebook_medium",
@@ -874,27 +928,35 @@ with gr.Blocks(
                                 )
 
                     with gr.Row():
-                        infer_checkbox = gr.Checkbox(label="是否打开推理界面")
-                        infer_error = gr.HTML(label="推理界面错误信息")
+                        infer_checkbox = gr.Checkbox(
+                            label=i18n("Open Inference Server")
+                        )
+                        infer_error = gr.HTML(label=i18n("Inference Server Error"))
 
         with gr.Column():
-            train_error = gr.HTML(label="训练时的报错信息")
+            train_error = gr.HTML(label=i18n("Training Error"))
             checkbox_group = gr.CheckboxGroup(
-                label="\U0001F4CA 数据源列表",
-                info="左侧输入文件夹所在路径或filelist。无论是否勾选，在此列表中都会被用以后续训练。",
+                label="\U0001F4CA " + i18n("Data Source"),
+                info=i18n(
+                    "The path of the input folder on the left or the filelist. Whether checked or not, it will be used for subsequent training in this list."
+                ),
                 elem_classes=["data_src"],
             )
             train_box = gr.Textbox(
-                label="数据预处理文件夹路径", value=str(data_pre_output), interactive=False
+                label=i18n("Data Preprocessing Path"),
+                value=str(data_pre_output),
+                interactive=False,
             )
             model_box = gr.Textbox(
-                label="\U0001F4BE 模型输出路径",
+                label="\U0001F4BE " + i18n("Model Output Path"),
                 value=str(default_model_output),
                 interactive=False,
             )
 
             with gr.Accordion(
-                "查看预处理文件夹状态 (滑块为显示深度大小)",
+                i18n(
+                    "View the status of the preprocessing folder (use the slider to control the depth of the tree)"
+                ),
                 elem_classes=["scrollable-component"],
                 elem_id="file_accordion",
             ):
@@ -909,11 +971,14 @@ with gr.Blocks(
                 file_markdown = new_explorer(str(data_pre_output), 0)
             with gr.Row(equal_height=False):
                 admit_btn = gr.Button(
-                    "\U00002705 文件预处理", scale=0, min_width=160, variant="primary"
+                    "\U00002705 " + i18n("File Preprocessing"),
+                    scale=0,
+                    min_width=160,
+                    variant="primary",
                 )
                 fresh_btn = gr.Button("\U0001F503", scale=0, min_width=80)
                 help_button = gr.Button("\U00002753", scale=0, min_width=80)  # question
-                train_btn = gr.Button("训练启动!", variant="primary")
+                train_btn = gr.Button(i18n("Start Training"), variant="primary")
 
     footer = load_data_in_raw("fish_speech/webui/html/footer.html")
     footer = footer.format(
