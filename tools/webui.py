@@ -1,6 +1,7 @@
 import gc
 import html
 import os
+import queue
 import threading
 from argparse import ArgumentParser
 from pathlib import Path
@@ -119,17 +120,26 @@ def inference(
     )
 
     payload = dict(
-        event=threading.Event(),
+        response_queue=queue.Queue(),
         request=request,
     )
     llama_queue.put(payload)
 
-    # Wait for the result
-    payload["event"].wait()
-    if payload["success"] is False:
-        raise payload["response"]
+    codes = []
+    while True:
+        result = payload["response_queue"].get()
+        if result == "next":
+            # TODO: handle next sentence
+            continue
 
-    codes = payload["response"][0]
+        if result == "done":
+            if payload["success"] is False:
+                raise payload["response"]
+            break
+
+        codes.append(result)
+
+    codes = torch.cat(codes, dim=1)
 
     # VQGAN Inference
     feature_lengths = torch.tensor([codes.shape[1]], device=vqgan_model.device)
