@@ -141,7 +141,7 @@ python tools/llama/build_dataset.py \
 After the command finishes executing, you should see the `quantized-dataset-ft.protos` file in the `data` directory.
 
 !!!info
-    For the VITS format, you can specify a file list using `--filelist xxx.list`.
+    For the VITS format, you can specify a file list using `--input xxx.list`.
 
 ### 4. Finally, start the fine-tuning
 

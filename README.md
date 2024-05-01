@@ -35,3 +35,13 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+
+## Sponsor / 赞助
+
+<div>
+  <a href="https://6block.com/">
+    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
+  </a>
+  <br>
+  <a href="https://6block.com/">数据处理服务器由 6Block 提供 (Data Processing sponsor by 6Block)</a>
+</div>

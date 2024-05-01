@@ -12,30 +12,28 @@ function createGradioAnimation() {
         document.documentElement.style.setProperty('--my-200', '#80eeee');
         document.documentElement.style.setProperty('--my-50', '#ecfdf5');
 
-        gradioApp.style.position = 'relative';
-        gradioApp.style.backgroundSize = '200% 200%';
-        gradioApp.style.animation = 'moveJellyBackground 10s ease infinite';
-        gradioApp.style.backgroundImage = 'radial-gradient(circle at 0% 50%, var(--my-200), var(--my-50) 50%)';
-        gradioApp.style.display = 'flex';
-        gradioApp.style.justifyContent = 'flex-start';
-        gradioApp.style.flexWrap = 'nowrap';
-        gradioApp.style.overflowX = 'auto';
+        // gradioApp.style.position = 'relative';
+        // gradioApp.style.backgroundSize = '200% 200%';
+        // gradioApp.style.animation = 'moveJellyBackground 10s ease infinite';
+        // gradioApp.style.backgroundImage = 'radial-gradient(circle at 0% 50%, var(--my-200), var(--my-50) 50%)';
+        // gradioApp.style.display = 'flex';
+        // gradioApp.style.justifyContent = 'flex-start';
+        // gradioApp.style.flexWrap = 'nowrap';
+        // gradioApp.style.overflowX = 'auto';
 
-        for (let i = 0; i < 6; i++) {
-            var quan = document.createElement('div');
-            quan.className = 'quan';
-            gradioApp.insertBefore(quan, gradioApp.firstChild);
-            quan.id = 'quan' + i.toString();
-            quan.style.left = 'calc(var(--water-width) * ' + i.toString() + ')';
-            var quanContainer = document.querySelector('.quan');
-            if (quanContainer) {
-                var shui = document.createElement('div');
-                shui.className = 'shui';
-                quanContainer.insertBefore(shui, quanContainer.firstChild)
-            }
-        }
-
-
+        // for (let i = 0; i < 6; i++) {
+        //     var quan = document.createElement('div');
+        //     quan.className = 'quan';
+        //     gradioApp.insertBefore(quan, gradioApp.firstChild);
+        //     quan.id = 'quan' + i.toString();
+        //     quan.style.left = 'calc(var(--water-width) * ' + i.toString() + ')';
+        //     var quanContainer = document.querySelector('.quan');
+        //     if (quanContainer) {
+        //         var shui = document.createElement('div');
+        //         shui.className = 'shui';
+        //         quanContainer.insertBefore(shui, quanContainer.firstChild)
+        //     }
+        // }
     }
 
     var container = document.createElement('div');

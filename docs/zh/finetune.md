@@ -145,7 +145,7 @@ python tools/llama/build_dataset.py \
 命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
 
 !!! note
-    对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
+    对于 VITS 格式, 你可以使用 `--input xxx.list` 来指定文件列表.
 
 ### 4. 最后, 启动微调
 
