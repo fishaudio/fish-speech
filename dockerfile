@@ -3,7 +3,7 @@ FROM python:3.10.14-bookworm
 # Install system dependencies
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y git curl build-essential ffmpeg libsm6 libxext6 libjpeg-dev \
-    zlib1g-dev aria2 zsh openssh-server sudo protobuf-compiler cmake && \
+    zlib1g-dev aria2 zsh openssh-server sudo protobuf-compiler cmake libsox-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install oh-my-zsh so your terminal looks nice
