@@ -18,7 +18,7 @@
     "Enable Reference Audio": "リファレンスオーディオを有効にする",
     "English": "英語",
     "Error Message": "エラーメッセージ",
-    "File Preprocessing": "ファイル前処理",
+    "File Preprocessing": "文書前处理",
     "Generate": "生成",
     "Generated Audio": "生成されたオーディオ",
     "If there is no corresponding text for the audio, apply ASR for assistance, support .txt or .lab format": "音声に対応するテキストがない場合は、ASRを適用してサポートします。.txtまたは.lab形式をサポートしています",

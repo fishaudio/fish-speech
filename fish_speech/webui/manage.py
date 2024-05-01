@@ -972,8 +972,6 @@ with gr.Blocks(
             with gr.Row(equal_height=False):
                 admit_btn = gr.Button(
                     "\U00002705 " + i18n("File Preprocessing"),
-                    scale=0,
-                    min_width=160,
                     variant="primary",
                 )
                 fresh_btn = gr.Button("\U0001F503", scale=0, min_width=80)
