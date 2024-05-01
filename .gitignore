@@ -21,3 +21,4 @@ ffmpeg.exe
 asr-label-win-x64.exe
 /.cache
 /fishenv
+/.locale

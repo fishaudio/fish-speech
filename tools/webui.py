@@ -12,6 +12,7 @@ import torch
 from loguru import logger
 from transformers import AutoTokenizer
 
+from fish_speech.i18n import i18n
 from tools.llama.generate import launch_thread_safe_queue
 from tools.vqgan.inference import load_model as load_vqgan_model
 
@@ -19,22 +20,18 @@ from tools.vqgan.inference import load_model as load_vqgan_model
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
 
 
-HEADER_MD = """# Fish Speech
+HEADER_MD = f"""# Fish Speech
 
-A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).  
-由 [Fish Audio](https://fish.audio) 研发的基于 VQ-GAN 和 Llama 的多语种语音合成. 
+{i18n("A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).")}  
 
-You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).  
-你可以在 [这里](https://github.com/fishaudio/fish-speech) 找到源代码和 [这里](https://huggingface.co/fishaudio/fish-speech-1) 找到模型.  
+{i18n("You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).")}  
 
-Related code are released under BSD-3-Clause License, and weights are released under CC BY-NC-SA 4.0 License.  
-相关代码使用 BSD-3-Clause 许可证发布，权重使用 CC BY-NC-SA 4.0 许可证发布.
+{i18n("Related code are released under BSD-3-Clause License, and weights are released under CC BY-NC-SA 4.0 License.")}  
 
-We are not responsible for any misuse of the model, please consider your local laws and regulations before using it.  
-我们不对模型的任何滥用负责，请在使用之前考虑您当地的法律法规.
+{i18n("We are not responsible for any misuse of the model, please consider your local laws and regulations before using it.")}  
 """
 
-TEXTBOX_PLACEHOLDER = """Put your text here. 在此处输入文本."""
+TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 
 try:
     import spaces
@@ -76,7 +73,9 @@ def inference(
     if args.max_gradio_length > 0 and len(text) > args.max_gradio_length:
         return (
             None,
-            f"Text is too long, please keep it under {args.max_gradio_length} characters.",
+            i18n("Text is too long, please keep it under {} characters.").format(
+                args.max_gradio_length
+            ),
         )
 
     # Parse reference audio aka prompt
@@ -171,13 +170,13 @@ def build_app():
         with gr.Row():
             with gr.Column(scale=3):
                 text = gr.Textbox(
-                    label="Input Text / 输入文本", placeholder=TEXTBOX_PLACEHOLDER, lines=15
+                    label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=15
                 )
 
                 with gr.Row():
-                    with gr.Tab(label="Advanced Config / 高级参数"):
+                    with gr.Tab(label=i18n("Advanced Config")):
                         chunk_length = gr.Slider(
-                            label="Iterative Prompt Length, 0 means off / 迭代提示长度，0 表示关闭",
+                            label=i18n("Iterative Prompt Length, 0 means off"),
                             minimum=0,
                             maximum=500,
                             value=30,
@@ -185,7 +184,7 @@ def build_app():
                         )
 
                         max_new_tokens = gr.Slider(
-                            label="Maximum tokens per batch, 0 means no limit / 每批最大令牌数，0 表示无限制",
+                            label=i18n("Maximum tokens per batch, 0 means no limit"),
                             minimum=0,
                             maximum=args.max_length,
                             value=0,  # 0 means no limit
@@ -201,7 +200,7 @@ def build_app():
                         )
 
                         repetition_penalty = gr.Slider(
-                            label="Repetition Penalty",
+                            label=i18n("Repetition Penalty"),
                             minimum=0,
                             maximum=2,
                             value=1.5,
@@ -217,40 +216,42 @@ def build_app():
                         )
 
                         speaker = gr.Textbox(
-                            label="Speaker / 说话人",
-                            placeholder="Type name of the speaker / 输入说话人的名称",
+                            label=i18n("Speaker"),
+                            placeholder=i18n("Type name of the speaker"),
                             lines=1,
                         )
 
-                    with gr.Tab(label="Reference Audio / 参考音频"):
+                    with gr.Tab(label=i18n("Reference Audio")):
                         gr.Markdown(
-                            "5 to 10 seconds of reference audio, useful for specifying speaker. \n5 到 10 秒的参考音频，适用于指定音色。"
+                            i18n(
+                                "5 to 10 seconds of reference audio, useful for specifying speaker."
+                            )
                         )
 
                         enable_reference_audio = gr.Checkbox(
-                            label="Enable Reference Audio / 启用参考音频",
+                            label=i18n("Enable Reference Audio"),
                         )
                         reference_audio = gr.Audio(
-                            label="Reference Audio / 参考音频",
+                            label=i18n("Reference Audio"),
                             type="filepath",
                         )
                         reference_text = gr.Textbox(
-                            label="Reference Text / 参考文本",
-                            placeholder="参考文本",
+                            label=i18n("Reference Text"),
+                            placeholder=i18n("Reference Text"),
                             lines=1,
                             value="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
                         )
 
             with gr.Column(scale=3):
                 with gr.Row():
-                    error = gr.HTML(label="Error Message / 错误信息")
+                    error = gr.HTML(label=i18n("Error Message"))
                 with gr.Row():
-                    audio = gr.Audio(label="Generated Audio / 音频", type="numpy")
+                    audio = gr.Audio(label=i18n("Generated Audio"), type="numpy")
 
                 with gr.Row():
                     with gr.Column(scale=3):
                         generate = gr.Button(
-                            value="\U0001F3A7 Generate / 合成", variant="primary"
+                            value="\U0001F3A7 " + i18n("Generate"), variant="primary"
                         )
 
         # # Submit

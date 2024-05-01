@@ -17,6 +17,7 @@ import yaml
 from loguru import logger
 from tqdm import tqdm
 
+from fish_speech.i18n import i18n
 from fish_speech.webui.launch_utils import Seafoam, versions_html
 
 PYTHON = os.path.join(os.environ.get("PYTHON_FOLDERPATH", ""), "python")
@@ -97,7 +98,7 @@ def change_label(if_label):
         # 设置要访问的URL
         url = "https://text-labeler.pages.dev/"
         webbrowser.open(url)
-        yield f"已打开网址"
+        yield i18n("Opened labeler in browser")
     elif if_label == False:
         p_label = None
         yield "Nothing"
@@ -119,7 +120,10 @@ def change_infer(
         env["GRADIO_SERVER_NAME"] = host
         env["GRADIO_SERVER_PORT"] = port
         # 启动第二个进程
-        yield build_html_ok_message(f"推理界面已开启, 访问 http://{host}:{port}")
+        url = f"http://{host}:{port}"
+        yield build_html_ok_message(
+            i18n("Inferring interface is launched at {}").format(url)
+        )
         p_infer = subprocess.Popen(
             [
                 PYTHON,
@@ -140,7 +144,7 @@ def change_infer(
     elif if_infer == False and p_infer != None:
         kill_process(p_infer.pid)
         p_infer = None
-        yield build_html_error_message("推理界面已关闭")
+        yield build_html_error_message(i18n("Infer interface is closed"))
 
 
 js = load_data_in_raw("fish_speech/webui/js/animate.js")
