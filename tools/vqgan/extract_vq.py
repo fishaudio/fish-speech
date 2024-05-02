@@ -140,11 +140,15 @@ def main(
 
         logger.info(f"Spawning {num_workers} workers")
 
-        visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", None)
-        if visible_devices is None:
-            visible_devices = list(range(torch.cuda.device_count()))
+        if torch.cuda.is_available():
+            visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+            if visible_devices is None:
+                visible_devices = list(range(torch.cuda.device_count()))
+            else:
+                visible_devices = visible_devices.split(",")
         else:
-            visible_devices = visible_devices.split(",")
+            # Set to empty string to avoid using GPU
+            visible_devices = [""]
 
         processes = []
         for i in range(num_workers):

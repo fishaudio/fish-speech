@@ -10,6 +10,9 @@
 <a target="_blank" href="https://hub.docker.com/r/lengyue233/fish-speech">
 <img alt="Docker" src="https://img.shields.io/docker/pulls/lengyue233/fish-speech?style=flat-square&logo=docker"/>
 </a>
+<a target="_blank" href="https://github.com/fishaudio/fish-speech/actions/workflows/build-windows-package.yml">
+<img alt="Docker" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>
+</a>
 </div>
 
 This codebase is released under BSD-3-Clause License, and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 

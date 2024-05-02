@@ -1,0 +1,42 @@
+name: build-windows-package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove unnecessary files
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - uses: actions/checkout@v4
+        with:
+          path: ./fish-speech
+      - name: Setup Hugging Face CLI
+        run: pip3 install huggingface-hub
+      - name: Download Windows Binaries
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          ls -la
+          huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.0.zip \
+          --local-dir ./ --local-dir-use-symlinks False
+          unzip -q fish-speech-v1.0.zip -d fish-speech-zip
+          rm fish-speech-v1.0.zip
+          mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe \
+          fish-speech-zip/fish-speech/checkpoints fish-speech-zip/fish-speech/.cache ./fish-speech
+          rm -rf fish-speech-zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fish-speech-main-${{ github.run_id }}
+          path: ./fish-speech

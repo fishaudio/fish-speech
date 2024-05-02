@@ -9,6 +9,7 @@ from threading import Lock
 from typing import Annotated, Literal, Optional
 
 import librosa
+import pyrootutils
 import soundfile as sf
 import torch
 from kui.wsgi import (
@@ -24,6 +25,8 @@ from kui.wsgi.routing import MultimethodRoutes
 from loguru import logger
 from pydantic import BaseModel
 from transformers import AutoTokenizer
+
+pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from tools.llama.generate import launch_thread_safe_queue
 from tools.vqgan.inference import load_model as load_vqgan_model
