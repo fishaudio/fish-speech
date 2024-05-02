@@ -66,7 +66,6 @@ def inference(
     reference_text,
     max_new_tokens,
     chunk_length,
-    top_k,
     top_p,
     repetition_penalty,
     temperature,
@@ -107,7 +106,6 @@ def inference(
         device=vqgan_model.device,
         max_new_tokens=max_new_tokens,
         text=text,
-        top_k=int(top_k) if top_k > 0 else None,
         top_p=top_p,
         repetition_penalty=repetition_penalty,
         temperature=temperature,
@@ -193,10 +191,6 @@ def build_app():
                             step=8,
                         )
 
-                        top_k = gr.Slider(
-                            label="Top-K", minimum=0, maximum=100, value=0, step=1
-                        )
-
                         top_p = gr.Slider(
                             label="Top-P", minimum=0, maximum=1, value=0.7, step=0.01
                         )
@@ -266,7 +260,6 @@ def build_app():
                 reference_text,
                 max_new_tokens,
                 chunk_length,
-                top_k,
                 top_p,
                 repetition_penalty,
                 temperature,
@@ -337,7 +330,6 @@ if __name__ == "__main__":
         reference_text="",
         max_new_tokens=0,
         chunk_length=0,
-        top_k=0,  # 0 means no limit
         top_p=0.7,
         repetition_penalty=1.5,
         temperature=0.7,

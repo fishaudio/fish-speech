@@ -67,7 +67,6 @@ class InvokeRequest(BaseModel):
     reference_audio: Optional[str] = None
     max_new_tokens: int = 0
     chunk_length: int = 30
-    top_k: int = 0
     top_p: float = 0.7
     repetition_penalty: float = 1.5
     temperature: float = 0.7
@@ -104,7 +103,6 @@ def inference(req: InvokeRequest):
         device=vqgan_model.device,
         max_new_tokens=req.max_new_tokens,
         text=req.text,
-        top_k=int(req.top_k) if req.top_k > 0 else None,
         top_p=req.top_p,
         repetition_penalty=req.repetition_penalty,
         temperature=req.temperature,
@@ -281,7 +279,6 @@ if __name__ == "__main__":
             reference_audio=None,
             max_new_tokens=0,
             chunk_length=30,
-            top_k=0,
             top_p=0.7,
             repetition_penalty=1.5,
             temperature=0.7,
