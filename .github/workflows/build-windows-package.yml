@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.12
       - uses: actions/checkout@v4
@@ -19,9 +19,10 @@ jobs:
       - env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          ls -la
           huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.0.zip \
           --local-dir ./ --local-dir-use-symlinks False
-          unzip fish-speech-v1.0.zip -d fish-speech-zip
+          unzip -q fish-speech-v1.0.zip -d fish-speech-zip
           mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe ./fish-speech
       - uses: actions/upload-artifact@v4
         with:
