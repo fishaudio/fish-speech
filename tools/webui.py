@@ -2,15 +2,17 @@ import gc
 import html
 import os
 import queue
-import threading
 from argparse import ArgumentParser
 from pathlib import Path
 
 import gradio as gr
 import librosa
+import pyrootutils
 import torch
 from loguru import logger
 from transformers import AutoTokenizer
+
+pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.i18n import i18n
 from tools.llama.generate import launch_thread_safe_queue
