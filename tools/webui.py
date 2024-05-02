@@ -160,7 +160,7 @@ def inference(
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wav_file:
+    with wave.open(buffer, "wb") as wav_file:
         wav_file.setnchannels(channels)
         wav_file.setsampwidth(bit_depth // 8)
         wav_file.setframerate(sample_rate)
@@ -254,13 +254,16 @@ def inference_stream(
             indices=result[None], feature_lengths=feature_lengths, return_audios=True
         )[0, 0]
         fake_audios = fake_audios.float().cpu().numpy()
-        yield (np.concatenate([fake_audios, np.zeros((11025,))], axis=0) * 32768).astype(np.int16).tobytes(), None
+        yield (
+            np.concatenate([fake_audios, np.zeros((11025,))], axis=0) * 32768
+        ).astype(np.int16).tobytes(), None
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         gc.collect()
 
     pass
+
 
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
@@ -351,15 +354,20 @@ def build_app():
                 with gr.Row():
                     audio = gr.Audio(label=i18n("Generated Audio"), type="numpy")
                 with gr.Row():
-                    stream_audio = gr.Audio(label=i18n("Streaming Audio"),
-                                            streaming=True, autoplay=True, interactive=False)
+                    stream_audio = gr.Audio(
+                        label=i18n("Streaming Audio"),
+                        streaming=True,
+                        autoplay=True,
+                        interactive=False,
+                    )
                 with gr.Row():
                     with gr.Column(scale=3):
                         generate = gr.Button(
                             value="\U0001F3A7 " + i18n("Generate"), variant="primary"
                         )
                         generate_stream = gr.Button(
-                            value="\U0001F3A7 " + i18n("Streaming Generate"), variant="primary"
+                            value="\U0001F3A7 " + i18n("Streaming Generate"),
+                            variant="primary",
                         )
         # # Submit
         generate.click(
