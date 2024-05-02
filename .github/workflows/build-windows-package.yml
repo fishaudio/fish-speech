@@ -9,14 +9,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Remove unnecessary files
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v5
         with:
           python-version: 3.12
       - uses: actions/checkout@v4
         with:
           path: ./fish-speech
-      - run: pip3 install huggingface-hub
-      - env:
+      - name: Setup Hugging Face CLI
+        run: pip3 install huggingface-hub
+      - name: Download Windows Binaries
+        env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           ls -la
