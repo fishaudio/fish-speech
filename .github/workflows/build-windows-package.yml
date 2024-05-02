@@ -32,7 +32,9 @@ jobs:
           huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.0.zip \
           --local-dir ./ --local-dir-use-symlinks False
           unzip -q fish-speech-v1.0.zip -d fish-speech-zip
+          rm fish-speech-v1.0.zip
           mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe ./fish-speech
+          rm -rf fish-speech-zip
       - uses: actions/upload-artifact@v4
         with:
           name: fish-speech-main-${{ github.run_id }}
