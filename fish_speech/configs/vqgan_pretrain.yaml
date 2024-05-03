@@ -89,7 +89,7 @@ model:
     ckpt_path: null # You may download the pretrained vocoder and set the path here
 
   encode_mel_transform:
-    _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
+    _target_: fish_speech.utils.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}
     n_fft: ${n_fft}
     hop_length: ${hop_length}
@@ -99,7 +99,7 @@ model:
     f_max: 8000.0
 
   gt_mel_transform:
-    _target_: fish_speech.models.vqgan.spectrogram.LogMelSpectrogram
+    _target_: fish_speech.utils.spectrogram.LogMelSpectrogram
     sample_rate: ${sample_rate}
     n_fft: ${n_fft}
     hop_length: ${hop_length}

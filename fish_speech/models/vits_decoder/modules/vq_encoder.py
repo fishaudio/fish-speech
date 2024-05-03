@@ -3,7 +3,7 @@ from torch import nn
 
 from fish_speech.models.vqgan.modules.fsq import DownsampleFiniteScalarQuantize
 from fish_speech.models.vqgan.modules.wavenet import WaveNet
-from fish_speech.models.vqgan.spectrogram import LogMelSpectrogram
+from fish_speech.utils.spectrogram import LogMelSpectrogram
 
 
 class VQEncoder(nn.Module):

@@ -11,9 +11,7 @@ class MRTE(nn.Module):
         content_enc_channels=192,
         hidden_size=512,
         out_channels=192,
-        kernel_size=5,
         n_heads=4,
-        ge_layer=2,
     ):
         super(MRTE, self).__init__()
         self.cross_attention = MultiHeadAttention(hidden_size, hidden_size, n_heads)
