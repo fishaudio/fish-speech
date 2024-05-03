@@ -1,10 +1,6 @@
-import copy
-import math
-
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
-from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
@@ -26,6 +22,7 @@ class TextEncoder(nn.Module):
         kernel_size,
         p_dropout,
         latent_channels=192,
+        codebook_size=264,
     ):
         super().__init__()
         self.out_channels = out_channels
@@ -51,9 +48,7 @@ class TextEncoder(nn.Module):
         self.encoder_text = attentions.Encoder(
             hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
         )
-        self.text_embedding = nn.Embedding(
-            322, hidden_channels
-        )  # We only use 264, but to make the weight happy
+        self.text_embedding = nn.Embedding(codebook_size, hidden_channels)
 
         self.mrte = MRTE()
 
@@ -68,7 +63,7 @@ class TextEncoder(nn.Module):
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    def forward(self, y, y_lengths, text, text_lengths, ge, test=None):
+    def forward(self, y, y_lengths, text, text_lengths, ge):
         y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
             y.dtype
         )
@@ -80,8 +75,6 @@ class TextEncoder(nn.Module):
         text_mask = torch.unsqueeze(
             commons.sequence_mask(text_lengths, text.size(1)), 1
         ).to(y.dtype)
-        if test == 1:
-            text[:, :] = 0
         text = self.text_embedding(text).transpose(1, 2)
         text = self.encoder_text(text * text_mask, text_mask)
         y = self.mrte(y, y_mask, text, text_mask, ge)
@@ -388,10 +381,8 @@ class DiscriminatorS(torch.nn.Module):
 
 
 class EnsembledDiscriminator(torch.nn.Module):
-    def __init__(self, use_spectral_norm=False):
+    def __init__(self, periods=(2, 3, 5, 7, 11), use_spectral_norm=False):
         super().__init__()
-        periods = [2, 3, 5, 7, 11]
-
         discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
         discs = discs + [
             DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
@@ -438,6 +429,7 @@ class SynthesizerTrn(nn.Module):
         upsample_initial_channel,
         upsample_kernel_sizes,
         gin_channels=0,
+        codebook_size=264,
     ):
         super().__init__()
 
@@ -466,6 +458,7 @@ class SynthesizerTrn(nn.Module):
             n_layers,
             kernel_size,
             p_dropout,
+            codebook_size=codebook_size,
         )
         self.dec = Generator(
             inter_channels,
@@ -498,69 +491,80 @@ class SynthesizerTrn(nn.Module):
         for param in self.vq.parameters():
             param.requires_grad = False
 
-    def forward(self, audio, audio_lengths, y, y_lengths, text, text_lengths):
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
-            y.dtype
-        )
-        ge = self.ref_enc(y * y_mask, y_mask)
-        quantized = self.vq(audio, audio_lengths, sr=32000)
-
-        quantized = F.interpolate(quantized, size=int(y.shape[-1]), mode="nearest")
+    def forward(
+        self, audio, audio_lengths, gt_specs, gt_spec_lengths, text, text_lengths
+    ):
+        y_mask = torch.unsqueeze(
+            commons.sequence_mask(gt_spec_lengths, gt_specs.size(2)), 1
+        ).to(gt_specs.dtype)
+        ge = self.ref_enc(gt_specs * y_mask, y_mask)
+        quantized = self.vq(audio, audio_lengths)
+        quantized = F.interpolate(quantized, size=gt_specs.size(-1), mode="nearest")
 
         x, m_p, logs_p, y_mask = self.enc_p(
-            quantized, y_lengths, text, text_lengths, ge
+            quantized, gt_spec_lengths, text, text_lengths, ge
         )
-        z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
+        z, m_q, logs_q, y_mask = self.enc_q(gt_specs, gt_spec_lengths, g=ge)
         z_p = self.flow(z, y_mask, g=ge)
 
         z_slice, ids_slice = commons.rand_slice_segments(
-            z, y_lengths, self.segment_size
+            z, gt_spec_lengths, self.segment_size
         )
         o = self.dec(z_slice, g=ge)
+
         return (
             o,
             ids_slice,
             y_mask,
-            y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
         )
 
+    @torch.no_grad()
     def infer(
         self,
         audio,
         audio_lengths,
-        y,
-        y_lengths,
+        gt_specs,
+        gt_spec_lengths,
         text,
         text_lengths,
-        test=None,
         noise_scale=0.5,
     ):
-        # y_lengths = audio_lengths // 640 # 640 is the hop size
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
-            y.dtype
-        )
-        ge = self.ref_enc(y * y_mask, y_mask)
-
-        quantized = self.vq(audio, audio_lengths, sr=32000)
-        print(quantized.size())
-        quantized = F.interpolate(
-            quantized, size=int(audio.shape[-1] // 640), mode="nearest"
-        )
-        print(quantized.size())
+        y_mask = torch.unsqueeze(
+            commons.sequence_mask(gt_spec_lengths, gt_specs.size(2)), 1
+        ).to(gt_specs.dtype)
+        ge = self.ref_enc(gt_specs * y_mask, y_mask)
+        quantized = self.vq(audio, audio_lengths)
 
         x, m_p, logs_p, y_mask = self.enc_p(
-            quantized, audio_lengths, text, text_lengths, ge, test=test
+            quantized, audio_lengths, text, text_lengths, ge
         )
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
-        o = self.dec((z * y_mask)[:, :, :], g=ge)
-        return o, y_mask, (z, z_p, m_p, logs_p)
+        o = self.dec(z * y_mask, g=ge)
+        return o
+
+    @torch.no_grad()
+    def infer_posterior(
+        self,
+        gt_specs,
+        gt_spec_lengths,
+    ):
+        y_mask = torch.unsqueeze(
+            commons.sequence_mask(gt_spec_lengths, gt_specs.size(2)), 1
+        ).to(gt_specs.dtype)
+        ge = self.ref_enc(gt_specs * y_mask, y_mask)
+        z, m_q, logs_q, y_mask = self.enc_q(gt_specs, gt_spec_lengths, g=ge)
+        o = self.dec(z * y_mask, g=ge)
+
+        return o
 
     @torch.no_grad()
     def decode(self, codes, text, refer, noise_scale=0.5):
+        # TODO: not tested yet
+
         ge = None
         if refer is not None:
             refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
@@ -587,17 +591,12 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o
 
-    def extract_latent(self, x):
-        ssl = self.ssl_proj(x)
-        quantized, codes, commit_loss, quantized_list = self.quantizer(ssl)
-        return codes.transpose(0, 1)
-
 
 if __name__ == "__main__":
     import librosa
     from transformers import AutoTokenizer
 
-    from fish_speech.models.vqgan.spectrogram import LinearSpectrogram
+    from fish_speech.utils.spectrogram import LinearSpectrogram
 
     model = SynthesizerTrn(
         spec_channels=1025,
@@ -612,28 +611,46 @@ if __name__ == "__main__":
         resblock="1",
         resblock_kernel_sizes=[3, 7, 11],
         resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-        upsample_rates=[10, 8, 2, 2, 2],
+        upsample_rates=[8, 8, 2, 2, 2],
         upsample_initial_channel=512,
         upsample_kernel_sizes=[16, 16, 8, 2, 2],
         gin_channels=512,
     )
 
-    ckpt = "./checkpoints/s2_big2k1_158000.pth"
+    ckpt = "checkpoints/Bert-VITS2/G_0.pth"
     # Try to load the model
     print(f"Loading model from {ckpt}")
-    checkpoint = torch.load(ckpt, map_location="cpu", weights_only=True)
+    checkpoint = torch.load(ckpt, map_location="cpu", weights_only=True)["model"]
+    d_checkpoint = torch.load(
+        "checkpoints/Bert-VITS2/D_0.pth", map_location="cpu", weights_only=True
+    )["model"]
+    print(checkpoint.keys())
+
+    checkpoint.pop("dec.cond.weight")
+    checkpoint.pop("enc_q.enc.cond_layer.weight_v")
+
+    new_checkpoint = {}
+    for k, v in checkpoint.items():
+        new_checkpoint["generator." + k] = v
+
+    for k, v in d_checkpoint.items():
+        new_checkpoint["discriminator." + k] = v
+
+    torch.save(new_checkpoint, "checkpoints/Bert-VITS2/ensemble.pth")
+    exit()
+
     print(model.load_state_dict(checkpoint, strict=False))
 
     # Test
 
-    ref_audio = librosa.load(
-        "data/source/Genshin/Chinese/五郎/vo_DQAQ010_15_gorou_07.wav", sr=32000
-    )[0]
+    ref_audio = librosa.load("data/source/云天河/云天河-旁白/《薄太太》第0025集-yth_24.wav", sr=32000)[
+        0
+    ]
     input_audio = librosa.load(
-        "data/source/Genshin/Chinese/空/vo_FDAQ003_46_hero_02.wav", sr=32000
+        "data/source/云天河/云天河-旁白/《薄太太》第0025集-yth_24.wav", sr=32000
     )[0]
-    # ref_audio = input_audio
-    text = "（现在看来花瓶里的水并不是用来隐藏水迹，而是在莉莉安与考威尔的争斗中不小心撞破的…）"
+    ref_audio = input_audio
+    text = "博兴只知道身边的小女人没睡着，他又凑到她耳边压低了声线。阮苏眉睁眼，不觉得你老公像英雄吗？阮苏还是没反应，这男人是不是有病？刚才那冰冷又强势的样子，和现在这幼稚无赖的样子，根本就判若二人。"
     encoded_text = AutoTokenizer.from_pretrained("fishaudio/fish-speech-1")
     spec = LinearSpectrogram(n_fft=2048, hop_length=640, win_length=2048)
 
