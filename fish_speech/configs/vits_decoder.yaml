@@ -13,7 +13,7 @@ trainer:
   strategy: ddp_find_unused_parameters_true
   precision: 32
   max_steps: 1_000_000
-  val_check_interval: 2000
+  val_check_interval: 1000
 
 sample_rate: 44100
 hop_length: 512
@@ -117,3 +117,7 @@ callbacks:
     sub_module: 
       - generator
       - discriminator
+
+  model_checkpoint:
+    every_n_train_steps: 1000
+    save_top_k: 10
