@@ -358,6 +358,7 @@ def train_process(
     data_path: str,
     option: str,
     # vq-gan config
+    vqgan_ckpt,
     vqgan_lr,
     vqgan_maxsteps,
     vqgan_data_num_workers,
@@ -366,6 +367,7 @@ def train_process(
     vqgan_precision,
     vqgan_check_interval,
     # llama config
+    llama_ckpt,
     llama_base_config,
     llama_lr,
     llama_maxsteps,
@@ -399,12 +401,16 @@ def train_process(
                 str(data_pre_output.relative_to(cur_work_dir)),
             ]
         )
+        latest = list(sorted([str(p.relative_to("results")) for p in Path("results").glob("vqgan_*/")], reverse=True))[0]
+        project = ('vqgan_' + new_project) if vqgan_ckpt == 'new' \
+                else latest if vqgan_ckpt == 'latest' else vqgan_ckpt
+        logger.info(project)
         train_cmd = [
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
             "vqgan_finetune",
-            f"project={'vqgan_' + new_project}",
+            f"project={project}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model.optimizer.lr={vqgan_lr}",
             f"trainer.max_steps={vqgan_maxsteps}",
@@ -453,12 +459,17 @@ def train_process(
             if llama_base_config == "dual_ar_2_codebook_medium"
             else "text2semantic-sft-large-v1-4k.pth"
         )
+
+        latest = list(sorted([str(p.relative_to("results")) for p in Path("results").glob("text2sem*/")], reverse=True))[0]
+        project = ('text2semantic_' + new_project) if llama_ckpt == 'new' \
+            else latest if llama_ckpt == 'latest' else llama_ckpt
+        logger.info(project)
         train_cmd = [
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
             "text2semantic_finetune",
-            f"project={'text2semantic_' + new_project}",
+            f"project={project}",
             f"ckpt_path=checkpoints/{ckpt_path}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model@model.model={llama_base_config}",
@@ -528,6 +539,15 @@ def fresh_vqgan_model():
         + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
     )
 
+def fresh_vqgan_ckpt():
+    return gr.Dropdown(
+        choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")]
+    )
+
+def fresh_llama_ckpt():
+    return gr.Dropdown(
+        choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")]
+    )
 
 def fresh_llama_model():
     return gr.Dropdown(
@@ -655,6 +675,13 @@ with gr.Blocks(
                 with gr.Row():
                     with gr.Tab(label=i18n("VQGAN Configuration")):
                         with gr.Row(equal_height=False):
+                            vqgan_ckpt = gr.Dropdown(
+                                label="Select VQGAN ckpt",
+                                choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")],
+                                value="latest",
+                                interactive=True,
+                            )
+                        with gr.Row(equal_height=False):
                             vqgan_lr_slider = gr.Slider(
                                 label=i18n("Initial Learning Rate"),
                                 interactive=True,
@@ -726,6 +753,12 @@ with gr.Blocks(
                                     "Use LoRA can save GPU memory, but may reduce the quality of the model"
                                 ),
                                 value=True,
+                            )
+                            llama_ckpt = gr.Dropdown(
+                                label="Select LLAMA ckpt",
+                                choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")],
+                                value="latest",
+                                interactive=True,
                             )
                         with gr.Row(equal_height=False):
                             llama_lr_slider = gr.Slider(
@@ -1021,6 +1054,7 @@ with gr.Blocks(
             train_box,
             model_type_radio,
             # vq-gan config
+            vqgan_ckpt,
             vqgan_lr_slider,
             vqgan_maxsteps_slider,
             vqgan_data_num_workers_slider,
@@ -1029,6 +1063,7 @@ with gr.Blocks(
             vqgan_precision_dropdown,
             vqgan_check_interval_slider,
             # llama config
+            llama_ckpt,
             llama_base_config,
             llama_lr_slider,
             llama_maxsteps_slider,
@@ -1063,6 +1098,14 @@ with gr.Blocks(
     )
     fresh_btn.click(
         fn=new_explorer, inputs=[train_box, tree_slider], outputs=[file_markdown]
+    )
+    vqgan_ckpt.change(
+        fn=fresh_vqgan_ckpt,
+        inputs=[], outputs=[vqgan_ckpt]
+    )
+    llama_ckpt.change(
+        fn=fresh_llama_ckpt,
+        inputs=[], outputs=[llama_ckpt]
     )
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
