@@ -401,9 +401,22 @@ def train_process(
                 str(data_pre_output.relative_to(cur_work_dir)),
             ]
         )
-        latest = list(sorted([str(p.relative_to("results")) for p in Path("results").glob("vqgan_*/")], reverse=True))[0]
-        project = ('vqgan_' + new_project) if vqgan_ckpt == 'new' \
-                else latest if vqgan_ckpt == 'latest' else vqgan_ckpt
+        latest = list(
+            sorted(
+                [
+                    str(p.relative_to("results"))
+                    for p in Path("results").glob("vqgan_*/")
+                ],
+                reverse=True,
+            )
+        )[0]
+        project = (
+            ("vqgan_" + new_project)
+            if vqgan_ckpt == "new"
+            else latest
+            if vqgan_ckpt == "latest"
+            else vqgan_ckpt
+        )
         logger.info(project)
         train_cmd = [
             PYTHON,
@@ -460,9 +473,22 @@ def train_process(
             else "text2semantic-sft-large-v1-4k.pth"
         )
 
-        latest = list(sorted([str(p.relative_to("results")) for p in Path("results").glob("text2sem*/")], reverse=True))[0]
-        project = ('text2semantic_' + new_project) if llama_ckpt == 'new' \
-            else latest if llama_ckpt == 'latest' else llama_ckpt
+        latest = list(
+            sorted(
+                [
+                    str(p.relative_to("results"))
+                    for p in Path("results").glob("text2sem*/")
+                ],
+                reverse=True,
+            )
+        )[0]
+        project = (
+            ("text2semantic_" + new_project)
+            if llama_ckpt == "new"
+            else latest
+            if llama_ckpt == "latest"
+            else llama_ckpt
+        )
         logger.info(project)
         train_cmd = [
             PYTHON,
@@ -539,15 +565,18 @@ def fresh_vqgan_model():
         + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
     )
 
+
 def fresh_vqgan_ckpt():
     return gr.Dropdown(
         choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")]
     )
 
+
 def fresh_llama_ckpt():
     return gr.Dropdown(
         choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")]
     )
+
 
 def fresh_llama_model():
     return gr.Dropdown(
@@ -677,7 +706,8 @@ with gr.Blocks(
                         with gr.Row(equal_height=False):
                             vqgan_ckpt = gr.Dropdown(
                                 label="Select VQGAN ckpt",
-                                choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")],
+                                choices=["latest", "new"]
+                                + [str(p) for p in Path("results").glob("vqgan_*/")],
                                 value="latest",
                                 interactive=True,
                             )
@@ -756,7 +786,8 @@ with gr.Blocks(
                             )
                             llama_ckpt = gr.Dropdown(
                                 label="Select LLAMA ckpt",
-                                choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")],
+                                choices=["latest", "new"]
+                                + [str(p) for p in Path("results").glob("text2sem*/")],
                                 value="latest",
                                 interactive=True,
                             )
@@ -1099,14 +1130,8 @@ with gr.Blocks(
     fresh_btn.click(
         fn=new_explorer, inputs=[train_box, tree_slider], outputs=[file_markdown]
     )
-    vqgan_ckpt.change(
-        fn=fresh_vqgan_ckpt,
-        inputs=[], outputs=[vqgan_ckpt]
-    )
-    llama_ckpt.change(
-        fn=fresh_llama_ckpt,
-        inputs=[], outputs=[llama_ckpt]
-    )
+    vqgan_ckpt.change(fn=fresh_vqgan_ckpt, inputs=[], outputs=[vqgan_ckpt])
+    llama_ckpt.change(fn=fresh_llama_ckpt, inputs=[], outputs=[llama_ckpt])
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
         inputs=[llama_weight, lora_weight, llama_lora_output],
