@@ -18,6 +18,7 @@ filelists
 /data
 /.idea
 ffmpeg.exe
+ffprobe.exe
 asr-label-win-x64.exe
 /.cache
 /fishenv
