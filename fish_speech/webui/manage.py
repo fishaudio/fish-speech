@@ -311,7 +311,6 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         tar_path = data_path / item_path.name
 
         if content["type"] == "folder" and item_path.is_dir():
-
             if content["method"] == i18n("Copy"):
                 os.makedirs(tar_path, exist_ok=True)
                 shutil.copytree(
