@@ -255,11 +255,11 @@ def show_selected(options):
 from pydub import AudioSegment
 
 
-def convert_to_mono_in_place(audio_path):
+def convert_to_mono_in_place(audio_path: Path):
     audio = AudioSegment.from_file(audio_path)
     if audio.channels > 1:
         mono_audio = audio.set_channels(1)
-        mono_audio.export(audio_path, format="mp3")
+        mono_audio.export(audio_path, format=audio_path.suffix[1:])
         logger.info(f"Convert {audio_path} successfully")
 
 
@@ -277,12 +277,11 @@ def list_copy(list_file_path, method):
             if target_wav_path.is_file():
                 continue
             target_wav_path.parent.mkdir(parents=True, exist_ok=True)
-            convert_to_mono_in_place(original_wav_path)
             if method == i18n("Copy"):
                 shutil.copy(original_wav_path, target_wav_path)
             else:
                 shutil.move(original_wav_path, target_wav_path.parent)
-
+            convert_to_mono_in_place(target_wav_path)
             original_lab_path = original_wav_path.with_suffix(".lab")
             target_lab_path = (
                 wav_root
@@ -312,8 +311,17 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         tar_path = data_path / item_path.name
 
         if content["type"] == "folder" and item_path.is_dir():
+
+            if content["method"] == i18n("Copy"):
+                os.makedirs(tar_path, exist_ok=True)
+                shutil.copytree(
+                    src=str(item_path), dst=str(tar_path), dirs_exist_ok=True
+                )
+            elif not tar_path.is_dir():
+                shutil.move(src=str(item_path), dst=str(tar_path))
+
             for suf in ["wav", "flac", "mp3"]:
-                for audio_path in item_path.glob(f"**/*.{suf}"):
+                for audio_path in tar_path.glob(f"**/*.{suf}"):
                     convert_to_mono_in_place(audio_path)
 
             cur_lang = content["label_lang"]
@@ -338,14 +346,6 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
                     )
                 except Exception:
                     print("Transcription error occurred")
-
-            if content["method"] == i18n("Copy"):
-                os.makedirs(tar_path, exist_ok=True)
-                shutil.copytree(
-                    src=str(item_path), dst=str(tar_path), dirs_exist_ok=True
-                )
-            elif not tar_path.is_dir():
-                shutil.move(src=str(item_path), dst=str(tar_path))
 
         elif content["type"] == "file" and item_path.is_file():
             list_copy(item_path, content["method"])
