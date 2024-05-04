@@ -253,12 +253,15 @@ def show_selected(options):
 
 
 from pydub import AudioSegment
+
+
 def convert_to_mono_in_place(audio_path):
     audio = AudioSegment.from_file(audio_path)
     if audio.channels > 1:
         mono_audio = audio.set_channels(1)
         mono_audio.export(audio_path, format="mp3")
         logger.info(f"Convert {audio_path} successfully")
+
 
 def list_copy(list_file_path, method):
     wav_root = data_pre_output
@@ -309,7 +312,6 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         tar_path = data_path / item_path.name
 
         if content["type"] == "folder" and item_path.is_dir():
-
             for suf in ["wav", "flac", "mp3"]:
                 for audio_path in item_path.glob(f"**/*.{suf}"):
                     convert_to_mono_in_place(audio_path)
