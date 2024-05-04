@@ -34,6 +34,7 @@ train_dataset:
   hop_length: ${hop_length}
   suffix: ".lab"
   tokenizer: ${tokenizer}
+  sentence_mask_ratio: 0.2
 
 val_dataset:
   _target_: fish_speech.datasets.vits.VITSDataset
@@ -80,6 +81,8 @@ model:
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 8, 2, 2]
     gin_channels: 512
+    vq_mask_ratio: 0.2
+    ref_mask_ratio: 0.2
 
   discriminator:
     _target_: fish_speech.models.vits_decoder.modules.models.EnsembledDiscriminator
@@ -110,7 +113,7 @@ model:
   lr_scheduler:
     _target_: torch.optim.lr_scheduler.ExponentialLR
     _partial_: true
-    gamma: 0.999875
+    gamma: 0.999999
 
 callbacks:
   grad_norm_monitor:
