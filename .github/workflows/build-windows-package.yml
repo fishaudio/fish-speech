@@ -36,6 +36,8 @@ jobs:
           mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe \
           fish-speech-zip/fish-speech/checkpoints fish-speech-zip/fish-speech/.cache ./fish-speech
           rm -rf fish-speech-zip
+          huggingface-cli download fishaudio/fish-speech-1 ffprobe.exe \
+          --local-dir ./fish-speech --local-dir-use-symlinks False
       - uses: actions/upload-artifact@v4
         with:
           name: fish-speech-main-${{ github.run_id }}
