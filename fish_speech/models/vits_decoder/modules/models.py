@@ -542,21 +542,18 @@ class SynthesizerTrn(nn.Module):
         text_lengths,
         noise_scale=0.5,
     ):
-        y_mask = torch.unsqueeze(
-            commons.sequence_mask(gt_spec_lengths, gt_specs.size(2)), 1
-        ).to(gt_specs.dtype)
-        ge = self.ref_enc(gt_specs * y_mask, y_mask)
         quantized = self.vq(audio, audio_lengths)
+        quantized_lengths = audio_lengths // 512
+        ge = self.encode_ref(gt_specs, gt_spec_lengths)
 
-        x, m_p, logs_p, y_mask = self.enc_p(
-            quantized, audio_lengths, text, text_lengths, ge
+        return self.decode(
+            quantized,
+            quantized_lengths,
+            text,
+            text_lengths,
+            noise_scale=noise_scale,
+            ge=ge,
         )
-        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
-
-        z = self.flow(z_p, y_mask, g=ge, reverse=True)
-
-        o = self.dec(z * y_mask, g=ge)
-        return o
 
     @torch.no_grad()
     def infer_posterior(
@@ -574,34 +571,34 @@ class SynthesizerTrn(nn.Module):
         return o
 
     @torch.no_grad()
-    def decode(self, codes, text, refer, noise_scale=0.5):
-        # TODO: not tested yet
-
-        ge = None
-        if refer is not None:
-            refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
-            refer_mask = torch.unsqueeze(
-                commons.sequence_mask(refer_lengths, refer.size(2)), 1
-            ).to(refer.dtype)
-            ge = self.ref_enc(refer * refer_mask, refer_mask)
-
-        y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
-        text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
-
-        quantized = self.quantizer.decode(codes)
-        quantized = F.interpolate(
-            quantized, size=int(quantized.shape[-1] * 2), mode="nearest"
-        )
-
+    def decode(
+        self,
+        quantized,
+        quantized_lengths,
+        text,
+        text_lengths,
+        noise_scale=0.5,
+        ge=None,
+    ):
         x, m_p, logs_p, y_mask = self.enc_p(
-            quantized, y_lengths, text, text_lengths, ge
+            quantized, quantized_lengths, text, text_lengths, ge
         )
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
-        o = self.dec((z * y_mask)[:, :, :], g=ge)
+        o = self.dec(z * y_mask, g=ge)
+
         return o
+
+    @torch.no_grad()
+    def encode_ref(self, gt_specs, gt_spec_lengths):
+        y_mask = torch.unsqueeze(
+            commons.sequence_mask(gt_spec_lengths, gt_specs.size(2)), 1
+        ).to(gt_specs.dtype)
+        ge = self.ref_enc(gt_specs * y_mask, y_mask)
+
+        return ge
 
 
 if __name__ == "__main__":
