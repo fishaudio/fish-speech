@@ -1,8 +1,11 @@
+import math
+
 import torch
 from torch import nn
 
 from fish_speech.models.vqgan.modules.fsq import DownsampleFiniteScalarQuantize
 from fish_speech.models.vqgan.modules.wavenet import WaveNet
+from fish_speech.models.vqgan.utils import sequence_mask
 from fish_speech.utils.spectrogram import LogMelSpectrogram
 
 
@@ -67,3 +70,16 @@ class VQEncoder(nn.Module):
         encoded_features = self.quantizer(encoded_features).z * mel_masks_float_conv
 
         return encoded_features
+
+    @torch.no_grad()
+    def indicies_to_vq_features(
+        self,
+        indices,
+        feature_lengths,
+    ):
+        factor = math.prod(self.quantizer.downsample_factor)
+        mel_masks = sequence_mask(feature_lengths * factor, indices.shape[2] * factor)
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        z = self.quantizer.decode(indices) * mel_masks_float_conv
+
+        return z
