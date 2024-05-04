@@ -121,7 +121,7 @@ def inference(
         speaker=speaker if speaker else None,
         prompt_tokens=prompt_tokens if enable_reference_audio else None,
         prompt_text=reference_text if enable_reference_audio else None,
-        is_streaming=streaming,
+        is_streaming=True,  # Always streaming
     )
 
     payload = dict(
@@ -133,6 +133,7 @@ def inference(
     if streaming:
         yield wav_chunk_header(), None
 
+    segments = []
     while True:
         result = payload["response_queue"].get()
         if result == "next":
@@ -150,13 +151,16 @@ def inference(
             indices=result[None], feature_lengths=feature_lengths, return_audios=True
         )[0, 0]
         fake_audios = fake_audios.float().cpu().numpy()
+        fake_audios = np.concatenate([fake_audios, np.zeros((11025,))], axis=0)
 
         if streaming:
-            yield (
-                np.concatenate([fake_audios, np.zeros((11025,))], axis=0) * 32768
-            ).astype(np.int16).tobytes(), None
+            yield (fake_audios * 32768).astype(np.int16).tobytes()
         else:
-            yield (vqgan_model.sampling_rate, fake_audios), None
+            segments.append(fake_audios)
+
+    if streaming is False:
+        audio = np.concatenate(segments, axis=0)
+        yield (vqgan_model.sampling_rate, audio), None
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -168,10 +172,12 @@ inference_stream = partial(inference, streaming=True)
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
+
     with wave.open(buffer, "wb") as wav_file:
         wav_file.setnchannels(channels)
         wav_file.setsampwidth(bit_depth // 8)
         wav_file.setframerate(sample_rate)
+
     wav_header_bytes = buffer.getvalue()
     buffer.close()
     return wav_header_bytes
@@ -374,17 +380,19 @@ if __name__ == "__main__":
     logger.info("VQ-GAN model loaded, warming up...")
 
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
-    inference(
-        text="Hello, world!",
-        enable_reference_audio=False,
-        reference_audio=None,
-        reference_text="",
-        max_new_tokens=0,
-        chunk_length=0,
-        top_p=0.7,
-        repetition_penalty=1.5,
-        temperature=0.7,
-        speaker=None,
+    list(
+        inference(
+            text="Hello, world!",
+            enable_reference_audio=False,
+            reference_audio=None,
+            reference_text="",
+            max_new_tokens=0,
+            chunk_length=0,
+            top_p=0.7,
+            repetition_penalty=1.5,
+            temperature=0.7,
+            speaker=None,
+        )
     )
 
     logger.info("Warming up done, launching the web UI...")
