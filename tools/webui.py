@@ -51,6 +51,7 @@ except ImportError:
         @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
+
         wrapper.original = func  # ref
         return wrapper
 
@@ -62,6 +63,7 @@ def build_html_error_message(error):
         {html.escape(str(error))}
     </div>
     """
+
 
 @GPU_DECORATOR
 @torch.inference_mode()
@@ -175,6 +177,7 @@ if not SPACE_IMPORTED:
     logger.info("‘spaces’ not imported, use original")
     inference = inference.original
     inference_stream = partial(inference, streaming=True)
+
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
