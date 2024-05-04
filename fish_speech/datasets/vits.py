@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -26,6 +27,7 @@ class VITSDataset(Dataset):
         min_duration: float = 1.5,
         max_duration: float = 30.0,
         suffix: str = ".lab",
+        sentence_mask_ratio: float = 0.0,
     ):
         super().__init__()
 
@@ -43,6 +45,7 @@ class VITSDataset(Dataset):
         self.max_duration = max_duration
         self.tokenizer = tokenizer
         self.suffix = suffix
+        self.sentence_mask_ratio = sentence_mask_ratio
 
     def __len__(self):
         return len(self.files)
@@ -68,7 +71,11 @@ class VITSDataset(Dataset):
         if max_value > 1.0:
             audio = audio / max_value
 
-        text = text_file.read_text(encoding="utf-8")
+        if random.random() < self.sentence_mask_ratio:
+            text = "-"
+        else:
+            text = text_file.read_text(encoding="utf-8")
+
         input_ids = self.tokenizer(text, return_tensors="pt").input_ids.squeeze(0)
 
         return {

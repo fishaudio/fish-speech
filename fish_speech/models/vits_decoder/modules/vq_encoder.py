@@ -48,7 +48,7 @@ class VQEncoder(nn.Module):
         ), e.unexpected_keys
 
     @torch.no_grad()
-    def forward(self, audios, audio_lengths, use_decoder=False, sr=None):
+    def forward(self, audios, audio_lengths, sr=None):
         mel_spec = self.spec(audios, sample_rate=sr)
 
         if sr is not None:
