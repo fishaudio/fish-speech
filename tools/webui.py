@@ -154,7 +154,7 @@ def inference(
         fake_audios = np.concatenate([fake_audios, np.zeros((11025,))], axis=0)
 
         if streaming:
-            yield (fake_audios * 32768).astype(np.int16).tobytes()
+            yield (fake_audios * 32768).astype(np.int16).tobytes(), None
         else:
             segments.append(fake_audios)
 
