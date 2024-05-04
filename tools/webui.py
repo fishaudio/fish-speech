@@ -5,7 +5,7 @@ import os
 import queue
 import wave
 from argparse import ArgumentParser
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 
 import gradio as gr
@@ -38,17 +38,20 @@ HEADER_MD = f"""# Fish Speech
 """
 
 TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
+SPACE_IMPORTED = False
 
 try:
     import spaces
 
     GPU_DECORATOR = spaces.GPU
+    SPACE_IMPORTED = True
 except ImportError:
 
     def GPU_DECORATOR(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
-
+        wrapper.original = func  # ref
         return wrapper
 
 
@@ -59,7 +62,6 @@ def build_html_error_message(error):
         {html.escape(str(error))}
     </div>
     """
-
 
 @GPU_DECORATOR
 @torch.inference_mode()
@@ -169,6 +171,10 @@ def inference(
 
 inference_stream = partial(inference, streaming=True)
 
+if not SPACE_IMPORTED:
+    logger.info("‘spaces’ not imported, use original")
+    inference = inference.original
+    inference_stream = partial(inference, streaming=True)
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
