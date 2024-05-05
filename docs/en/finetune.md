@@ -148,7 +148,7 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
@@ -182,7 +182,7 @@ After training, you need to convert the LoRA weights to regular weights before p
 python tools/llama/merge_lora.py \
     --llama-config dual_ar_2_codebook_large \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-large-v1-4k.pth \
+    --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```
