@@ -152,13 +152,13 @@ python tools/llama/build_dataset.py \
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
 ```
 
 最后, 你可以运行以下命令来启动微调:
@@ -192,7 +192,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 python tools/llama/merge_lora.py \
     --llama-config dual_ar_2_codebook_large \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-large-v1-4k.pth \
+    --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```

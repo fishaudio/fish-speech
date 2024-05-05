@@ -16,12 +16,12 @@
     
 ```bash
 huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
 ```
 对于中国大陆用户，可使用mirror下载。
 ```bash
 HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
 ```
 
 ### 1. 从语音生成 prompt: 
@@ -43,7 +43,7 @@ python tools/llama/generate.py \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
     --config-name dual_ar_2_codebook_large \
-    --checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
+    --checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -74,7 +74,7 @@ python tools/vqgan/inference.py \
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_large \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 
@@ -90,7 +90,7 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-large-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_large \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
