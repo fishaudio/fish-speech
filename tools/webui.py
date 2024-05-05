@@ -40,6 +40,28 @@ HEADER_MD = f"""# Fish Speech
 TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 SPACE_IMPORTED = False
 
+reference_wavs = ["请选择参考音频,或者自己上传"]
+
+for name in os.listdir("./参考音频/"):
+    reference_wavs.append(name)
+
+
+def change_choices():
+
+    reference_wavs = ["请选择参考音频,或者自己上传"]
+
+    for name in os.listdir("./参考音频/"):
+        reference_wavs.append(name)
+    
+    return {"choices":reference_wavs, "__type__": "update"}
+
+
+def change_wav(audio_path):
+
+    text = audio_path.replace(".wav","").replace(".mp3","")
+
+    return f"./参考音频/{audio_path}",text
+
 
 def build_html_error_message(error):
     return f"""
@@ -243,6 +265,11 @@ def build_app():
                         enable_reference_audio = gr.Checkbox(
                             label=i18n("Enable Reference Audio"),
                         )
+
+                        wavs_dropdown = gr.Dropdown(label="参考音频列表",choices=reference_wavs,value="请选择参考音频,或者自己上传",interactive=True)
+                        refresh_button = gr.Button("刷新参考音频音频列表")
+                        refresh_button.click(fn=change_choices, inputs=[], outputs=[wavs_dropdown])
+                        
                         reference_audio = gr.Audio(
                             label=i18n("Reference Audio"),
                             type="filepath",
@@ -253,6 +280,8 @@ def build_app():
                             lines=1,
                             value="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
                         )
+
+                        wavs_dropdown.change(change_wav,[wavs_dropdown],[reference_audio,reference_text])
 
             with gr.Column(scale=3):
                 with gr.Row():
