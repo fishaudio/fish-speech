@@ -124,13 +124,28 @@ def change_label(if_label):
         yield build_html_ok_message("Nothing")
 
 
+def clean_infer_cache():
+    import tempfile
+    temp_dir = Path(tempfile.gettempdir())
+    gradio_dir = str(temp_dir / "gradio")
+    try:
+        shutil.rmtree(gradio_dir)
+        logger.info(f"Deleted cached audios: {gradio_dir}")
+    except PermissionError:
+        logger.info(f"Permission denied: Unable to delete {gradio_dir}")
+    except FileNotFoundError:
+        logger.info(f"{gradio_dir} was not found")
+    except Exception as e:
+        logger.info(f"An error occurred: {e}")
+
+
 def change_infer(
     if_infer,
     host,
     port,
     infer_vqgan_model,
     infer_llama_model,
-    infer_llama_config,
+    infer_llama_config,g
     infer_compile,
 ):
     global p_infer
@@ -144,6 +159,9 @@ def change_infer(
         yield build_html_ok_message(
             i18n("Inferring interface is launched at {}").format(url)
         )
+
+        clean_infer_cache()
+
         p_infer = subprocess.Popen(
             [
                 PYTHON,
