@@ -37,7 +37,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_large \
+    --config-name dual_ar_2_codebook_medium \
     --checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
     --num-samples 2 \
     --compile
@@ -70,7 +70,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 python -m tools.api \
     --listen 0.0.0.0:8000 \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
+    --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
 
@@ -83,7 +83,7 @@ You can start the WebUI using the following command:
 ```bash
 python -m tools.webui \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
+    --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
 

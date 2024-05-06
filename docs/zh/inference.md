@@ -42,7 +42,7 @@ python tools/llama/generate.py \
     --text "要转换的文本" \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_large \
+    --config-name dual_ar_2_codebook_medium \
     --checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
     --num-samples 2 \
     --compile
@@ -75,7 +75,7 @@ python tools/vqgan/inference.py \
 python -m tools.api \
     --listen 0.0.0.0:8000 \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
+    --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 
 # 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
@@ -91,7 +91,7 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 ```bash
 python -m tools.webui \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_large \
+    --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
 
