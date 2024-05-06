@@ -50,6 +50,7 @@ def build_html_ok_message(msg):
     </div>
     """
 
+
 def build_html_href(link, desc, msg):
     return f"""
     <span style="color: green; font-weight: bold; display: inline-block">
@@ -57,6 +58,7 @@ def build_html_href(link, desc, msg):
         <a href="{link}">{desc}</a>
     </span>
     """
+
 
 def load_data_in_raw(path):
     with open(path, "r", encoding="utf-8") as file:
@@ -105,7 +107,9 @@ def change_label(if_label):
         # 设置要访问的URL
         url = "https://text-labeler.pages.dev/"
         webbrowser.open(url)
-        yield build_html_href(link=url, desc=i18n("Click here"), msg=i18n("Opened labeler in browser"))
+        yield build_html_href(
+            link=url, desc=i18n("Click here"), msg=i18n("Opened labeler in browser")
+        )
     elif if_label == False:
         p_label = None
         yield build_html_ok_message("Nothing")
