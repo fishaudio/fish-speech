@@ -41,6 +41,7 @@ TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 SPACE_IMPORTED = False
 cached_audio = np.zeros((1,))
 
+
 def build_html_error_message(error):
     return f"""
     <div style="color: red; 
@@ -299,6 +300,7 @@ def build_app():
             [audio, error],
             concurrency_limit=1,
         )
+
         def transfer_audio():
             global cached_audio
             return (vqgan_model.sampling_rate, cached_audio)
