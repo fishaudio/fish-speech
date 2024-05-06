@@ -154,7 +154,7 @@ huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.
 Finally, you can start the fine-tuning by running the following command:
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_2_codebook_large
+    model@model.model=dual_ar_2_codebook_medium
 ```
 
 !!! note
@@ -180,7 +180,7 @@ After training, you need to convert the LoRA weights to regular weights before p
 
 ```bash
 python tools/llama/merge_lora.py \
-    --llama-config dual_ar_2_codebook_large \
+    --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
     --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \

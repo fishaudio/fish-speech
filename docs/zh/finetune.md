@@ -165,7 +165,7 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_2_codebook_large
+    model@model.model=dual_ar_2_codebook_medium
 ```
 
 !!! note
@@ -190,7 +190,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 
 ```bash
 python tools/llama/merge_lora.py \
-    --llama-config dual_ar_2_codebook_large \
+    --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
     --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
