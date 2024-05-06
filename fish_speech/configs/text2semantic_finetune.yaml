@@ -5,7 +5,7 @@ defaults:
 
 project: text2semantic_finetune_dual_ar
 max_length: 2048
-ckpt_path: checkpoints/text2semantic-sft-large-v1-4k.pth
+ckpt_path: checkpoints/text2semantic-sft-medium-v1-4k.pth
 resume_weights_only: true
 
 # Lightning Trainer

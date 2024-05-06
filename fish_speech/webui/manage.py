@@ -470,7 +470,7 @@ def train_process(
         ckpt_path = (
             "text2semantic-pretrain-medium-2k-v1.pth"
             if llama_base_config == "dual_ar_2_codebook_medium"
-            else "text2semantic-sft-large-v1-4k.pth"
+            else "text2semantic-sft-medium-v1-4k.pth"
         )
 
         latest = list(
