@@ -106,7 +106,7 @@ def change_label(if_label):
         url = "http://localhost:3000"
         remote_url = "https://text-labeler.pages.dev/"
         p_label = subprocess.Popen(
-            ["asr-label-win-x64" + ("" if sys.platform == "linux" else ".exe")]
+            ["asr-label-linux-x64" if sys.platform == "linux" else "asr-label-win-x64.exe"]
         )
         yield build_html_href(
             link=remote_url,
