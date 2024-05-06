@@ -139,7 +139,6 @@ def inference(
             indices=result[None], feature_lengths=feature_lengths, return_audios=True
         )[0, 0]
         fake_audios = fake_audios.float().cpu().numpy()
-        fake_audios = np.concatenate([fake_audios, np.zeros((11025,))], axis=0)
 
         if streaming:
             yield (fake_audios * 32768).astype(np.int16).tobytes(), None
