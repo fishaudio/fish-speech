@@ -17,7 +17,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from fish_speech.i18n import i18n
-from fish_speech.webui.launch_utils import Seafoam, versions_html, is_module_installed
+from fish_speech.webui.launch_utils import Seafoam, is_module_installed, versions_html
 
 PYTHON = os.path.join(os.environ.get("PYTHON_FOLDERPATH", ""), "python")
 sys.path.insert(0, "")
@@ -1042,7 +1042,12 @@ with gr.Blocks(
                                         "Compile the model can significantly reduce the inference time, but will increase cold start time"
                                     ),
                                     choices=["Yes", "No"],
-                                    value="Yes" if (sys.platform == 'linux' or is_module_installed("triton")) else "No",
+                                    value="Yes"
+                                    if (
+                                        sys.platform == "linux"
+                                        or is_module_installed("triton")
+                                    )
+                                    else "No",
                                     interactive=is_module_installed("triton"),
                                 )
                                 infer_llama_config = gr.Dropdown(

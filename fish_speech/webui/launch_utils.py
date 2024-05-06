@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import subprocess
 import sys
@@ -8,7 +9,6 @@ from typing import Iterable
 import gradio as gr
 from gradio.themes.base import Base
 from gradio.themes.utils import colors, fonts, sizes
-import importlib.util
 
 GIT = (
     (Path(os.environ.get("GIT_HOME", "")) / "git").resolve()
@@ -17,9 +17,11 @@ GIT = (
 )
 GIT = str(GIT)
 
+
 def is_module_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
     return spec is not None
+
 
 @lru_cache()
 def commit_hash():
