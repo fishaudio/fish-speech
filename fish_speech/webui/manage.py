@@ -601,7 +601,7 @@ def fresh_llama_model():
     )
 
 
-def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
+def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_output):
     if (
         lora_weight is None
         or not Path(lora_weight).exists()
@@ -617,7 +617,7 @@ def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
         PYTHON,
         "tools/llama/merge_lora.py",
         "--llama-config",
-        "dual_ar_2_codebook_large",
+        lora_llama_config,
         "--lora-config",
         "r_8_alpha_16",
         "--llama-weight",
@@ -918,6 +918,15 @@ with gr.Blocks(
                                 allow_custom_value=True,
                                 interactive=True,
                             )
+                            lora_llama_config = gr.Dropdown(
+                                label=i18n("LLAMA Model Config"),
+                                choices=[
+                                    "dual_ar_2_codebook_large",
+                                    "dual_ar_2_codebook_medium",
+                                ],
+                                value="dual_ar_2_codebook_large",
+                                allow_custom_value=True,
+                            )
                         with gr.Row(equal_height=False):
                             llama_lora_output = gr.Dropdown(
                                 label=i18n("Output Path"),
@@ -1150,7 +1159,7 @@ with gr.Blocks(
     llama_ckpt.change(fn=fresh_llama_ckpt, inputs=[], outputs=[llama_ckpt])
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
-        inputs=[llama_weight, lora_weight, llama_lora_output],
+        inputs=[llama_weight, lora_llama_config, lora_weight, llama_lora_output],
         outputs=[train_error],
     )
     infer_checkbox.change(
