@@ -126,6 +126,7 @@ def change_label(if_label):
 
 def clean_infer_cache():
     import tempfile
+
     temp_dir = Path(tempfile.gettempdir())
     gradio_dir = str(temp_dir / "gradio")
     try:
