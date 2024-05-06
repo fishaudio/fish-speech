@@ -413,9 +413,7 @@ def train_process(
         project = (
             ("vqgan_" + new_project)
             if vqgan_ckpt == "new"
-            else latest
-            if vqgan_ckpt == "latest"
-            else vqgan_ckpt
+            else latest if vqgan_ckpt == "latest" else vqgan_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -485,9 +483,7 @@ def train_process(
         project = (
             ("text2semantic_" + new_project)
             if llama_ckpt == "new"
-            else latest
-            if llama_ckpt == "latest"
-            else llama_ckpt
+            else latest if llama_ckpt == "latest" else llama_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -822,9 +818,11 @@ with gr.Blocks(
                                 minimum=0,
                                 maximum=16,
                                 step=1,
-                                value=init_llama_yml["data"]["num_workers"]
-                                if sys.platform == "linux"
-                                else 0,
+                                value=(
+                                    init_llama_yml["data"]["num_workers"]
+                                    if sys.platform == "linux"
+                                    else 0
+                                ),
                             )
                         with gr.Row(equal_height=False):
                             llama_data_batch_size_slider = gr.Slider(

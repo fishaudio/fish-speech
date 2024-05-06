@@ -77,16 +77,12 @@ class Seafoam(Base):
         spacing_size: sizes.Size | str = sizes.spacing_md,
         radius_size: sizes.Size | str = sizes.radius_md,
         text_size: sizes.Size | str = sizes.text_lg,
-        font: fonts.Font
-        | str
-        | Iterable[fonts.Font | str] = (
+        font: fonts.Font | str | Iterable[fonts.Font | str] = (
             fonts.GoogleFont("Quicksand"),
             "ui-sans-serif",
             "sans-serif",
         ),
-        font_mono: fonts.Font
-        | str
-        | Iterable[fonts.Font | str] = (
+        font_mono: fonts.Font | str | Iterable[fonts.Font | str] = (
             fonts.GoogleFont("IBM Plex Mono"),
             "ui-monospace",
             "monospace",
