@@ -324,7 +324,7 @@ def parse_args():
         default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
     )
     parser.add_argument(
-        "--llama-config-name", type=str, default="dual_ar_2_codebook_large"
+        "--llama-config-name", type=str, default="dual_ar_2_codebook_medium"
     )
     parser.add_argument(
         "--vqgan-checkpoint-path",
