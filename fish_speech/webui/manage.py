@@ -8,7 +8,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import webbrowser
 from pathlib import Path
 
 import gradio as gr
@@ -103,14 +102,20 @@ def kill_process(pid):
 
 def change_label(if_label):
     global p_label
-    if if_label == True:
-        # 设置要访问的URL
-        url = "https://text-labeler.pages.dev/"
-        webbrowser.open(url)
-        yield build_html_href(
-            link=url, desc=i18n("Click Here"), msg=i18n("Opened labeler in browser")
+    if if_label == True and p_label is None:
+        url = "http://localhost:3000"
+        remote_url = "https://text-labeler.pages.dev/"
+        p_label = subprocess.Popen(
+            ["asr-label-win-x64" + ("" if sys.platform == "linux" else ".exe")]
         )
-    elif if_label == False:
+        yield build_html_href(
+            link=remote_url,
+            desc=i18n("Optional online ver"),
+            msg=i18n("Opened labeler in browser"),
+        )
+
+    elif if_label == False and p_label is not None:
+        kill_process(p_label.pid)
         p_label = None
         yield build_html_ok_message("Nothing")
 
@@ -152,7 +157,7 @@ def change_infer(
             env=env,
         )
 
-    elif if_infer == False and p_infer != None:
+    elif if_infer == False and p_infer is not None:
         kill_process(p_infer.pid)
         p_infer = None
         yield build_html_error_message(i18n("Infer interface is closed"))
