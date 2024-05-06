@@ -103,12 +103,15 @@ def kill_process(pid):
 def change_label(if_label):
     global p_label
     if if_label == True and p_label is None:
-
         url = "http://localhost:3000"
         remote_url = "https://text-labeler.pages.dev/"
-        p_label = subprocess.Popen(["asr-label-win-x64" + ("" if sys.platform == 'linux' else ".exe")])
+        p_label = subprocess.Popen(
+            ["asr-label-win-x64" + ("" if sys.platform == "linux" else ".exe")]
+        )
         yield build_html_href(
-            link=remote_url, desc=i18n("Optional online ver"), msg=i18n("Opened labeler in browser")
+            link=remote_url,
+            desc=i18n("Optional online ver"),
+            msg=i18n("Opened labeler in browser"),
         )
 
     elif if_label == False and p_label is not None:
