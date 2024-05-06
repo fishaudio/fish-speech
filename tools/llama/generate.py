@@ -420,7 +420,7 @@ def split_text(text, min_length):
     curr = ""
     for char in text:
         curr += char
-        if char not in [".", ",", "!", "?"]:
+        if char not in [".", "!", "?"]:
             continue
 
         if len(curr) >= min_length:
