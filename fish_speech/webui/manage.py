@@ -145,7 +145,7 @@ def change_infer(
     port,
     infer_vqgan_model,
     infer_llama_model,
-    infer_llama_config,g
+    infer_llama_config,
     infer_compile,
 ):
     global p_infer
