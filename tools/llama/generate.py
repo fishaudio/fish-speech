@@ -1,5 +1,6 @@
 import os
 import queue
+import string
 import threading
 import time
 from pathlib import Path
@@ -418,17 +419,22 @@ def split_text(text, min_length):
     text = clean_text(text)
     segments = []
     curr = ""
+
+    def clean_add(curr):
+        curr = curr.strip()
+        if curr and not all(c.isspace() or c in string.punctuation for c in curr):
+            segments.append(curr)
+
     for char in text:
         curr += char
         if char not in [".", "!", "?"]:
             continue
 
         if len(curr) >= min_length:
-            segments.append(curr)
+            clean_add(curr)
             curr = ""
 
-    if curr:
-        segments.append(curr)
+    clean_add(curr)
 
     return segments
 
