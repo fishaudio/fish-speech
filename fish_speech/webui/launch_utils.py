@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import subprocess
 import sys
@@ -15,6 +16,11 @@ GIT = (
     else "git"
 )
 GIT = str(GIT)
+
+
+def is_module_installed(module_name: str) -> bool:
+    spec = importlib.util.find_spec(module_name)
+    return spec is not None
 
 
 @lru_cache()
