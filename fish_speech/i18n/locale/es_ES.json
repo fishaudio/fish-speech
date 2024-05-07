@@ -56,6 +56,7 @@
     "Open Tensorboard": "Abrir Tensorboard",
     "Opened labeler in browser": "Se abrió el etiquetador en el navegador",
     "Optional Label Language": "Idioma de Etiquetado Opcional",
+    "Optional online ver": "Ver en línea opcional",
     "Output Path": "Ruta de Salida",
     "Path error, please check the model file exists in the corresponding path": "Error de ruta, por favor verifique que el archivo del modelo exista en la ruta correspondiente",
     "Precision": "Precisión",

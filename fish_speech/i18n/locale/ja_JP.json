@@ -56,6 +56,7 @@
     "Open Tensorboard": "Tensorboardを開く",
     "Opened labeler in browser": "ブラウザでラベラーを開きました",
     "Optional Label Language": "オプションのラベル言語",
+    "Optional online ver": "オプションのオンラインバージョン",
     "Output Path": "出力パス",
     "Path error, please check the model file exists in the corresponding path": "パスエラー。対応するパスにモデルファイルが存在するか確認してください",
     "Precision": "精度",
