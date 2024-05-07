@@ -138,9 +138,15 @@ def inference(
 
         # VQGAN Inference
         feature_lengths = torch.tensor([result.shape[1]], device=vqgan_model.device)
-        fake_audios = vqgan_model.decode(
-            indices=result[None], feature_lengths=feature_lengths, return_audios=True
-        )[0, 0]
+
+        with torch.autocast(
+            device_type=feature_lengths.device.type, dtype=args.precision
+        ):
+            fake_audios = vqgan_model.decode(
+                indices=result[None],
+                feature_lengths=feature_lengths,
+                return_audios=True,
+            )[0, 0]
         fake_audios = fake_audios.float().cpu().numpy()
 
         if streaming:
