@@ -8,7 +8,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import webbrowser
 from pathlib import Path
 
 import gradio as gr
@@ -18,7 +17,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from fish_speech.i18n import i18n
-from fish_speech.webui.launch_utils import Seafoam, versions_html
+from fish_speech.webui.launch_utils import Seafoam, is_module_installed, versions_html
 
 PYTHON = os.path.join(os.environ.get("PYTHON_FOLDERPATH", ""), "python")
 sys.path.insert(0, "")
@@ -48,6 +47,15 @@ def build_html_ok_message(msg):
     <div style="color: green; font-weight: bold;">
         {html.escape(msg)}
     </div>
+    """
+
+
+def build_html_href(link, desc, msg):
+    return f"""
+    <span style="color: green; font-weight: bold; display: inline-block">
+        {html.escape(msg)}
+        <a href="{link}">{desc}</a>
+    </span>
     """
 
 
@@ -94,14 +102,42 @@ def kill_process(pid):
 
 def change_label(if_label):
     global p_label
-    if if_label == True:
-        # 设置要访问的URL
-        url = "https://text-labeler.pages.dev/"
-        webbrowser.open(url)
-        yield i18n("Opened labeler in browser")
-    elif if_label == False:
+    if if_label == True and p_label is None:
+        url = "http://localhost:3000"
+        remote_url = "https://text-labeler.pages.dev/"
+        p_label = subprocess.Popen(
+            [
+                "asr-label-linux-x64"
+                if sys.platform == "linux"
+                else "asr-label-win-x64.exe"
+            ]
+        )
+        yield build_html_href(
+            link=remote_url,
+            desc=i18n("Optional online ver"),
+            msg=i18n("Opened labeler in browser"),
+        )
+
+    elif if_label == False and p_label is not None:
+        kill_process(p_label.pid)
         p_label = None
-        yield "Nothing"
+        yield build_html_ok_message("Nothing")
+
+
+def clean_infer_cache():
+    import tempfile
+
+    temp_dir = Path(tempfile.gettempdir())
+    gradio_dir = str(temp_dir / "gradio")
+    try:
+        shutil.rmtree(gradio_dir)
+        logger.info(f"Deleted cached audios: {gradio_dir}")
+    except PermissionError:
+        logger.info(f"Permission denied: Unable to delete {gradio_dir}")
+    except FileNotFoundError:
+        logger.info(f"{gradio_dir} was not found")
+    except Exception as e:
+        logger.info(f"An error occurred: {e}")
 
 
 def change_infer(
@@ -124,6 +160,9 @@ def change_infer(
         yield build_html_ok_message(
             i18n("Inferring interface is launched at {}").format(url)
         )
+
+        clean_infer_cache()
+
         p_infer = subprocess.Popen(
             [
                 PYTHON,
@@ -141,7 +180,7 @@ def change_infer(
             env=env,
         )
 
-    elif if_infer == False and p_infer != None:
+    elif if_infer == False and p_infer is not None:
         kill_process(p_infer.pid)
         p_infer = None
         yield build_html_error_message(i18n("Infer interface is closed"))
@@ -585,7 +624,7 @@ def fresh_llama_model():
     )
 
 
-def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
+def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_output):
     if (
         lora_weight is None
         or not Path(lora_weight).exists()
@@ -601,7 +640,7 @@ def llama_lora_merge(llama_weight, lora_weight, llama_lora_output):
         PYTHON,
         "tools/llama/merge_lora.py",
         "--llama-config",
-        "dual_ar_2_codebook_large",
+        lora_llama_config,
         "--lora-config",
         "r_8_alpha_16",
         "--llama-weight",
@@ -902,6 +941,15 @@ with gr.Blocks(
                                 allow_custom_value=True,
                                 interactive=True,
                             )
+                            lora_llama_config = gr.Dropdown(
+                                label=i18n("LLAMA Model Config"),
+                                choices=[
+                                    "dual_ar_2_codebook_large",
+                                    "dual_ar_2_codebook_medium",
+                                ],
+                                value="dual_ar_2_codebook_large",
+                                allow_custom_value=True,
+                            )
                         with gr.Row(equal_height=False):
                             llama_lora_output = gr.Dropdown(
                                 label=i18n("Output Path"),
@@ -994,7 +1042,13 @@ with gr.Blocks(
                                         "Compile the model can significantly reduce the inference time, but will increase cold start time"
                                     ),
                                     choices=["Yes", "No"],
-                                    value="Yes",
+                                    value="Yes"
+                                    if (
+                                        sys.platform == "linux"
+                                        or is_module_installed("triton")
+                                    )
+                                    else "No",
+                                    interactive=is_module_installed("triton"),
                                 )
                                 infer_llama_config = gr.Dropdown(
                                     label=i18n("LLAMA Model Config"),
@@ -1134,7 +1188,7 @@ with gr.Blocks(
     llama_ckpt.change(fn=fresh_llama_ckpt, inputs=[], outputs=[llama_ckpt])
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
-        inputs=[llama_weight, lora_weight, llama_lora_output],
+        inputs=[llama_weight, lora_llama_config, lora_weight, llama_lora_output],
         outputs=[train_error],
     )
     infer_checkbox.change(

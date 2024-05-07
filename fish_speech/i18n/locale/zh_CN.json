@@ -56,6 +56,7 @@
     "Open Tensorboard": "打开 Tensorboard",
     "Opened labeler in browser": "在浏览器中打开标注工具",
     "Optional Label Language": "[可选] 标注语言",
+    "Optional online ver": "[可选] 使用在线版",
     "Output Path": "输出路径",
     "Path error, please check the model file exists in the corresponding path": "路径错误，请检查模型文件是否存在于相应路径",
     "Precision": "精度",
