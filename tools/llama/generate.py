@@ -367,7 +367,7 @@ def load_model(
 
     if "int8" in str(checkpoint_path):
         logger.info("Using int8 weight-only quantization!")
-        from quantize import WeightOnlyInt8QuantHandler
+        from .quantize import WeightOnlyInt8QuantHandler
 
         simple_quantizer = WeightOnlyInt8QuantHandler(model)
         model = simple_quantizer.convert_for_runtime()
@@ -377,7 +377,7 @@ def load_model(
         path_comps = checkpoint_path.name.split(".")
         assert path_comps[-2].startswith("g")
         groupsize = int(path_comps[-2][1:])
-        from quantize import WeightOnlyInt4QuantHandler
+        from .quantize import WeightOnlyInt4QuantHandler
 
         simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
         model = simple_quantizer.convert_for_runtime()
@@ -669,9 +669,9 @@ def launch_thread_safe_queue(
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="results/text2semantic_400m_finetune/step_000002000.pth",
+    default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
 )
-@click.option("--config-name", type=str, default="dual_ar_8_codebook_small")
+@click.option("--config-name", type=str, default="dual_ar_2_codebook_medium")
 @click.option("--tokenizer", type=str, default="fishaudio/fish-speech-1")
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
