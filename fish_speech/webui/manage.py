@@ -107,9 +107,11 @@ def change_label(if_label):
         remote_url = "https://text-labeler.pages.dev/"
         p_label = subprocess.Popen(
             [
-                "asr-label-linux-x64"
-                if sys.platform == "linux"
-                else "asr-label-win-x64.exe"
+                (
+                    "asr-label-linux-x64"
+                    if sys.platform == "linux"
+                    else "asr-label-win-x64.exe"
+                )
             ]
         )
         yield build_html_href(
@@ -1040,12 +1042,14 @@ with gr.Blocks(
                                         "Compile the model can significantly reduce the inference time, but will increase cold start time"
                                     ),
                                     choices=["Yes", "No"],
-                                    value="Yes"
-                                    if (
-                                        sys.platform == "linux"
-                                        or is_module_installed("triton")
-                                    )
-                                    else "No",
+                                    value=(
+                                        "Yes"
+                                        if (
+                                            sys.platform == "linux"
+                                            or is_module_installed("triton")
+                                        )
+                                        else "No"
+                                    ),
                                     interactive=is_module_installed("triton"),
                                 )
                                 infer_llama_config = gr.Dropdown(
