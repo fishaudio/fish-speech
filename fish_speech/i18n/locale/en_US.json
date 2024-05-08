@@ -49,6 +49,7 @@
     "Model Size": "Model Size",
     "Move": "Move",
     "Move files successfully": "Move files successfully",
+    "No audio generated, please check the input text.": "No audio generated, please check the input text.",
     "No selected options": "No selected options",
     "Number of Workers": "Number of Workers",
     "Open Inference Server": "Open Inference Server",

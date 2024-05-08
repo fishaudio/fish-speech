@@ -49,6 +49,7 @@
     "Model Size": "模型规模",
     "Move": "移动",
     "Move files successfully": "移动文件成功",
+    "No audio generated, please check the input text.": "没有生成音频，请检查输入文本.",
     "No selected options": "没有选择的选项",
     "Number of Workers": "数据加载进程数",
     "Open Inference Server": "打开推理服务器",
