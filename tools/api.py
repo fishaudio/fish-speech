@@ -162,7 +162,12 @@ def inference(req: InvokeRequest):
         else:
             segments.append(fake_audios)
 
-    if req.streaming is False:
+    if len(segments) == 0:
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+            content="No audio generated, please check the input text.",
+        )
+    elif req.streaming is False:
         fake_audios = np.concatenate(segments, axis=0)
         yield fake_audios
 

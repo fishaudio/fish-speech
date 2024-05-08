@@ -155,7 +155,11 @@ def inference(
         else:
             segments.append(fake_audios)
 
-    if streaming is False:
+    if len(segments) == 0:
+        yield None, build_html_error_message(
+            i18n("No audio generated, please check the input text.")
+        )
+    elif streaming is False:
         audio = np.concatenate(segments, axis=0)
         yield (vqgan_model.sampling_rate, audio), None
 
