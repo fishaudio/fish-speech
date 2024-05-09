@@ -103,10 +103,6 @@ def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
                 torch.tensor([reference_spec.shape[-1]], device=decoder_model.device),
             )
             logger.info(f"Loaded reference audio from {reference_audio}")
-
-            audio_lengths = torch.tensor(
-                [audios.shape[-1]], device=decoder_model.device, dtype=torch.long
-            )
             prompt_tokens = decoder_model.generator.vq.encode(audios, audio_lengths)[0][
                 0
             ]
