@@ -83,3 +83,19 @@ class VQEncoder(nn.Module):
         z = self.quantizer.decode(indices) * mel_masks_float_conv
 
         return z
+
+    @torch.no_grad()
+    def encode(self, audios, audio_lengths, sr=None):
+        audios = audios.float()
+
+        mels = self.spec(audios, sample_rate=sr)
+        mel_lengths = audio_lengths // self.spec.hop_length
+        mel_masks = sequence_mask(mel_lengths, mels.shape[2])
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        mels = mels * mel_masks_float_conv
+
+        # Encode
+        encoded_features = self.encoder(mels) * mel_masks_float_conv
+        feature_lengths = mel_lengths // math.prod(self.quantizer.downsample_factor)
+
+        return self.quantizer.encode(encoded_features), feature_lengths
