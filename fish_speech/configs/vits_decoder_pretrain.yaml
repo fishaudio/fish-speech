@@ -1,0 +1,126 @@
+defaults:
+  - base
+  - _self_
+
+project: vits_decoder
+ckpt_path: checkpoints/Bert-VITS2/ensemble.pth
+resume_weights_only: true
+
+# Lightning Trainer
+trainer:
+  accelerator: gpu
+  devices: auto
+  strategy: ddp_find_unused_parameters_true
+  precision: 32
+  max_steps: 1_000_000
+  val_check_interval: 1000
+
+sample_rate: 44100
+hop_length: 512
+num_mels: 128
+n_fft: 2048
+win_length: 2048
+
+# Dataset Configuration
+tokenizer:
+  _target_: transformers.AutoTokenizer.from_pretrained
+  pretrained_model_name_or_path: fishaudio/fish-speech-1
+
+# Dataset Configuration
+train_dataset:
+  _target_: fish_speech.datasets.vits.VITSDataset
+  filelist: data/source/Genshin/filelist.train.txt
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  suffix: ".lab"
+  tokenizer: ${tokenizer}
+  sentence_mask_ratio: 0.2
+
+val_dataset:
+  _target_: fish_speech.datasets.vits.VITSDataset
+  filelist: data/source/Genshin/filelist.test.txt
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  suffix: ".lab"
+  tokenizer: ${tokenizer}
+
+data:
+  _target_: fish_speech.datasets.vits.VITSDataModule
+  train_dataset: ${train_dataset}
+  val_dataset: ${val_dataset}
+  num_workers: 4
+  batch_size: 8
+  val_batch_size: 4
+  tokenizer: ${tokenizer}
+
+# Model Configuration
+model:
+  _target_: fish_speech.models.vits_decoder.VITSDecoder
+  sample_rate: ${sample_rate}
+  hop_length: ${hop_length}
+  freeze_discriminator: false
+
+  weight_mel: 45.0
+  weight_kl: 1.0
+
+  generator:
+    _target_: fish_speech.models.vits_decoder.modules.models.SynthesizerTrn
+    spec_channels: 1025
+    segment_size: 32
+    inter_channels: 192
+    hidden_channels: 192
+    filter_channels: 768
+    n_heads: 2
+    n_layers: 6
+    kernel_size: 3
+    p_dropout: 0.1
+    resblock: "1"
+    resblock_kernel_sizes: [3, 7, 11]
+    resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+    upsample_rates: [8, 8, 2, 2, 2]
+    upsample_initial_channel: 512
+    upsample_kernel_sizes: [16, 16, 8, 2, 2]
+    gin_channels: 512
+    vq_mask_ratio: 0.2
+    ref_mask_ratio: 0.2
+
+  discriminator:
+    _target_: fish_speech.models.vits_decoder.modules.models.EnsembledDiscriminator
+    periods: [2, 3, 5, 7, 11]
+
+  mel_transform:
+    _target_: fish_speech.utils.spectrogram.LogMelSpectrogram
+    sample_rate: ${sample_rate}
+    n_fft: ${n_fft}
+    hop_length: ${hop_length}
+    win_length: ${win_length}
+    n_mels: ${num_mels}
+
+  spec_transform:
+    _target_: fish_speech.utils.spectrogram.LinearSpectrogram
+    n_fft: ${n_fft}
+    hop_length: ${hop_length}
+    win_length: ${win_length}
+    mode: pow2_sqrt
+  
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 1e-4
+    betas: [0.8, 0.99]
+    eps: 1e-6
+
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.ExponentialLR
+    _partial_: true
+    gamma: 0.999999
+
+callbacks:
+  grad_norm_monitor:
+    sub_module: 
+      - generator
+      - discriminator
+
+  model_checkpoint:
+    every_n_train_steps: 1000
+    save_top_k: 10

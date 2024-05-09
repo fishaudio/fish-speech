@@ -107,9 +107,11 @@ def change_label(if_label):
         remote_url = "https://text-labeler.pages.dev/"
         p_label = subprocess.Popen(
             [
-                "asr-label-linux-x64"
-                if sys.platform == "linux"
-                else "asr-label-win-x64.exe"
+                (
+                    "asr-label-linux-x64"
+                    if sys.platform == "linux"
+                    else "asr-label-win-x64.exe"
+                )
             ]
         )
         yield build_html_href(
@@ -452,9 +454,7 @@ def train_process(
         project = (
             ("vqgan_" + new_project)
             if vqgan_ckpt == "new"
-            else latest
-            if vqgan_ckpt == "latest"
-            else vqgan_ckpt
+            else latest if vqgan_ckpt == "latest" else vqgan_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -524,9 +524,7 @@ def train_process(
         project = (
             ("text2semantic_" + new_project)
             if llama_ckpt == "new"
-            else latest
-            if llama_ckpt == "latest"
-            else llama_ckpt
+            else latest if llama_ckpt == "latest" else llama_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -861,9 +859,11 @@ with gr.Blocks(
                                 minimum=0,
                                 maximum=16,
                                 step=1,
-                                value=init_llama_yml["data"]["num_workers"]
-                                if sys.platform == "linux"
-                                else 0,
+                                value=(
+                                    init_llama_yml["data"]["num_workers"]
+                                    if sys.platform == "linux"
+                                    else 0
+                                ),
                             )
                         with gr.Row(equal_height=False):
                             llama_data_batch_size_slider = gr.Slider(
@@ -1042,12 +1042,14 @@ with gr.Blocks(
                                         "Compile the model can significantly reduce the inference time, but will increase cold start time"
                                     ),
                                     choices=["Yes", "No"],
-                                    value="Yes"
-                                    if (
-                                        sys.platform == "linux"
-                                        or is_module_installed("triton")
-                                    )
-                                    else "No",
+                                    value=(
+                                        "Yes"
+                                        if (
+                                            sys.platform == "linux"
+                                            or is_module_installed("triton")
+                                        )
+                                        else "No"
+                                    ),
                                     interactive=is_module_installed("triton"),
                                 )
                                 infer_llama_config = gr.Dropdown(

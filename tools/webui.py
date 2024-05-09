@@ -5,11 +5,10 @@ import os
 import queue
 import wave
 from argparse import ArgumentParser
-from functools import partial, wraps
+from functools import partial
 from pathlib import Path
 
 import gradio as gr
-import librosa
 import numpy as np
 import pyrootutils
 import torch
@@ -19,8 +18,14 @@ from transformers import AutoTokenizer
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.i18n import i18n
-from tools.llama.generate import launch_thread_safe_queue
-from tools.vqgan.inference import load_model as load_vqgan_model
+from tools.api import decode_vq_tokens, encode_reference
+from tools.llama.generate import (
+    GenerateRequest,
+    GenerateResponse,
+    WrappedGenerateResponse,
+    launch_thread_safe_queue,
+)
+from tools.vqgan.inference import load_model as load_decoder_model
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -68,36 +73,23 @@ def inference(
     if args.max_gradio_length > 0 and len(text) > args.max_gradio_length:
         return (
             None,
+            None,
             i18n("Text is too long, please keep it under {} characters.").format(
                 args.max_gradio_length
             ),
         )
 
     # Parse reference audio aka prompt
-    prompt_tokens = None
-    if enable_reference_audio and reference_audio is not None:
-        # reference_audio_sr, reference_audio_content = reference_audio
-        reference_audio_content, _ = librosa.load(
-            reference_audio, sr=vqgan_model.sampling_rate, mono=True
-        )
-        audios = torch.from_numpy(reference_audio_content).to(vqgan_model.device)[
-            None, None, :
-        ]
-
-        logger.info(
-            f"Loaded audio with {audios.shape[2] / vqgan_model.sampling_rate:.2f} seconds"
-        )
-
-        # VQ Encoder
-        audio_lengths = torch.tensor(
-            [audios.shape[2]], device=vqgan_model.device, dtype=torch.long
-        )
-        prompt_tokens = vqgan_model.encode(audios, audio_lengths)[0][0]
+    prompt_tokens, reference_embedding = encode_reference(
+        decoder_model=decoder_model,
+        reference_audio=reference_audio,
+        enable_reference_audio=enable_reference_audio,
+    )
 
     # LLAMA Inference
     request = dict(
         tokenizer=llama_tokenizer,
-        device=vqgan_model.device,
+        device=decoder_model.device,
         max_new_tokens=max_new_tokens,
         text=text,
         top_p=top_p,
@@ -110,54 +102,59 @@ def inference(
         speaker=speaker if speaker else None,
         prompt_tokens=prompt_tokens if enable_reference_audio else None,
         prompt_text=reference_text if enable_reference_audio else None,
-        is_streaming=True,  # Always streaming
     )
 
-    payload = dict(
-        response_queue=queue.Queue(),
-        request=request,
+    response_queue = queue.Queue()
+    llama_queue.put(
+        GenerateRequest(
+            request=request,
+            response_queue=response_queue,
+        )
     )
-    llama_queue.put(payload)
 
     if streaming:
-        yield wav_chunk_header(), None
+        yield wav_chunk_header(), None, None
 
     segments = []
-    global cached_audio
-    cached_audio = np.zeros((1,))
-    while True:
-        result = payload["response_queue"].get()
-        if result == "next":
-            # TODO: handle next sentence
-            continue
 
-        if result == "done":
-            if payload["success"] is False:
-                yield None, build_html_error_message(payload["response"])
+    while True:
+        result: WrappedGenerateResponse = response_queue.get()
+        if result.status == "error":
+            yield None, None, build_html_error_message(result.response)
             break
 
-        # VQGAN Inference
-        feature_lengths = torch.tensor([result.shape[1]], device=vqgan_model.device)
+        result: GenerateResponse = result.response
+        if result.action == "next":
+            break
+
+        text_tokens = llama_tokenizer.encode(result.text, return_tensors="pt").to(
+            decoder_model.device
+        )
 
         with torch.autocast(
-            device_type=feature_lengths.device.type, dtype=args.precision
+            device_type=decoder_model.device.type, dtype=args.precision
         ):
-            fake_audios = vqgan_model.decode(
-                indices=result[None],
-                feature_lengths=feature_lengths,
-                return_audios=True,
-            )[0, 0]
+            fake_audios = decode_vq_tokens(
+                decoder_model=decoder_model,
+                codes=result.codes,
+                text_tokens=text_tokens,
+                reference_embedding=reference_embedding,
+            )
+
         fake_audios = fake_audios.float().cpu().numpy()
+        segments.append(fake_audios)
 
         if streaming:
-            cached_audio = np.concatenate([cached_audio, fake_audios], axis=0)
-            yield (fake_audios * 32768).astype(np.int16).tobytes(), None
-        else:
-            segments.append(fake_audios)
+            yield (fake_audios * 32768).astype(np.int16).tobytes(), None, None
 
-    if streaming is False:
-        audio = np.concatenate(segments, axis=0)
-        yield (vqgan_model.sampling_rate, audio), None
+    if len(segments) == 0:
+        yield None, None, build_html_error_message(
+            i18n("No audio generated, please check the input text.")
+        )
+
+    # No matter streaming or not, we need to return the final audio
+    audio = np.concatenate(segments, axis=0)
+    yield None, (decoder_model.sampling_rate, audio), None
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -303,13 +300,9 @@ def build_app():
                 temperature,
                 speaker,
             ],
-            [audio, error],
+            [stream_audio, audio, error],
             concurrency_limit=1,
         )
-
-        def transfer_audio():
-            global cached_audio
-            return (vqgan_model.sampling_rate, cached_audio)
 
         generate_stream.click(
             inference_stream,
@@ -325,9 +318,9 @@ def build_app():
                 temperature,
                 speaker,
             ],
-            [stream_audio, error],
+            [stream_audio, audio, error],
             concurrency_limit=10,
-        ).then(transfer_audio, None, audio)
+        )
     return app
 
 
@@ -342,11 +335,11 @@ def parse_args():
         "--llama-config-name", type=str, default="dual_ar_2_codebook_medium"
     )
     parser.add_argument(
-        "--vqgan-checkpoint-path",
+        "--decoder-checkpoint-path",
         type=Path,
         default="checkpoints/vq-gan-group-fsq-2x1024.pth",
     )
-    parser.add_argument("--vqgan-config-name", type=str, default="vqgan_pretrain")
+    parser.add_argument("--decoder-config-name", type=str, default="vqgan_pretrain")
     parser.add_argument("--tokenizer", type=str, default="fishaudio/fish-speech-1")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--half", action="store_true")
@@ -373,13 +366,13 @@ if __name__ == "__main__":
     llama_tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
     logger.info("Llama model loaded, loading VQ-GAN model...")
 
-    vqgan_model = load_vqgan_model(
-        config_name=args.vqgan_config_name,
-        checkpoint_path=args.vqgan_checkpoint_path,
+    decoder_model = load_decoder_model(
+        config_name=args.decoder_config_name,
+        checkpoint_path=args.decoder_checkpoint_path,
         device=args.device,
     )
 
-    logger.info("VQ-GAN model loaded, warming up...")
+    logger.info("Decoder model loaded, warming up...")
 
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     list(

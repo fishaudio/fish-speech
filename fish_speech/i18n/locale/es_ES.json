@@ -49,6 +49,7 @@
     "Model Size": "Tamaño del Modelo",
     "Move": "Mover",
     "Move files successfully": "Archivos movidos exitosamente",
+    "No audio generated, please check the input text.": "No se generó audio, por favor verifique el texto de entrada.",
     "No selected options": "No hay opciones seleccionadas",
     "Number of Workers": "Número de Trabajadores",
     "Open Inference Server": "Abrir Servidor de Inferencia",

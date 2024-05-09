@@ -49,6 +49,7 @@
     "Model Size": "モデルサイズ",
     "Move": "移動",
     "Move files successfully": "ファイルの移動に成功しました",
+    "No audio generated, please check the input text.": "オーディオが生成されていません。入力テキストを確認してください。",
     "No selected options": "選択されたオプションはありません",
     "Number of Workers": "ワーカー数",
     "Open Inference Server": "推論サーバーを開く",
