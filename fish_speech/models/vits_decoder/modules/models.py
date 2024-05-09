@@ -652,9 +652,9 @@ if __name__ == "__main__":
 
     # Test
 
-    ref_audio = librosa.load("data/source/云天河/云天河-旁白/《薄太太》第0025集-yth_24.wav", sr=32000)[
-        0
-    ]
+    ref_audio = librosa.load(
+        "data/source/云天河/云天河-旁白/《薄太太》第0025集-yth_24.wav", sr=32000
+    )[0]
     input_audio = librosa.load(
         "data/source/云天河/云天河-旁白/《薄太太》第0025集-yth_24.wav", sr=32000
     )[0]
