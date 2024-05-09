@@ -72,6 +72,9 @@
     "Save model every n steps": "每 n 步保存模型",
     "Select source file processing method": "选择源文件处理方法",
     "Select the model to be trained": "选择要训练的模型",
+    "Select LLAMA ckpt": "选择LLAMA检查点",
+    "Select VITS ckpt": "选择VITS检查点",
+    "Select VQGAN ckpt": "选择VQGAN检查点",
     "Selected: {}": "已选择: {}",
     "Speaker": "说话人",
     "Speaker is identified by the folder name": "自动根据父目录名称识别说话人",
@@ -96,6 +99,7 @@
     "Use large for 10G+ GPU, medium for 5G, small for 2G": "10G+ GPU 使用 large, 5G 使用 medium, 2G 使用 small",
     "VQGAN Configuration": "VQGAN 配置",
     "VQGAN Model Path": "VQGAN 模型路径",
+    "VITS Configuration": "VITS 配置",
     "Validation Batch Size": "验证批次大小",
     "View the status of the preprocessing folder (use the slider to control the depth of the tree)": "查看预处理文件夹的状态 (使用滑块控制树的深度)",
     "We are not responsible for any misuse of the model, please consider your local laws and regulations before using it.": "我们不对模型的任何滥用负责，请在使用之前考虑您当地的法律法规.",
@@ -104,4 +108,5 @@
     "Whisper Model": "Whisper 模型",
     "You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).": "你可以在 [这里](https://github.com/fishaudio/fish-speech) 找到源代码和 [这里](https://huggingface.co/fishaudio/fish-speech-1) 找到模型.",
     "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU": "30+ 系列 GPU 建议使用 bf16-true, 10+ 系列 GPU 建议使用 16-mixed"
+
 }
