@@ -447,7 +447,7 @@ def train_process(
 
     print("New Project Name: ", new_project)
 
-    if option == "VQGAN" or option == 'VITS':
+    if option == "VQGAN" or option == "VITS":
         subprocess.run(
             [
                 PYTHON,
@@ -467,7 +467,7 @@ def train_process(
                     reverse=True,
                 )
             ),
-            ""
+            "",
         )
         project = (
             ("vqgan_" + new_project)
@@ -506,7 +506,7 @@ def train_process(
                     reverse=True,
                 )
             ),
-            ""
+            "",
         )
         project = (
             ("vits_" + new_project)
@@ -536,7 +536,6 @@ def train_process(
         ]
         logger.info(train_cmd)
         subprocess.run(train_cmd)
-
 
     if option == "LLAMA":
         subprocess.run(
@@ -583,7 +582,7 @@ def train_process(
                     reverse=True,
                 )
             ),
-            ""
+            "",
         )
         project = (
             ("text2semantic_" + new_project)
@@ -674,10 +673,12 @@ def fresh_vqgan_ckpt():
         choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")]
     )
 
+
 def fresh_vits_ckpt():
     return gr.Dropdown(
         choices=["latest", "new"] + [str(p) for p in Path("results").glob("vits_*/")]
     )
+
 
 def fresh_llama_ckpt():
     return gr.Dropdown(
@@ -806,7 +807,7 @@ with gr.Blocks(
                     model_type_radio = gr.Radio(
                         label=i18n("Select the model to be trained"),
                         interactive=True,
-                        choices=["VQGAN","VITS", "LLAMA"],
+                        choices=["VQGAN", "VITS", "LLAMA"],
                         value="VITS",
                     )
                 with gr.Row():
@@ -1154,7 +1155,9 @@ with gr.Blocks(
                                     info=i18n(
                                         "Type the path or select from the dropdown"
                                     ),
-                                    value=str(Path("checkpoints/vits_decoder_v1.1.ckpt")),
+                                    value=str(
+                                        Path("checkpoints/vits_decoder_v1.1.ckpt")
+                                    ),
                                     choices=[init_vqgan_yml["ckpt_path"]]
                                     + [str(Path("checkpoints/vits_decoder_v1.1.ckpt"))]
                                     + [
@@ -1162,11 +1165,10 @@ with gr.Blocks(
                                         for p in Path("results").glob(
                                             "vqgan*/**/*.ckpt"
                                         )
-                                    ] + [
+                                    ]
+                                    + [
                                         str(p)
-                                        for p in Path("results").glob(
-                                            "vits*/**/*.ckpt"
-                                        )
+                                        for p in Path("results").glob("vits*/**/*.ckpt")
                                     ],
                                     allow_custom_value=True,
                                 )
@@ -1176,8 +1178,12 @@ with gr.Blocks(
                                         "Type the path or select from the dropdown"
                                     ),
                                     value="vits_decoder_finetune",
-                                    choices=["vits_decoder_finetune", "vits_decoder_pretrain",
-                                             "vqgan_finetune", "vqgan_pretrain"],
+                                    choices=[
+                                        "vits_decoder_finetune",
+                                        "vits_decoder_pretrain",
+                                        "vqgan_finetune",
+                                        "vqgan_pretrain",
+                                    ],
                                     allow_custom_value=True,
                                 )
                             with gr.Row():
@@ -1225,7 +1231,6 @@ with gr.Blocks(
                                     ),
                                     interactive=is_module_installed("triton"),
                                 )
-
 
                     with gr.Row():
                         infer_checkbox = gr.Checkbox(
