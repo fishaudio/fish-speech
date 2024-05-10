@@ -27,6 +27,7 @@ print("You are in ", str(cur_work_dir))
 config_path = cur_work_dir / "fish_speech" / "configs"
 vqgan_yml_path = config_path / "vqgan_finetune.yaml"
 llama_yml_path = config_path / "text2semantic_finetune.yaml"
+vits_yml_path = config_path / "vits_decoder_finetune.yaml"
 
 env = os.environ.copy()
 env["no_proxy"] = "127.0.0.1, localhost, 0.0.0.0"
@@ -105,15 +106,19 @@ def change_label(if_label):
     if if_label == True and p_label is None:
         url = "http://localhost:3000"
         remote_url = "https://text-labeler.pages.dev/"
-        p_label = subprocess.Popen(
-            [
-                (
-                    "asr-label-linux-x64"
-                    if sys.platform == "linux"
-                    else "asr-label-win-x64.exe"
-                )
-            ]
-        )
+        try:
+            p_label = subprocess.Popen(
+                [
+                    (
+                        "asr-label-linux-x64"
+                        if sys.platform == "linux"
+                        else "asr-label-win-x64.exe"
+                    )
+                ]
+            )
+        except FileNotFoundError:
+            logger.warning("asr-label execution not found!")
+
         yield build_html_href(
             link=remote_url,
             desc=i18n("Optional online ver"),
@@ -146,7 +151,8 @@ def change_infer(
     if_infer,
     host,
     port,
-    infer_vqgan_model,
+    infer_decoder_model,
+    infer_decoder_config,
     infer_llama_model,
     infer_llama_config,
     infer_compile,
@@ -169,8 +175,10 @@ def change_infer(
             [
                 PYTHON,
                 "tools/webui.py",
-                "--vqgan-checkpoint-path",
-                infer_vqgan_model,
+                "--decoder-checkpoint-path",
+                infer_decoder_model,
+                "--decoder-config-name",
+                infer_decoder_config,
                 "--llama-checkpoint-path",
                 infer_llama_model,
                 "--llama-config-name",
@@ -398,6 +406,8 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
 def train_process(
     data_path: str,
     option: str,
+    min_duration: float,
+    max_duration: float,
     # vq-gan config
     vqgan_ckpt,
     vqgan_lr,
@@ -407,6 +417,15 @@ def train_process(
     vqgan_data_val_batch_size,
     vqgan_precision,
     vqgan_check_interval,
+    # vits config
+    vits_ckpt,
+    vits_lr,
+    vits_maxsteps,
+    vits_data_num_workers,
+    vits_data_batch_size,
+    vits_data_val_batch_size,
+    vits_precision,
+    vits_check_interval,
     # llama config
     llama_ckpt,
     llama_base_config,
@@ -434,27 +453,39 @@ def train_process(
 
     print("New Project Name: ", new_project)
 
-    if option == "VQGAN" or option == "all":
+    if min_duration > max_duration:
+        min_duration, max_duration = max_duration, min_duration
+
+    if option == "VQGAN" or option == "VITS":
         subprocess.run(
             [
                 PYTHON,
                 "tools/vqgan/create_train_split.py",
                 str(data_pre_output.relative_to(cur_work_dir)),
+                "--min-duration",
+                str(min_duration),
+                "--max-duration",
+                str(max_duration),
             ]
         )
-        latest = list(
-            sorted(
-                [
-                    str(p.relative_to("results"))
-                    for p in Path("results").glob("vqgan_*/")
-                ],
-                reverse=True,
-            )
-        )[0]
+
+    if option == "VQGAN":
+        latest = next(
+            iter(
+                sorted(
+                    [
+                        str(p.relative_to("results"))
+                        for p in Path("results").glob("vqgan_*/")
+                    ],
+                    reverse=True,
+                )
+            ),
+            ("vqgan_" + new_project),
+        )
         project = (
             ("vqgan_" + new_project)
-            if vqgan_ckpt == "new"
-            else latest if vqgan_ckpt == "latest" else vqgan_ckpt
+            if vqgan_ckpt == i18n("new")
+            else latest if vqgan_ckpt == i18n("latest") else vqgan_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -477,7 +508,49 @@ def train_process(
         logger.info(train_cmd)
         subprocess.run(train_cmd)
 
-    if option == "LLAMA" or option == "all":
+    if option == "VITS":
+        latest = next(
+            iter(
+                sorted(
+                    [
+                        str(p.relative_to("results"))
+                        for p in Path("results").glob("vits_*/")
+                    ],
+                    reverse=True,
+                )
+            ),
+            ("vits_" + new_project),
+        )
+        project = (
+            ("vits_" + new_project)
+            if vits_ckpt == i18n("new")
+            else latest if vits_ckpt == i18n("latest") else vits_ckpt
+        )
+        ckpt_path = str(Path("checkpoints/vits_decoder_v1.1.ckpt"))
+        logger.info(project)
+        train_cmd = [
+            PYTHON,
+            "fish_speech/train.py",
+            "--config-name",
+            "vits_decoder_finetune",
+            f"project={project}",
+            f"ckpt_path={ckpt_path}",
+            f"trainer.strategy.process_group_backend={backend}",
+            "tokenizer.pretrained_model_name_or_path=checkpoints",
+            f"model.optimizer.lr={vits_lr}",
+            f"trainer.max_steps={vits_maxsteps}",
+            f"data.num_workers={vits_data_num_workers}",
+            f"data.batch_size={vits_data_batch_size}",
+            f"data.val_batch_size={vits_data_val_batch_size}",
+            f"trainer.precision={vits_precision}",
+            f"trainer.val_check_interval={vits_check_interval}",
+            f"train_dataset.filelist={str(data_pre_output / 'vq_train_filelist.txt')}",
+            f"val_dataset.filelist={str(data_pre_output / 'vq_val_filelist.txt')}",
+        ]
+        logger.info(train_cmd)
+        subprocess.run(train_cmd)
+
+    if option == "LLAMA":
         subprocess.run(
             [
                 PYTHON,
@@ -507,24 +580,27 @@ def train_process(
             ]
         )
         ckpt_path = (
-            "text2semantic-pretrain-medium-2k-v1.pth"
+            "text2semantic-sft-medium-v1.1-4k.pth"
             if llama_base_config == "dual_ar_2_codebook_medium"
-            else "text2semantic-sft-medium-v1-4k.pth"
+            else "text2semantic-sft-large-v1.1-4k.pth"
         )
 
-        latest = list(
-            sorted(
-                [
-                    str(p.relative_to("results"))
-                    for p in Path("results").glob("text2sem*/")
-                ],
-                reverse=True,
-            )
-        )[0]
+        latest = next(
+            iter(
+                sorted(
+                    [
+                        str(p.relative_to("results"))
+                        for p in Path("results").glob("text2sem*/")
+                    ],
+                    reverse=True,
+                )
+            ),
+            ("text2semantic_" + new_project),
+        )
         project = (
             ("text2semantic_" + new_project)
-            if llama_ckpt == "new"
-            else latest if llama_ckpt == "latest" else llama_ckpt
+            if llama_ckpt == i18n("new")
+            else latest if llama_ckpt == i18n("latest") else llama_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -596,22 +672,33 @@ def fresh_tb_dir():
     )
 
 
-def fresh_vqgan_model():
+def fresh_decoder_model():
     return gr.Dropdown(
         choices=[init_vqgan_yml["ckpt_path"]]
+        + [str(Path("checkpoints/vits_decoder_v1.1.ckpt"))]
         + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
+        + [str(p) for p in Path("results").glob("vits*/**/*.ckpt")]
     )
 
 
 def fresh_vqgan_ckpt():
     return gr.Dropdown(
-        choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")]
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("vqgan_*/")]
+    )
+
+
+def fresh_vits_ckpt():
+    return gr.Dropdown(
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("vits_*/")]
     )
 
 
 def fresh_llama_ckpt():
     return gr.Dropdown(
-        choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")]
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("text2sem*/")]
     )
 
 
@@ -655,6 +742,7 @@ def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_ou
 
 init_vqgan_yml = load_yaml_data_in_fact(vqgan_yml_path)
 init_llama_yml = load_yaml_data_in_fact(llama_yml_path)
+init_vits_yml = load_yaml_data_in_fact(vits_yml_path)
 
 with gr.Blocks(
     head="<style>\n" + css + "\n</style>",
@@ -687,6 +775,22 @@ with gr.Blocks(
                         if_label = gr.Checkbox(
                             label=i18n("Open Labeler WebUI"), scale=0, show_label=True
                         )
+                with gr.Row():
+                    min_duration = gr.Slider(
+                        label=i18n("Minimum Audio Duration"),
+                        value=1.5,
+                        step=0.1,
+                        minimum=0.4,
+                        maximum=30,
+                    )
+                    max_duration = gr.Slider(
+                        label=i18n("Maximum Audio Duration"),
+                        value=30,
+                        step=0.1,
+                        minimum=0.4,
+                        maximum=30,
+                    )
+
                 with gr.Row():
                     add_button = gr.Button(
                         "\U000027A1 " + i18n("Add to Processing Area"),
@@ -735,17 +839,17 @@ with gr.Blocks(
                     model_type_radio = gr.Radio(
                         label=i18n("Select the model to be trained"),
                         interactive=True,
-                        choices=["VQGAN", "LLAMA", "all"],
-                        value="all",
+                        choices=["VQGAN", "VITS", "LLAMA"],
+                        value="VITS",
                     )
                 with gr.Row():
                     with gr.Tab(label=i18n("VQGAN Configuration")):
                         with gr.Row(equal_height=False):
                             vqgan_ckpt = gr.Dropdown(
-                                label="Select VQGAN ckpt",
-                                choices=["latest", "new"]
+                                label=i18n("Select VQGAN ckpt"),
+                                choices=[i18n("latest"), i18n("new")]
                                 + [str(p) for p in Path("results").glob("vqgan_*/")],
-                                value="latest",
+                                value=i18n("latest"),
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -812,6 +916,79 @@ with gr.Blocks(
                                 value=init_vqgan_yml["trainer"]["val_check_interval"],
                             )
 
+                    with gr.Tab(label=i18n("VITS Configuration")):
+                        with gr.Row(equal_height=False):
+                            vits_ckpt = gr.Dropdown(
+                                label=i18n("Select VITS ckpt"),
+                                choices=[i18n("latest"), i18n("new")]
+                                + [str(p) for p in Path("results").glob("vits_*/")],
+                                value=i18n("latest"),
+                                interactive=True,
+                            )
+                        with gr.Row(equal_height=False):
+                            vits_lr_slider = gr.Slider(
+                                label=i18n("Initial Learning Rate"),
+                                interactive=True,
+                                minimum=1e-5,
+                                maximum=1e-4,
+                                step=1e-5,
+                                value=init_vits_yml["model"]["optimizer"]["lr"],
+                            )
+                            vits_maxsteps_slider = gr.Slider(
+                                label=i18n("Maximum Training Steps"),
+                                interactive=True,
+                                minimum=1000,
+                                maximum=100000,
+                                step=1000,
+                                value=init_vits_yml["trainer"]["max_steps"],
+                            )
+
+                        with gr.Row(equal_height=False):
+                            vits_data_num_workers_slider = gr.Slider(
+                                label=i18n("Number of Workers"),
+                                interactive=True,
+                                minimum=1,
+                                maximum=16,
+                                step=1,
+                                value=init_vits_yml["data"]["num_workers"],
+                            )
+
+                            vits_data_batch_size_slider = gr.Slider(
+                                label=i18n("Batch Size"),
+                                interactive=True,
+                                minimum=1,
+                                maximum=32,
+                                step=1,
+                                value=init_vits_yml["data"]["batch_size"],
+                            )
+                        with gr.Row(equal_height=False):
+                            vits_data_val_batch_size_slider = gr.Slider(
+                                label=i18n("Validation Batch Size"),
+                                interactive=True,
+                                minimum=1,
+                                maximum=32,
+                                step=1,
+                                value=init_vits_yml["data"]["val_batch_size"],
+                            )
+                            vits_precision_dropdown = gr.Dropdown(
+                                label=i18n("Precision"),
+                                interactive=True,
+                                choices=["32", "bf16-true", "bf16-mixed"],
+                                info=i18n(
+                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
+                                ),
+                                value=str(init_vits_yml["trainer"]["precision"]),
+                            )
+                        with gr.Row(equal_height=False):
+                            vits_check_interval_slider = gr.Slider(
+                                label=i18n("Save model every n steps"),
+                                interactive=True,
+                                minimum=500,
+                                maximum=10000,
+                                step=500,
+                                value=init_vits_yml["trainer"]["val_check_interval"],
+                            )
+
                     with gr.Tab(label=i18n("LLAMA Configuration")):
                         with gr.Row(equal_height=False):
                             llama_use_lora = gr.Checkbox(
@@ -822,10 +999,10 @@ with gr.Blocks(
                                 value=True,
                             )
                             llama_ckpt = gr.Dropdown(
-                                label="Select LLAMA ckpt",
-                                choices=["latest", "new"]
+                                label=i18n("Select LLAMA ckpt"),
+                                choices=[i18n("latest"), i18n("new")]
                                 + [str(p) for p in Path("results").glob("text2sem*/")],
-                                value="latest",
+                                value=i18n("latest"),
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -943,6 +1120,7 @@ with gr.Blocks(
                             )
                             lora_llama_config = gr.Dropdown(
                                 label=i18n("LLAMA Model Config"),
+                                info=i18n("Type the path or select from the dropdown"),
                                 choices=[
                                     "dual_ar_2_codebook_large",
                                     "dual_ar_2_codebook_medium",
@@ -1004,18 +1182,39 @@ with gr.Blocks(
                                     label=i18n("WebUI Port"), value="7862"
                                 )
                             with gr.Row():
-                                infer_vqgan_model = gr.Dropdown(
-                                    label=i18n("VQGAN Model Path"),
+                                infer_decoder_model = gr.Dropdown(
+                                    label=i18n("Decoder Model Path"),
                                     info=i18n(
                                         "Type the path or select from the dropdown"
                                     ),
-                                    value=init_vqgan_yml["ckpt_path"],
+                                    value=str(
+                                        Path("checkpoints/vits_decoder_v1.1.ckpt")
+                                    ),
                                     choices=[init_vqgan_yml["ckpt_path"]]
+                                    + [str(Path("checkpoints/vits_decoder_v1.1.ckpt"))]
                                     + [
                                         str(p)
                                         for p in Path("results").glob(
                                             "vqgan*/**/*.ckpt"
                                         )
+                                    ]
+                                    + [
+                                        str(p)
+                                        for p in Path("results").glob("vits*/**/*.ckpt")
+                                    ],
+                                    allow_custom_value=True,
+                                )
+                                infer_decoder_config = gr.Dropdown(
+                                    label=i18n("Decoder Model Config"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
+                                    value="vits_decoder_finetune",
+                                    choices=[
+                                        "vits_decoder_finetune",
+                                        "vits_decoder_pretrain",
+                                        "vqgan_finetune",
+                                        "vqgan_pretrain",
                                     ],
                                     allow_custom_value=True,
                                 )
@@ -1035,6 +1234,18 @@ with gr.Blocks(
                                     ],
                                     allow_custom_value=True,
                                 )
+                                infer_llama_config = gr.Dropdown(
+                                    label=i18n("LLAMA Model Config"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
+                                    choices=[
+                                        "dual_ar_2_codebook_large",
+                                        "dual_ar_2_codebook_medium",
+                                    ],
+                                    value="dual_ar_2_codebook_large",
+                                    allow_custom_value=True,
+                                )
                             with gr.Row():
                                 infer_compile = gr.Radio(
                                     label=i18n("Compile Model"),
@@ -1051,15 +1262,6 @@ with gr.Blocks(
                                         else "No"
                                     ),
                                     interactive=is_module_installed("triton"),
-                                )
-                                infer_llama_config = gr.Dropdown(
-                                    label=i18n("LLAMA Model Config"),
-                                    choices=[
-                                        "dual_ar_2_codebook_large",
-                                        "dual_ar_2_codebook_medium",
-                                    ],
-                                    value="dual_ar_2_codebook_large",
-                                    allow_custom_value=True,
                                 )
 
                     with gr.Row():
@@ -1140,6 +1342,8 @@ with gr.Blocks(
         inputs=[
             train_box,
             model_type_radio,
+            min_duration,
+            max_duration,
             # vq-gan config
             vqgan_ckpt,
             vqgan_lr_slider,
@@ -1149,6 +1353,15 @@ with gr.Blocks(
             vqgan_data_val_batch_size_slider,
             vqgan_precision_dropdown,
             vqgan_check_interval_slider,
+            # vits config
+            vits_ckpt,
+            vits_lr_slider,
+            vits_maxsteps_slider,
+            vits_data_num_workers_slider,
+            vits_data_batch_size_slider,
+            vits_data_val_batch_size_slider,
+            vits_precision_dropdown,
+            vits_check_interval_slider,
             # llama config
             llama_ckpt,
             llama_base_config,
@@ -1171,8 +1384,8 @@ with gr.Blocks(
         outputs=[train_error],
     )
     tb_dir.change(fn=fresh_tb_dir, inputs=[], outputs=[tb_dir])
-    infer_vqgan_model.change(
-        fn=fresh_vqgan_model, inputs=[], outputs=[infer_vqgan_model]
+    infer_decoder_model.change(
+        fn=fresh_decoder_model, inputs=[], outputs=[infer_decoder_model]
     )
     infer_llama_model.change(
         fn=fresh_llama_model, inputs=[], outputs=[infer_llama_model]
@@ -1187,6 +1400,7 @@ with gr.Blocks(
         fn=new_explorer, inputs=[train_box, tree_slider], outputs=[file_markdown]
     )
     vqgan_ckpt.change(fn=fresh_vqgan_ckpt, inputs=[], outputs=[vqgan_ckpt])
+    vits_ckpt.change(fn=fresh_vits_ckpt, inputs=[], outputs=[vits_ckpt])
     llama_ckpt.change(fn=fresh_llama_ckpt, inputs=[], outputs=[llama_ckpt])
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
@@ -1199,7 +1413,8 @@ with gr.Blocks(
             infer_checkbox,
             infer_host_textbox,
             infer_port_textbox,
-            infer_vqgan_model,
+            infer_decoder_model,
+            infer_decoder_config,
             infer_llama_model,
             infer_llama_config,
             infer_compile,

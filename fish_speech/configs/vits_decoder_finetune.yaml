@@ -10,7 +10,8 @@ resume_weights_only: true
 trainer:
   accelerator: gpu
   devices: auto
-  strategy: ddp_find_unused_parameters_true
+  strategy:
+    find_unused_parameters: true
   precision: 32
   max_steps: 100_000
   val_check_interval: 1000
