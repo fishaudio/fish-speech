@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 project: vits_decoder
-ckpt_path: checkpoints/Bert-VITS2/ensemble.pth
+ckpt_path: checkpoints/vits-decoder-v1.1.pth
 resume_weights_only: true
 
 # Lightning Trainer
