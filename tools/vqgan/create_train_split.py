@@ -15,8 +15,8 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 @click.option("--val-ratio", type=float, default=None)
 @click.option("--val-count", type=int, default=None)
 @click.option("--filelist", default=None, type=Path)
-@click.option("--min-duration", default=1.5, type=float)
-@click.option("--max-duration", default=30.0, type=float)
+@click.option("--min-duration", default=0.2, type=float)
+@click.option("--max-duration", default=30, type=float)
 def main(root, val_ratio, val_count, filelist, min_duration, max_duration):
     if filelist:
         files = [i[0] for i in load_filelist(filelist)]

@@ -402,6 +402,8 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
 def train_process(
     data_path: str,
     option: str,
+    min_duration: float,
+    max_duration: float,
     # vq-gan config
     vqgan_ckpt,
     vqgan_lr,
@@ -447,12 +449,19 @@ def train_process(
 
     print("New Project Name: ", new_project)
 
+    if min_duration > max_duration:
+        min_duration, max_duration = max_duration, min_duration
+
     if option == "VQGAN" or option == "VITS":
         subprocess.run(
             [
                 PYTHON,
                 "tools/vqgan/create_train_split.py",
                 str(data_pre_output.relative_to(cur_work_dir)),
+                "--min-duration",
+                str(min_duration),
+                "--max-duration",
+                str(max_duration),
             ]
         )
 
@@ -467,12 +476,12 @@ def train_process(
                     reverse=True,
                 )
             ),
-            "",
+            ("vqgan_" + new_project),
         )
         project = (
             ("vqgan_" + new_project)
-            if vqgan_ckpt == "new"
-            else latest if vqgan_ckpt == "latest" else vqgan_ckpt
+            if vqgan_ckpt == i18n("new")
+            else latest if vqgan_ckpt == i18n("latest") else vqgan_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -506,12 +515,12 @@ def train_process(
                     reverse=True,
                 )
             ),
-            "",
+            ("vits_" + new_project),
         )
         project = (
             ("vits_" + new_project)
-            if vits_ckpt == "new"
-            else latest if vits_ckpt == "latest" else vits_ckpt
+            if vits_ckpt == i18n("new")
+            else latest if vits_ckpt == i18n("latest") else vits_ckpt
         )
         ckpt_path = str(Path("checkpoints/vits_decoder_v1.1.ckpt"))
         logger.info(project)
@@ -567,9 +576,9 @@ def train_process(
             ]
         )
         ckpt_path = (
-            "text2semantic-pretrain-medium-2k-v1.pth"
+            "text2semantic-sft-medium-v1.1-4k.pth"
             if llama_base_config == "dual_ar_2_codebook_medium"
-            else "text2semantic-sft-medium-v1-4k.pth"
+            else "text2semantic-sft-large-v1.1-4k.pth"
         )
 
         latest = next(
@@ -582,12 +591,12 @@ def train_process(
                     reverse=True,
                 )
             ),
-            "",
+            ("text2semantic_" + new_project),
         )
         project = (
             ("text2semantic_" + new_project)
-            if llama_ckpt == "new"
-            else latest if llama_ckpt == "latest" else llama_ckpt
+            if llama_ckpt == i18n("new")
+            else latest if llama_ckpt == i18n("latest") else llama_ckpt
         )
         logger.info(project)
         train_cmd = [
@@ -670,19 +679,19 @@ def fresh_decoder_model():
 
 def fresh_vqgan_ckpt():
     return gr.Dropdown(
-        choices=["latest", "new"] + [str(p) for p in Path("results").glob("vqgan_*/")]
+        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("vqgan_*/")]
     )
 
 
 def fresh_vits_ckpt():
     return gr.Dropdown(
-        choices=["latest", "new"] + [str(p) for p in Path("results").glob("vits_*/")]
+        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("vits_*/")]
     )
 
 
 def fresh_llama_ckpt():
     return gr.Dropdown(
-        choices=["latest", "new"] + [str(p) for p in Path("results").glob("text2sem*/")]
+        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("text2sem*/")]
     )
 
 
@@ -760,6 +769,22 @@ with gr.Blocks(
                             label=i18n("Open Labeler WebUI"), scale=0, show_label=True
                         )
                 with gr.Row():
+                    min_duration = gr.Slider(
+                        label=i18n("Minimum Audio Duration"),
+                        value=1.5,
+                        step=0.1,
+                        minimum=0.4,
+                        maximum=30,
+                    )
+                    max_duration = gr.Slider(
+                        label=i18n("Maximum Audio Duration"),
+                        value=30,
+                        step=0.1,
+                        minimum=0.4,
+                        maximum=30,
+                    )
+
+                with gr.Row():
                     add_button = gr.Button(
                         "\U000027A1 " + i18n("Add to Processing Area"),
                         variant="primary",
@@ -815,9 +840,9 @@ with gr.Blocks(
                         with gr.Row(equal_height=False):
                             vqgan_ckpt = gr.Dropdown(
                                 label=i18n("Select VQGAN ckpt"),
-                                choices=["latest", "new"]
+                                choices=[i18n("latest"), i18n("new")]
                                 + [str(p) for p in Path("results").glob("vqgan_*/")],
-                                value="latest",
+                                value=i18n("latest"),
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -888,9 +913,9 @@ with gr.Blocks(
                         with gr.Row(equal_height=False):
                             vits_ckpt = gr.Dropdown(
                                 label=i18n("Select VITS ckpt"),
-                                choices=["latest", "new"]
+                                choices=[i18n("latest"), i18n("new")]
                                 + [str(p) for p in Path("results").glob("vits_*/")],
-                                value="latest",
+                                value=i18n("latest"),
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -968,9 +993,9 @@ with gr.Blocks(
                             )
                             llama_ckpt = gr.Dropdown(
                                 label=i18n("Select LLAMA ckpt"),
-                                choices=["latest", "new"]
+                                choices=[i18n("latest"), i18n("new")]
                                 + [str(p) for p in Path("results").glob("text2sem*/")],
-                                value="latest",
+                                value=i18n("latest"),
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -1310,6 +1335,8 @@ with gr.Blocks(
         inputs=[
             train_box,
             model_type_radio,
+            min_duration,
+            max_duration,
             # vq-gan config
             vqgan_ckpt,
             vqgan_lr_slider,
