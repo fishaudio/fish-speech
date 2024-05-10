@@ -23,6 +23,11 @@ This codebase is released under BSD-3-Clause License, and all models are release
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.  
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 
+## Online Demo
+[Fish Speech](https://fs.firefly.matce.cn/)   
+支持中/日/英三语合成。基于原神/崩坏星穹铁道/BlueArchive角色。   
+音频所有权归米哈游网络科技有限公司及YoStar所有。   
+
 ## Documents / 文档
 - [English](https://speech.fish.audio/en/)
 - [中文](https://speech.fish.audio/)
@@ -47,4 +52,11 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
   </a>
   <br>
   <a href="https://6block.com/">数据处理服务器由 6Block 提供 (Data Processing sponsor by 6Block)</a>
+</div>
+<div>
+  <a href="http://fs.firefly.matce.cn/">
+    <img src="https://dice-forum.s3.ap-northeast-1.amazonaws.com/2024-05-10/1715299538-382065-04170e083d92c5e0eeff534d6e7704ee.jpg" width="100" height="100" alt="6Block Avatar"/>
+  </a>
+  <br>
+  <a href="http://fs.firefly.matce.cn/">在线推理Demo服务器由淮北艾阿网络科技有限公司提供 (Online inference sponsor)</a>
 </div>
