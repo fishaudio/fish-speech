@@ -679,19 +679,22 @@ def fresh_decoder_model():
 
 def fresh_vqgan_ckpt():
     return gr.Dropdown(
-        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("vqgan_*/")]
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("vqgan_*/")]
     )
 
 
 def fresh_vits_ckpt():
     return gr.Dropdown(
-        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("vits_*/")]
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("vits_*/")]
     )
 
 
 def fresh_llama_ckpt():
     return gr.Dropdown(
-        choices=[i18n("latest"), i18n("new")] + [str(p) for p in Path("results").glob("text2sem*/")]
+        choices=[i18n("latest"), i18n("new")]
+        + [str(p) for p in Path("results").glob("text2sem*/")]
     )
 
 
