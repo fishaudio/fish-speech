@@ -123,5 +123,5 @@ callbacks:
       - discriminator
 
   model_checkpoint:
-    every_n_train_steps: 1000
+    every_n_train_steps: ${trainer.val_check_interval}
     save_top_k: 10
