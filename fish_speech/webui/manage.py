@@ -106,15 +106,19 @@ def change_label(if_label):
     if if_label == True and p_label is None:
         url = "http://localhost:3000"
         remote_url = "https://text-labeler.pages.dev/"
-        p_label = subprocess.Popen(
-            [
-                (
-                    "asr-label-linux-x64"
-                    if sys.platform == "linux"
-                    else "asr-label-win-x64.exe"
-                )
-            ]
-        )
+        try:
+            p_label = subprocess.Popen(
+                [
+                    (
+                        "asr-label-linux-x64"
+                        if sys.platform == "linux"
+                        else "asr-label-win-x64.exe"
+                    )
+                ]
+            )
+        except FileNotFoundError:
+            logger.warning("asr-label execution not found!")
+
         yield build_html_href(
             link=remote_url,
             desc=i18n("Optional online ver"),
