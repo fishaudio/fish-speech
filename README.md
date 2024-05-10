@@ -58,5 +58,5 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
     <img src="https://dice-forum.s3.ap-northeast-1.amazonaws.com/2024-05-10/1715299538-382065-04170e083d92c5e0eeff534d6e7704ee.jpg" width="100" height="100" alt="6Block Avatar"/>
   </a>
   <br>
-  <a href="https://6block.com/">在线推理Demo服务器由淮北艾阿网络科技有限公司提供 (Online inference sponsor)</a>
+  <a href="http://fs.firefly.matce.cn/">在线推理Demo服务器由淮北艾阿网络科技有限公司提供 (Online inference sponsor)</a>
 </div>
