@@ -24,9 +24,9 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 
 ## Online Demo
-[Fish Speech](https://fs.firefly.matce.cn/)
-支持中/日/英三语合成。基于原神/崩坏星穹铁道/BlueArchive角色。
-音频所有权归米哈游网络科技有限公司及YoStar所有。
+[Fish Speech](https://fs.firefly.matce.cn/)   
+支持中/日/英三语合成。基于原神/崩坏星穹铁道/BlueArchive角色。   
+音频所有权归米哈游网络科技有限公司及YoStar所有。   
 
 ## Documents / 文档
 - [English](https://speech.fish.audio/en/)
