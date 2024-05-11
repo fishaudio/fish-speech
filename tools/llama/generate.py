@@ -426,12 +426,18 @@ def split_text(text, min_length):
         if curr and not all(c.isspace() or c in string.punctuation for c in curr):
             segments.append(curr)
 
-    for char in text:
+    def is_float(value):
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    for index, char in enumerate(text):
         curr += char
         if char not in [".", "!", "?"]:
             continue
-
-        if len(curr) >= min_length:
+        if len(curr) >= min_length and not is_float(text[index - 1 : index + 2]):
             clean_add(curr)
             curr = ""
 

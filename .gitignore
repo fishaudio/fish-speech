@@ -23,3 +23,4 @@ asr-label*
 /.cache
 /fishenv
 /.locale
+/demo-audios
