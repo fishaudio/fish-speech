@@ -36,9 +36,32 @@ jobs:
           mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe \
           fish-speech-zip/fish-speech/checkpoints fish-speech-zip/fish-speech/.cache ./fish-speech
           rm -rf fish-speech-zip
+          rm ./fish-speech/checkpoints/text2semantic-sft-large-v1-4k.pth
+          rm ./fish-speech/checkpoints/text2semantic-pretrain-medium-2k-v1.pth
           huggingface-cli download fishaudio/fish-speech-1 ffprobe.exe \
           --local-dir ./fish-speech --local-dir-use-symlinks False
+          huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1.1-4k.pth \
+          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+          huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth \
+          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+          huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt \
+          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+
       - uses: actions/upload-artifact@v4
         with:
           name: fish-speech-main-${{ github.run_id }}
           path: ./fish-speech
+
+      - name: Check and Compress fish-speech
+        run: |
+          if [ ! -f fish-speech-main-${{ github.run_id }}.zip ]; then
+            zip -qr fish-speech-main-${{ github.run_id }}.zip ./fish-speech
+          else
+            echo "Zip file already exists, skipping compression."
+          fi
+
+      - name: Upload to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          huggingface-cli upload SpicyqSama007/fish-speech-packed ./fish-speech-main-${{ github.run_id }}.zip fish-speech-main-${{ github.run_id }}.zip
