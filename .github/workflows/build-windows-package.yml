@@ -46,7 +46,23 @@ jobs:
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
           huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt \
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+          huggingface-cli upload SpicyqSama007/fish-speech-packed
+
       - uses: actions/upload-artifact@v4
         with:
           name: fish-speech-main-${{ github.run_id }}
           path: ./fish-speech
+
+      - name: Compress fish-speech
+        run: zip -r fish-speech-${{ github.run_id }}.zip ./fish-speech
+
+      - name: Upload to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          huggingface-cli login $HF_TOKEN
+          huggingface-cli upload-file \
+            --repo SpicyqSama007/fish-speech-packed \
+            --path fish-speech-${{ github.run_id }}.zip \
+            --filename fish-speech-${{ github.run_id }}.zip
+          huggingface-cli logout
