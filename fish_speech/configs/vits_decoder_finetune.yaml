@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 project: vits_decoder
-ckpt_path: checkpoints/Bert-VITS2/ensemble.pth
+ckpt_path: checkpoints/vits_decoder_v1.1.ckpt
 resume_weights_only: true
 
 # Lightning Trainer
@@ -14,7 +14,7 @@ trainer:
     find_unused_parameters: true
   precision: 32
   max_steps: 100_000
-  val_check_interval: 1000
+  val_check_interval: 100
 
 sample_rate: 44100
 hop_length: 512
@@ -123,5 +123,5 @@ callbacks:
       - discriminator
 
   model_checkpoint:
-    every_n_train_steps: 1000
+    every_n_train_steps: ${trainer.val_check_interval}
     save_top_k: 10
