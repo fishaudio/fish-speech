@@ -52,11 +52,16 @@ jobs:
           name: fish-speech-main-${{ github.run_id }}
           path: ./fish-speech
 
-      - name: Compress fish-speech
-        run: zip -qr fish-speech-${{ github.run_id }}.zip ./fish-speech
+      - name: Check and Compress fish-speech
+        run: |
+          if [ ! -f fish-speech-main-${{ github.run_id }}.zip ]; then
+            zip -qr fish-speech-main-${{ github.run_id }}.zip ./fish-speech
+          else
+            echo "Zip file already exists, skipping compression."
+          fi
 
       - name: Upload to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          huggingface-cli upload SpicyqSama007/fish-speech-packed ./fish-speech-${{ github.run_id }}.zip fish-speech-${{ github.run_id }}.zip
+          huggingface-cli upload SpicyqSama007/fish-speech-packed ./fish-speech-main-${{ github.run_id }}.zip fish-speech-main-${{ github.run_id }}.zip
