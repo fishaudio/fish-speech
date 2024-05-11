@@ -148,7 +148,7 @@ def inference(
             yield (fake_audios * 32768).astype(np.int16).tobytes(), None, None
 
     if len(segments) == 0:
-        yield None, None, build_html_error_message(
+        return None, None, build_html_error_message(
             i18n("No audio generated, please check the input text.")
         )
 
