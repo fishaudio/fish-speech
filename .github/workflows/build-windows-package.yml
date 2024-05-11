@@ -46,7 +46,6 @@ jobs:
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
           huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt \
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
-          huggingface-cli upload SpicyqSama007/fish-speech-packed
 
       - uses: actions/upload-artifact@v4
         with:
