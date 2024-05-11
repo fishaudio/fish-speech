@@ -40,7 +40,7 @@ jobs:
           rm ./fish-speech/checkpoints/text2semantic-sft-medium-v1-4k.pth
           huggingface-cli download fishaudio/fish-speech-1 ffprobe.exe \
           --local-dir ./fish-speech --local-dir-use-symlinks False
-	  huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1.1-4k.pth \
+          huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1.1-4k.pth \
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
           huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth \
           --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
