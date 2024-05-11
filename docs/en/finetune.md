@@ -2,7 +2,7 @@
 
 Obviously, when you opened this page, you were not satisfied with the performance of the few-shot pre-trained model. You want to fine-tune a model to improve its performance on your dataset.
 
-`Fish Speech` consists of two modules: `VQGAN` and `LLAMA`.
+`Fish Speech` consists of three modules: `VQGAN`, `LLAMA`and `VITS`.
 
 !!! info 
     You should first conduct the following test to determine if you need to fine-tune `VQGAN`:
@@ -12,6 +12,8 @@ Obviously, when you opened this page, you were not satisfied with the performanc
     This test will generate a `fake.wav` file. If the timbre of this file differs from the speaker's original voice, or if the quality is not high, you need to fine-tune `VQGAN`.
 
     Similarly, you can refer to [Inference](inference.md) to run `generate.py` and evaluate if the prosody meets your expectations. If it does not, then you need to fine-tune `LLAMA`.
+	
+    It is recommended to fine-tune the LLAMA and VITS model first, then fine-tune the `VQGAN` according to your needs.
 
 ## Fine-tuning VQGAN
 ### 1. Prepare the Dataset
@@ -140,15 +142,12 @@ python tools/llama/build_dataset.py \
 
 After the command finishes executing, you should see the `quantized-dataset-ft.protos` file in the `data` directory.
 
-!!!info
-    For the VITS format, you can specify a file list using `--input xxx.list`.
-
 ### 4. Finally, start the fine-tuning
 
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
@@ -169,6 +168,34 @@ After training is complete, you can refer to the [inference](inference.md) secti
     By default, the model will only learn the speaker's speech patterns and not the timbre. You still need to use prompts to ensure timbre stability.
     If you want to learn the timbre, you can increase the number of training steps, but this may lead to overfitting.
 
+## Fine-tuning VITS
+### 1. Prepare the dataset
+
+```
+.
+├── SPK1
+│   ├── 21.15-26.44.lab
+│   ├── 21.15-26.44.mp3
+│   ├── 27.51-29.98.lab
+│   ├── 27.51-29.98.mp3
+│   ├── 30.1-32.71.lab
+│   └── 30.1-32.71.mp3
+└── SPK2
+    ├── 38.79-40.85.lab
+    └── 38.79-40.85.mp3
+```
+!!! note
+	The fine-tuning for VITS only support the .lab format files, please don't use .list file!
+
+You need to convert the dataset to the format above, and move them to the `data` , the suffix of the files can be `.mp3`, `.wav` 或 `.flac`, the label files' suffix are recommended to be  `.lab`.
+
+### 2.Start Training
+
+```bash
+python fish_speech/train.py --config-name vits_decoder_finetune
+```
+
+
 #### Fine-tuning with LoRA
 
 !!! note
@@ -182,7 +209,7 @@ After training, you need to convert the LoRA weights to regular weights before p
 python tools/llama/merge_lora.py \
     --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
+    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```

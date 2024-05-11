@@ -16,7 +16,7 @@ Download the required `vqgan` and `text2semantic` models from our Hugging Face r
     
 ```bash
 huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 ```
 
 ### 1. Generate prompt from voice:
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
     --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
+    --checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -69,7 +69,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
@@ -82,7 +82,7 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1-4k.pth" \
+    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
     --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
 ```
