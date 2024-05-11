@@ -60,12 +60,20 @@ class VITSDataset(Dataset):
         audio, _ = librosa.load(audio_file, sr=self.sample_rate, mono=True)
         duration = len(audio) / self.sample_rate
 
-        if (
-            len(audio) == 0
-            or duration < self.min_duration
-            or duration > self.max_duration
-        ):
-            return None
+        # Pad to minimum duration
+        if duration < self.min_duration:
+            pad_duration = self.min_duration - duration
+            pad_samples = int(pad_duration * self.sample_rate)
+            audio = np.pad(audio, (0, pad_samples))
+
+        # Truncate to maximum duration
+        if duration > self.max_duration:
+            random_start = random.randint(
+                0, len(audio) - int(self.max_duration * self.sample_rate) - 1
+            )
+            audio = audio[
+                random_start : random_start + int(self.max_duration * self.sample_rate)
+            ]
 
         max_value = np.abs(audio).max()
         if max_value > 1.0:
