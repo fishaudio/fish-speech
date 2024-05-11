@@ -53,15 +53,10 @@ jobs:
           path: ./fish-speech
 
       - name: Compress fish-speech
-        run: zip -r fish-speech-${{ github.run_id }}.zip ./fish-speech
+        run: zip -qr fish-speech-${{ github.run_id }}.zip ./fish-speech
 
       - name: Upload to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          huggingface-cli login $HF_TOKEN
-          huggingface-cli upload-file \
-            --repo SpicyqSama007/fish-speech-packed \
-            --path fish-speech-${{ github.run_id }}.zip \
-            --filename fish-speech-${{ github.run_id }}.zip
-          huggingface-cli logout
+          huggingface-cli upload SpicyqSama007/fish-speech-packed ./fish-speech-${{ github.run_id }}.zip fish-speech-${{ github.run_id }}.zip
