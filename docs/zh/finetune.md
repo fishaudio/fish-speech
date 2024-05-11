@@ -2,7 +2,7 @@
 
 显然, 当你打开这个页面的时候, 你已经对预训练模型 few-shot 的效果不算满意. 你想要微调一个模型, 使得它在你的数据集上表现更好.  
 
-`Fish Speech` 由两个模块组成: `VQGAN` 和 `LLAMA`. 
+`Fish Speech` 由三个模块组成: `VQGAN`,`LLAMA`和`VITS`. 
 
 !!! info 
     你应该先进行如下测试来判断你是否需要微调 `VQGAN`:
@@ -13,7 +13,9 @@
 
     相应的, 你可以参考 [推理](inference.md) 来运行 `generate.py`, 判断韵律是否满意, 如果不满意, 则需要微调 `LLAMA`.
 
-## VQGAN 微调
+    建议先对LLAMA以及VITS进行微调，最后再根据需要微调 `VQGAN `.
+
+## VQGAN 微调（如果对推理音频不满意再微调）
 ### 1. 准备数据集
 
 ```
@@ -110,7 +112,6 @@ python tools/vqgan/extract_vq.py data \
 
 !!! note
     你可以调整 `--num-workers` 和 `--batch-size` 来提高提取速度, 但是请注意不要超过你的显存限制.  
-    对于 VITS 格式, 你可以使用 `--filelist xxx.list` 来指定文件列表.
 
 该命令会在 `data` 目录下创建 `.npy` 文件, 如下所示:
 
@@ -144,21 +145,19 @@ python tools/llama/build_dataset.py \
 
 命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
 
-!!! note
-    对于 VITS 格式, 你可以使用 `--input xxx.list` 来指定文件列表.
 
 ### 4. 最后, 启动微调
 
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 ```
 
 最后, 你可以运行以下命令来启动微调:
@@ -180,6 +179,33 @@ python fish_speech/train.py --config-name text2semantic_finetune \
     默认配置下, 基本只会学到说话人的发音方式, 而不包含音色, 你依然需要使用 prompt 来保证音色的稳定性.  
     如果你想要学到音色, 请将训练步数调大, 但这有可能会导致过拟合.
 
+## VITS微调
+### 1. 准备数据集
+
+```
+.
+├── SPK1
+│   ├── 21.15-26.44.lab
+│   ├── 21.15-26.44.mp3
+│   ├── 27.51-29.98.lab
+│   ├── 27.51-29.98.mp3
+│   ├── 30.1-32.71.lab
+│   └── 30.1-32.71.mp3
+└── SPK2
+    ├── 38.79-40.85.lab
+    └── 38.79-40.85.mp3
+```
+!!! note
+	VITS微调目前仅支持.lab作为标签文件，不支持filelist形式！
+
+你需要将数据集转为以上格式, 并放到 `data` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`, 标注文件后缀建议为 `.lab`.
+
+### 2.启动训练
+
+```bash
+python fish_speech/train.py --config-name vits_decoder_finetune
+```
+
 #### 使用 lora 进行微调
 !!! note
     lora 可以减少模型过拟合的风险, 但是相应的会导致在大数据集上欠拟合.   
@@ -192,7 +218,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 python tools/llama/merge_lora.py \
     --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
+    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```
