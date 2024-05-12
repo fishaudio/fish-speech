@@ -15,6 +15,7 @@ trainer:
   precision: 32
   max_steps: 100_000
   val_check_interval: 100
+  benchmark: true
 
 sample_rate: 44100
 hop_length: 512
