@@ -164,11 +164,13 @@ def inference(
         torch.cuda.empty_cache()
         gc.collect()
 
+
 inference_stream = partial(inference, streaming=True)
 
 n_audios = 3
 
 global_audio_list = []
+
 
 def inference_wrapper(
     text,
@@ -181,7 +183,7 @@ def inference_wrapper(
     repetition_penalty,
     temperature,
     speaker,
-    batch_infer_num
+    batch_infer_num,
 ):
     audios = []
     for _ in range(batch_infer_num):
@@ -206,7 +208,6 @@ def inference_wrapper(
         except StopIteration:
             print("No more audio data available.")
 
-
     for _ in range(n_audios - batch_infer_num):
         audios.append(
             gr.Audio(value=None, visible=False),
@@ -226,7 +227,6 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     wav_header_bytes = buffer.getvalue()
     buffer.close()
     return wav_header_bytes
-
 
 
 def build_app():
@@ -284,7 +284,7 @@ def build_app():
                             value=0.7,
                             step=0.01,
                         )
-                    
+
                         speaker = gr.Textbox(
                             label=i18n("Speaker"),
                             placeholder=i18n("Type name of the speaker"),
@@ -319,7 +319,6 @@ def build_app():
                             step=1,
                             value=1,
                         )
-
 
             with gr.Column(scale=3):
                 with gr.Row():
@@ -364,7 +363,7 @@ def build_app():
                 repetition_penalty,
                 temperature,
                 speaker,
-                batch_infer_num
+                batch_infer_num,
             ],
             [stream_audio, *global_audio_list, error],
             concurrency_limit=1,
