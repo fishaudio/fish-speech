@@ -973,7 +973,7 @@ with gr.Blocks(
                             vits_precision_dropdown = gr.Dropdown(
                                 label=i18n("Precision"),
                                 interactive=True,
-                                choices=["32", "bf16-true", "bf16-mixed"],
+                                choices=["32", "bf16-mixed"],
                                 info=i18n(
                                     "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
                                 ),
