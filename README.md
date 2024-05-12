@@ -26,7 +26,11 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Online Demo
 [Fish Speech](https://fs.firefly.matce.cn/)   
 支持中/日/英三语合成。基于原神/崩坏星穹铁道/BlueArchive角色。   
-音频所有权归米哈游网络科技有限公司及YoStar所有。   
+音频所有权归米哈游网络科技有限公司及YoStar所有。  
+
+## Videos
+#### Demo Video: https://www.bilibili.com/video/BV18E421371Q    
+#### Tech slides Video: https://www.bilibili.com/video/BV1zJ4m1K7cj
 
 ## Documents / 文档
 - [English](https://speech.fish.audio/en/)
