@@ -68,7 +68,7 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option(
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
-@click.option("--config-name", "-cfg", default="vits_decoder")
+@click.option("--config-name", "-cfg", default="vits_decoder_finetune")
 @click.option(
     "--checkpoint-path",
     "-ckpt",
