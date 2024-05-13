@@ -502,8 +502,8 @@ class FireflyBase(nn.Module):
         if ckpt_path is not None:
             self.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
         elif pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                "https://github.com/fishaudio/vocoder/releases/download/1.0.0/firefly-gan-base-generator.ckpt",
+            state_dict = torch.load(
+                "checkpoints/firefly-gan-base-generator.ckpt",
                 map_location="cpu",
             )
 
