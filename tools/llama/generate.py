@@ -775,6 +775,7 @@ def main(
                 np.save(f"codes_{idx}.npy", torch.cat(codes, dim=1).cpu().numpy())
                 logger.info(f"Saved codes to codes_{idx}.npy")
             logger.info(f"Next sample")
+            codes = []
             idx += 1
         else:
             logger.error(f"Error: {response}")
