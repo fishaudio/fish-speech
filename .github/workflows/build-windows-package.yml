@@ -28,7 +28,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          if [[ "${{ github.actor }}" = "Leng Yue" ]] || [[ "${{ github.actor }}" = "AnyaCoder" ]]; then
+          if [[ "${{ github.actor }}" = "Leng Yue" ]] || [[ "${{ github.actor }}" = "AnyaCoder" ]] || [[ "${{ github.actor }}" = "pre-commit-ci[bot]" ]]; then
             ls -la
             huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.1.zip \
             --local-dir ./ --local-dir-use-symlinks False
