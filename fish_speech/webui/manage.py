@@ -485,7 +485,11 @@ def train_process(
         project = (
             ("vqgan_" + new_project)
             if vqgan_ckpt == i18n("new")
-            else latest if vqgan_ckpt == i18n("latest") else Path(vqgan_ckpt).relative_to("results")
+            else (
+                latest
+                if vqgan_ckpt == i18n("latest")
+                else Path(vqgan_ckpt).relative_to("results")
+            )
         )
         logger.info(project)
         train_cmd = [
@@ -524,7 +528,11 @@ def train_process(
         project = (
             ("vits_" + new_project)
             if vits_ckpt == i18n("new")
-            else latest if vits_ckpt == i18n("latest") else Path(vits_ckpt).relative_to("results")
+            else (
+                latest
+                if vits_ckpt == i18n("latest")
+                else Path(vits_ckpt).relative_to("results")
+            )
         )
         ckpt_path = str(Path("checkpoints/vits_decoder_v1.1.ckpt"))
         logger.info(project)
@@ -600,7 +608,11 @@ def train_process(
         project = (
             (lora_prefix + "text2semantic_" + new_project)
             if llama_ckpt == i18n("new")
-            else latest if llama_ckpt == i18n("latest") else Path(llama_ckpt).relative_to("results")
+            else (
+                latest
+                if llama_ckpt == i18n("latest")
+                else Path(llama_ckpt).relative_to("results")
+            )
         )
         logger.info(project)
         train_cmd = [
@@ -671,6 +683,7 @@ def fresh_tb_dir():
         choices=[str(p) for p in Path("results").glob("**/tensorboard/")]
     )
 
+
 def list_decoder_models():
     return (
         [str(p) for p in Path("checkpoints").glob("vits*.*")]
@@ -679,10 +692,10 @@ def list_decoder_models():
         + [str(p) for p in Path("results").glob("vits*/**/*.ckpt")]
     )
 
+
 def fresh_decoder_model():
-    return gr.Dropdown(
-        choices=list_decoder_models()
-    )
+    return gr.Dropdown(choices=list_decoder_models())
+
 
 def fresh_vqgan_ckpt():
     return gr.Dropdown(
@@ -978,9 +991,7 @@ with gr.Blocks(
                                 label=i18n("Precision"),
                                 interactive=True,
                                 choices=["32", "bf16-mixed"],
-                                info=i18n(
-                                    "16-mixed is recommended for 10+ series GPU"
-                                ),
+                                info=i18n("16-mixed is recommended for 10+ series GPU"),
                                 value=str(init_vits_yml["trainer"]["precision"]),
                             )
                         with gr.Row(equal_height=False):
@@ -1161,9 +1172,7 @@ with gr.Blocks(
                                 allow_custom_value=True,
                                 choices=[
                                     str(p)
-                                    for p in Path("results").glob(
-                                        "**/tensorboard/"
-                                    )
+                                    for p in Path("results").glob("**/tensorboard/")
                                 ],
                             )
                         with gr.Row(equal_height=False):
@@ -1246,11 +1255,7 @@ with gr.Blocks(
                                     ),
                                     choices=["Yes", "No"],
                                     value=(
-                                        "Yes"
-                                        if (
-                                            sys.platform == "linux"
-                                        )
-                                        else "No"
+                                        "Yes" if (sys.platform == "linux") else "No"
                                     ),
                                     interactive=is_module_installed("triton"),
                                 )
