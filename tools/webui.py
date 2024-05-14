@@ -201,13 +201,13 @@ def inference_wrapper(
         )
         try:
             item = next(items)
-            if item and item[1]:
-                audios.append(
-                    gr.Audio(value=item[1], visible=True),
-                )
         except StopIteration:
             print("No more audio data available.")
 
+        audios.append(
+            gr.Audio(value=item[1] if (item and item[1]) else None, visible=True),
+        )
+        
     for _ in range(n_audios - batch_infer_num):
         audios.append(
             gr.Audio(value=None, visible=False),
