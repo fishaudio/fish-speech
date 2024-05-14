@@ -170,7 +170,7 @@ inference_stream = partial(inference, streaming=True)
 n_audios = 3
 
 global_audio_list = []
-
+global_error_list = []
 
 def inference_wrapper(
     text,
@@ -186,6 +186,8 @@ def inference_wrapper(
     batch_infer_num,
 ):
     audios = []
+    errors = []
+
     for _ in range(batch_infer_num):
         items = inference(
             text,
@@ -199,21 +201,30 @@ def inference_wrapper(
             temperature,
             speaker,
         )
+
         try:
             item = next(items)
         except StopIteration:
             print("No more audio data available.")
-
+        
         audios.append(
             gr.Audio(value=item[1] if (item and item[1]) else None, visible=True),
         )
+        errors.append(
+            gr.HTML(value=item[2] if (item and item[2]) else None, visible=True),
+        )
 
-    for _ in range(n_audios - batch_infer_num):
+
+    for _ in range(batch_infer_num, n_audios):
         audios.append(
             gr.Audio(value=None, visible=False),
         )
+        errors.append(
+            gr.HTML(value=None, visible=False),
+        )
 
-    return None, *audios, None
+    return None, *audios, *errors
+
 
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
@@ -321,9 +332,10 @@ def build_app():
                         )
 
             with gr.Column(scale=3):
-                with gr.Row():
-                    error = gr.HTML(label=i18n("Error Message"), visible=False)
                 for _ in range(n_audios):
+                    with gr.Row():
+                        error = gr.HTML(label=i18n("Error Message"), visible=False)
+                        global_error_list.append(error)
                     with gr.Row():
                         audio = gr.Audio(
                             label=i18n("Generated Audio"),
@@ -365,7 +377,7 @@ def build_app():
                 speaker,
                 batch_infer_num,
             ],
-            [stream_audio, *global_audio_list, error],
+            [stream_audio, *global_audio_list, *global_error_list],
             concurrency_limit=1,
         )
 
@@ -383,7 +395,7 @@ def build_app():
                 temperature,
                 speaker,
             ],
-            [stream_audio, audio, error],
+            [stream_audio, global_audio_list[0], global_error_list[0]],
             concurrency_limit=10,
         )
     return app
