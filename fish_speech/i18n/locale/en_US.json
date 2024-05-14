@@ -7,6 +7,7 @@
     "Advanced Config": "Advanced Config",
     "Base LLAMA Model": "Base LLAMA Model",
     "Batch Size": "Batch Size",
+    "Changing with the Model Path": "Changing with the Model Path",
     "Chinese": "Chinese",
     "Compile Model": "Compile Model",
     "Compile the model can significantly reduce the inference time, but will increase cold start time": "Compile the model can significantly reduce the inference time, but will increase cold start time",

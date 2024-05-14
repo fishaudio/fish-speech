@@ -7,6 +7,7 @@
     "Advanced Config": "Configuración Avanzada",
     "Base LLAMA Model": "Modelo Base LLAMA",
     "Batch Size": "Tamaño del Lote",
+    "Changing with the Model Path": "Cambiando con la Ruta del Modelo",
     "Chinese": "Chino",
     "Compile Model": "Compilar Modelo",
     "Compile the model can significantly reduce the inference time, but will increase cold start time": "Compilar el modelo puede reducir significativamente el tiempo de inferencia, pero aumentará el tiempo de inicio en frío",

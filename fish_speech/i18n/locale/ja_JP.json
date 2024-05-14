@@ -7,6 +7,7 @@
     "Advanced Config": "詳細設定",
     "Base LLAMA Model": "基本LLAMAモデル",
     "Batch Size": "バッチサイズ",
+    "Changing with the Model Path": "モデルのパスに伴って変化する",
     "Chinese": "中国語",
     "Compile Model": "モデルのコンパイル",
     "Compile the model can significantly reduce the inference time, but will increase cold start time": "モデルをコンパイルすると推論時間を大幅に短縮できますが、コールドスタート時間が長くなります",

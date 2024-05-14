@@ -7,6 +7,7 @@
     "Advanced Config": "高级参数",
     "Base LLAMA Model": "基础 LLAMA 模型",
     "Batch Size": "批次大小",
+    "Changing with the Model Path": "随模型路径变化",
     "Chinese": "中文",
     "Compile Model": "编译模型",
     "Compile the model can significantly reduce the inference time, but will increase cold start time": "编译模型可以显著减少推理时间，但会增加冷启动时间",
