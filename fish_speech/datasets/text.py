@@ -641,6 +641,7 @@ class TextDataModule(LightningDataModule):
             batch_size=self.batch_size,
             collate_fn=TextDataCollator(self.tokenizer, self.max_length),
             num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
@@ -649,6 +650,7 @@ class TextDataModule(LightningDataModule):
             batch_size=self.batch_size,
             collate_fn=TextDataCollator(self.tokenizer, self.max_length),
             num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
 

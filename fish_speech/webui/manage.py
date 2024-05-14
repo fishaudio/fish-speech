@@ -485,7 +485,11 @@ def train_process(
         project = (
             ("vqgan_" + new_project)
             if vqgan_ckpt == i18n("new")
-            else latest if vqgan_ckpt == i18n("latest") else vqgan_ckpt
+            else (
+                latest
+                if vqgan_ckpt == i18n("latest")
+                else Path(vqgan_ckpt).relative_to("results")
+            )
         )
         logger.info(project)
         train_cmd = [
@@ -524,7 +528,11 @@ def train_process(
         project = (
             ("vits_" + new_project)
             if vits_ckpt == i18n("new")
-            else latest if vits_ckpt == i18n("latest") else vits_ckpt
+            else (
+                latest
+                if vits_ckpt == i18n("latest")
+                else Path(vits_ckpt).relative_to("results")
+            )
         )
         ckpt_path = str(Path("checkpoints/vits_decoder_v1.1.ckpt"))
         logger.info(project)
@@ -584,23 +592,27 @@ def train_process(
             if llama_base_config == "dual_ar_2_codebook_medium"
             else "text2semantic-sft-large-v1.1-4k.pth"
         )
-
+        lora_prefix = "lora_" if llama_use_lora else ""
         latest = next(
             iter(
                 sorted(
                     [
                         str(p.relative_to("results"))
-                        for p in Path("results").glob("text2sem*/")
+                        for p in Path("results").glob(lora_prefix + "text2sem*/")
                     ],
                     reverse=True,
                 )
             ),
-            ("text2semantic_" + new_project),
+            (lora_prefix + "text2semantic_" + new_project),
         )
         project = (
-            ("text2semantic_" + new_project)
+            (lora_prefix + "text2semantic_" + new_project)
             if llama_ckpt == i18n("new")
-            else latest if llama_ckpt == i18n("latest") else llama_ckpt
+            else (
+                latest
+                if llama_ckpt == i18n("latest")
+                else Path(llama_ckpt).relative_to("results")
+            )
         )
         logger.info(project)
         train_cmd = [
@@ -668,17 +680,21 @@ def tensorboard_process(
 
 def fresh_tb_dir():
     return gr.Dropdown(
-        choices=[str(p) for p in Path("results").glob("**/tensorboard/version_*/")]
+        choices=[str(p) for p in Path("results").glob("**/tensorboard/")]
+    )
+
+
+def list_decoder_models():
+    return (
+        [str(p) for p in Path("checkpoints").glob("vits*.*")]
+        + [str(p) for p in Path("checkpoints").glob("vq*.*")]
+        + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
+        + [str(p) for p in Path("results").glob("vits*/**/*.ckpt")]
     )
 
 
 def fresh_decoder_model():
-    return gr.Dropdown(
-        choices=[init_vqgan_yml["ckpt_path"]]
-        + [str(Path("checkpoints/vits_decoder_v1.1.ckpt"))]
-        + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
-        + [str(p) for p in Path("results").glob("vits*/**/*.ckpt")]
-    )
+    return gr.Dropdown(choices=list_decoder_models())
 
 
 def fresh_vqgan_ckpt():
@@ -699,6 +715,7 @@ def fresh_llama_ckpt():
     return gr.Dropdown(
         choices=[i18n("latest"), i18n("new")]
         + [str(p) for p in Path("results").glob("text2sem*/")]
+        + [str(p) for p in Path("results").glob("lora_*/")]
     )
 
 
@@ -974,18 +991,16 @@ with gr.Blocks(
                                 label=i18n("Precision"),
                                 interactive=True,
                                 choices=["32", "bf16-mixed"],
-                                info=i18n(
-                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
-                                ),
+                                info=i18n("16-mixed is recommended for 10+ series GPU"),
                                 value=str(init_vits_yml["trainer"]["precision"]),
                             )
                         with gr.Row(equal_height=False):
                             vits_check_interval_slider = gr.Slider(
                                 label=i18n("Save model every n steps"),
                                 interactive=True,
-                                minimum=500,
-                                maximum=10000,
-                                step=500,
+                                minimum=1,
+                                maximum=2000,
+                                step=1,
                                 value=init_vits_yml["trainer"]["val_check_interval"],
                             )
 
@@ -1000,9 +1015,10 @@ with gr.Blocks(
                             )
                             llama_ckpt = gr.Dropdown(
                                 label=i18n("Select LLAMA ckpt"),
-                                choices=[i18n("latest"), i18n("new")]
-                                + [str(p) for p in Path("results").glob("text2sem*/")],
-                                value=i18n("latest"),
+                                choices=[i18n("latest") + "(not lora)", i18n("new")]
+                                + [str(p) for p in Path("results").glob("text2sem*/")]
+                                + [str(p) for p in Path("results").glob("lora*/")],
+                                value=i18n("latest") + "(not lora)",
                                 interactive=True,
                             )
                         with gr.Row(equal_height=False):
@@ -1017,9 +1033,9 @@ with gr.Blocks(
                             llama_maxsteps_slider = gr.Slider(
                                 label=i18n("Maximum Training Steps"),
                                 interactive=True,
-                                minimum=1000,
-                                maximum=100000,
-                                step=1000,
+                                minimum=50,
+                                maximum=10000,
+                                step=50,
                                 value=init_llama_yml["trainer"]["max_steps"],
                             )
                         with gr.Row(equal_height=False):
@@ -1029,7 +1045,7 @@ with gr.Blocks(
                                     "dual_ar_2_codebook_large",
                                     "dual_ar_2_codebook_medium",
                                 ],
-                                value="dual_ar_2_codebook_large",
+                                value="dual_ar_2_codebook_medium",
                             )
                             llama_data_num_workers_slider = gr.Slider(
                                 label=i18n("Number of Workers"),
@@ -1072,9 +1088,9 @@ with gr.Blocks(
                             llama_check_interval_slider = gr.Slider(
                                 label=i18n("Save model every n steps"),
                                 interactive=True,
-                                minimum=500,
-                                maximum=10000,
-                                step=500,
+                                minimum=50,
+                                maximum=1000,
+                                step=50,
                                 value=init_llama_yml["trainer"]["val_check_interval"],
                             )
                         with gr.Row(equal_height=False):
@@ -1113,7 +1129,7 @@ with gr.Blocks(
                                 info=i18n("Type the path or select from the dropdown"),
                                 choices=[
                                     str(p)
-                                    for p in Path("results").glob("text2*ar/**/*.ckpt")
+                                    for p in Path("results").glob("lora*/**/*.ckpt")
                                 ],
                                 allow_custom_value=True,
                                 interactive=True,
@@ -1125,7 +1141,7 @@ with gr.Blocks(
                                     "dual_ar_2_codebook_large",
                                     "dual_ar_2_codebook_medium",
                                 ],
-                                value="dual_ar_2_codebook_large",
+                                value="dual_ar_2_codebook_medium",
                                 allow_custom_value=True,
                             )
                         with gr.Row(equal_height=False):
@@ -1156,9 +1172,7 @@ with gr.Blocks(
                                 allow_custom_value=True,
                                 choices=[
                                     str(p)
-                                    for p in Path("results").glob(
-                                        "**/tensorboard/version_*/"
-                                    )
+                                    for p in Path("results").glob("**/tensorboard/")
                                 ],
                             )
                         with gr.Row(equal_height=False):
@@ -1187,21 +1201,8 @@ with gr.Blocks(
                                     info=i18n(
                                         "Type the path or select from the dropdown"
                                     ),
-                                    value=str(
-                                        Path("checkpoints/vits_decoder_v1.1.ckpt")
-                                    ),
-                                    choices=[init_vqgan_yml["ckpt_path"]]
-                                    + [str(Path("checkpoints/vits_decoder_v1.1.ckpt"))]
-                                    + [
-                                        str(p)
-                                        for p in Path("results").glob(
-                                            "vqgan*/**/*.ckpt"
-                                        )
-                                    ]
-                                    + [
-                                        str(p)
-                                        for p in Path("results").glob("vits*/**/*.ckpt")
-                                    ],
+                                    choices=list_decoder_models(),
+                                    value=init_vits_yml["ckpt_path"],
                                     allow_custom_value=True,
                                 )
                                 infer_decoder_config = gr.Dropdown(
@@ -1243,7 +1244,7 @@ with gr.Blocks(
                                         "dual_ar_2_codebook_large",
                                         "dual_ar_2_codebook_medium",
                                     ],
-                                    value="dual_ar_2_codebook_large",
+                                    value="dual_ar_2_codebook_medium",
                                     allow_custom_value=True,
                                 )
                             with gr.Row():
@@ -1254,12 +1255,7 @@ with gr.Blocks(
                                     ),
                                     choices=["Yes", "No"],
                                     value=(
-                                        "Yes"
-                                        if (
-                                            sys.platform == "linux"
-                                            or is_module_installed("triton")
-                                        )
-                                        else "No"
+                                        "Yes" if (sys.platform == "linux") else "No"
                                     ),
                                     interactive=is_module_installed("triton"),
                                 )

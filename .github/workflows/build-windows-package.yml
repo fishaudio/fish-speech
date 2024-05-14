@@ -28,25 +28,28 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          ls -la
-          huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.0.zip \
-          --local-dir ./ --local-dir-use-symlinks False
-          unzip -q fish-speech-v1.0.zip -d fish-speech-zip
-          rm fish-speech-v1.0.zip
-          mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe \
-          fish-speech-zip/fish-speech/checkpoints fish-speech-zip/fish-speech/.cache ./fish-speech
-          rm -rf fish-speech-zip
-          rm ./fish-speech/checkpoints/text2semantic-sft-large-v1-4k.pth
-          rm ./fish-speech/checkpoints/text2semantic-pretrain-medium-2k-v1.pth
-          huggingface-cli download fishaudio/fish-speech-1 ffprobe.exe \
-          --local-dir ./fish-speech --local-dir-use-symlinks False
-          huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1.1-4k.pth \
-          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
-          huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth \
-          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
-          huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt \
-          --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
-
+          if [[ "${{ github.actor }}" = "Leng Yue" ]] || [[ "${{ github.actor }}" = "AnyaCoder" ]] || [[ "${{ github.actor }}" = "pre-commit-ci[bot]" ]]; then
+            ls -la
+            huggingface-cli download fishaudio/fish-speech-1 fish-speech-v1.1.zip \
+            --local-dir ./ --local-dir-use-symlinks False
+            unzip -q fish-speech-v1.1.zip -d fish-speech-zip
+            rm fish-speech-v1.1.zip
+            mv fish-speech-zip/fish-speech/fishenv fish-speech-zip/fish-speech/ffmpeg.exe \
+            fish-speech-zip/fish-speech/checkpoints fish-speech-zip/fish-speech/ffprobe.exe ./fish-speech
+            rm -rf fish-speech-zip
+            huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-large-v1.1-4k.pth \
+            --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+            huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth \
+            --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+            huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt \
+            --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+            huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt \
+            --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+            huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth \
+            --local-dir ./fish-speech/checkpoints --local-dir-use-symlinks False
+          else
+            echo "Author is not Leng Yue nor AnyaCoder. No upload performed."
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: fish-speech-main-${{ github.run_id }}
