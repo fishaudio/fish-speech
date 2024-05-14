@@ -334,7 +334,7 @@ def build_app():
                 for _ in range(n_audios):
                     with gr.Row():
                         error = gr.HTML(
-                            label=i18n("Error Message"), 
+                            label=i18n("Error Message"),
                             visible=True if _ == 0 else False,
                         )
                         global_error_list.append(error)
