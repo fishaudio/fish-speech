@@ -172,6 +172,7 @@ n_audios = 3
 global_audio_list = []
 global_error_list = []
 
+
 def inference_wrapper(
     text,
     enable_reference_audio,
@@ -206,14 +207,13 @@ def inference_wrapper(
             item = next(items)
         except StopIteration:
             print("No more audio data available.")
-        
+
         audios.append(
             gr.Audio(value=item[1] if (item and item[1]) else None, visible=True),
         )
         errors.append(
             gr.HTML(value=item[2] if (item and item[2]) else None, visible=True),
         )
-
 
     for _ in range(batch_infer_num, n_audios):
         audios.append(
@@ -224,7 +224,6 @@ def inference_wrapper(
         )
 
     return None, *audios, *errors
-
 
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
