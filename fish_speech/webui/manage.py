@@ -726,12 +726,11 @@ def list_decoder_models():
 
 
 def list_llama_models():
-    paths = [
-        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
-    ] + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
-    if not paths:
+    choices = [str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")] 
+    choices +=  [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+    if not choices:
         logger.warning("No LLaMA model found")
-    return paths
+    return choices
 
 
 def fresh_decoder_model():
@@ -761,18 +760,9 @@ def fresh_llama_ckpt():
 
 
 def fresh_llama_model():
-    return gr.Dropdown(
-        choices=list(
-            set(
-                [init_llama_yml["ckpt_path"]]
-                + [
-                    str(p).replace("\\", "/")
-                    for p in Path("checkpoints").glob("text2sem*.*")
-                ]
-                + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
-            )
-        )
-    )
+    choices = [str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")]
+    choices += [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+    return gr.Dropdown(choices=choices)
 
 
 def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_output):
@@ -1378,7 +1368,9 @@ with gr.Blocks(
         outputs=[infer_decoder_config],
     )
     infer_llama_model.change(
-        fn=change_llama_config, inputs=[infer_llama_model], outputs=[infer_llama_config]
+        fn=change_llama_config, 
+        inputs=[infer_llama_model], 
+        outputs=[infer_llama_config]
     )
     train_btn.click(
         fn=train_process,
