@@ -20,6 +20,7 @@
 huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
 huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt --local-dir checkpoints
 ```
 
 对于中国大陆用户，可使用mirror下载。
@@ -28,6 +29,8 @@ huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt --local-
 HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
 HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt --local-dir checkpoints
+
 ```
 
 ### 1. 从语音生成 prompt: 
