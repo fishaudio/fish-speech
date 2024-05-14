@@ -726,8 +726,10 @@ def list_decoder_models():
 
 
 def list_llama_models():
-    choices = [str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")] 
-    choices +=  [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+    choices = [
+        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
+    ]
+    choices += [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
     if not choices:
         logger.warning("No LLaMA model found")
     return choices
@@ -760,7 +762,9 @@ def fresh_llama_ckpt():
 
 
 def fresh_llama_model():
-    choices = [str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")]
+    choices = [
+        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
+    ]
     choices += [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
     return gr.Dropdown(choices=choices)
 
@@ -1368,9 +1372,7 @@ with gr.Blocks(
         outputs=[infer_decoder_config],
     )
     infer_llama_model.change(
-        fn=change_llama_config, 
-        inputs=[infer_llama_model], 
-        outputs=[infer_llama_config]
+        fn=change_llama_config, inputs=[infer_llama_model], outputs=[infer_llama_config]
     )
     train_btn.click(
         fn=train_process,
