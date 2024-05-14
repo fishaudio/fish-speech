@@ -207,7 +207,7 @@ def inference_wrapper(
         audios.append(
             gr.Audio(value=item[1] if (item and item[1]) else None, visible=True),
         )
-        
+
     for _ in range(n_audios - batch_infer_num):
         audios.append(
             gr.Audio(value=None, visible=False),
