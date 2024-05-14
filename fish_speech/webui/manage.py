@@ -131,35 +131,34 @@ def change_label(if_label):
         p_label = None
         yield build_html_ok_message("Nothing")
 
+
 def change_decoder_config(decoder_model_path):
-    if 'vits' in decoder_model_path:
+    if "vits" in decoder_model_path:
         choices = ["vits_decoder_finetune", "vits_decoder_pretrain"]
-        return {
-            "__type__": "update",
-            "choices" : choices,
-            "value"   : choices[0]}
-    elif 'vqgan' in decoder_model_path or 'vq-gan' in decoder_model_path:
+        return {"__type__": "update", "choices": choices, "value": choices[0]}
+    elif "vqgan" in decoder_model_path or "vq-gan" in decoder_model_path:
         choices = ["vqgan_finetune", "vqgan_pretrain"]
-        return {
-            "__type__": "update",
-            "choices" : choices,
-            "value"   : choices[0]}
+        return {"__type__": "update", "choices": choices, "value": choices[0]}
     else:
         raise ValueError("Invalid decoder name")
 
+
 def change_llama_config(llama_model_path):
-    if 'large' in llama_model_path:
+    if "large" in llama_model_path:
         return {
-            "__type__"   : "update",
-            "value"      : "dual_ar_2_codebook_large",
-            "interactive": False}
-    elif 'medium' in llama_model_path:
+            "__type__": "update",
+            "value": "dual_ar_2_codebook_large",
+            "interactive": False,
+        }
+    elif "medium" in llama_model_path:
         return {
-            "__type__"   : "update",
-            "value"      : "dual_ar_2_codebook_medium",
-            "interactive": False}
+            "__type__": "update",
+            "value": "dual_ar_2_codebook_medium",
+            "interactive": False,
+        }
     else:
         raise ValueError("Invalid model size")
+
 
 def clean_infer_cache():
     import tempfile
@@ -725,12 +724,15 @@ def list_decoder_models():
         logger.warning("No decoder model found")
     return paths
 
+
 def list_llama_models():
-    paths = ([str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")]
-        + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")])
+    paths = [
+        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
+    ] + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
     if not paths:
         logger.warning("No LLaMA model found")
     return paths
+
 
 def fresh_decoder_model():
     return gr.Dropdown(choices=list_decoder_models())
@@ -760,10 +762,17 @@ def fresh_llama_ckpt():
 
 def fresh_llama_model():
     return gr.Dropdown(
-        choices=list(set([init_llama_yml["ckpt_path"]]
-        + [str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")]
-        + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
-    )))
+        choices=list(
+            set(
+                [init_llama_yml["ckpt_path"]]
+                + [
+                    str(p).replace("\\", "/")
+                    for p in Path("checkpoints").glob("text2sem*.*")
+                ]
+                + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+            )
+        )
+    )
 
 
 def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_output):
@@ -1247,9 +1256,7 @@ with gr.Blocks(
                                 )
                                 infer_decoder_config = gr.Dropdown(
                                     label=i18n("Decoder Model Config"),
-                                    info=i18n(
-                                        "Changing with the Model Path"
-                                    ),
+                                    info=i18n("Changing with the Model Path"),
                                     value="vits_decoder_finetune",
                                     choices=[
                                         "vits_decoder_finetune",
@@ -1271,9 +1278,7 @@ with gr.Blocks(
                                 )
                                 infer_llama_config = gr.Dropdown(
                                     label=i18n("LLAMA Model Config"),
-                                    info=i18n(
-                                        "Changing with the Model Path"
-                                    ),
+                                    info=i18n("Changing with the Model Path"),
                                     choices=[
                                         "dual_ar_2_codebook_large",
                                         "dual_ar_2_codebook_medium",
@@ -1367,8 +1372,14 @@ with gr.Blocks(
         'toolbar=no, menubar=no, scrollbars=no, resizable=no, location=no, status=no")}',
     )
     if_label.change(fn=change_label, inputs=[if_label], outputs=[error])
-    infer_decoder_model.change(fn=change_decoder_config, inputs=[infer_decoder_model], outputs=[infer_decoder_config])
-    infer_llama_model.change(fn=change_llama_config, inputs=[infer_llama_model], outputs=[infer_llama_config])
+    infer_decoder_model.change(
+        fn=change_decoder_config,
+        inputs=[infer_decoder_model],
+        outputs=[infer_decoder_config],
+    )
+    infer_llama_model.change(
+        fn=change_llama_config, inputs=[infer_llama_model], outputs=[infer_llama_config]
+    )
     train_btn.click(
         fn=train_process,
         inputs=[
