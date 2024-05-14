@@ -167,7 +167,7 @@ def inference(
 
 inference_stream = partial(inference, streaming=True)
 
-n_audios = 3
+n_audios = 4
 
 global_audio_list = []
 global_error_list = []
@@ -326,7 +326,7 @@ def build_app():
                         batch_infer_num = gr.Slider(
                             label="Batch infer nums",
                             minimum=1,
-                            maximum=3,
+                            maximum=n_audios,
                             step=1,
                             value=1,
                         )
@@ -334,14 +334,17 @@ def build_app():
             with gr.Column(scale=3):
                 for _ in range(n_audios):
                     with gr.Row():
-                        error = gr.HTML(label=i18n("Error Message"), visible=False)
+                        error = gr.HTML(
+                            label=i18n("Error Message"), 
+                            visible=True if _ == 0 else False,
+                        )
                         global_error_list.append(error)
                     with gr.Row():
                         audio = gr.Audio(
                             label=i18n("Generated Audio"),
                             type="numpy",
                             interactive=False,
-                            visible=False,
+                            visible=True if _ == 0 else False,
                         )
                         global_audio_list.append(audio)
 
