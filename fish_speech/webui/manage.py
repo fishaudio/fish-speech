@@ -135,27 +135,19 @@ def change_label(if_label):
 def change_decoder_config(decoder_model_path):
     if "vits" in decoder_model_path:
         choices = ["vits_decoder_finetune", "vits_decoder_pretrain"]
-        return {"__type__": "update", "choices": choices, "value": choices[0]}
+        return gr.Dropdown(choices=choices, value=choices[0])
     elif "vqgan" in decoder_model_path or "vq-gan" in decoder_model_path:
         choices = ["vqgan_finetune", "vqgan_pretrain"]
-        return {"__type__": "update", "choices": choices, "value": choices[0]}
+        return gr.Dropdown(choices=choices, value=choices[0])
     else:
         raise ValueError("Invalid decoder name")
 
 
 def change_llama_config(llama_model_path):
     if "large" in llama_model_path:
-        return {
-            "__type__": "update",
-            "value": "dual_ar_2_codebook_large",
-            "interactive": False,
-        }
+        return gr.Dropdown(value="dual_ar_2_codebook_large", interactive=False)
     elif "medium" in llama_model_path:
-        return {
-            "__type__": "update",
-            "value": "dual_ar_2_codebook_medium",
-            "interactive": False,
-        }
+        return gr.Dropdown(value="dual_ar_2_codebook_medium", interactive=False)
     else:
         raise ValueError("Invalid model size")
 
