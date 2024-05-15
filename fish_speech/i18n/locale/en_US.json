@@ -1,4 +1,5 @@
 {
+    "16-mixed is recommended for 10+ series GPU": "16-mixed is recommended for 10+ series GPU",
     "5 to 10 seconds of reference audio, useful for specifying speaker.": "5 to 10 seconds of reference audio, useful for specifying speaker.",
     "A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).": "A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).",
     "Accumulate Gradient Batches": "Accumulate Gradient Batches",
@@ -6,6 +7,7 @@
     "Added path successfully!": "Added path successfully!",
     "Advanced Config": "Advanced Config",
     "Base LLAMA Model": "Base LLAMA Model",
+    "Batch Inference": "Batch Inference",
     "Batch Size": "Batch Size",
     "Changing with the Model Path": "Changing with the Model Path",
     "Chinese": "Chinese",
