@@ -69,7 +69,7 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         logger.info(f"Processing in-place reconstruction of {input_path}")
 
         # Load audio
-        audio, sr = torchaudio.load(input_path)
+        audio, sr = torchaudio.load(str(input_path))
         if audio.shape[0] > 1:
             audio = audio.mean(0, keepdim=True)
         audio = torchaudio.functional.resample(audio, sr, model.sampling_rate)
