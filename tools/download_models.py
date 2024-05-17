@@ -17,20 +17,21 @@ files = [
 
 # Hugging Face 仓库信息
 repo_id = "fishaudio/fish-speech-1"
-cache_dir = "./checkpoints"
+local_dir = "./checkpoints"
 
 
-os.makedirs(cache_dir, exist_ok=True)
+os.makedirs(local_dir, exist_ok=True)
 
 # 检查每个文件是否存在，如果不存在则从 Hugging Face 仓库下载
 for file in files:
-    file_path = os.path.join(cache_dir, file)
+    file_path = os.path.join(local_dir, file)
     if not os.path.exists(file_path):
         print(f"{file} 不存在，从 Hugging Face 仓库下载...")
         hf_hub_download(
             repo_id=repo_id,
             filename=file,
-            cache_dir=cache_dir,
+            resume_download=True,
+            local_dir=local_dir,
             local_dir_use_symlinks=False,
         )
     else:
@@ -44,17 +45,18 @@ files = [
 
 # Hugging Face 仓库信息
 repo_id = "SpicyqSama007/fish-speech-packed"
-cache_dir = ".cache/whisper"
-os.makedirs(cache_dir, exist_ok=True)
+local_dir = ".cache/whisper"
+os.makedirs(local_dir, exist_ok=True)
 
 for file in files:
-    file_path = os.path.join(cache_dir, file)
+    file_path = os.path.join(local_dir, file)
     if not os.path.exists(file_path):
         print(f"{file} 不存在，从 Hugging Face 仓库下载...")
         hf_hub_download(
             repo_id=repo_id,
             filename=file,
-            cache_dir=cache_dir,
+            resume_download=True,
+            local_dir=local_dir,
             local_dir_use_symlinks=False,
         )
     else:
