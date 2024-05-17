@@ -1,4 +1,5 @@
 import os
+
 from huggingface_hub import hf_hub_download
 
 # 要检查和下载的文件列表
@@ -11,7 +12,7 @@ files = [
     "tokenizer_config.json",
     "tokenizer.json",
     "vits_decoder_v1.1.ckpt",
-    "vq-gan-group-fsq-2x1024.pth"
+    "vq-gan-group-fsq-2x1024.pth",
 ]
 
 # Hugging Face 仓库信息
@@ -27,7 +28,12 @@ for file in files:
     file_path = os.path.join(cache_dir, file)
     if not os.path.exists(file_path):
         print(f"{file} 不存在，从 Hugging Face 仓库下载...")
-        hf_hub_download(repo_id=repo_id, filename=file, cache_dir=cache_dir, local_dir_use_symlinks=False)
+        hf_hub_download(
+            repo_id=repo_id,
+            filename=file,
+            cache_dir=cache_dir,
+            local_dir_use_symlinks=False,
+        )
     else:
         print(f"{file} 已存在，跳过下载。")
 
@@ -45,6 +51,11 @@ for file in files:
     file_path = os.path.join(cache_dir, file)
     if not os.path.exists(file_path):
         print(f"{file} 不存在，从 Hugging Face 仓库下载...")
-        hf_hub_download(repo_id=repo_id, filename=file, cache_dir=cache_dir, local_dir_use_symlinks=False)
+        hf_hub_download(
+            repo_id=repo_id,
+            filename=file,
+            cache_dir=cache_dir,
+            local_dir_use_symlinks=False,
+        )
     else:
         print(f"{file} 已存在，跳过下载。")
