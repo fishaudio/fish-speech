@@ -16,14 +16,15 @@ import yaml
 from loguru import logger
 from tqdm import tqdm
 
-from fish_speech.i18n import i18n
-from fish_speech.webui.launch_utils import Seafoam, is_module_installed, versions_html
-
 PYTHON = os.path.join(os.environ.get("PYTHON_FOLDERPATH", ""), "python")
 sys.path.insert(0, "")
 print(sys.path)
 cur_work_dir = Path(os.getcwd()).resolve()
 print("You are in ", str(cur_work_dir))
+
+from fish_speech.i18n import i18n
+from fish_speech.webui.launch_utils import Seafoam, is_module_installed, versions_html
+
 config_path = cur_work_dir / "fish_speech" / "configs"
 vqgan_yml_path = config_path / "vqgan_finetune.yaml"
 llama_yml_path = config_path / "text2semantic_finetune.yaml"
@@ -129,6 +130,26 @@ def change_label(if_label):
         kill_process(p_label.pid)
         p_label = None
         yield build_html_ok_message("Nothing")
+
+
+def change_decoder_config(decoder_model_path):
+    if "vits" in decoder_model_path:
+        choices = ["vits_decoder_finetune", "vits_decoder_pretrain"]
+        return gr.Dropdown(choices=choices, value=choices[0])
+    elif "vqgan" in decoder_model_path or "vq-gan" in decoder_model_path:
+        choices = ["vqgan_finetune", "vqgan_pretrain"]
+        return gr.Dropdown(choices=choices, value=choices[0])
+    else:
+        raise ValueError("Invalid decoder name")
+
+
+def change_llama_config(llama_model_path):
+    if "large" in llama_model_path:
+        return gr.Dropdown(value="dual_ar_2_codebook_large", interactive=False)
+    elif "medium" in llama_model_path:
+        return gr.Dropdown(value="dual_ar_2_codebook_medium", interactive=False)
+    else:
+        raise ValueError("Invalid model size")
 
 
 def clean_infer_cache():
@@ -685,12 +706,25 @@ def fresh_tb_dir():
 
 
 def list_decoder_models():
-    return (
+    paths = (
         [str(p) for p in Path("checkpoints").glob("vits*.*")]
         + [str(p) for p in Path("checkpoints").glob("vq*.*")]
         + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
         + [str(p) for p in Path("results").glob("vits*/**/*.ckpt")]
     )
+    if not paths:
+        logger.warning("No decoder model found")
+    return paths
+
+
+def list_llama_models():
+    choices = [
+        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
+    ]
+    choices += [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+    if not choices:
+        logger.warning("No LLaMA model found")
+    return choices
 
 
 def fresh_decoder_model():
@@ -720,10 +754,11 @@ def fresh_llama_ckpt():
 
 
 def fresh_llama_model():
-    return gr.Dropdown(
-        choices=[init_llama_yml["ckpt_path"]]
-        + [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
-    )
+    choices = [
+        str(p).replace("\\", "/") for p in Path("checkpoints").glob("text2sem*.*")
+    ]
+    choices += [str(p) for p in Path("results").glob("text2sem*/**/*.ckpt")]
+    return gr.Dropdown(choices=choices)
 
 
 def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_output):
@@ -1207,9 +1242,7 @@ with gr.Blocks(
                                 )
                                 infer_decoder_config = gr.Dropdown(
                                     label=i18n("Decoder Model Config"),
-                                    info=i18n(
-                                        "Type the path or select from the dropdown"
-                                    ),
+                                    info=i18n("Changing with the Model Path"),
                                     value="vits_decoder_finetune",
                                     choices=[
                                         "vits_decoder_finetune",
@@ -1226,20 +1259,12 @@ with gr.Blocks(
                                         "Type the path or select from the dropdown"
                                     ),
                                     value=init_llama_yml["ckpt_path"],
-                                    choices=[init_llama_yml["ckpt_path"]]
-                                    + [
-                                        str(p)
-                                        for p in Path("results").glob(
-                                            "text2sem*/**/*.ckpt"
-                                        )
-                                    ],
+                                    choices=list_llama_models(),
                                     allow_custom_value=True,
                                 )
                                 infer_llama_config = gr.Dropdown(
                                     label=i18n("LLAMA Model Config"),
-                                    info=i18n(
-                                        "Type the path or select from the dropdown"
-                                    ),
+                                    info=i18n("Changing with the Model Path"),
                                     choices=[
                                         "dual_ar_2_codebook_large",
                                         "dual_ar_2_codebook_medium",
@@ -1333,6 +1358,14 @@ with gr.Blocks(
         'toolbar=no, menubar=no, scrollbars=no, resizable=no, location=no, status=no")}',
     )
     if_label.change(fn=change_label, inputs=[if_label], outputs=[error])
+    infer_decoder_model.change(
+        fn=change_decoder_config,
+        inputs=[infer_decoder_model],
+        outputs=[infer_decoder_config],
+    )
+    infer_llama_model.change(
+        fn=change_llama_config, inputs=[infer_llama_model], outputs=[infer_llama_config]
+    )
     train_btn.click(
         fn=train_process,
         inputs=[

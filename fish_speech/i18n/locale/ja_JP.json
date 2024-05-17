@@ -1,4 +1,5 @@
 {
+    "16-mixed is recommended for 10+ series GPU": "10シリーズ以降のGPUには16-mixedをお勧めします",
     "5 to 10 seconds of reference audio, useful for specifying speaker.": "話者を指定するのに役立つ、5～10秒のリファレンスオーディオ。",
     "A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).": "[Fish Audio](https://fish.audio)が開発したVQ-GANとLlamaに基づくテキスト音声合成モデル。",
     "Accumulate Gradient Batches": "勾配バッチの累積",
@@ -6,7 +7,9 @@
     "Added path successfully!": "パスの追加に成功しました！",
     "Advanced Config": "詳細設定",
     "Base LLAMA Model": "基本LLAMAモデル",
+    "Batch Inference": "バッチ推論",
     "Batch Size": "バッチサイズ",
+    "Changing with the Model Path": "モデルのパスに伴って変化する",
     "Chinese": "中国語",
     "Compile Model": "モデルのコンパイル",
     "Compile the model can significantly reduce the inference time, but will increase cold start time": "モデルをコンパイルすると推論時間を大幅に短縮できますが、コールドスタート時間が長くなります",
