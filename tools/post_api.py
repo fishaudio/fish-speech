@@ -1,15 +1,16 @@
-import base64
-import requests
-import pyaudio
 import argparse
+import base64
 import json
+
+import pyaudio
+import requests
 
 
 def wav_to_base64(file_path):
-    with open(file_path, 'rb') as wav_file:
+    with open(file_path, "rb") as wav_file:
         wav_content = wav_file.read()
         base64_encoded = base64.b64encode(wav_content)
-        return base64_encoded.decode('utf-8')
+        return base64_encoded.decode("utf-8")
 
 
 def play_audio(audio_content, format, channels, rate):
@@ -22,36 +23,55 @@ def play_audio(audio_content, format, channels, rate):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Send a WAV file and text to a server and receive synthesized audio.')
-    
-    parser.add_argument('--url', '-u', type=str, required=True, 
-                        help='URL of the server')
-    parser.add_argument('--text', '-t', type=str, required=True, 
-                        help='Text to be synthesized')
-    parser.add_argument('--reference_audio', '-ra', type=str, required=True, 
-                        help='Path to the WAV file')
-    parser.add_argument('--reference_text', '-rt', type=str, required=True, 
-                        help='Reference text for voice synthesis')
-    parser.add_argument('--max_new_tokens', type=int, default=0, 
-                        help='Maximum new tokens to generate')
-    parser.add_argument('--chunk_length', type=int, default=30, 
-                        help='Chunk length for synthesis')
-    parser.add_argument('--top_p', type=float, default=0.7, 
-                        help='Top-p sampling for synthesis')
-    parser.add_argument('--repetition_penalty', type=float, default=1.5, 
-                        help='Repetition penalty for synthesis')
-    parser.add_argument('--temperature', type=float, default=0.7, 
-                        help='Temperature for sampling')
-    parser.add_argument('--speaker', type=str, default=None, 
-                        help='Speaker ID for voice synthesis')
-    parser.add_argument('--format', type=str, default='wav', 
-                        help='Audio format')
-    parser.add_argument('--streaming', type=bool, default=False, 
-                        help='Enable streaming response')
-    parser.add_argument('--channels', type=int, default=1, 
-                        help='Number of audio channels')
-    parser.add_argument('--rate', type=int, default=44100, 
-                        help='Sample rate for audio')
+    parser = argparse.ArgumentParser(
+        description="Send a WAV file and text to a server and receive synthesized audio."
+    )
+
+    parser.add_argument(
+        "--url", "-u", type=str, required=True, help="URL of the server"
+    )
+    parser.add_argument(
+        "--text", "-t", type=str, required=True, help="Text to be synthesized"
+    )
+    parser.add_argument(
+        "--reference_audio", "-ra", type=str, required=True, help="Path to the WAV file"
+    )
+    parser.add_argument(
+        "--reference_text",
+        "-rt",
+        type=str,
+        required=True,
+        help="Reference text for voice synthesis",
+    )
+    parser.add_argument(
+        "--max_new_tokens", type=int, default=0, help="Maximum new tokens to generate"
+    )
+    parser.add_argument(
+        "--chunk_length", type=int, default=30, help="Chunk length for synthesis"
+    )
+    parser.add_argument(
+        "--top_p", type=float, default=0.7, help="Top-p sampling for synthesis"
+    )
+    parser.add_argument(
+        "--repetition_penalty",
+        type=float,
+        default=1.5,
+        help="Repetition penalty for synthesis",
+    )
+    parser.add_argument(
+        "--temperature", type=float, default=0.7, help="Temperature for sampling"
+    )
+    parser.add_argument(
+        "--speaker", type=str, default=None, help="Speaker ID for voice synthesis"
+    )
+    parser.add_argument("--format", type=str, default="wav", help="Audio format")
+    parser.add_argument(
+        "--streaming", type=bool, default=False, help="Enable streaming response"
+    )
+    parser.add_argument(
+        "--channels", type=int, default=1, help="Number of audio channels"
+    )
+    parser.add_argument("--rate", type=int, default=44100, help="Sample rate for audio")
 
     args = parser.parse_args()
 
@@ -68,7 +88,7 @@ if __name__ == "__main__":
         "temperature": args.temperature,
         "speaker": args.speaker,
         "format": args.format,
-        "streaming": args.streaming
+        "streaming": args.streaming,
     }
 
     response = requests.post(args.url, json=data, stream=args.streaming)
@@ -78,7 +98,9 @@ if __name__ == "__main__":
     if response.status_code == 200:
         if args.streaming:
             p = pyaudio.PyAudio()
-            stream = p.open(format=audio_format, channels=args.channels, rate=args.rate, output=True)
+            stream = p.open(
+                format=audio_format, channels=args.channels, rate=args.rate, output=True
+            )
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     stream.write(chunk)
@@ -88,7 +110,7 @@ if __name__ == "__main__":
         else:
             audio_content = response.content
 
-            with open('generated_audio.wav', 'wb') as audio_file:
+            with open("generated_audio.wav", "wb") as audio_file:
                 audio_file.write(audio_content)
 
             play_audio(audio_content, audio_format, args.channels, args.rate)
