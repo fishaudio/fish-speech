@@ -30,6 +30,7 @@ train_dataset:
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
   interactive_prob: 0.5
+  skip_text_prob: 0.1
 
 val_dataset:
   _target_: fish_speech.datasets.text.AutoAugTextDataset
@@ -40,6 +41,7 @@ val_dataset:
   num_codebooks: ${model.model.config.num_codebooks}
   use_speaker: false
   interactive_prob: 0.5
+  skip_text_prob: 0.1
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
