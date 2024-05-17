@@ -81,7 +81,7 @@
     "Select VITS ckpt": "VITS チェックポイントを選択",
     "Select VQGAN ckpt": "VQGAN チェックポイントを選択",
     "Select source file processing method": "ソースファイルの処理方法を選択",
-    "Select the model to be trained": "トレーニングするモデルを選択",
+    "Select the model to be trained (Depending on the Tab page you are on)": "タブページに応じてトレーニングするモデルを選択してください",
     "Selected: {}": "選択済み: {}",
     "Speaker": "話者",
     "Speaker is identified by the folder name": "話者はフォルダ名で識別されます",

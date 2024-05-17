@@ -81,7 +81,7 @@
     "Select VITS ckpt": "Seleccionar punto de control VITS",
     "Select VQGAN ckpt": "Seleccionar punto de control VQGAN",
     "Select source file processing method": "Seleccione el método de procesamiento de archivos fuente",
-    "Select the model to be trained": "Seleccione el modelo a ser entrenado",
+    "Select the model to be trained (Depending on the Tab page you are on)": "Seleccione el modelo a entrenar (Dependiendo de la pestaña en la que se encuentre)",
     "Selected: {}": "Seleccionado: {}",
     "Speaker": "Hablante",
     "Speaker is identified by the folder name": "El hablante se identifica por el nombre de la carpeta",

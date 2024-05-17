@@ -889,331 +889,332 @@ with gr.Blocks(
             with gr.Tab("\U0001F6E0 " + i18n("Training Configuration")):
                 with gr.Row():
                     model_type_radio = gr.Radio(
-                        label=i18n("Select the model to be trained"),
-                        interactive=True,
+                        label=i18n("Select the model to be trained (Depending on the Tab page you are on)"),
+                        interactive=False,
                         choices=["VQGAN", "VITS", "LLAMA"],
-                        value="VITS",
+                        value="VQGAN",
                     )
                 with gr.Row():
-                    with gr.Tab(label=i18n("VQGAN Configuration")):
-                        with gr.Row(equal_height=False):
-                            vqgan_ckpt = gr.Dropdown(
-                                label=i18n("Select VQGAN ckpt"),
-                                choices=[i18n("latest"), i18n("new")]
-                                + [str(p) for p in Path("results").glob("vqgan_*/")],
-                                value=i18n("latest"),
-                                interactive=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            vqgan_lr_slider = gr.Slider(
-                                label=i18n("Initial Learning Rate"),
-                                interactive=True,
-                                minimum=1e-5,
-                                maximum=1e-4,
-                                step=1e-5,
-                                value=init_vqgan_yml["model"]["optimizer"]["lr"],
-                            )
-                            vqgan_maxsteps_slider = gr.Slider(
-                                label=i18n("Maximum Training Steps"),
-                                interactive=True,
-                                minimum=1000,
-                                maximum=100000,
-                                step=1000,
-                                value=init_vqgan_yml["trainer"]["max_steps"],
-                            )
+                    with gr.Tabs():
+                        with gr.Tab(label=i18n("VQGAN Configuration")) as vqgan_page:
+                            with gr.Row(equal_height=False):
+                                vqgan_ckpt = gr.Dropdown(
+                                    label=i18n("Select VQGAN ckpt"),
+                                    choices=[i18n("latest"), i18n("new")]
+                                    + [str(p) for p in Path("results").glob("vqgan_*/")],
+                                    value=i18n("latest"),
+                                    interactive=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                vqgan_lr_slider = gr.Slider(
+                                    label=i18n("Initial Learning Rate"),
+                                    interactive=True,
+                                    minimum=1e-5,
+                                    maximum=1e-4,
+                                    step=1e-5,
+                                    value=init_vqgan_yml["model"]["optimizer"]["lr"],
+                                )
+                                vqgan_maxsteps_slider = gr.Slider(
+                                    label=i18n("Maximum Training Steps"),
+                                    interactive=True,
+                                    minimum=1000,
+                                    maximum=100000,
+                                    step=1000,
+                                    value=init_vqgan_yml["trainer"]["max_steps"],
+                                )
 
-                        with gr.Row(equal_height=False):
-                            vqgan_data_num_workers_slider = gr.Slider(
-                                label=i18n("Number of Workers"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=16,
-                                step=1,
-                                value=init_vqgan_yml["data"]["num_workers"],
-                            )
+                            with gr.Row(equal_height=False):
+                                vqgan_data_num_workers_slider = gr.Slider(
+                                    label=i18n("Number of Workers"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=16,
+                                    step=1,
+                                    value=init_vqgan_yml["data"]["num_workers"],
+                                )
 
-                            vqgan_data_batch_size_slider = gr.Slider(
-                                label=i18n("Batch Size"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=32,
-                                step=1,
-                                value=init_vqgan_yml["data"]["batch_size"],
-                            )
-                        with gr.Row(equal_height=False):
-                            vqgan_data_val_batch_size_slider = gr.Slider(
-                                label=i18n("Validation Batch Size"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=32,
-                                step=1,
-                                value=init_vqgan_yml["data"]["val_batch_size"],
-                            )
-                            vqgan_precision_dropdown = gr.Dropdown(
-                                label=i18n("Precision"),
-                                interactive=True,
-                                choices=["32", "bf16-true", "bf16-mixed"],
-                                info=i18n(
-                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
-                                ),
-                                value=str(init_vqgan_yml["trainer"]["precision"]),
-                            )
-                        with gr.Row(equal_height=False):
-                            vqgan_check_interval_slider = gr.Slider(
-                                label=i18n("Save model every n steps"),
-                                interactive=True,
-                                minimum=500,
-                                maximum=10000,
-                                step=500,
-                                value=init_vqgan_yml["trainer"]["val_check_interval"],
-                            )
+                                vqgan_data_batch_size_slider = gr.Slider(
+                                    label=i18n("Batch Size"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=32,
+                                    step=1,
+                                    value=init_vqgan_yml["data"]["batch_size"],
+                                )
+                            with gr.Row(equal_height=False):
+                                vqgan_data_val_batch_size_slider = gr.Slider(
+                                    label=i18n("Validation Batch Size"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=32,
+                                    step=1,
+                                    value=init_vqgan_yml["data"]["val_batch_size"],
+                                )
+                                vqgan_precision_dropdown = gr.Dropdown(
+                                    label=i18n("Precision"),
+                                    interactive=True,
+                                    choices=["32", "bf16-true", "bf16-mixed"],
+                                    info=i18n(
+                                        "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
+                                    ),
+                                    value=str(init_vqgan_yml["trainer"]["precision"]),
+                                )
+                            with gr.Row(equal_height=False):
+                                vqgan_check_interval_slider = gr.Slider(
+                                    label=i18n("Save model every n steps"),
+                                    interactive=True,
+                                    minimum=500,
+                                    maximum=10000,
+                                    step=500,
+                                    value=init_vqgan_yml["trainer"]["val_check_interval"],
+                                )
 
-                    with gr.Tab(label=i18n("VITS Configuration")):
-                        with gr.Row(equal_height=False):
-                            vits_ckpt = gr.Dropdown(
-                                label=i18n("Select VITS ckpt"),
-                                choices=[i18n("latest"), i18n("new")]
-                                + [str(p) for p in Path("results").glob("vits_*/")],
-                                value=i18n("latest"),
-                                interactive=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            vits_lr_slider = gr.Slider(
-                                label=i18n("Initial Learning Rate"),
-                                interactive=True,
-                                minimum=1e-5,
-                                maximum=1e-4,
-                                step=1e-5,
-                                value=init_vits_yml["model"]["optimizer"]["lr"],
-                            )
-                            vits_maxsteps_slider = gr.Slider(
-                                label=i18n("Maximum Training Steps"),
-                                interactive=True,
-                                minimum=1000,
-                                maximum=100000,
-                                step=1000,
-                                value=init_vits_yml["trainer"]["max_steps"],
-                            )
+                        with gr.Tab(label=i18n("VITS Configuration")) as vits_page:
+                            with gr.Row(equal_height=False):
+                                vits_ckpt = gr.Dropdown(
+                                    label=i18n("Select VITS ckpt"),
+                                    choices=[i18n("latest"), i18n("new")]
+                                    + [str(p) for p in Path("results").glob("vits_*/")],
+                                    value=i18n("latest"),
+                                    interactive=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                vits_lr_slider = gr.Slider(
+                                    label=i18n("Initial Learning Rate"),
+                                    interactive=True,
+                                    minimum=1e-5,
+                                    maximum=1e-4,
+                                    step=1e-5,
+                                    value=init_vits_yml["model"]["optimizer"]["lr"],
+                                )
+                                vits_maxsteps_slider = gr.Slider(
+                                    label=i18n("Maximum Training Steps"),
+                                    interactive=True,
+                                    minimum=1000,
+                                    maximum=100000,
+                                    step=1000,
+                                    value=init_vits_yml["trainer"]["max_steps"],
+                                )
 
-                        with gr.Row(equal_height=False):
-                            vits_data_num_workers_slider = gr.Slider(
-                                label=i18n("Number of Workers"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=16,
-                                step=1,
-                                value=init_vits_yml["data"]["num_workers"],
-                            )
+                            with gr.Row(equal_height=False):
+                                vits_data_num_workers_slider = gr.Slider(
+                                    label=i18n("Number of Workers"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=16,
+                                    step=1,
+                                    value=init_vits_yml["data"]["num_workers"],
+                                )
 
-                            vits_data_batch_size_slider = gr.Slider(
-                                label=i18n("Batch Size"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=32,
-                                step=1,
-                                value=init_vits_yml["data"]["batch_size"],
-                            )
-                        with gr.Row(equal_height=False):
-                            vits_data_val_batch_size_slider = gr.Slider(
-                                label=i18n("Validation Batch Size"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=32,
-                                step=1,
-                                value=init_vits_yml["data"]["val_batch_size"],
-                            )
-                            vits_precision_dropdown = gr.Dropdown(
-                                label=i18n("Precision"),
-                                interactive=True,
-                                choices=["32", "bf16-mixed"],
-                                info=i18n("16-mixed is recommended for 10+ series GPU"),
-                                value=str(init_vits_yml["trainer"]["precision"]),
-                            )
-                        with gr.Row(equal_height=False):
-                            vits_check_interval_slider = gr.Slider(
-                                label=i18n("Save model every n steps"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=2000,
-                                step=1,
-                                value=init_vits_yml["trainer"]["val_check_interval"],
-                            )
+                                vits_data_batch_size_slider = gr.Slider(
+                                    label=i18n("Batch Size"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=32,
+                                    step=1,
+                                    value=init_vits_yml["data"]["batch_size"],
+                                )
+                            with gr.Row(equal_height=False):
+                                vits_data_val_batch_size_slider = gr.Slider(
+                                    label=i18n("Validation Batch Size"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=32,
+                                    step=1,
+                                    value=init_vits_yml["data"]["val_batch_size"],
+                                )
+                                vits_precision_dropdown = gr.Dropdown(
+                                    label=i18n("Precision"),
+                                    interactive=True,
+                                    choices=["32", "bf16-mixed"],
+                                    info=i18n("16-mixed is recommended for 10+ series GPU"),
+                                    value=str(init_vits_yml["trainer"]["precision"]),
+                                )
+                            with gr.Row(equal_height=False):
+                                vits_check_interval_slider = gr.Slider(
+                                    label=i18n("Save model every n steps"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=2000,
+                                    step=1,
+                                    value=init_vits_yml["trainer"]["val_check_interval"],
+                                )
 
-                    with gr.Tab(label=i18n("LLAMA Configuration")):
-                        with gr.Row(equal_height=False):
-                            llama_use_lora = gr.Checkbox(
-                                label=i18n("Use LoRA"),
-                                info=i18n(
-                                    "Use LoRA can save GPU memory, but may reduce the quality of the model"
-                                ),
-                                value=True,
-                            )
-                            llama_ckpt = gr.Dropdown(
-                                label=i18n("Select LLAMA ckpt"),
-                                choices=[i18n("latest") + "(not lora)", i18n("new")]
-                                + [str(p) for p in Path("results").glob("text2sem*/")]
-                                + [str(p) for p in Path("results").glob("lora*/")],
-                                value=i18n("latest") + "(not lora)",
-                                interactive=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_lr_slider = gr.Slider(
-                                label=i18n("Initial Learning Rate"),
-                                interactive=True,
-                                minimum=1e-5,
-                                maximum=1e-4,
-                                step=1e-5,
-                                value=init_llama_yml["model"]["optimizer"]["lr"],
-                            )
-                            llama_maxsteps_slider = gr.Slider(
-                                label=i18n("Maximum Training Steps"),
-                                interactive=True,
-                                minimum=50,
-                                maximum=10000,
-                                step=50,
-                                value=init_llama_yml["trainer"]["max_steps"],
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_base_config = gr.Dropdown(
-                                label=i18n("Model Size"),
-                                choices=[
-                                    "dual_ar_2_codebook_large",
-                                    "dual_ar_2_codebook_medium",
-                                ],
-                                value="dual_ar_2_codebook_medium",
-                            )
-                            llama_data_num_workers_slider = gr.Slider(
-                                label=i18n("Number of Workers"),
-                                minimum=0,
-                                maximum=16,
-                                step=1,
-                                value=(
-                                    init_llama_yml["data"]["num_workers"]
-                                    if sys.platform == "linux"
-                                    else 0
-                                ),
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_data_batch_size_slider = gr.Slider(
-                                label=i18n("Batch Size"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=32,
-                                step=1,
-                                value=init_llama_yml["data"]["batch_size"],
-                            )
-                            llama_data_max_length_slider = gr.Slider(
-                                label=i18n("Maximum Length per Sample"),
-                                interactive=True,
-                                minimum=1024,
-                                maximum=4096,
-                                step=128,
-                                value=init_llama_yml["max_length"],
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_precision_dropdown = gr.Dropdown(
-                                label=i18n("Precision"),
-                                info=i18n(
-                                    "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
-                                ),
-                                interactive=True,
-                                choices=["32", "bf16-true", "16-mixed"],
-                                value="bf16-true",
-                            )
-                            llama_check_interval_slider = gr.Slider(
-                                label=i18n("Save model every n steps"),
-                                interactive=True,
-                                minimum=50,
-                                maximum=1000,
-                                step=50,
-                                value=init_llama_yml["trainer"]["val_check_interval"],
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_grad_batches = gr.Slider(
-                                label=i18n("Accumulate Gradient Batches"),
-                                interactive=True,
-                                minimum=1,
-                                maximum=20,
-                                step=1,
-                                value=init_llama_yml["trainer"][
-                                    "accumulate_grad_batches"
-                                ],
-                            )
-                            llama_use_speaker = gr.Slider(
-                                label=i18n("Probability of applying Speaker Condition"),
-                                interactive=True,
-                                minimum=0.1,
-                                maximum=1.0,
-                                step=0.05,
-                                value=init_llama_yml["train_dataset"]["use_speaker"],
-                            )
+                        with gr.Tab(label=i18n("LLAMA Configuration"), id=3) as llama_page:
+                            with gr.Row(equal_height=False):
+                                llama_use_lora = gr.Checkbox(
+                                    label=i18n("Use LoRA"),
+                                    info=i18n(
+                                        "Use LoRA can save GPU memory, but may reduce the quality of the model"
+                                    ),
+                                    value=True,
+                                )
+                                llama_ckpt = gr.Dropdown(
+                                    label=i18n("Select LLAMA ckpt"),
+                                    choices=[i18n("latest") + "(not lora)", i18n("new")]
+                                    + [str(p) for p in Path("results").glob("text2sem*/")]
+                                    + [str(p) for p in Path("results").glob("lora*/")],
+                                    value=i18n("latest") + "(not lora)",
+                                    interactive=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_lr_slider = gr.Slider(
+                                    label=i18n("Initial Learning Rate"),
+                                    interactive=True,
+                                    minimum=1e-5,
+                                    maximum=1e-4,
+                                    step=1e-5,
+                                    value=init_llama_yml["model"]["optimizer"]["lr"],
+                                )
+                                llama_maxsteps_slider = gr.Slider(
+                                    label=i18n("Maximum Training Steps"),
+                                    interactive=True,
+                                    minimum=50,
+                                    maximum=10000,
+                                    step=50,
+                                    value=init_llama_yml["trainer"]["max_steps"],
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_base_config = gr.Dropdown(
+                                    label=i18n("Model Size"),
+                                    choices=[
+                                        "dual_ar_2_codebook_large",
+                                        "dual_ar_2_codebook_medium",
+                                    ],
+                                    value="dual_ar_2_codebook_medium",
+                                )
+                                llama_data_num_workers_slider = gr.Slider(
+                                    label=i18n("Number of Workers"),
+                                    minimum=0,
+                                    maximum=16,
+                                    step=1,
+                                    value=(
+                                        init_llama_yml["data"]["num_workers"]
+                                        if sys.platform == "linux"
+                                        else 0
+                                    ),
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_data_batch_size_slider = gr.Slider(
+                                    label=i18n("Batch Size"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=32,
+                                    step=1,
+                                    value=init_llama_yml["data"]["batch_size"],
+                                )
+                                llama_data_max_length_slider = gr.Slider(
+                                    label=i18n("Maximum Length per Sample"),
+                                    interactive=True,
+                                    minimum=1024,
+                                    maximum=4096,
+                                    step=128,
+                                    value=init_llama_yml["max_length"],
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_precision_dropdown = gr.Dropdown(
+                                    label=i18n("Precision"),
+                                    info=i18n(
+                                        "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU"
+                                    ),
+                                    interactive=True,
+                                    choices=["32", "bf16-true", "16-mixed"],
+                                    value="bf16-true",
+                                )
+                                llama_check_interval_slider = gr.Slider(
+                                    label=i18n("Save model every n steps"),
+                                    interactive=True,
+                                    minimum=50,
+                                    maximum=1000,
+                                    step=50,
+                                    value=init_llama_yml["trainer"]["val_check_interval"],
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_grad_batches = gr.Slider(
+                                    label=i18n("Accumulate Gradient Batches"),
+                                    interactive=True,
+                                    minimum=1,
+                                    maximum=20,
+                                    step=1,
+                                    value=init_llama_yml["trainer"][
+                                        "accumulate_grad_batches"
+                                    ],
+                                )
+                                llama_use_speaker = gr.Slider(
+                                    label=i18n("Probability of applying Speaker Condition"),
+                                    interactive=True,
+                                    minimum=0.1,
+                                    maximum=1.0,
+                                    step=0.05,
+                                    value=init_llama_yml["train_dataset"]["use_speaker"],
+                                )
 
-                    with gr.Tab(label=i18n("Merge LoRA")):
-                        with gr.Row(equal_height=False):
-                            llama_weight = gr.Dropdown(
-                                label=i18n("Base LLAMA Model"),
-                                info=i18n("Type the path or select from the dropdown"),
-                                choices=[init_llama_yml["ckpt_path"]],
-                                value=init_llama_yml["ckpt_path"],
-                                allow_custom_value=True,
-                                interactive=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            lora_weight = gr.Dropdown(
-                                label=i18n("LoRA Model to be merged"),
-                                info=i18n("Type the path or select from the dropdown"),
-                                choices=[
-                                    str(p)
-                                    for p in Path("results").glob("lora*/**/*.ckpt")
-                                ],
-                                allow_custom_value=True,
-                                interactive=True,
-                            )
-                            lora_llama_config = gr.Dropdown(
-                                label=i18n("LLAMA Model Config"),
-                                info=i18n("Type the path or select from the dropdown"),
-                                choices=[
-                                    "dual_ar_2_codebook_large",
-                                    "dual_ar_2_codebook_medium",
-                                ],
-                                value="dual_ar_2_codebook_medium",
-                                allow_custom_value=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_lora_output = gr.Dropdown(
-                                label=i18n("Output Path"),
-                                info=i18n("Type the path or select from the dropdown"),
-                                value="checkpoints/merged.ckpt",
-                                choices=["checkpoints/merged.ckpt"],
-                                allow_custom_value=True,
-                                interactive=True,
-                            )
-                        with gr.Row(equal_height=False):
-                            llama_lora_merge_btn = gr.Button(
-                                value=i18n("Merge"), variant="primary"
-                            )
+                        with gr.Tab(label=i18n("Merge LoRA"), id=4):
+                            with gr.Row(equal_height=False):
+                                llama_weight = gr.Dropdown(
+                                    label=i18n("Base LLAMA Model"),
+                                    info=i18n("Type the path or select from the dropdown"),
+                                    choices=[init_llama_yml["ckpt_path"]],
+                                    value=init_llama_yml["ckpt_path"],
+                                    allow_custom_value=True,
+                                    interactive=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                lora_weight = gr.Dropdown(
+                                    label=i18n("LoRA Model to be merged"),
+                                    info=i18n("Type the path or select from the dropdown"),
+                                    choices=[
+                                        str(p)
+                                        for p in Path("results").glob("lora*/**/*.ckpt")
+                                    ],
+                                    allow_custom_value=True,
+                                    interactive=True,
+                                )
+                                lora_llama_config = gr.Dropdown(
+                                    label=i18n("LLAMA Model Config"),
+                                    info=i18n("Type the path or select from the dropdown"),
+                                    choices=[
+                                        "dual_ar_2_codebook_large",
+                                        "dual_ar_2_codebook_medium",
+                                    ],
+                                    value="dual_ar_2_codebook_medium",
+                                    allow_custom_value=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_lora_output = gr.Dropdown(
+                                    label=i18n("Output Path"),
+                                    info=i18n("Type the path or select from the dropdown"),
+                                    value="checkpoints/merged.ckpt",
+                                    choices=["checkpoints/merged.ckpt"],
+                                    allow_custom_value=True,
+                                    interactive=True,
+                                )
+                            with gr.Row(equal_height=False):
+                                llama_lora_merge_btn = gr.Button(
+                                    value=i18n("Merge"), variant="primary"
+                                )
 
-                    with gr.Tab(label="Tensorboard"):
-                        with gr.Row(equal_height=False):
-                            tb_host = gr.Textbox(
-                                label=i18n("Tensorboard Host"), value="127.0.0.1"
-                            )
-                            tb_port = gr.Textbox(
-                                label=i18n("Tensorboard Port"), value="11451"
-                            )
-                        with gr.Row(equal_height=False):
-                            tb_dir = gr.Dropdown(
-                                label=i18n("Tensorboard Log Path"),
-                                allow_custom_value=True,
-                                choices=[
-                                    str(p)
-                                    for p in Path("results").glob("**/tensorboard/")
-                                ],
-                            )
-                        with gr.Row(equal_height=False):
-                            if_tb = gr.Checkbox(
-                                label=i18n("Open Tensorboard"),
-                            )
+                        with gr.Tab(label="Tensorboard", id=5):
+                            with gr.Row(equal_height=False):
+                                tb_host = gr.Textbox(
+                                    label=i18n("Tensorboard Host"), value="127.0.0.1"
+                                )
+                                tb_port = gr.Textbox(
+                                    label=i18n("Tensorboard Port"), value="11451"
+                                )
+                            with gr.Row(equal_height=False):
+                                tb_dir = gr.Dropdown(
+                                    label=i18n("Tensorboard Log Path"),
+                                    allow_custom_value=True,
+                                    choices=[
+                                        str(p)
+                                        for p in Path("results").glob("**/tensorboard/")
+                                    ],
+                                )
+                            with gr.Row(equal_height=False):
+                                if_tb = gr.Checkbox(
+                                    label=i18n("Open Tensorboard"),
+                                )
 
             with gr.Tab("\U0001F9E0 " + i18n("Inference Configuration")):
                 with gr.Column():
@@ -1342,7 +1343,9 @@ with gr.Blocks(
         api_docs="https://speech.fish.audio/inference/#http-api",
     )
     gr.HTML(footer, elem_id="footer")
-
+    vqgan_page.select(lambda :"VQGAN", None, model_type_radio)
+    vits_page.select(lambda :"VITS", None, model_type_radio)
+    llama_page.select(lambda :"LLAMA", None, model_type_radio)
     add_button.click(
         fn=add_item,
         inputs=[textbox, output_radio, label_radio],

@@ -81,7 +81,7 @@
     "Select VITS ckpt": "Select VITS ckpt",
     "Select VQGAN ckpt": "Select VQGAN ckpt",
     "Select source file processing method": "Select source file processing method",
-    "Select the model to be trained": "Select the model to be trained",
+    "Select the model to be trained (Depending on the Tab page you are on)": "Select the model to be trained (Depending on the Tab page you are on)",
     "Selected: {}": "Selected: {}",
     "Speaker": "Speaker",
     "Speaker is identified by the folder name": "Speaker is identified by the folder name",
