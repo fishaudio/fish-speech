@@ -1,0 +1,6 @@
+# --api
+# --listen 0.0.0.0:8000 \
+# --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
+# --llama-config-name dual_ar_2_codebook_medium \
+# --decoder-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth" \
+# --decoder-config-name vqgan_pretrain
