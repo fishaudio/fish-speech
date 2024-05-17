@@ -46,25 +46,27 @@ TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 SPACE_IMPORTED = False
 cached_audio = np.zeros((1,))
 
-reference_wavs = ["请选择参考音频,或者自己上传"]
+reference_wavs = [i18n("Please select the reference audio or upload it yourself.")]
 
 for name in os.listdir("./参考音频/"):
     reference_wavs.append(name)
 
 
 def change_choices():
-    reference_wavs = ["请选择参考音频,或者自己上传"]
+
+    reference_wavs = [i18n("Please select the reference audio or upload it yourself.")]
 
     for name in os.listdir("./参考音频/"):
         reference_wavs.append(name)
-
-    return {"choices": reference_wavs, "__type__": "update"}
+    
+    return {"choices":reference_wavs, "__type__": "update"}
 
 
 def change_wav(audio_path):
-    text = audio_path.replace(".wav", "").replace(".mp3", "")
 
-    return f"./参考音频/{audio_path}", text
+    text = audio_path.replace(".wav","").replace(".mp3","")
+
+    return f"./参考音频/{audio_path}",text
 
 
 def build_html_error_message(error):
@@ -332,16 +334,9 @@ def build_app():
                             label=i18n("Enable Reference Audio"),
                         )
 
-                        wavs_dropdown = gr.Dropdown(
-                            label="参考音频列表",
-                            choices=reference_wavs,
-                            value="请选择参考音频,或者自己上传",
-                            interactive=True,
-                        )
-                        refresh_button = gr.Button("刷新参考音频音频列表")
-                        refresh_button.click(
-                            fn=change_choices, inputs=[], outputs=[wavs_dropdown]
-                        )
+                        wavs_dropdown = gr.Dropdown(label=i18n("Reference Audio List"),choices=reference_wavs,value=i18n("Please select the reference audio or upload it yourself."),interactive=True)
+                        refresh_button = gr.Button(i18n("Refresh the reference audio list"))
+                        refresh_button.click(fn=change_choices, inputs=[], outputs=[wavs_dropdown])
 
                         reference_audio = gr.Audio(
                             label=i18n("Reference Audio"),
