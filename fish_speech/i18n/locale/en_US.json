@@ -115,5 +115,8 @@
     "You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).": "You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).",
     "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU": "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU",
     "latest": "latest",
-    "new": "new"
+    "new": "new",
+    "Reference Audio List": "Reference Audio List",
+    "Please select the reference audio or upload it yourself.": "Please select the reference audio or upload it yourself.",
+    "Refresh the reference audio list": "Refresh the reference audio list"
 }
