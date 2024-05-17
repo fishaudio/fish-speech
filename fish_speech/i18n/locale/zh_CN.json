@@ -81,7 +81,7 @@
     "Select VITS ckpt": "选择 VITS 检查点",
     "Select VQGAN ckpt": "选择 VQGAN 检查点",
     "Select source file processing method": "选择源文件处理方法",
-    "Select the model to be trained": "选择要训练的模型",
+    "Select the model to be trained (Depending on the Tab page you are on)": "根据您所在的选项卡页面选择要训练的模型",
     "Selected: {}": "已选择: {}",
     "Speaker": "说话人",
     "Speaker is identified by the folder name": "自动根据父目录名称识别说话人",
