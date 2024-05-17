@@ -5,6 +5,7 @@ chcp 65001
 set PYTHONPATH=%~dp0
 set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
+%PYTHON_CMD% .\tools\download_models.py
 
 setlocal enabledelayedexpansion
 
