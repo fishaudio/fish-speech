@@ -1,6 +1,5 @@
 import itertools
 import re
-import string
 
 LANGUAGE_UNICODE_RANGE_MAP = {
     "ZH": [(0x4E00, 0x9FFF)],
