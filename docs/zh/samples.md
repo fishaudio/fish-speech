@@ -17,28 +17,28 @@
     <tbody>
     <tr>
         <td>纳西妲 (原神)</td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/0_output.wav" /></td>
     </tr>
     <tr>
         <td>钟离 (原神)</td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/1_input.wav" /></td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/1_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/1_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/1_output.wav" /></td>
     </tr>
     <tr>
         <td>芙宁娜 (原神)</td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/2_input.wav" /></td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/2_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/2_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/2_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/4_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/4_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/5_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/5_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -64,13 +64,13 @@
     <tbody>
     <tr>
         <td>纳西妲 (原神)</td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/0_input.wav" /></td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/6_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/0_input.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/6_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/7_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/7_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -96,7 +96,7 @@
     <tr>
         <td>随机说话人</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/zh/8_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/zh/8_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -122,12 +122,12 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/0_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/en/0_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/1_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/en/1_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -155,7 +155,7 @@ me to serve as your personal voice assistant.
     <tr>
         <td>随机说话人</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/en/2_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/en/2_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -181,12 +181,12 @@ me to serve as your personal voice assistant.
     <tr>
         <td>随机说话人 1</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/0_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/ja/0_output.wav" /></td>
     </tr>
     <tr>
         <td>随机说话人 2</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/1_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/ja/1_output.wav" /></td>
     </tr>
     </tbody>
 </table>
@@ -213,7 +213,7 @@ me to serve as your personal voice assistant.
     <tr>
         <td>随机说话人</td>
         <td> - </td>
-        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1-sft/ja/2_output.wav" /></td>
+        <td><audio controls preload="auto" src="https://demo-r2.speech.fish.audio/v1.1-sft-large/ja/2_output.wav" /></td>
     </tr>
     </tbody>
 </table>

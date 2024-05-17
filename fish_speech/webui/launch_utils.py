@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import subprocess
 import sys
@@ -15,6 +16,11 @@ GIT = (
     else "git"
 )
 GIT = str(GIT)
+
+
+def is_module_installed(module_name: str) -> bool:
+    spec = importlib.util.find_spec(module_name)
+    return spec is not None
 
 
 @lru_cache()
@@ -77,16 +83,12 @@ class Seafoam(Base):
         spacing_size: sizes.Size | str = sizes.spacing_md,
         radius_size: sizes.Size | str = sizes.radius_md,
         text_size: sizes.Size | str = sizes.text_lg,
-        font: fonts.Font
-        | str
-        | Iterable[fonts.Font | str] = (
+        font: fonts.Font | str | Iterable[fonts.Font | str] = (
             fonts.GoogleFont("Quicksand"),
             "ui-sans-serif",
             "sans-serif",
         ),
-        font_mono: fonts.Font
-        | str
-        | Iterable[fonts.Font | str] = (
+        font_mono: fonts.Font | str | Iterable[fonts.Font | str] = (
             fonts.GoogleFont("IBM Plex Mono"),
             "ui-monospace",
             "monospace",

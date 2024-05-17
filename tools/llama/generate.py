@@ -1,9 +1,11 @@
 import os
 import queue
+import string
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Literal, Optional, Tuple, Union
 
 import click
 import hydra
@@ -18,7 +20,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from fish_speech.datasets.text import CODEBOOK_EOS_TOKEN_ID, CODEBOOK_PAD_TOKEN_ID
-from fish_speech.text.clean import clean_text
+from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -367,7 +369,7 @@ def load_model(
 
     if "int8" in str(checkpoint_path):
         logger.info("Using int8 weight-only quantization!")
-        from quantize import WeightOnlyInt8QuantHandler
+        from .quantize import WeightOnlyInt8QuantHandler
 
         simple_quantizer = WeightOnlyInt8QuantHandler(model)
         model = simple_quantizer.convert_for_runtime()
@@ -377,7 +379,7 @@ def load_model(
         path_comps = checkpoint_path.name.split(".")
         assert path_comps[-2].startswith("g")
         groupsize = int(path_comps[-2][1:])
-        from quantize import WeightOnlyInt4QuantHandler
+        from .quantize import WeightOnlyInt4QuantHandler
 
         simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
         model = simple_quantizer.convert_for_runtime()
@@ -414,23 +416,11 @@ def load_model(
     return model.eval(), decode_one_token
 
 
-def split_text(text, min_length):
-    text = clean_text(text)
-    segments = []
-    curr = ""
-    for char in text:
-        curr += char
-        if char not in [".", ",", "!", "?"]:
-            continue
-
-        if len(curr) >= min_length:
-            segments.append(curr)
-            curr = ""
-
-    if curr:
-        segments.append(curr)
-
-    return segments
+@dataclass
+class GenerateResponse:
+    action: Literal["sample", "next"]
+    codes: Optional[torch.Tensor] = None
+    text: Optional[str] = None
 
 
 def generate_long(
@@ -448,33 +438,44 @@ def generate_long(
     compile: bool = False,
     iterative_prompt: bool = True,
     max_length: int = 2048,
-    chunk_length: int = 30,
+    chunk_length: int = 150,
     speaker: Optional[str] = None,
-    prompt_text: Optional[str] = None,
-    prompt_tokens: Optional[torch.Tensor] = None,
-    is_streaming: bool = False,
+    prompt_text: Optional[str | list[str]] = None,
+    prompt_tokens: Optional[torch.Tensor | list[torch.Tensor]] = None,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < repetition_penalty < 2, "repetition_penalty must be in (0, 2)"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
 
+    use_prompt = prompt_text is not None and prompt_tokens is not None
+    if use_prompt and isinstance(prompt_text, str):
+        prompt_text = [prompt_text]
+        prompt_tokens = [prompt_tokens]
+
+    assert use_prompt is False or len(prompt_text) == len(
+        prompt_tokens
+    ), "Prompt text and tokens must have the same length"
+
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
 
-    use_prompt = prompt_text is not None and prompt_tokens is not None
     encoded = []
     texts = split_text(text, chunk_length) if iterative_prompt else [text]
+    encoded_prompts = []
 
     if use_prompt:
-        encoded_prompts = encode_tokens(
-            tokenizer,
-            prompt_text,
-            prompt_tokens=prompt_tokens,
-            bos=True,
-            device=device,
-            speaker=speaker,
-            num_codebooks=model.config.num_codebooks,
-        )
+        for idx, (t, c) in enumerate(zip(prompt_text, prompt_tokens)):
+            encoded_prompts.append(
+                encode_tokens(
+                    tokenizer,
+                    string=t,
+                    bos=idx == 0,
+                    device=device,
+                    prompt_tokens=c,
+                    speaker=speaker,
+                    num_codebooks=model.config.num_codebooks,
+                )
+            )
 
     for idx, text in enumerate(texts):
         encoded.append(
@@ -502,7 +503,6 @@ def generate_long(
             torch.cuda.synchronize()
 
         global_encoded = []
-        all_codes = []
         seg_idx = 0
 
         while seg_idx < len(encoded):
@@ -519,7 +519,9 @@ def generate_long(
             count = 0
             for i, length in enumerate(lengths):
                 count += length
-                if count + length > max_length - 1024:
+                if count + length > max_length - 1024 - sum(
+                    t.shape[1] for t in encoded_prompts
+                ):
                     break
 
             if i != 0 and i % 2 == 0:
@@ -532,7 +534,7 @@ def generate_long(
                 partial_encoded = global_encoded
 
             if use_prompt:
-                partial_encoded = [encoded_prompts] + partial_encoded
+                partial_encoded = encoded_prompts + partial_encoded
 
             cat_encoded = torch.cat(partial_encoded, dim=1)
             prompt_length = cat_encoded.size(1)
@@ -588,22 +590,24 @@ def generate_long(
 
             # But for global encoding, we should keep the <im_end> token
             global_encoded.append(decoded)
-
-            if is_streaming:
-                assert (codes >= 0).all(), f"Negative code found: {codes}"
-                yield codes
-            else:
-                all_codes.append(codes)
-
+            assert (codes >= 0).all(), f"Negative code found: {codes}"
+            yield GenerateResponse(action="sample", codes=codes, text=texts[seg_idx])
             seg_idx += 1
 
-        if is_streaming:
-            # This indicates the end of the current sample
-            yield "next"
-        else:
-            all_codes = torch.cat(all_codes, dim=1)
-            assert (all_codes >= 0).all(), f"Negative code found: {codes}"
-            yield all_codes
+        # This indicates the end of the current sample
+        yield GenerateResponse(action="next")
+
+
+@dataclass
+class WrappedGenerateResponse:
+    status: Literal["success", "error"]
+    response: Optional[GenerateResponse | Exception] = None
+
+
+@dataclass
+class GenerateRequest:
+    request: dict
+    response_queue: queue.Queue
 
 
 def launch_thread_safe_queue(
@@ -611,8 +615,8 @@ def launch_thread_safe_queue(
     checkpoint_path,
     device,
     precision,
-    max_length,
-    compile=False,
+    max_length: int,
+    compile: bool = False,
 ):
     input_queue = queue.Queue()
     init_event = threading.Event()
@@ -624,26 +628,22 @@ def launch_thread_safe_queue(
         init_event.set()
 
         while True:
-            item = input_queue.get()
+            item: GenerateRequest | None = input_queue.get()
             if item is None:
                 break
 
-            kwargs = item["request"]
-            response_queue = item["response_queue"]
+            kwargs = item.request
+            response_queue = item.response_queue
 
             try:
-                item["success"] = True
                 for chunk in generate_long(
                     model=model, decode_one_token=decode_one_token, **kwargs
                 ):
-                    response_queue.put(chunk)
-
-                response_queue.put("done")
+                    response_queue.put(
+                        WrappedGenerateResponse(status="success", response=chunk)
+                    )
             except Exception as e:
-                item["success"] = False
-                item["response"] = e
-
-                response_queue.put("done")
+                response_queue.put(WrappedGenerateResponse(status="error", response=e))
 
     threading.Thread(target=worker, daemon=True).start()
     init_event.wait()
@@ -657,9 +657,12 @@ def launch_thread_safe_queue(
     type=str,
     default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
 )
-@click.option("--prompt-text", type=str, default=None)
+@click.option("--prompt-text", type=str, default=None, multiple=True)
 @click.option(
-    "--prompt-tokens", type=click.Path(path_type=Path, exists=True), default=None
+    "--prompt-tokens",
+    type=click.Path(path_type=Path, exists=True),
+    default=None,
+    multiple=True,
 )
 @click.option("--num-samples", type=int, default=1)
 @click.option("--max-new-tokens", type=int, default=0)
@@ -669,9 +672,9 @@ def launch_thread_safe_queue(
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="results/text2semantic_400m_finetune/step_000002000.pth",
+    default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
 )
-@click.option("--config-name", type=str, default="dual_ar_8_codebook_small")
+@click.option("--config-name", type=str, default="dual_ar_2_codebook_medium")
 @click.option("--tokenizer", type=str, default="fishaudio/fish-speech-1")
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
@@ -679,11 +682,11 @@ def launch_thread_safe_queue(
 @click.option("--half/--no-half", default=False)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--max-length", type=int, default=2048)
-@click.option("--chunk-length", type=int, default=30)
+@click.option("--chunk-length", type=int, default=150)
 def main(
     text: str,
-    prompt_text: Optional[str],
-    prompt_tokens: Optional[Path],
+    prompt_text: Optional[list[str]],
+    prompt_tokens: Optional[list[Path]],
     num_samples: int,
     max_new_tokens: int,
     top_p: int,
@@ -704,6 +707,11 @@ def main(
 
     precision = torch.half if half else torch.bfloat16
 
+    if prompt_text is not None and len(prompt_text) != len(prompt_tokens):
+        raise ValueError(
+            f"Number of prompt text ({len(prompt_text)}) and prompt tokens ({len(prompt_tokens)}) should be the same"
+        )
+
     logger.info("Loading model ...")
     t0 = time.time()
     model, decode_one_token = load_model(
@@ -715,11 +723,8 @@ def main(
 
     logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
 
-    prompt_tokens = (
-        torch.from_numpy(np.load(prompt_tokens)).to(device)
-        if prompt_tokens is not None
-        else None
-    )
+    if prompt_tokens is not None:
+        prompt_tokens = [torch.from_numpy(np.load(p)).to(device) for p in prompt_tokens]
 
     tokenizer = AutoTokenizer.from_pretrained(tokenizer)
     torch.manual_seed(seed)
@@ -747,9 +752,22 @@ def main(
         prompt_tokens=prompt_tokens,
     )
 
-    for idx, codes in enumerate(generator):
-        np.save(f"codes_{idx}.npy", codes.cpu().numpy())
-        logger.info(f"Saved codes to codes_{idx}.npy")
+    idx = 0
+    codes = []
+
+    for response in generator:
+        if response.action == "sample":
+            codes.append(response.codes)
+            logger.info(f"Sampled text: {response.text}")
+        elif response.action == "next":
+            if codes:
+                np.save(f"codes_{idx}.npy", torch.cat(codes, dim=1).cpu().numpy())
+                logger.info(f"Saved codes to codes_{idx}.npy")
+            logger.info(f"Next sample")
+            codes = []
+            idx += 1
+        else:
+            logger.error(f"Error: {response}")
 
 
 if __name__ == "__main__":

@@ -2,10 +2,10 @@ from pathlib import Path
 
 import click
 import hydra
-import librosa
 import numpy as np
 import soundfile as sf
 import torch
+import torchaudio
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from lightning import LightningModule
@@ -67,13 +67,14 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
     if input_path.suffix in AUDIO_EXTENSIONS:
         logger.info(f"Processing in-place reconstruction of {input_path}")
+
         # Load audio
-        audio, _ = librosa.load(
-            input_path,
-            sr=model.sampling_rate,
-            mono=True,
-        )
-        audios = torch.from_numpy(audio).to(model.device)[None, None, :]
+        audio, sr = torchaudio.load(str(input_path))
+        if audio.shape[0] > 1:
+            audio = audio.mean(0, keepdim=True)
+        audio = torchaudio.functional.resample(audio, sr, model.sampling_rate)
+
+        audios = audio[None].to(model.device)
         logger.info(
             f"Loaded audio with {audios.shape[2] / model.sampling_rate:.2f} seconds"
         )

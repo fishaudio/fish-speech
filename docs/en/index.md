@@ -38,10 +38,14 @@ pip3 install torch torchvision torchaudio
 
 # Install fish-speech
 pip3 install -e .
+
+# (Ubuntu / Debian User) Install sox
+apt install libsox-dev
 ```
 
 ## Changelog
 
+- 2024/05/10: Updated Fish-Speech to 1.1 version, implement VITS decoder to reduce WER and improve timbre similarity.
 - 2024/04/22: Finished Fish-Speech 1.0 version, significantly modified VQGAN and LLAMA models.
 - 2023/12/28: Added `lora` fine-tuning support.
 - 2023/12/27: Add `gradient checkpointing`, `causual sampling`, and `flash-attn` support.

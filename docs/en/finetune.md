@@ -2,63 +2,22 @@
 
 Obviously, when you opened this page, you were not satisfied with the performance of the few-shot pre-trained model. You want to fine-tune a model to improve its performance on your dataset.
 
-`Fish Speech` consists of two modules: `VQGAN` and `LLAMA`.
+`Fish Speech` consists of three modules: `VQGAN`, `LLAMA`, and `VITS`.
 
 !!! info 
-    You should first conduct the following test to determine if you need to fine-tune `VQGAN`:
+    You should first conduct the following test to determine if you need to fine-tune `VITS Decoder`:
     ```bash
     python tools/vqgan/inference.py -i test.wav
+    python tools/vits_decoder/inference.py \
+        -ckpt checkpoints/vits_decoder_v1.1.ckpt \
+        -i fake.npy -r test.wav \
+        --text "The text you want to generate"
     ```
-    This test will generate a `fake.wav` file. If the timbre of this file differs from the speaker's original voice, or if the quality is not high, you need to fine-tune `VQGAN`.
+    This test will generate a `fake.wav` file. If the timbre of this file differs from the speaker's original voice, or if the quality is not high, you need to fine-tune `VITS Decoder`.
 
     Similarly, you can refer to [Inference](inference.md) to run `generate.py` and evaluate if the prosody meets your expectations. If it does not, then you need to fine-tune `LLAMA`.
-
-## Fine-tuning VQGAN
-### 1. Prepare the Dataset
-
-```
-.
-├── SPK1
-│   ├── 21.15-26.44.mp3
-│   ├── 27.51-29.98.mp3
-│   └── 30.1-32.71.mp3
-└── SPK2
-    └── 38.79-40.85.mp3
-```
-
-You need to format your dataset as shown above and place it under `data`. Audio files can have `.mp3`, `.wav`, or `.flac` extensions.
-
-### 2. Split Training and Validation Sets
-
-```bash
-python tools/vqgan/create_train_split.py data
-```
-
-This command will create `data/vq_train_filelist.txt` and `data/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
-
-!!!info
-    For the VITS format, you can specify a file list using `--filelist xxx.list`.  
-    Please note that the audio files in `filelist` must also be located in the `data` folder.
-
-### 3. Start Training
-
-```bash
-python fish_speech/train.py --config-name vqgan_finetune
-```
-
-!!! note
-    You can modify training parameters by editing `fish_speech/configs/vqgan_finetune.yaml`, but in most cases, this won't be necessary.
-
-### 4. Test the Audio
-    
-```bash
-python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_finetune/checkpoints/step_000010000.ckpt
-```
-
-You can review `fake.wav` to assess the fine-tuning results.
-
-!!! note
-    You may also try other checkpoints. We suggest using the earliest checkpoint that meets your requirements, as they often perform better on out-of-distribution (OOD) data.
+	
+    It is recommended to fine-tune the LLAMA first, then fine-tune the `VITS Decoder` according to your needs.
 
 ## Fine-tuning LLAMA
 ### 1. Prepare the dataset
@@ -140,21 +99,18 @@ python tools/llama/build_dataset.py \
 
 After the command finishes executing, you should see the `quantized-dataset-ft.protos` file in the `data` directory.
 
-!!!info
-    For the VITS format, you can specify a file list using `--input xxx.list`.
-
 ### 4. Finally, start the fine-tuning
 
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_2_codebook_large
+    model@model.model=dual_ar_2_codebook_medium
 ```
 
 !!! note
@@ -180,9 +136,116 @@ After training, you need to convert the LoRA weights to regular weights before p
 
 ```bash
 python tools/llama/merge_lora.py \
-    --llama-config dual_ar_2_codebook_large \
+    --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1-4k.pth \
+    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```
+
+
+## Fine-tuning VITS Decoder
+### 1. Prepare the Dataset
+
+```
+.
+├── SPK1
+│   ├── 21.15-26.44.lab
+│   ├── 21.15-26.44.mp3
+│   ├── 27.51-29.98.lab
+│   ├── 27.51-29.98.mp3
+│   ├── 30.1-32.71.lab
+│   └── 30.1-32.71.mp3
+└── SPK2
+    ├── 38.79-40.85.lab
+    └── 38.79-40.85.mp3
+```
+
+!!! note
+    VITS fine-tuning currently only supports `.lab` as the label file and does not support the `filelist` format.
+
+You need to format your dataset as shown above and place it under `data`. Audio files can have `.mp3`, `.wav`, or `.flac` extensions, and the annotation files should have the `.lab` extension.
+
+### 2. Split Training and Validation Sets
+
+```bash
+python tools/vqgan/create_train_split.py data
+```
+
+This command will create `data/vq_train_filelist.txt` and `data/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
+
+!!! info
+    For the VITS format, you can specify a file list using `--filelist xxx.list`.  
+    Please note that the audio files in `filelist` must also be located in the `data` folder.
+
+### 3. Start Training
+
+```bash
+python fish_speech/train.py --config-name vits_decoder_finetune
+```
+
+!!! note
+    You can modify training parameters by editing `fish_speech/configs/vits_decoder_finetune.yaml`, but in most cases, this won't be necessary.
+
+### 4. Test the Audio
+    
+```bash
+python tools/vits_decoder/inference.py \
+    --checkpoint-path results/vits_decoder_finetune/checkpoints/step_000010000.ckpt \
+    -i test.npy -r test.wav \
+    --text "The text you want to generate"
+```
+
+You can review `fake.wav` to assess the fine-tuning results.
+
+
+## Fine-tuning VQGAN (Not Recommended)
+
+
+We no longer recommend using VQGAN for fine-tuning in version 1.1. Using VITS Decoder will yield better results, but if you still want to fine-tune VQGAN, you can refer to the following steps.
+
+### 1. Prepare the Dataset
+
+```
+.
+├── SPK1
+│   ├── 21.15-26.44.mp3
+│   ├── 27.51-29.98.mp3
+│   └── 30.1-32.71.mp3
+└── SPK2
+    └── 38.79-40.85.mp3
+```
+
+You need to format your dataset as shown above and place it under `data`. Audio files can have `.mp3`, `.wav`, or `.flac` extensions.
+
+### 2. Split Training and Validation Sets
+
+```bash
+python tools/vqgan/create_train_split.py data
+```
+
+This command will create `data/vq_train_filelist.txt` and `data/vq_val_filelist.txt` in the `data/demo` directory, to be used for training and validation respectively.
+
+!!!info
+    For the VITS format, you can specify a file list using `--filelist xxx.list`.  
+    Please note that the audio files in `filelist` must also be located in the `data` folder.
+
+### 3. Start Training
+
+```bash
+python fish_speech/train.py --config-name vqgan_finetune
+```
+
+!!! note
+    You can modify training parameters by editing `fish_speech/configs/vqgan_finetune.yaml`, but in most cases, this won't be necessary.
+
+### 4. Test the Audio
+    
+```bash
+python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_finetune/checkpoints/step_000010000.ckpt
+```
+
+You can review `fake.wav` to assess the fine-tuning results.
+
+!!! note
+    You may also try other checkpoints. We suggest using the earliest checkpoint that meets your requirements, as they often perform better on out-of-distribution (OOD) data.
