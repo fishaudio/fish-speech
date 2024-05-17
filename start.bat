@@ -7,12 +7,11 @@ set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 
 :: 设置Hugging Face镜像源
+set no_proxy="localhost, 127.0.0.1, 0.0.0.0"
 set HF_ENDPOINT=https://hf-mirror.com
 %PYTHON_CMD% .\tools\download_models.py
 
 setlocal enabledelayedexpansion
-
-set no_proxy="localhost, 127.0.0.1, 0.0.0.0"
 
 set "API_FLAGS="
 set "flags="
