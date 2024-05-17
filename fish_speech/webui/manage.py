@@ -889,7 +889,9 @@ with gr.Blocks(
             with gr.Tab("\U0001F6E0 " + i18n("Training Configuration")):
                 with gr.Row():
                     model_type_radio = gr.Radio(
-                        label=i18n("Select the model to be trained (Depending on the Tab page you are on)"),
+                        label=i18n(
+                            "Select the model to be trained (Depending on the Tab page you are on)"
+                        ),
                         interactive=False,
                         choices=["VQGAN", "VITS", "LLAMA"],
                         value="VQGAN",
@@ -901,7 +903,9 @@ with gr.Blocks(
                                 vqgan_ckpt = gr.Dropdown(
                                     label=i18n("Select VQGAN ckpt"),
                                     choices=[i18n("latest"), i18n("new")]
-                                    + [str(p) for p in Path("results").glob("vqgan_*/")],
+                                    + [
+                                        str(p) for p in Path("results").glob("vqgan_*/")
+                                    ],
                                     value=i18n("latest"),
                                     interactive=True,
                                 )
@@ -966,7 +970,9 @@ with gr.Blocks(
                                     minimum=500,
                                     maximum=10000,
                                     step=500,
-                                    value=init_vqgan_yml["trainer"]["val_check_interval"],
+                                    value=init_vqgan_yml["trainer"][
+                                        "val_check_interval"
+                                    ],
                                 )
 
                         with gr.Tab(label=i18n("VITS Configuration")) as vits_page:
@@ -1027,7 +1033,9 @@ with gr.Blocks(
                                     label=i18n("Precision"),
                                     interactive=True,
                                     choices=["32", "bf16-mixed"],
-                                    info=i18n("16-mixed is recommended for 10+ series GPU"),
+                                    info=i18n(
+                                        "16-mixed is recommended for 10+ series GPU"
+                                    ),
                                     value=str(init_vits_yml["trainer"]["precision"]),
                                 )
                             with gr.Row(equal_height=False):
@@ -1037,10 +1045,14 @@ with gr.Blocks(
                                     minimum=1,
                                     maximum=2000,
                                     step=1,
-                                    value=init_vits_yml["trainer"]["val_check_interval"],
+                                    value=init_vits_yml["trainer"][
+                                        "val_check_interval"
+                                    ],
                                 )
 
-                        with gr.Tab(label=i18n("LLAMA Configuration"), id=3) as llama_page:
+                        with gr.Tab(
+                            label=i18n("LLAMA Configuration"), id=3
+                        ) as llama_page:
                             with gr.Row(equal_height=False):
                                 llama_use_lora = gr.Checkbox(
                                     label=i18n("Use LoRA"),
@@ -1052,7 +1064,10 @@ with gr.Blocks(
                                 llama_ckpt = gr.Dropdown(
                                     label=i18n("Select LLAMA ckpt"),
                                     choices=[i18n("latest") + "(not lora)", i18n("new")]
-                                    + [str(p) for p in Path("results").glob("text2sem*/")]
+                                    + [
+                                        str(p)
+                                        for p in Path("results").glob("text2sem*/")
+                                    ]
                                     + [str(p) for p in Path("results").glob("lora*/")],
                                     value=i18n("latest") + "(not lora)",
                                     interactive=True,
@@ -1127,7 +1142,9 @@ with gr.Blocks(
                                     minimum=50,
                                     maximum=1000,
                                     step=50,
-                                    value=init_llama_yml["trainer"]["val_check_interval"],
+                                    value=init_llama_yml["trainer"][
+                                        "val_check_interval"
+                                    ],
                                 )
                             with gr.Row(equal_height=False):
                                 llama_grad_batches = gr.Slider(
@@ -1141,19 +1158,25 @@ with gr.Blocks(
                                     ],
                                 )
                                 llama_use_speaker = gr.Slider(
-                                    label=i18n("Probability of applying Speaker Condition"),
+                                    label=i18n(
+                                        "Probability of applying Speaker Condition"
+                                    ),
                                     interactive=True,
                                     minimum=0.1,
                                     maximum=1.0,
                                     step=0.05,
-                                    value=init_llama_yml["train_dataset"]["use_speaker"],
+                                    value=init_llama_yml["train_dataset"][
+                                        "use_speaker"
+                                    ],
                                 )
 
                         with gr.Tab(label=i18n("Merge LoRA"), id=4):
                             with gr.Row(equal_height=False):
                                 llama_weight = gr.Dropdown(
                                     label=i18n("Base LLAMA Model"),
-                                    info=i18n("Type the path or select from the dropdown"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     choices=[init_llama_yml["ckpt_path"]],
                                     value=init_llama_yml["ckpt_path"],
                                     allow_custom_value=True,
@@ -1162,7 +1185,9 @@ with gr.Blocks(
                             with gr.Row(equal_height=False):
                                 lora_weight = gr.Dropdown(
                                     label=i18n("LoRA Model to be merged"),
-                                    info=i18n("Type the path or select from the dropdown"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     choices=[
                                         str(p)
                                         for p in Path("results").glob("lora*/**/*.ckpt")
@@ -1172,7 +1197,9 @@ with gr.Blocks(
                                 )
                                 lora_llama_config = gr.Dropdown(
                                     label=i18n("LLAMA Model Config"),
-                                    info=i18n("Type the path or select from the dropdown"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     choices=[
                                         "dual_ar_2_codebook_large",
                                         "dual_ar_2_codebook_medium",
@@ -1183,7 +1210,9 @@ with gr.Blocks(
                             with gr.Row(equal_height=False):
                                 llama_lora_output = gr.Dropdown(
                                     label=i18n("Output Path"),
-                                    info=i18n("Type the path or select from the dropdown"),
+                                    info=i18n(
+                                        "Type the path or select from the dropdown"
+                                    ),
                                     value="checkpoints/merged.ckpt",
                                     choices=["checkpoints/merged.ckpt"],
                                     allow_custom_value=True,
@@ -1343,9 +1372,9 @@ with gr.Blocks(
         api_docs="https://speech.fish.audio/inference/#http-api",
     )
     gr.HTML(footer, elem_id="footer")
-    vqgan_page.select(lambda :"VQGAN", None, model_type_radio)
-    vits_page.select(lambda :"VITS", None, model_type_radio)
-    llama_page.select(lambda :"LLAMA", None, model_type_radio)
+    vqgan_page.select(lambda: "VQGAN", None, model_type_radio)
+    vits_page.select(lambda: "VITS", None, model_type_radio)
+    llama_page.select(lambda: "LLAMA", None, model_type_radio)
     add_button.click(
         fn=add_item,
         inputs=[textbox, output_radio, label_radio],
