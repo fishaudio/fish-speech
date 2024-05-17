@@ -115,5 +115,8 @@
     "You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).": "你可以在 [这里](https://github.com/fishaudio/fish-speech) 找到源代码和 [这里](https://huggingface.co/fishaudio/fish-speech-1) 找到模型.",
     "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU": "30+ 系列 GPU 建议使用 bf16-true, 10+ 系列 GPU 建议使用 16-mixed",
     "latest": "最近的检查点",
-    "new": "创建新的检查点"
+    "new": "创建新的检查点",
+    "Reference Audio List": "参考音频列表",
+    "Please select the reference audio or upload it yourself.": "请选择参考音频,或者自己上传",
+    "Refresh the reference audio list": "刷新参考音频列表"
 }
