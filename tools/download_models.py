@@ -19,9 +19,8 @@ files = [
 repo_id = "fishaudio/fish-speech-1"
 cache_dir = "./checkpoints"
 
-# 确保 checkpoints 文件夹存在
-if not os.path.exists(cache_dir):
-    os.makedirs(cache_dir)
+
+os.makedirs(cache_dir, exist_ok=True)
 
 # 检查每个文件是否存在，如果不存在则从 Hugging Face 仓库下载
 for file in files:
@@ -46,6 +45,7 @@ files = [
 # Hugging Face 仓库信息
 repo_id = "SpicyqSama007/fish-speech-packed"
 cache_dir = ".cache/whisper"
+os.makedirs(cache_dir, exist_ok=True)
 
 for file in files:
     file_path = os.path.join(cache_dir, file)
