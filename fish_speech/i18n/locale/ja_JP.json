@@ -115,5 +115,8 @@
     "You can find the source code [here](https://github.com/fishaudio/fish-speech) and models [here](https://huggingface.co/fishaudio/fish-speech-1).": "ソースコードは[こちら](https://github.com/fishaudio/fish-speech)、モデルは[こちら](https://huggingface.co/fishaudio/fish-speech-1)にあります。",
     "bf16-true is recommended for 30+ series GPU, 16-mixed is recommended for 10+ series GPU": "30シリーズ以降のGPUにはbf16-trueを、10シリーズ以降のGPUには16-mixedをお勧めします",
     "latest": "最新",
-    "new": "新規"
+    "new": "新規",
+    "Reference Audio List": "参照オーディオリスト",
+    "Please select the reference audio or upload it yourself.": "参照音声を選択するか、自分でアップロードしてください。",
+    "Refresh the reference audio list": "参照オーディオリストをリフレッシュします"
 }
