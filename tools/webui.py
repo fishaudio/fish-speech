@@ -263,7 +263,7 @@ def build_app():
                             label=i18n("Iterative Prompt Length, 0 means off"),
                             minimum=0,
                             maximum=500,
-                            value=30,
+                            value=150,
                             step=8,
                         )
 
@@ -461,7 +461,7 @@ if __name__ == "__main__":
             reference_audio=None,
             reference_text="",
             max_new_tokens=0,
-            chunk_length=0,
+            chunk_length=150,
             top_p=0.7,
             repetition_penalty=1.5,
             temperature=0.7,

@@ -168,7 +168,7 @@ class InvokeRequest(BaseModel):
     reference_text: Optional[str] = None
     reference_audio: Optional[str] = None
     max_new_tokens: int = 0
-    chunk_length: Annotated[int, Field(ge=0, le=200, strict=True)] = 30
+    chunk_length: Annotated[int, Field(ge=0, le=500, strict=True)] = 150
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.5
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
@@ -399,7 +399,7 @@ if __name__ == "__main__":
                 reference_text=None,
                 reference_audio=None,
                 max_new_tokens=0,
-                chunk_length=30,
+                chunk_length=150,
                 top_p=0.7,
                 repetition_penalty=1.5,
                 temperature=0.7,

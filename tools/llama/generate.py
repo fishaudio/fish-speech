@@ -20,7 +20,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from fish_speech.datasets.text import CODEBOOK_EOS_TOKEN_ID, CODEBOOK_PAD_TOKEN_ID
-from fish_speech.text.clean import clean_text
+from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -416,36 +416,6 @@ def load_model(
     return model.eval(), decode_one_token
 
 
-def split_text(text, min_length):
-    text = clean_text(text)
-    segments = []
-    curr = ""
-
-    def clean_add(curr):
-        curr = curr.strip()
-        if curr and not all(c.isspace() or c in string.punctuation for c in curr):
-            segments.append(curr)
-
-    def is_float(value):
-        try:
-            float(value)
-            return True
-        except ValueError:
-            return False
-
-    for index, char in enumerate(text):
-        curr += char
-        if char not in [".", "!", "?"]:
-            continue
-        if len(curr) >= min_length and not is_float(text[index - 1 : index + 2]):
-            clean_add(curr)
-            curr = ""
-
-    clean_add(curr)
-
-    return segments
-
-
 @dataclass
 class GenerateResponse:
     action: Literal["sample", "next"]
@@ -468,7 +438,7 @@ def generate_long(
     compile: bool = False,
     iterative_prompt: bool = True,
     max_length: int = 2048,
-    chunk_length: int = 30,
+    chunk_length: int = 150,
     speaker: Optional[str] = None,
     prompt_text: Optional[str] = None,
     prompt_tokens: Optional[torch.Tensor] = None,
