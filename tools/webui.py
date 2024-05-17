@@ -58,15 +58,15 @@ def change_choices():
 
     for name in os.listdir("./参考音频/"):
         reference_wavs.append(name)
-    
-    return {"choices":reference_wavs, "__type__": "update"}
+
+    return {"choices": reference_wavs, "__type__": "update"}
 
 
 def change_wav(audio_path):
 
-    text = audio_path.replace(".wav","").replace(".mp3","")
+    text = audio_path.replace(".wav", "").replace(".mp3", "")
 
-    return f"./参考音频/{audio_path}",text
+    return f"./参考音频/{audio_path}", text
 
 
 def build_html_error_message(error):
@@ -334,9 +334,20 @@ def build_app():
                             label=i18n("Enable Reference Audio"),
                         )
 
-                        wavs_dropdown = gr.Dropdown(label=i18n("Reference Audio List"),choices=reference_wavs,value=i18n("Please select the reference audio or upload it yourself."),interactive=True)
-                        refresh_button = gr.Button(i18n("Refresh the reference audio list"))
-                        refresh_button.click(fn=change_choices, inputs=[], outputs=[wavs_dropdown])
+                        wavs_dropdown = gr.Dropdown(
+                            label=i18n("Reference Audio List"),
+                            choices=reference_wavs,
+                            value=i18n(
+                                "Please select the reference audio or upload it yourself."
+                            ),
+                            interactive=True,
+                        )
+                        refresh_button = gr.Button(
+                            i18n("Refresh the reference audio list")
+                        )
+                        refresh_button.click(
+                            fn=change_choices, inputs=[], outputs=[wavs_dropdown]
+                        )
 
                         reference_audio = gr.Audio(
                             label=i18n("Reference Audio"),
