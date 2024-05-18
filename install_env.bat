@@ -1,16 +1,15 @@
 @echo off
 chcp 65001
 
-:: 设置是否使用镜像站的标志，true 表示使用，false 表示不使用
 set USE_MIRROR=true
 echo use_mirror = %USE_MIRROR%
-
-set no_proxy="127.0.0.1, 0.0.0.0, localhost"
 setlocal enabledelayedexpansion
 
 cd /D "%~dp0"
 
 set PATH="%PATH%";%SystemRoot%\system32
+
+echo %PATH%
 
 :: 安装Miniconda
 :: 检查是否有特殊字符
@@ -20,6 +19,7 @@ echo "%CD%"| findstr /R /C:"[!#\$%&()\*+,;<=>?@\[\]\^`{|}~\u4E00-\u9FFF ] " >nul
         goto end
     )
 )
+
 :: 解决跨驱动器安装问题
 set TMP=%CD%\fishenv
 set TEMP=%CD%\fishenv
@@ -35,6 +35,7 @@ set API_FLAG_PATH=%~dp0API_FLAGS.txt
 set MINICONDA_DOWNLOAD_URL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
 set MINICONDA_CHECKSUM=307194e1f12bbeb52b083634e89cc67db4f7980bd542254b43d3309eaf7cb358
 set conda_exists=F
+
 :: 确定是否要安装conda
 call "%CONDA_ROOT_PREFIX%\_conda.exe" --version >nul 2>&1
 if "%ERRORLEVEL%" EQU "0" set conda_exists=T
@@ -132,7 +133,6 @@ for %%p in (%packages%) do (
         set "install_packages=!install_packages! %%p"
     )
 )
-
 
 
 if not "!install_packages!"=="" (
