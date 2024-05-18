@@ -631,7 +631,7 @@ def train_process(
             if llama_ckpt == i18n("new")
             else (
                 latest
-                if llama_ckpt == i18n("latest")
+                if llama_ckpt == i18n("latest") + "(not lora)"
                 else Path(llama_ckpt).relative_to("results")
             )
         )
