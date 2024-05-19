@@ -36,7 +36,11 @@ if __name__ == "__main__":
         "--text", "-t", type=str, required=True, help="Text to be synthesized"
     )
     parser.add_argument(
-        "--reference_audio", "-ra", type=str, required=False, help="Path to the WAV file"
+        "--reference_audio",
+        "-ra",
+        type=str,
+        required=False,
+        help="Path to the WAV file",
     )
     parser.add_argument(
         "--reference_text",
