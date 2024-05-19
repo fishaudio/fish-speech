@@ -1489,7 +1489,7 @@ with gr.Blocks(
     )
     lora_weight.change(
         fn=lambda: gr.Dropdown(
-            choices=[str(p) for p in Path("results").glob("lora*/**/*.ckpt")]
+            choices=list_lora_llama_models()
         ),
         inputs=[],
         outputs=[lora_weight],
