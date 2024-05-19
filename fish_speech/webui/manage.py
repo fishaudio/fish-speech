@@ -1488,9 +1488,7 @@ with gr.Blocks(
         fn=change_llama_config, inputs=[lora_weight], outputs=[lora_llama_config]
     )
     lora_weight.change(
-        fn=lambda: gr.Dropdown(
-            choices=list_lora_llama_models()
-        ),
+        fn=lambda: gr.Dropdown(choices=list_lora_llama_models()),
         inputs=[],
         outputs=[lora_weight],
     )
