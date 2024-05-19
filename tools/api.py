@@ -294,7 +294,7 @@ def api_invoke_model(
             headers={
                 "Content-Disposition": f"attachment; filename=audio.{req.format}",
             },
-            content_type="application/octet-stream",
+            content_type="audio/wav",
         )
     else:
         fake_audios = next(generator)
@@ -306,7 +306,7 @@ def api_invoke_model(
             headers={
                 "Content-Disposition": f"attachment; filename=audio.{req.format}",
             },
-            content_type="application/octet-stream",
+            content_type="audio/wav",
         )
 
 

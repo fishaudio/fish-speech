@@ -7,6 +7,8 @@ import requests
 
 
 def wav_to_base64(file_path):
+    if not file_path:
+        return None
     with open(file_path, "rb") as wav_file:
         wav_content = wav_file.read()
         base64_encoded = base64.b64encode(wav_content)
@@ -34,20 +36,20 @@ if __name__ == "__main__":
         "--text", "-t", type=str, required=True, help="Text to be synthesized"
     )
     parser.add_argument(
-        "--reference_audio", "-ra", type=str, required=True, help="Path to the WAV file"
+        "--reference_audio", "-ra", type=str, required=False, help="Path to the WAV file"
     )
     parser.add_argument(
         "--reference_text",
         "-rt",
         type=str,
-        required=True,
+        required=False,
         help="Reference text for voice synthesis",
     )
     parser.add_argument(
         "--max_new_tokens", type=int, default=0, help="Maximum new tokens to generate"
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=30, help="Chunk length for synthesis"
+        "--chunk_length", type=int, default=150, help="Chunk length for synthesis"
     )
     parser.add_argument(
         "--top_p", type=float, default=0.7, help="Top-p sampling for synthesis"
