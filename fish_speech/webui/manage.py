@@ -615,11 +615,7 @@ def train_process(
         )
         lora_prefix = "lora_" if llama_use_lora else ""
         llama_size = "large_" if ("large" in llama_base_config) else "medium_"
-        llama_name = (
-            lora_prefix + 
-            "text2semantic_" + 
-            llama_size +
-            new_project)
+        llama_name = lora_prefix + "text2semantic_" + llama_size + new_project
         latest = next(
             iter(
                 sorted(
@@ -761,8 +757,11 @@ def fresh_vits_ckpt():
 def fresh_llama_ckpt(llama_use_lora):
     return gr.Dropdown(
         choices=[i18n("latest"), i18n("new")]
-        + ([str(p) for p in Path("results").glob("text2sem*/")] if not llama_use_lora 
-        else [str(p) for p in Path("results").glob("lora_*/")])
+        + (
+            [str(p) for p in Path("results").glob("text2sem*/")]
+            if not llama_use_lora
+            else [str(p) for p in Path("results").glob("lora_*/")]
+        )
     )
 
 
@@ -1190,7 +1189,10 @@ with gr.Blocks(
                                     info=i18n(
                                         "Type the path or select from the dropdown"
                                     ),
-                                    choices=["checkpoints/text2semantic-sft-large-v1.1-4k.pth", "checkpoints/text2semantic-sft-medium-v1.1-4k.pth"],
+                                    choices=[
+                                        "checkpoints/text2semantic-sft-large-v1.1-4k.pth",
+                                        "checkpoints/text2semantic-sft-medium-v1.1-4k.pth",
+                                    ],
                                     value=init_llama_yml["ckpt_path"],
                                     allow_custom_value=True,
                                     interactive=True,
@@ -1403,7 +1405,7 @@ with gr.Blocks(
         'toolbar=no, menubar=no, scrollbars=no, resizable=no, location=no, status=no")}',
     )
     if_label.change(fn=change_label, inputs=[if_label], outputs=[error])
-   
+
     train_btn.click(
         fn=train_process,
         inputs=[
@@ -1476,14 +1478,22 @@ with gr.Blocks(
     )
     vqgan_ckpt.change(fn=fresh_vqgan_ckpt, inputs=[], outputs=[vqgan_ckpt])
     vits_ckpt.change(fn=fresh_vits_ckpt, inputs=[], outputs=[vits_ckpt])
-    llama_use_lora.change(fn=fresh_llama_ckpt, inputs=[llama_use_lora], outputs=[llama_ckpt])
-    llama_ckpt.change(fn=fresh_llama_ckpt, inputs=[llama_use_lora], outputs=[llama_ckpt])
-    lora_weight.change(fn=change_llama_config,
-                       inputs=[lora_weight],
-                       outputs=[lora_llama_config]
-                    )
-    lora_weight.change(fn=lambda : gr.Dropdown(choices=[str(p) for p in Path("results").glob("lora*/**/*.ckpt")]),
-                       inputs=[], outputs=[lora_weight])
+    llama_use_lora.change(
+        fn=fresh_llama_ckpt, inputs=[llama_use_lora], outputs=[llama_ckpt]
+    )
+    llama_ckpt.change(
+        fn=fresh_llama_ckpt, inputs=[llama_use_lora], outputs=[llama_ckpt]
+    )
+    lora_weight.change(
+        fn=change_llama_config, inputs=[lora_weight], outputs=[lora_llama_config]
+    )
+    lora_weight.change(
+        fn=lambda: gr.Dropdown(
+            choices=[str(p) for p in Path("results").glob("lora*/**/*.ckpt")]
+        ),
+        inputs=[],
+        outputs=[lora_weight],
+    )
     llama_lora_merge_btn.click(
         fn=llama_lora_merge,
         inputs=[llama_weight, lora_llama_config, lora_weight, llama_lora_output],
