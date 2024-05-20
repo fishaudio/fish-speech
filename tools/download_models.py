@@ -1,9 +1,27 @@
 import os
-
 from huggingface_hub import hf_hub_download
 
-# 要检查和下载的文件列表
-files = [
+# Donwload
+def check_and_download_files(repo_id, file_list, local_dir):
+    os.makedirs(local_dir, exist_ok=True)
+    for file in file_list:
+        file_path = os.path.join(local_dir, file)
+        if not os.path.exists(file_path):
+            print(f"{file} 不存在，从 Hugging Face 仓库下载...")
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=file,
+                resume_download=True,
+                local_dir=local_dir,
+                local_dir_use_symlinks=False,
+            )
+        else:
+            print(f"{file} 已存在，跳过下载。")
+
+# 1st
+repo_id_1 = "fishaudio/fish-speech-1"
+local_dir_1 = "./checkpoints"
+files_1 = [
     "firefly-gan-base-generator.ckpt",
     "README.md",
     "special_tokens_map.json",
@@ -15,49 +33,30 @@ files = [
     "vq-gan-group-fsq-2x1024.pth",
 ]
 
-# Hugging Face 仓库信息
-repo_id = "fishaudio/fish-speech-1"
-local_dir = "./checkpoints"
-
-
-os.makedirs(local_dir, exist_ok=True)
-
-# 检查每个文件是否存在，如果不存在则从 Hugging Face 仓库下载
-for file in files:
-    file_path = os.path.join(local_dir, file)
-    if not os.path.exists(file_path):
-        print(f"{file} 不存在，从 Hugging Face 仓库下载...")
-        hf_hub_download(
-            repo_id=repo_id,
-            filename=file,
-            resume_download=True,
-            local_dir=local_dir,
-            local_dir_use_symlinks=False,
-        )
-    else:
-        print(f"{file} 已存在，跳过下载。")
-
-
-files = [
+# 2nd
+repo_id_2 = "SpicyqSama007/fish-speech-packed"
+local_dir_2 = ".cache/whisper"
+files_2 = [
     "medium.pt",
     "small.pt",
 ]
 
-# Hugging Face 仓库信息
-repo_id = "SpicyqSama007/fish-speech-packed"
-local_dir = ".cache/whisper"
-os.makedirs(local_dir, exist_ok=True)
+# 3rd
+repo_id_3 = "fishaudio/fish-speech-1"
+local_dir_3 = "./"
+files_3 = [
+    "ffmpeg.exe",
+    "ffprobe.exe",
+]
 
-for file in files:
-    file_path = os.path.join(local_dir, file)
-    if not os.path.exists(file_path):
-        print(f"{file} 不存在，从 Hugging Face 仓库下载...")
-        hf_hub_download(
-            repo_id=repo_id,
-            filename=file,
-            resume_download=True,
-            local_dir=local_dir,
-            local_dir_use_symlinks=False,
-        )
-    else:
-        print(f"{file} 已存在，跳过下载。")
+# 4rd
+repo_id_4 = "SpicyqSama007/fish-speech-packed"
+local_dir_4 = "./"
+files_4 = [
+    "asr-label-win-x64.exe",
+]
+
+check_and_download_files(repo_id_1, files_1, local_dir_1)
+check_and_download_files(repo_id_2, files_2, local_dir_2)
+check_and_download_files(repo_id_3, files_3, local_dir_3)
+check_and_download_files(repo_id_4, files_4, local_dir_4)
