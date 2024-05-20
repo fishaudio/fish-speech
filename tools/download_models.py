@@ -3,7 +3,7 @@ import os
 from huggingface_hub import hf_hub_download
 
 
-# Donwload
+# Download
 def check_and_download_files(repo_id, file_list, local_dir):
     os.makedirs(local_dir, exist_ok=True)
     for file in file_list:
@@ -52,7 +52,7 @@ files_3 = [
     "ffprobe.exe",
 ]
 
-# 4rd
+# 4th
 repo_id_4 = "SpicyqSama007/fish-speech-packed"
 local_dir_4 = "./"
 files_4 = [
