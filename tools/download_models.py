@@ -1,5 +1,7 @@
 import os
+
 from huggingface_hub import hf_hub_download
+
 
 # Donwload
 def check_and_download_files(repo_id, file_list, local_dir):
@@ -17,6 +19,7 @@ def check_and_download_files(repo_id, file_list, local_dir):
             )
         else:
             print(f"{file} 已存在，跳过下载。")
+
 
 # 1st
 repo_id_1 = "fishaudio/fish-speech-1"
