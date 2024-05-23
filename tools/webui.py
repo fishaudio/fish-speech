@@ -44,7 +44,6 @@ HEADER_MD = f"""# Fish Speech
 
 TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 SPACE_IMPORTED = False
-cached_audio = np.zeros((1,))
 
 
 def build_html_error_message(error):
