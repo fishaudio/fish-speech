@@ -1,6 +1,8 @@
 import base64
 import io
+from pathlib import Path
 import queue
+import random
 import threading
 import traceback
 import wave
@@ -26,6 +28,7 @@ from kui.wsgi.routing import MultimethodRoutes
 from loguru import logger
 from pydantic import BaseModel, Field
 from transformers import AutoTokenizer
+import yaml
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -162,6 +165,33 @@ def decode_vq_tokens(
 
 routes = MultimethodRoutes(base_class=HttpView)
 
+def get_random_paths(base_path, data, speaker, emotion):
+    if not speaker and not emotion:
+        return None, None
+    
+    if speaker in data and emotion in data[speaker]:
+        files = data[speaker][emotion]
+        lab_files = [f for f in files if f.endswith('.lab')]
+        wav_files = [f for f in files if f.endswith('.wav')]
+        
+        if lab_files and wav_files:
+            selected_lab = random.choice(lab_files)
+            selected_wav = random.choice(wav_files)
+            
+            lab_path = Path(base_path) / speaker / emotion / selected_lab
+            wav_path = Path(base_path) / speaker / emotion / selected_wav
+            if lab_path.exists() and wav_path.exists():
+                return lab_path, wav_path
+    return None, None
+
+
+def load_yaml(yaml_file):
+    with open(yaml_file, 'r', encoding="utf-8") as file:
+        data = yaml.safe_load(file)
+    return data
+
+ref_data = load_yaml("ref_data.yml")
+ref_data_base = "ref_data"
 
 class InvokeRequest(BaseModel):
     text: str = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
@@ -173,14 +203,37 @@ class InvokeRequest(BaseModel):
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.5
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
     speaker: Optional[str] = None
+    emotion: Optional[str] = None
     format: Literal["wav", "mp3", "flac"] = "wav"
     streaming: bool = False
+
+
+def get_content_type(audio_format):
+    if audio_format == 'wav':
+        return 'audio/wav'
+    elif audio_format == 'flac':
+        return 'audio/flac'
+    elif audio_format == 'mp3':
+        return 'audio/mpeg'
+    else:
+        return 'application/octet-stream'
 
 
 @torch.inference_mode()
 def inference(req: InvokeRequest):
     # Parse reference audio aka prompt
     prompt_tokens = None
+
+    lab_path, wav_path = get_random_paths(ref_data_base, ref_data, req.speaker, req.emotion)
+
+    if lab_path and wav_path:
+        with open(wav_path, 'rb') as wav_file:
+            audio_bytes = wav_file.read()
+        with open(lab_path, 'r', encoding='utf-8') as lab_file:
+            ref_text = lab_file.read()
+        req.reference_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        req.reference_text = ref_text
+        logger.info("ref_text: " + ref_text)
 
     # Parse reference audio aka prompt
     prompt_tokens, reference_embedding = encode_reference(
@@ -294,7 +347,7 @@ def api_invoke_model(
             headers={
                 "Content-Disposition": f"attachment; filename=audio.{req.format}",
             },
-            content_type="audio/wav",
+            content_type=get_content_type(req.format),
         )
     else:
         fake_audios = next(generator)
@@ -306,7 +359,7 @@ def api_invoke_model(
             headers={
                 "Content-Disposition": f"attachment; filename=audio.{req.format}",
             },
-            content_type="audio/wav",
+            content_type=get_content_type(req.format),
         )
 
 
@@ -404,6 +457,7 @@ if __name__ == "__main__":
                 repetition_penalty=1.5,
                 temperature=0.7,
                 speaker=None,
+                emotion=None,
                 format="wav",
             )
         )

@@ -1,5 +1,5 @@
 # --infer
-# --api
+--api
 --listen 0.0.0.0:8000 \
 --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
 --llama-config-name dual_ar_2_codebook_medium \
