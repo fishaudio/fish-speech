@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import queue
 import random
 import threading
@@ -15,7 +16,6 @@ import numpy as np
 import pyrootutils
 import soundfile as sf
 import torch
-import json
 from kui.wsgi import (
     Body,
     HTTPException,
@@ -217,6 +217,7 @@ class InvokeRequest(BaseModel):
     ref_json: Optional[str] = "ref_data.json"
     ref_base: Optional[str] = "ref_data"
 
+
 def get_content_type(audio_format):
     if audio_format == "wav":
         return "audio/wav"
@@ -236,9 +237,7 @@ def inference(req: InvokeRequest):
     ref_data = load_json(req.ref_json)
     ref_base = req.ref_base
 
-    lab_path, wav_path = get_random_paths(
-        ref_base, ref_data, req.speaker, req.emotion
-    )
+    lab_path, wav_path = get_random_paths(ref_base, ref_data, req.speaker, req.emotion)
 
     if lab_path and wav_path:
         with open(wav_path, "rb") as wav_file:
@@ -475,7 +474,7 @@ if __name__ == "__main__":
                 emotion=None,
                 format="wav",
                 ref_base=None,
-                ref_json=None
+                ref_json=None,
             )
         )
     )

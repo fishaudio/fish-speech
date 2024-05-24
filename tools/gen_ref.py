@@ -1,5 +1,6 @@
-from pathlib import Path
 import json
+from pathlib import Path
+
 
 def scan_folder(base_path):
     wav_lab_pairs = {}
