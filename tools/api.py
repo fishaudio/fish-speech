@@ -15,7 +15,7 @@ import numpy as np
 import pyrootutils
 import soundfile as sf
 import torch
-import yaml
+import json
 from kui.wsgi import (
     Body,
     HTTPException,
@@ -167,33 +167,38 @@ routes = MultimethodRoutes(base_class=HttpView)
 
 
 def get_random_paths(base_path, data, speaker, emotion):
-    if not speaker and not emotion:
-        return None, None
+    if base_path and data and speaker and emotion and (Path(base_path).exists()):
+        if speaker in data and emotion in data[speaker]:
+            files = data[speaker][emotion]
+            lab_files = [f for f in files if f.endswith(".lab")]
+            wav_files = [f for f in files if f.endswith(".wav")]
 
-    if speaker in data and emotion in data[speaker]:
-        files = data[speaker][emotion]
-        lab_files = [f for f in files if f.endswith(".lab")]
-        wav_files = [f for f in files if f.endswith(".wav")]
+            if lab_files and wav_files:
+                selected_lab = random.choice(lab_files)
+                selected_wav = random.choice(wav_files)
 
-        if lab_files and wav_files:
-            selected_lab = random.choice(lab_files)
-            selected_wav = random.choice(wav_files)
+                lab_path = Path(base_path) / speaker / emotion / selected_lab
+                wav_path = Path(base_path) / speaker / emotion / selected_wav
+                if lab_path.exists() and wav_path.exists():
+                    return lab_path, wav_path
 
-            lab_path = Path(base_path) / speaker / emotion / selected_lab
-            wav_path = Path(base_path) / speaker / emotion / selected_wav
-            if lab_path.exists() and wav_path.exists():
-                return lab_path, wav_path
     return None, None
 
 
-def load_yaml(yaml_file):
-    with open(yaml_file, "r", encoding="utf-8") as file:
-        data = yaml.safe_load(file)
+def load_json(json_file):
+    if not json_file:
+        logger.info("Not using a json file")
+        return None
+    try:
+        with open(json_file, "r", encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        logger.warning(f"ref json not found: {json_file}")
+        data = None
+    except Exception as e:
+        logger.warning(f"Loading json failed: {e}")
+        data = None
     return data
-
-
-ref_data = load_yaml("ref_data.yml")
-ref_data_base = "ref_data"
 
 
 class InvokeRequest(BaseModel):
@@ -209,7 +214,8 @@ class InvokeRequest(BaseModel):
     emotion: Optional[str] = None
     format: Literal["wav", "mp3", "flac"] = "wav"
     streaming: bool = False
-
+    ref_json: Optional[str] = "ref_data.json"
+    ref_base: Optional[str] = "ref_data"
 
 def get_content_type(audio_format):
     if audio_format == "wav":
@@ -227,8 +233,11 @@ def inference(req: InvokeRequest):
     # Parse reference audio aka prompt
     prompt_tokens = None
 
+    ref_data = load_json(req.ref_json)
+    ref_base = req.ref_base
+
     lab_path, wav_path = get_random_paths(
-        ref_data_base, ref_data, req.speaker, req.emotion
+        ref_base, ref_data, req.speaker, req.emotion
     )
 
     if lab_path and wav_path:
@@ -238,6 +247,7 @@ def inference(req: InvokeRequest):
             ref_text = lab_file.read()
         req.reference_audio = base64.b64encode(audio_bytes).decode("utf-8")
         req.reference_text = ref_text
+        logger.info("ref_path: " + str(wav_path))
         logger.info("ref_text: " + ref_text)
 
     # Parse reference audio aka prompt
@@ -464,6 +474,8 @@ if __name__ == "__main__":
                 speaker=None,
                 emotion=None,
                 format="wav",
+                ref_base=None,
+                ref_json=None
             )
         )
     )

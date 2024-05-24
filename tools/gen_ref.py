@@ -1,7 +1,5 @@
 from pathlib import Path
-
-import yaml
-
+import json
 
 def scan_folder(base_path):
     wav_lab_pairs = {}
@@ -25,13 +23,13 @@ def scan_folder(base_path):
     return wav_lab_pairs
 
 
-def save_to_yaml(data, output_file):
+def save_to_json(data, output_file):
     with open(output_file, "w", encoding="utf-8") as file:
-        yaml.dump(data, file, default_flow_style=False, allow_unicode=True)
+        json.dump(data, file, ensure_ascii=False, indent=2)
 
 
 base_path = "ref_data"
-out_ref_file = "ref_data.yml"
+out_ref_file = "ref_data.json"
 
 wav_lab_pairs = scan_folder(base_path)
-save_to_yaml(wav_lab_pairs, out_ref_file)
+save_to_json(wav_lab_pairs, out_ref_file)
