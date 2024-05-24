@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
+from fish_speech.datasets.text import CODEBOOK_PAD_TOKEN_ID
 from fish_speech.models.text2semantic.llama import NaiveTransformer
 from fish_speech.models.text2semantic.lora_utils import LoraConfig, setup_lora
 
@@ -283,9 +284,10 @@ class TextToSemantic(L.LightningModule):
     def get_accuracy(self, logits, labels):
         _, indices = logits.topk(5, dim=-1)
         correct = indices.eq(labels.unsqueeze(-1))
-        correct[labels == -100] = 0
+        mask = (labels != -100) & (labels != CODEBOOK_PAD_TOKEN_ID)
+        correct[~mask] = 0
         correct = correct.sum()
-        accuracy = correct / (labels != -100).sum()
+        accuracy = correct / mask.sum()
 
         return accuracy
 

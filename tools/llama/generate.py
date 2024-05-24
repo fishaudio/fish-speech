@@ -296,7 +296,7 @@ def encode_tokens(
         f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>{speaker}<|im_sep|>"
     )
     if bos:
-        string = f"<|begin_of_sequence|>{string}"
+        string = tokenizer.bos_token + string
 
     new_tokens = tokenizer.encode(
         string,

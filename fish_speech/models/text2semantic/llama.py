@@ -39,6 +39,9 @@ class BaseModelArgs:
     # Gradient checkpointing
     use_gradient_checkpointing: bool = True
 
+    # Initialize the model
+    initializer_range: float = 0.02
+
     def __post_init__(self):
         if self.n_local_heads == -1:
             self.n_local_heads = self.n_head
@@ -237,6 +240,17 @@ class BaseTransformer(nn.Module):
             hidden_states=x,
         )
 
+    def _init_weights(self, module):
+        std = self.config.initializer_range
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=std)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=0.0, std=std)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
+
 
 class NaiveTransformer(BaseTransformer):
     def __init__(self, config: NaiveModelArgs) -> None:
@@ -248,6 +262,8 @@ class NaiveTransformer(BaseTransformer):
             config.codebook_size * config.num_codebooks,
             bias=False,
         )
+
+        self.apply(self._init_weights)
 
     def decode(self, result: BaseTransformerForwardResult) -> TransformerForwardResult:
         token_logits = result.logits
@@ -296,6 +312,8 @@ class DualARTransformer(BaseTransformer):
             config.codebook_size,
             bias=False,
         )
+
+        self.apply(self._init_weights)
 
     def setup_caches(
         self, max_batch_size: int, max_seq_len: int, dtype: torch.dtype = torch.bfloat16
