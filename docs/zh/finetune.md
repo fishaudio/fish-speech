@@ -208,7 +208,7 @@ python tools/vits_decoder/inference.py \
 
 ## VQGAN 微调 (不推荐)
 
-在 V1.1 版本中, 我们不再推荐使用 VQGAN 进行微调, 使用 VITS Decoder 会活得更好的表现, 但是如果你仍然想要使用 VQGAN 进行微调, 你可以参考以下步骤.
+在 V1.1 版本中, 我们不再推荐使用 VQGAN 进行微调, 使用 VITS Decoder 会获得更好的表现, 但是如果你仍然想要使用 VQGAN 进行微调, 你可以参考以下步骤.
 
 ### 1. 准备数据集
 
