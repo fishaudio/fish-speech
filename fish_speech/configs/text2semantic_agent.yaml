@@ -1,22 +1,23 @@
 defaults:
   - base
-  - model@model.model: dual_ar_2_codebook_1.1b
+  - model@model.model: dual_ar_2_codebook_1.3b
   - _self_
 
 project: text2semantic_agent_dual_ar_debug
-max_length: 2048
+max_length: 1024
 ckpt_path: checkpoints/fish-speech-agent-1/TinyLlama-1.1B-intermediate-step-1431k-3T.pth
 resume_weights_only: true
 
 # Lightning Trainer
 trainer:
-  accumulate_grad_batches: 2
+  accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: 'norm'
   max_steps: 1_000_000
   precision: bf16-true
+  log_every_n_steps: 10
   limit_val_batches: 10
-  val_check_interval: 100
+  val_check_interval: 1000
 
 # Dataset Configuration
 tokenizer:
@@ -77,7 +78,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 16
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 

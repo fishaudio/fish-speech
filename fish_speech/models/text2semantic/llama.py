@@ -7,7 +7,13 @@ import torch.nn as nn
 from einops import rearrange
 from torch import Tensor
 from torch.nn import functional as F
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
+
+try:
+    from fish_speech.models.text2semantic.kernels import fast_rms_layernorm
+except ImportError:
+    fast_rms_layernorm = None
 
 
 def find_multiple(n: int, k: int) -> int:
@@ -185,13 +191,14 @@ class BaseTransformer(nn.Module):
         # Here we want to merge the embeddings of the codebooks
         x = self.embed(inp)
 
-        mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[:seq_len]
 
         # Not that the causal mask here follows the definition of scaled_dot_product_attention
         # That is, FALSE means masked out
         # To maintain consistency, key_padding_mask use TRUE to mask out
+        mask = None
         if key_padding_mask is not None:
+            mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
             mask = mask & key_padding_mask[:, None, None, :].logical_not()
 
         for layer in self.layers:
@@ -487,13 +494,24 @@ class Attention(nn.Module):
         v = v.repeat_interleave(self.n_head // self.n_local_heads, dim=1)
 
         if self.use_sdpa:
-            y = F.scaled_dot_product_attention(
-                q,
-                k,
-                v,
-                attn_mask=mask,
-                dropout_p=self.dropout if self.training else 0.0,
-            )
+            if mask is None:
+                with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+                    y = F.scaled_dot_product_attention(
+                        q,
+                        k,
+                        v,
+                        dropout_p=self.dropout if self.training else 0.0,
+                        is_causal=True,
+                        # No thirdparty attn_mask here to use flash_attention
+                    )
+            else:
+                y = F.scaled_dot_product_attention(
+                    q,
+                    k,
+                    v,
+                    attn_mask=mask,
+                    dropout_p=self.dropout if self.training else 0.0,
+                )
         else:
             y = self.eq_scaled_dot_product_attention(
                 q,
@@ -557,6 +575,9 @@ class RMSNorm(nn.Module):
         return x * torch.rsqrt(torch.mean(x * x, dim=-1, keepdim=True) + self.eps)
 
     def forward(self, x: Tensor) -> Tensor:
+        if fast_rms_layernorm is not None:
+            return fast_rms_layernorm(self, x)
+
         output = self._norm(x.float()).type_as(x)
         return output * self.weight
 
@@ -572,6 +593,7 @@ def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor
     return cache.to(dtype=torch.bfloat16)
 
 
+@torch.compile
 def apply_rotary_emb(x: Tensor, freqs_cis: Tensor) -> Tensor:
     xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
     freqs_cis = freqs_cis.view(1, xshaped.size(1), 1, xshaped.size(3), 2)

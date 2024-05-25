@@ -7,6 +7,7 @@ from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
 from fish_speech.datasets.text import CODEBOOK_PAD_TOKEN_ID
+from fish_speech.models.text2semantic.kernels import fast_cross_entropy_loss
 from fish_speech.models.text2semantic.llama import NaiveTransformer
 from fish_speech.models.text2semantic.lora_utils import LoraConfig, setup_lora
 
@@ -138,15 +139,15 @@ class TextToSemantic(L.LightningModule):
             labels, negative_labels = labels.chunk(2)
 
         # Generate labels
-        base_loss = F.cross_entropy(
-            token_logits.reshape(-1, token_logits.size(-1)),
+        base_loss = fast_cross_entropy_loss(
+            token_logits.view(-1, token_logits.size(-1)),
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
 
         codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
-        semantic_loss = F.cross_entropy(
-            codebook_logits.reshape(-1, codebook_logits.size(-1)),
+        semantic_loss = fast_cross_entropy_loss(
+            codebook_logits.view(-1, codebook_logits.size(-1)),
             codebook_labels.reshape(-1),
             ignore_index=-100,
         )
