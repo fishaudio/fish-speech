@@ -365,6 +365,11 @@ class DualARTransformer(BaseTransformer):
         # Remove padded part
         codebooks = rearrange(codebooks, "b n s -> (b s) n")
         codebook_mask = (codebooks == self.config.codebook_padding_idx).all(dim=-1)
+
+        if torch.all(codebook_mask):
+            # If all codebooks are padded, we keep first 8 to make sure the model runs
+            codebook_mask[:8] = False
+
         x_bs, x_len = x.size(0), x.size(1)
         x = x[~codebook_mask]
 

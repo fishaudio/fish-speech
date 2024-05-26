@@ -34,7 +34,8 @@ dependencies = [
     "vector_quantize_pytorch>=1.14.24",
     "samplerate>=0.2.1",
     "resampy>=0.4.3",
-    "einx[torch]==0.2.2"
+    "einx[torch]==0.2.2",
+    "zstandard>=0.22.0"
 ]
 
 [project.optional-dependencies]

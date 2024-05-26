@@ -283,9 +283,12 @@ class TextToSemantic(L.LightningModule):
         return loss
 
     def get_accuracy(self, logits, labels):
+        mask = (labels != -100) & (labels != CODEBOOK_PAD_TOKEN_ID)
+        if mask.sum() == 0:
+            return torch.tensor(0.0, device=logits.device)
+
         _, indices = logits.topk(5, dim=-1)
         correct = indices.eq(labels.unsqueeze(-1))
-        mask = (labels != -100) & (labels != CODEBOOK_PAD_TOKEN_ID)
         correct[~mask] = 0
         correct = correct.sum()
         accuracy = correct / mask.sum()

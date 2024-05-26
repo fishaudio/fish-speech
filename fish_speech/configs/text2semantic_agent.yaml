@@ -4,8 +4,8 @@ defaults:
   - _self_
 
 project: text2semantic_agent_dual_ar_debug
-max_length: 1024
-ckpt_path: checkpoints/fish-speech-agent-1/TinyLlama-1.1B-intermediate-step-1431k-3T.pth
+max_length: 2048
+ckpt_path: checkpoints/fish-speech-agent-1/step_000013000.ckpt
 resume_weights_only: true
 
 # Lightning Trainer
@@ -25,60 +25,15 @@ tokenizer:
   pretrained_model_name_or_path: checkpoints/fish-speech-agent-1
 
 # Dataset Configuration
-train_dataset:
-  _target_: fish_speech.datasets.text.InterleaveDataset
-  datasets:
-    - _target_: fish_speech.datasets.text.TextPretrainDataset
-      source: /mnt/nas-ssd/SlimPajama-627B/filelist.train.txt
-      tokenizer: ${tokenizer}
-      max_length: ${max_length}
-      num_codebooks: ${model.model.config.num_codebooks}
-    - _target_: fish_speech.datasets.text.TextInstructionDataset
-      source: data/openhermes2_5
-      tokenizer: ${tokenizer}
-      max_length: ${max_length}
-      num_codebooks: ${model.model.config.num_codebooks}
-    - _target_: fish_speech.datasets.text.AutoTextSemanticInstructionDataset
-      proto_files:
-        - data/protos/pretrain/train/gigaspeech
-        - data/protos/pretrain/train/libri-light
-        - data/protos/pretrain/train/libritts-train
-        - data/protos/sft/train/openai_11labs
-      tokenizer: ${tokenizer}
-      max_length: ${max_length}
-      num_codebooks: ${model.model.config.num_codebooks}
-      asr_prob: 0.5
-      skip_text_prob: 0.1
-  probabilities: [0.3, 0.1, 0.6]
-
-val_dataset:
-  _target_: fish_speech.datasets.text.InterleaveDataset
-  datasets:
-    - _target_: fish_speech.datasets.text.TextPretrainDataset
-      source: /mnt/nas-ssd/SlimPajama-627B/filelist.test.txt
-      tokenizer: ${tokenizer}
-      max_length: ${max_length}
-      num_codebooks: ${model.model.config.num_codebooks}
-    - _target_: fish_speech.datasets.text.AutoTextSemanticInstructionDataset
-      proto_files:
-        - data/protos/pretrain/test/gigaspeech
-        - data/protos/pretrain/test/libri-light
-        - data/protos/pretrain/test/libritts
-        - data/protos/sft/val/openai
-        - data/protos/sft/val/11labs
-      tokenizer: ${tokenizer}
-      max_length: ${max_length}
-      num_codebooks: ${model.model.config.num_codebooks}
-      asr_prob: 0.5
-      skip_text_prob: 0.1
-  probabilities: [0.3, 0.7]
+train_dataset: {}
+val_dataset: {}
 
 data:
   _target_: fish_speech.datasets.text.TextDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 16
+  batch_size: 8
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 
@@ -101,7 +56,7 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 2000
+      num_warmup_steps: 1000
       num_training_steps: ${trainer.max_steps}
       final_lr_ratio: 0.1
 
