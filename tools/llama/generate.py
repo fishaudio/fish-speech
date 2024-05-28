@@ -19,7 +19,7 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from fish_speech.datasets.text import CODEBOOK_EOS_TOKEN_ID, CODEBOOK_PAD_TOKEN_ID
+from fish_speech.conversation import CODEBOOK_EOS_TOKEN_ID, CODEBOOK_PAD_TOKEN_ID
 from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

@@ -3,23 +3,26 @@ import io
 import json
 import random
 from dataclasses import dataclass
-from itertools import chain
 from pathlib import Path
 from random import Random
 from typing import Optional, Union
 
 import numpy as np
-import pyarrow.parquet as pq
 import torch
 import torch.nn.functional as F
 import zstandard as zstd
-from datasets.download.streaming_download_manager import xopen
-from huggingface_hub import HfApi
 from lightning import LightningDataModule
 from torch.distributed import get_rank, get_world_size, is_initialized
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from transformers import AutoTokenizer
 
+from fish_speech.conversation import (
+    CODEBOOK_PAD_TOKEN_ID,
+    SKIP_TEXT_STRING,
+    Conversation,
+    Message,
+    encode_conversation,
+)
 from fish_speech.datasets.prompts import asr_instructions, tts_instructions
 from fish_speech.datasets.protos.text_data_pb2 import SampledData
 from fish_speech.datasets.protos.text_data_stream import read_pb_stream
@@ -29,9 +32,6 @@ from fish_speech.utils.braceexpand import braceexpand
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
-CODEBOOK_PAD_TOKEN_ID = 0
-CODEBOOK_EOS_TOKEN_ID = 1
-SKIP_TEXT_STRING = "<|skip_text|>"
 DCTX = zstd.ZstdDecompressor(max_window_size=2**31)
 
 
@@ -60,6 +60,25 @@ def split_by_rank_worker(files):
         files = files[worker_info.id :: worker_info.num_workers]
 
     return files
+
+
+def expand_split_proto_files(proto_files, seed: int = 42):
+    # Expand the proto files
+    expanded_proto_files = []
+    for filename in proto_files:
+        for i in braceexpand(filename):
+            i = Path(i)
+            if i.is_file():
+                expanded_proto_files.append(i)
+            elif i.is_dir():
+                expanded_proto_files.extend(i.rglob("*.proto"))
+                expanded_proto_files.extend(i.rglob("*.protos"))
+            else:
+                raise ValueError(f"{i} is not a file or directory")
+
+    expanded_proto_files = sorted(expanded_proto_files)
+    Random(seed).shuffle(expanded_proto_files)
+    return split_by_rank_worker(expanded_proto_files)
 
 
 class TextPretrainDataset(IterableDataset):
@@ -164,38 +183,39 @@ class TextPretrainDataset(IterableDataset):
 class TextInstructionDataset(TextPretrainDataset):
     def parse_data(self, filename: str):
         for line in self.read_jsonl(filename):
-            all_tokens, all_labels = [], []
-            for idx, conversation in enumerate(line["conversations"]):
-                mapped_speaker = {
+            messages = []
+            for conversation in line["conversations"]:
+                role = {
                     "human": "user",
                     "gpt": "assistant",
                     "system": "system",
                 }[conversation["from"]]
-                packed = f"<|im_start|>{mapped_speaker}<|im_sep|>{conversation['value']}<|im_end|>{self.tokenizer.eos_token}"
-                tokens = self.tokenizer.encode(
-                    packed,
-                    add_special_tokens=False,
-                    truncation=False,
-                    max_length=10**6,
+
+                message = Message(
+                    role=role,
+                    parts=[conversation["value"]],
                 )
+                messages.append(message)
 
-                if idx == 0:
-                    tokens = [self.tokenizer.bos_token_id] + tokens
-
-                all_tokens.extend(tokens[:-1])
-                all_labels.extend(tokens[1:])
-
-                if len(all_tokens) > self.max_length:
-                    break
-
-            tokens = self.pad_codebooks(all_tokens)
-            labels = self.pad_codebooks(all_labels)
-
-            if len(tokens) > self.max_length:
-                tokens = tokens[: self.max_length]
-                labels = labels[: self.max_length]
+            conversation = Conversation(messages=messages)
+            tokens, labels = encode_conversation(
+                conversation,
+                self.tokenizer,
+                num_codebooks=self.num_codebooks,
+            )
 
             yield {"tokens": tokens, "labels": labels}
+
+
+def semantic_to_tensor(semantics):
+    num_codebooks = len(semantics)
+    codes = [[] for _ in range(num_codebooks)]
+
+    for book_idx, book in zip(range(num_codebooks), semantics):
+        for j in book.values:
+            codes[book_idx].append(int(j) + 2)
+
+    return torch.tensor(codes, dtype=torch.int)
 
 
 class AutoTextSemanticInstructionDataset(IterableDataset):
@@ -235,35 +255,15 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         self.num_codebooks = num_codebooks
         self.skip_text_prob = skip_text_prob
         self.asr_prob = asr_prob
-
-        self.semantic_token_id = self.tokenizer.convert_tokens_to_ids("<|semantic|>")
         self.groups = None
 
     def init_mock_data_server(self):
         if self.groups is not None:
             return
 
-        # Expand the proto files
-        expanded_proto_files = []
-        for filename in self.proto_files:
-            for i in braceexpand(filename):
-                i = Path(i)
-                if i.is_file():
-                    expanded_proto_files.append(i)
-                elif i.is_dir():
-                    expanded_proto_files.extend(i.rglob("*.proto"))
-                    expanded_proto_files.extend(i.rglob("*.protos"))
-                else:
-                    raise ValueError(f"{i} is not a file or directory")
-
-        expanded_proto_files = sorted(expanded_proto_files)
-        Random(self.seed).shuffle(expanded_proto_files)
-
         self.groups = []
-        shard_proto_files = split_by_rank_worker(expanded_proto_files)
-        log.info(
-            f"Reading {len(shard_proto_files)} / {len(expanded_proto_files)} files"
-        )
+        shard_proto_files = expand_split_proto_files(self.proto_files, seed=self.seed)
+        log.info(f"Reading {len(shard_proto_files)} files")
 
         count = 0
         for filename in shard_proto_files:
@@ -334,7 +334,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         idx = 0
         remaining_tokens = self.max_length
 
-        all_tokens, all_labels = [], []
+        all_messages = []
         while remaining_tokens > 0 and len(samples) > 0:
             sentence = samples.pop(0)
 
@@ -346,26 +346,48 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             # [INST] [SPK: speaker] text [/INST] ... [INST] text [/INST]
 
             if random.random() < self.asr_prob:
-                tokens, labels = self.pack_sentences_asr(
-                    sentences=[text],
-                    semantics=[sentence.semantics],
-                    add_bos=idx == 0,
+                all_messages.append(
+                    Message(
+                        role="user",
+                        parts=[
+                            random.choice(asr_instructions),
+                            semantic_to_tensor(sentence.semantics),
+                        ],
+                    )
+                )
+                all_messages.append(
+                    Message(
+                        role="assistant",
+                        parts=[text],
+                    )
                 )
             else:
-                tokens, labels = self.pack_sentences_tts(
-                    sentences=[text],
-                    semantics=[sentence.semantics],
-                    add_bos=idx == 0,
-                    skip_text=random.random() < self.skip_text_prob,
-                )
+                skip_text = random.random() < self.skip_text_prob
+                if skip_text:
+                    text = SKIP_TEXT_STRING
 
-            all_tokens.append(tokens)
-            all_labels.append(labels)
+                all_messages.append(
+                    Message(
+                        role="user",
+                        parts=[random.choice(tts_instructions) + text],
+                        mask_labels=skip_text,
+                    )
+                )
+                all_messages.append(
+                    Message(
+                        role="assistant",
+                        parts=[semantic_to_tensor(sentence.semantics)],
+                        mask_labels=skip_text,
+                    )
+                )
 
             idx += 1
 
-        tokens = torch.cat(all_tokens, dim=1)
-        labels = torch.cat(all_labels, dim=1)
+        tokens, labels = encode_conversation(
+            Conversation(messages=all_messages),
+            self.tokenizer,
+            num_codebooks=self.num_codebooks,
+        )
 
         # Verify that the length is correct
         assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
@@ -375,171 +397,62 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
 
         return {"tokens": tokens, "labels": labels}
 
-    def pack_sentences_tts(
+
+class SemanticInstructionDataset(IterableDataset):
+    def __init__(
         self,
-        sentences: list[str],
-        semantics: list,
-        add_bos: bool = True,
-        skip_text: bool = False,
+        proto_files: list[str],
+        seed: int = 42,
+        max_length: int = 1024,
+        tokenizer: AutoTokenizer = None,
+        num_codebooks: Optional[int] = None,
     ):
-        cated_sentences = " ".join(sentences)
-        if skip_text:
-            cated_sentences = SKIP_TEXT_STRING
+        super().__init__()
 
-        cated_sentences = random.choice(tts_instructions) + cated_sentences
+        self.seed = seed
+        self.max_length = max_length
+        self.tokenizer = tokenizer
+        self.proto_files = proto_files
+        self.num_codebooks = num_codebooks
 
-        final_text = "<|im_start|>user<|im_sep|>" + cated_sentences + "<|im_end|>"
-        final_text = final_text + f"<|im_start|>assistant<|im_sep|>"
+    def get_data_generator(self):
+        shard_proto_files = expand_split_proto_files(self.proto_files, seed=self.seed)
+        log.info(f"Fetched {len(shard_proto_files)} files")
 
-        encoded = self.tokenizer.encode(
-            final_text,
-            add_special_tokens=False,
-            truncation=False,
-            max_length=10**6,
-        )
-        semantic_length = sum([len(i[0].values) for i in semantics])
-        prompt_length = len(encoded)
-        num_codebooks = (
-            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
-        )
+        for filename in shard_proto_files:
+            with open(filename, "rb") as f:
+                for group in read_pb_stream(f):
+                    yield group
 
-        bos_bias = 1 if add_bos else 0
+    def pack_one_group(self, group):
+        sentences = group.sentences
 
-        # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
-        tokens = (
-            encoded
-            + [self.semantic_token_id] * semantic_length
-            + self.tokenizer.convert_tokens_to_ids(["<|im_end|>"])
-            + [self.tokenizer.eos_token_id]
-        )
-
-        if add_bos:
-            tokens = [self.tokenizer.bos_token_id] + tokens
-
-        # Codebook bos/padding: 0, eos: 1
-        codes = [
-            [CODEBOOK_PAD_TOKEN_ID] * (prompt_length + bos_bias)
-            for _ in range(num_codebooks)
-        ]
-        for segment in semantics:
-            for book_idx, book in zip(range(num_codebooks), segment):
-                for j in book.values:
-                    codes[book_idx].append(int(j) + 2)
-
-        for book in codes:
-            book.extend([CODEBOOK_EOS_TOKEN_ID] * 2)
-
-        tokens = [tokens] + codes
-
-        tokens = torch.tensor(tokens, dtype=torch.long)
-        labels = tokens.clone()
-
-        if skip_text:
-            # If text is not provided, the sentence is used for condition only, all labels are -100
-            torch.fill_(labels, -100)
-            return tokens, labels
-
-        # Mask out instruction tokens
-        labels[:, : (prompt_length + bos_bias)] = -100
-
-        tokens = tokens[:, :-1]
-        labels = labels[:, 1:]
-
-        # Verify the padding is correct, and the last token is eos
-        assert add_bos is False or tokens[0, 0] == self.tokenizer.bos_token_id
-        assert (tokens[1:, : prompt_length + bos_bias] == CODEBOOK_PAD_TOKEN_ID).all()
-        assert labels[0, -1] == self.tokenizer.eos_token_id
-        assert (labels[1:, -2:] == CODEBOOK_EOS_TOKEN_ID).all()
-
-        return tokens, labels
-
-    def pack_sentences_asr(
-        self,
-        sentences: list[str],
-        semantics: list,
-        speaker: Optional[str] = None,
-        add_bos: bool = True,
-    ):
-        if speaker is None:
-            speaker = "assistant"
-
-        cated_sentences = " ".join(sentences)
-        prompt = random.choice(asr_instructions)
-
-        final_text = "<|im_start|>user<|im_sep|>" + prompt
-
-        encoded = self.tokenizer.encode(
-            final_text,
-            add_special_tokens=False,
-            truncation=False,
-            max_length=10**6,
-        )
-        semantic_length = sum([len(i[0].values) for i in semantics])
-        prompt_length = len(encoded)
-        num_codebooks = (
-            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
-        )
-
-        bos_bias = 1 if add_bos else 0
-
-        # Pack the tokens and semantics (add <s> and </s> to semantic tokens)
-        tokens = (
-            encoded
-            + [self.semantic_token_id] * semantic_length
-            + self.tokenizer.convert_tokens_to_ids(["<|im_end|>"])
-        )
-
-        if add_bos:
-            tokens = [self.tokenizer.bos_token_id] + tokens
-
-        response_header = self.tokenizer.encode(
-            "<|im_start|>assistant<|im_sep|>",
-            add_special_tokens=False,
-            truncation=False,
-            max_length=10**6,
-        )
-        encoded_result = self.tokenizer.encode(
-            f"{cated_sentences}<|im_end|>",
-            add_special_tokens=False,
-            truncation=False,
-            max_length=10**6,
-        )
-
-        # Codebook bos/padding: 0, eos: 1
-        codes = [
-            [CODEBOOK_PAD_TOKEN_ID] * (prompt_length + bos_bias)
-            for _ in range(num_codebooks)
-        ]
-        for segment in semantics:
-            for book_idx, book in zip(range(num_codebooks), segment):
-                for j in book.values:
-                    codes[book_idx].append(int(j) + 2)
-
-        for book in codes:
-            book.extend(
-                [CODEBOOK_PAD_TOKEN_ID]
-                * (len(response_header) + len(encoded_result) + 2)
+        messages = []
+        for idx, sentence in enumerate(sentences):
+            role = "user" if idx % 2 == 0 else "assistant"
+            semantic = semantic_to_tensor(sentence.semantics)
+            messages.append(
+                Message(
+                    role=role,
+                    parts=[semantic],
+                )
             )
 
-        instruction_length = len(tokens)
-        tokens = [
-            tokens + response_header + encoded_result + [self.tokenizer.eos_token_id]
-        ] + codes
-        tokens = torch.tensor(tokens, dtype=torch.long)
-        labels = tokens.clone()
+        conversation = Conversation(messages=messages)
+        tokens, labels = encode_conversation(
+            conversation,
+            self.tokenizer,
+            num_codebooks=self.num_codebooks,
+        )
 
-        # Mask out instruction tokens
-        labels[:, : instruction_length + len(response_header)] = -100
-        tokens = tokens[:, :-1]
-        labels = labels[:, 1:]
+        return {"tokens": tokens, "labels": labels}
 
-        # Verify the padding is correct, and the last token is eos
-        assert add_bos is False or tokens[0, 0] == self.tokenizer.bos_token_id
-        assert (tokens[1:, : prompt_length + bos_bias] == CODEBOOK_PAD_TOKEN_ID).all()
-        assert (tokens[1:, instruction_length:] == CODEBOOK_PAD_TOKEN_ID).all()
-        assert labels[0, -1] == self.tokenizer.eos_token_id
-
-        return tokens, labels
+    def __iter__(self):
+        for group in self.get_data_generator():
+            try:
+                yield self.pack_one_group(group)
+            except Exception as e:
+                log.exception(f"Failed to parse {group}: {e}")
 
 
 @dataclass
@@ -698,10 +611,11 @@ if __name__ == "__main__":
     from tqdm import tqdm
 
     # ds = AutoTextSemanticInstructionDataset(
-    #     ["data/protos/eleven_labs"],
+    #     ["data/protos/sft/val/11labs"],
     #     tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
-    #     skip_text_prob=0.5,
-    #     asr_prob=1.0
+    #     skip_text_prob=1.0,
+    #     asr_prob=0.0,
+    #     num_codebooks=2,
     # )
 
     ds = TextInstructionDataset(
@@ -709,12 +623,19 @@ if __name__ == "__main__":
         tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
     )
 
+    # ds = SemanticInstructionDataset(
+    #     proto_files=["data/protos/sft/val/11labs"],
+    #     tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
+    #     num_codebooks=2,
+    # )
+
     for i in ds:
         # print(ds.tokenizer.decode(i["tokens"][0], skip_special_tokens=False))
         # i["labels"][0][i["labels"][0] == -100] = 0
         # print(ds.tokenizer.decode(i["labels"][0], skip_special_tokens=False))
 
         length = i["tokens"].size(1)
+        print(i["tokens"].size(), i["tokens"].dtype)
         for j in range(length):
             print(
                 ds.tokenizer.decode(i["tokens"][0, j]),
