@@ -64,7 +64,7 @@ def encode_message(
 
         if isinstance(part, torch.Tensor):
             tokens = torch.zeros(1, part.shape[1], dtype=torch.int) + semantic_id
-            codes = part
+            codes = part.to(dtype=torch.int, device=tokens.device) + 2
             all_tokens.append(tokens)
             all_codes.append(codes)
             continue

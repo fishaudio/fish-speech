@@ -213,7 +213,7 @@ def semantic_to_tensor(semantics):
 
     for book_idx, book in zip(range(num_codebooks), semantics):
         for j in book.values:
-            codes[book_idx].append(int(j) + 2)
+            codes[book_idx].append(int(j))
 
     return torch.tensor(codes, dtype=torch.int)
 
@@ -417,6 +417,7 @@ class SemanticInstructionDataset(IterableDataset):
 
     def get_data_generator(self):
         shard_proto_files = expand_split_proto_files(self.proto_files, seed=self.seed)
+        random.shuffle(shard_proto_files)
         log.info(f"Fetched {len(shard_proto_files)} files")
 
         for filename in shard_proto_files:
@@ -431,10 +432,16 @@ class SemanticInstructionDataset(IterableDataset):
         for idx, sentence in enumerate(sentences):
             role = "user" if idx % 2 == 0 else "assistant"
             semantic = semantic_to_tensor(sentence.semantics)
+            text = random.choice(sentence.texts)
+            parts = [semantic]
+            if role == "assistant":
+                # Let model to predict the text first
+                prev_text = random.choice(sentences[idx - 1].texts)
+                # parts.insert(0, f"Q: {prev_text}\nA: {text}")
             messages.append(
                 Message(
                     role=role,
-                    parts=[semantic],
+                    parts=parts,
                 )
             )
 
@@ -617,17 +624,16 @@ if __name__ == "__main__":
     #     asr_prob=0.0,
     #     num_codebooks=2,
     # )
-
-    ds = TextInstructionDataset(
-        source="data/openhermes2_5",
-        tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
-    )
-
-    # ds = SemanticInstructionDataset(
-    #     proto_files=["data/protos/sft/val/11labs"],
+    # ds = TextInstructionDataset(
+    #     source="data/openhermes2_5",
     #     tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
-    #     num_codebooks=2,
     # )
+
+    ds = SemanticInstructionDataset(
+        proto_files=["data/protos/sft/val/ultrachat_200k_spoken_openai"],
+        tokenizer=AutoTokenizer.from_pretrained("checkpoints/fish-speech-agent-1"),
+        num_codebooks=2,
+    )
 
     for i in ds:
         # print(ds.tokenizer.decode(i["tokens"][0], skip_special_tokens=False))
