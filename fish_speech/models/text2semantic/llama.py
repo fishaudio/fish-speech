@@ -580,7 +580,7 @@ class RMSNorm(nn.Module):
         return x * torch.rsqrt(torch.mean(x * x, dim=-1, keepdim=True) + self.eps)
 
     def forward(self, x: Tensor) -> Tensor:
-        if fast_rms_layernorm is not None:
+        if fast_rms_layernorm is not None and self.training:
             return fast_rms_layernorm(self, x)
 
         output = self._norm(x.float()).type_as(x)
