@@ -12,11 +12,11 @@ Directory structure:
 ------02.wav
 ------......
 Use 
-python tools/whisper_asr.py --audio_dir pre_data_root/SP_1 --save_dir data/SP_1 
+python tools/whisper_asr.py --audio-dir pre_data_root/SP_1 --save-dir data/SP_1 
 to transcribe the first speaker.
 
 Use 
-python tools/whisper_asr.py --audio_dir pre_data_root/SP_2 --save_dir data/SP_2 
+python tools/whisper_asr.py --audio-dir pre_data_root/SP_2 --save-dir data/SP_2 
 to transcribe the second speaker.
 
 Note: Be aware of your audio sample rate, which defaults to 44.1kHz.
