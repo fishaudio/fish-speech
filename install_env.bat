@@ -1,7 +1,8 @@
 @echo off
 chcp 65001
 
-set USE_MIRROR=true
+set USE_MIRROR=preview
+set INSTALL_TYPE=preview
 echo use_mirror = %USE_MIRROR%
 setlocal enabledelayedexpansion
 
@@ -119,6 +120,15 @@ if errorlevel 1 (
 
 set "packages=torch torchvision torchaudio openai-whisper fish-speech"
 
+if "!INSTALL_TYPE!" == "preview" (
+    set "packages=!packages! triton_windows"
+)
+
+set "HF_ENDPOINT=https://hf-mirror.com"
+if "!USE_MIRROR!" == "false" (
+    set "HF_ENDPOINT=https://huggingface.co"
+)
+echo "HF_ENDPOINT: !HF_ENDPOINT!"
 
 set "install_packages="
 for %%p in (%packages%) do (
@@ -146,22 +156,111 @@ if not "!install_packages!"=="" (
             ) else if "%%p"=="fish-speech" (
                 %PIP_CMD% install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
             )
-        ) else (
+        ) 
+
+        if "!USE_MIRROR!"=="false" (
             if "%%p"=="torch" (
-                %PIP_CMD% install torch --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
+                %PIP_CMD% install torch==2.4.0.dev20240427+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
             ) else if "%%p"=="torchvision" (
-                %PIP_CMD% install torchvision --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
+                %PIP_CMD% install torchvision==0.19.0.dev20240428+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
             ) else if "%%p"=="torchaudio" (
-                %PIP_CMD% install torchaudio --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
+                %PIP_CMD% install torchaudio==2.2.0.dev20240427+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
             ) else if "%%p"=="openai-whisper" (
                 %PIP_CMD% install openai-whisper --no-warn-script-location
             ) else if "%%p"=="fish-speech" (
                 %PIP_CMD% install -e .
             )
         )
+        
+        if "!INSTALL_TYPE!"=="preview" (
+            if "%%p"=="torch" (
+                set "WHEEL_FILE=torchaudio-2.2.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
+                set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/torch-2.4.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true"
+                set "CHKSUM=b091308f4cb74e63d0323afd67c92f2279d9e488d8cbf467bcc7b939bcd74e0b"
+                :TORCH_DOWNLOAD
+                if not exist "!WHEEL_FILE!" (
+                    call curl -Lk "!URL!" --output "!WHEEL_FILE!"
+                )
+                for /f "delims=" %%I in ('certutil -hashfile "!WHEEL_FILE!" SHA256 ^| find /i "!CHKSUM!"') do (
+                    set "FILE_VALID=true"
+                )
+                if not defined FILE_VALID (
+                    echo File checksum does not match, re-downloading...
+                    del "!WHEEL_FILE!"
+                    goto TORCH_DOWNLOAD
+                )
+                echo "OK for !WHEEL_FILE!"
+                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                del "!WHEEL_FILE!"
+            ) else if "%%p"=="torchvision" (
+                set "WHEEL_FILE=torchvision-0.19.0.dev20240428+cu121-cp310-cp310-win_amd64.whl"
+                set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/torchvision-0.19.0.dev20240428_cu121-cp310-cp310-win_amd64.whl?download=true"
+                set "CHKSUM=7e46d0a89534013f001563d15e80f9eb431089571720c51f2cc595feeb01d785"
+                :TORCHVISION_DOWNLOAD
+                if not exist "!WHEEL_FILE!" (
+                    call curl -Lk "!URL!" --output "!WHEEL_FILE!"
+                )
+                for /f "delims=" %%I in ('certutil -hashfile "!WHEEL_FILE!" SHA256 ^| find /i "!CHKSUM!"') do (
+                    set "FILE_VALID=true"
+                )
+                if not defined FILE_VALID (
+                    echo File checksum does not match, re-downloading...
+                    del "!WHEEL_FILE!"
+                    goto TORCHVISION_DOWNLOAD
+                )
+                echo "OK for !WHEEL_FILE!"
+                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                del "!WHEEL_FILE!"
+            ) else if "%%p"=="torchaudio" (
+                set "WHEEL_FILE=torchaudio-2.2.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
+                set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/torchaudio-2.2.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true"
+                set "CHKSUM=abafb4bc82cbc6f58f18e1b95191bc1884c28e404781082db2eb540b4fae8a5d"
+                :TORCHAUDIO_DOWNLOAD
+                if not exist "!WHEEL_FILE!" (
+                    call curl -Lk "!URL!" --output "!WHEEL_FILE!"
+                )
+                for /f "delims=" %%I in ('certutil -hashfile "!WHEEL_FILE!" SHA256 ^| find /i "!CHKSUM!"') do (
+                    set "FILE_VALID=true"
+                )
+                if not defined FILE_VALID (
+                    echo File checksum does not match, re-downloading...
+                    del "!WHEEL_FILE!"
+                    goto TORCHAUDIO_DOWNLOAD
+                )
+                echo "OK for !WHEEL_FILE!"
+                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                del "!WHEEL_FILE!"
+            ) else if "%%p"=="openai-whisper" (
+                %PIP_CMD% install openai-whisper --no-warn-script-location
+            ) else if "%%p"=="fish-speech" (
+                %PIP_CMD% install -e .
+            ) else if "%%p"=="triton_windows" (
+                set "WHEEL_FILE=triton_windows-0.1.0-py3-none-any.whl"
+                set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/triton_windows-0.1.0-py3-none-any.whl?download=true"
+                set "CHKSUM=2cc998638180f37cf5025ab65e48c7f629aa5a369176cfa32177d2bd9aa26a0a"
+                :TRITON_DOWNLOAD
+                if not exist "!WHEEL_FILE!" (
+                    call curl -Lk "!URL!" --output "!WHEEL_FILE!"
+                )
+                for /f "delims=" %%I in ('certutil -hashfile "!WHEEL_FILE!" SHA256 ^| find /i "!CHKSUM!"') do (
+                    set "FILE_VALID=true"
+                )
+                if not defined FILE_VALID (
+                    echo File checksum does not match, re-downloading...
+                    del "!WHEEL_FILE!"
+                    goto TRITON_DOWNLOAD
+                )
+                echo "OK for !WHEEL_FILE!"
+                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                del "!WHEEL_FILE!"
+            )
+            
+        )
+
     )
 )
 echo Environment Check: Success.
 
 endlocal
+:end
 pause
