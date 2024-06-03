@@ -174,11 +174,12 @@ if not "!install_packages!"=="" (
         
         if "!INSTALL_TYPE!"=="preview" (
             if "%%p"=="torch" (
-                set "WHEEL_FILE=torchaudio-2.2.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
+                set "WHEEL_FILE=torch-2.4.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
                 set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/torch-2.4.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true"
                 set "CHKSUM=b091308f4cb74e63d0323afd67c92f2279d9e488d8cbf467bcc7b939bcd74e0b"
                 :TORCH_DOWNLOAD
-                if not exist "!WHEEL_FILE!" (
+		        echo "%CD%\!WHEEL_FILE!"
+                if not exist "%CD%\!WHEEL_FILE!" (
                     call curl -Lk "!URL!" --output "!WHEEL_FILE!"
                 )
                 for /f "delims=" %%I in ('certutil -hashfile "!WHEEL_FILE!" SHA256 ^| find /i "!CHKSUM!"') do (
@@ -190,7 +191,7 @@ if not "!install_packages!"=="" (
                     goto TORCH_DOWNLOAD
                 )
                 echo "OK for !WHEEL_FILE!"
-                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                %PIP_CMD% install "%CD%\!WHEEL_FILE!" --no-warn-script-location
                 del "!WHEEL_FILE!"
             ) else if "%%p"=="torchvision" (
                 set "WHEEL_FILE=torchvision-0.19.0.dev20240428+cu121-cp310-cp310-win_amd64.whl"
@@ -209,7 +210,7 @@ if not "!install_packages!"=="" (
                     goto TORCHVISION_DOWNLOAD
                 )
                 echo "OK for !WHEEL_FILE!"
-                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                %PIP_CMD% install "%CD%\!WHEEL_FILE!" --no-warn-script-location
                 del "!WHEEL_FILE!"
             ) else if "%%p"=="torchaudio" (
                 set "WHEEL_FILE=torchaudio-2.2.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
@@ -228,7 +229,7 @@ if not "!install_packages!"=="" (
                     goto TORCHAUDIO_DOWNLOAD
                 )
                 echo "OK for !WHEEL_FILE!"
-                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                %PIP_CMD% install "%CD%\!WHEEL_FILE!" --no-warn-script-location
                 del "!WHEEL_FILE!"
             ) else if "%%p"=="openai-whisper" (
                 %PIP_CMD% install openai-whisper --no-warn-script-location
@@ -251,7 +252,7 @@ if not "!install_packages!"=="" (
                     goto TRITON_DOWNLOAD
                 )
                 echo "OK for !WHEEL_FILE!"
-                %PIP_CMD% install ".\!WHEEL_FILE!" --no-warn-script-location
+                %PIP_CMD% install "%CD%\!WHEEL_FILE!" --no-warn-script-location
                 del "!WHEEL_FILE!"
             )
             
