@@ -41,23 +41,31 @@ logger.add(sys.stderr, format=logger_format)
 
 @lru_cache(maxsize=1)
 def get_model(
-    config_name: str = "vqgan_pretrain",
-    checkpoint_path: str = "checkpoints/vq-gan-group-fsq-2x1024.pth",
+    config_name: str = "firefly_gan_vq",
+    checkpoint_path: str = "checkpoints/firefly-gan-vq-fsq-4x1024-42hz.pth",
+    device: str | torch.device = "cuda",
 ):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
 
-    model: LightningModule = instantiate(cfg.model)
+    model = instantiate(cfg)
     state_dict = torch.load(
         checkpoint_path,
-        map_location=model.device,
+        map_location=device,
     )
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
 
+    if any("generator" in k for k in state_dict):
+        state_dict = {
+            k.replace("generator.", ""): v
+            for k, v in state_dict.items()
+            if "generator." in k
+        }
+
     model.load_state_dict(state_dict, strict=False)
     model.eval()
-    model.cuda()
+    model.to(device)
 
     logger.info(f"Loaded model")
     return model
@@ -82,8 +90,10 @@ def process_batch(files: list[Path], model) -> float:
         if wav.shape[0] > 1:
             wav = wav.mean(dim=0, keepdim=True)
 
-        wav = torchaudio.functional.resample(wav.cuda(), sr, model.sampling_rate)[0]
-        total_time += len(wav) / model.sampling_rate
+        wav = torchaudio.functional.resample(
+            wav.cuda(), sr, model.spec_transform.sample_rate
+        )[0]
+        total_time += len(wav) / model.spec_transform.sample_rate
         max_length = max(max_length, len(wav))
 
         wavs.append(wav)
@@ -120,10 +130,10 @@ def process_batch(files: list[Path], model) -> float:
 @click.command()
 @click.argument("folder")
 @click.option("--num-workers", default=1)
-@click.option("--config-name", default="vqgan_pretrain")
+@click.option("--config-name", default="firefly_gan_vq")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/vq-gan-group-fsq-2x1024.pth",
+    default="checkpoints/firefly-gan-vq-fsq-4x1024-42hz.pth",
 )
 @click.option("--batch-size", default=64)
 @click.option("--filelist", default=None, type=Path)
