@@ -217,7 +217,7 @@ class BaseTransformer(nn.Module):
         )
 
     def forward_generate(
-        self, x: Tensor, input_pos: Optional[Tensor] = None
+        self, x: Tensor, input_pos: Optional[Tensor] = None, return_all: bool = False
     ) -> BaseTransformerForwardResult:
         # This is used for generation, optimized for torch compile
         assert (
@@ -235,7 +235,7 @@ class BaseTransformer(nn.Module):
             x = layer(x, freqs_cis, mask, input_pos=input_pos)
 
         # If prefill, we only calculate the logits of last token
-        if x.size(1) > 1:
+        if x.size(1) > 1 and not return_all:
             x = x[:, -1:]
 
         # We got slow_out here

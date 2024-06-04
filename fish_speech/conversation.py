@@ -11,10 +11,27 @@ SKIP_TEXT_STRING = "<|skip_text|>"
 
 
 @dataclass
+class VQPart:
+    codes: torch.Tensor
+
+
+@dataclass
+class TextPart:
+    text: str
+
+
+@dataclass
+class TokensPart:
+    tokens: torch.Tensor
+    codes: torch.Tensor
+
+
+@dataclass
 class Message:
     role: Literal["system", "user", "assistant"]
-    parts: list[str | torch.Tensor]
+    parts: list[str | torch.Tensor | np.ndarray | VQPart | TextPart | TokensPart]
     mask_labels: bool = False
+    skip_eos: bool = False
 
 
 @dataclass
@@ -40,12 +57,22 @@ def encode_message(
         parts.insert(0, tokenizer.bos_token)
 
     # Add eos token to the end of the message
-    parts.append(f"<|im_end|>{tokenizer.eos_token}")
+    if message.skip_eos:
+        parts.append(f"<|im_end|>")
+    else:
+        parts.append(f"<|im_end|>{tokenizer.eos_token}")
 
     for part in parts:
         if isinstance(part, str):
+            part = TextPart(text=part)
+        elif isinstance(part, np.ndarray):
+            part = VQPart(codes=torch.from_numpy(part))
+        elif isinstance(part, torch.Tensor):
+            part = VQPart(codes=part)
+
+        if isinstance(part, TextPart):
             tokens = tokenizer.encode(
-                part,
+                part.text,
                 add_special_tokens=False,
                 max_length=100000,
                 truncation=False,
@@ -59,14 +86,16 @@ def encode_message(
             all_codes.append(codes)
             continue
 
-        if isinstance(part, np.ndarray):
-            part = torch.from_numpy(part)
-
-        if isinstance(part, torch.Tensor):
-            tokens = torch.zeros(1, part.shape[1], dtype=torch.int) + semantic_id
-            codes = part.to(dtype=torch.int, device=tokens.device) + 2
+        if isinstance(part, VQPart):
+            tokens = torch.zeros(1, part.codes.shape[1], dtype=torch.int) + semantic_id
+            codes = part.codes.to(dtype=torch.int, device=tokens.device) + 2
             all_tokens.append(tokens)
             all_codes.append(codes)
+            continue
+
+        if isinstance(part, TokensPart):
+            all_tokens.append(part.tokens)
+            all_codes.append(part.codes)
             continue
 
         raise ValueError(f"Unsupported part type: {type(part)}")
@@ -101,7 +130,10 @@ def encode_conversation(
 
     for idx, message in enumerate(conversation.messages):
         input_ids, label = encode_message(
-            message, tokenizer, num_codebooks, add_bos=idx == 0
+            message,
+            tokenizer,
+            num_codebooks,
+            add_bos=idx == 0,
         )
         inputs.append(input_ids)
         labels.append(label)
