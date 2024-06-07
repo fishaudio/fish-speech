@@ -26,54 +26,66 @@ This codebase is released under the `BSD-3-Clause` license, and all models are r
 - GPU Memory: 4GB (for inference), 16GB (for fine-tuning)
 - System: Linux, Windows
 
-~~We recommend Windows users to use WSL2 or docker to run the codebase, or use the integrated environment developed by the community.~~
-
 ## Windows Setup
 
 Windows professional users may consider WSL2 or Docker to run the codebase.
 
 Non-professional Windows users can consider the following methods to run the codebase without a Linux environment (with model compilation capabilities aka `torch.compile`):
 
-0. Extract the project zip file.
-1. Click `install_env.bat` to install the environment.
-
-   1. You can decide whether to use a mirror site for downloading by editing the `USE_MIRROR` item in `install_env.bat`.
-   2. The default is `preview`, using a mirror site and the latest development version of torch (the only way to activate the compilation method).
-   3. `false` uses the original site to download the environment. `true` uses the mirror site to download the stable version of torch and other environments.
-
-2. (Optional, this step is to activate the model compilation environment)
-
-   1. Use the following links to download the `LLVM` compiler.
-
-      - [LLVM-17.0.6 (original site download)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - [LLVM-17.0.6 (mirror site download)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - After downloading `LLVM-17.0.6-win64.exe`, double-click to install, choose the appropriate installation location, and most importantly, check `Add Path to Current User` to add the environment variable.
-      - Confirm the installation is complete.
-
-   2. Download and install the Microsoft Visual C++ Redistributable Package to resolve potential .dll missing issues.
-      - [MSVC++ 14.40.33810.0 download](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-
-3. Double-click `start.bat` to enter the Fish-Speech training and inference configuration WebUI page.
-
-   - Want to go directly to the inference page? Edit the `API_FLAGS.txt` in the project root directory, and modify the first three lines as follows:
-
-   ```text
-   --infer
-   # --api
-   # --listen ...
-   ...
-   ```
-
-   - Want to start the API server? Edit the API_FLAGS.txt in the project root directory, and modify the first three lines as follows:
-
-   ```text
-   # --infer
-   --api
-   --listen ...
-   ...
-   ```
-
-4. (Optional) Double-click run_cmd.bat to enter the conda/python command line environment of this project.
+<ol>
+   <li>Unzip the project package.</li>
+   <li>Click <code>install_env.bat</code> to install the environment.
+      <ul>
+            <li>You can decide whether to use a mirror site for downloads by editing the <code>USE_MIRROR</code> item in <code>install_env.bat</code>.</li>
+            <li><code>USE_MIRROR=false</code> downloads the stable version (without compilation) from the original site. <code>USE_MIRROR=true</code> downloads the latest version of torch (with compilation) and other environments from a mirror site. The default is <code>true</code>.</li>
+            <li><code>INSTALL_TYPE=preview</code> downloads the compiled environment. <code>INSTALL_TYPE=stable</code> downloads the stable version without the compilation environment.</li>
+      </ul>
+   </li>
+   <li>If step 2 has <code>INSTALL_TYPE=preview</code>, execute this step (optional, for activating the compiled model environment):
+      <ol>
+            <li>Download the LLVM compiler using the following links:
+               <ul>
+                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6 (original site download)</a></li>
+                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6 (mirror site download)</a></li>
+                  <li>After downloading <code>LLVM-17.0.6-win64.exe</code>, double-click to install it, choose an appropriate installation location, and most importantly, check <code>Add Path to Current User</code> to add to the environment variables.</li>
+                  <li>Confirm the installation is complete.</li>
+               </ul>
+            </li>
+            <li>Download and install the Microsoft Visual C++ Redistributable package to resolve potential .dll missing issues.
+               <ul>
+                  <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 Download</a></li>
+               </ul>
+            </li>
+            <li>Download and install Visual Studio Community Edition to obtain MSVC++ build tools, resolving LLVM header file dependencies.
+               <ul>
+                  <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio Download</a></li>
+                  <li>After installing Visual Studio Installer, download Visual Studio Community 2022.</li>
+                  <li>Click the <code>Modify</code> button as shown below, find the <code>Desktop development with C++</code> option, and check it for download.</li>
+                  <p align="center">
+                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                  </p>
+               </ul>
+            </li>
+      </ol>
+   </li>
+   <li>Double-click <code>start.bat</code> to enter the Fish-Speech training inference configuration WebUI page.
+      <ul>
+            <li>(Optional) Want to go directly to the inference page? Edit the <code>API_FLAGS.txt</code> in the project root directory and modify the first three lines as follows:
+               <pre><code>--infer
+# --api
+# --listen ...
+...</code></pre>
+            </li>
+            <li>(Optional) Want to start the API server? Edit the <code>API_FLAGS.txt</code> in the project root directory and modify the first three lines as follows:
+               <pre><code># --infer
+--api
+--listen ...
+...</code></pre>
+            </li>
+      </ul>
+   </li>
+   <li>(Optional) Double-click <code>run_cmd.bat</code> to enter the conda/python command line environment of this project.</li>
+</ol>
 
 ## Linux Setup
 

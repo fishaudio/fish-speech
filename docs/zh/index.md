@@ -26,50 +26,66 @@
 - GPU 内存: 4GB (用于推理), 16GB (用于微调)
 - 系统: Linux, Windows
 
-~~我们建议 Windows 用户使用 WSL2 或 docker 来运行代码库, 或者使用由社区开发的整合环境.~~
-
 ## Windows 配置
 
 Windows 专业用户可以考虑 WSL2 或 docker 来运行代码库。
 
 Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法（附带模型编译功能，即 `torch.compile`）：
 
-0. 解压项目压缩包。
-1. 点击`install_env.bat`安装环境。
-   - 可以通过编辑`install_env.bat`的`USE_MIRROR`项来决定是否使用镜像站下载。
-   - 默认为`preview`, 使用镜像站且使用最新开发版本 torch（唯一激活编译方式）。
-   - `false`使用原始站下载环境。`true`为从镜像站下载稳定版本 torch 和其余环境。
-2. (可跳过，此步为激活编译模型环境)
-
-   1. 使用如下链接下载`LLVM`编译器。
-      - [LLVM-17.0.6 (原始站点下载)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - [LLVM-17.0.6 (镜像站点下载)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - 下载完`LLVM-17.0.6-win64.exe`后，双击进行安装，选择合适的安装位置，最重要的是勾选`Add Path to Current User`添加环境变量。
-      - 确认安装完成。
-   2. 下载安装`Microsoft Visual C++ 可再发行程序包`, 解决潜在`.dll`丢失问题。
-      - [MSVC++ 14.40.33810.0 下载](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-
-3. 双击`start.bat`, 进入 Fish-Speech 训练推理配置 WebUI 页面。
-
-   - 想直接进入推理页面？编辑项目根目录下的`API_FLAGS.txt`, 前三行修改成如下格式:
-
-   ```text
-   --infer
-   # --api
-   # --listen ...
-   ...
-   ```
-
-   - 想启动 API 服务器？编辑项目根目录下的`API_FLAGS.txt`, 前三行修改成如下格式:
-
-   ```text
-   # --infer
-   --api
-   --listen ...
-   ...
-   ```
-
-4. (可选)双击`run_cmd.bat`进入本项目的 conda/python 命令行环境
+<ol>
+   <li>解压项目压缩包。</li>
+   <li>点击 install_env.bat 安装环境。
+      <ul>
+            <li>可以通过编辑 install_env.bat 的 <code>USE_MIRROR</code> 项来决定是否使用镜像站下载。</li>
+            <li><code>USE_MIRROR=false</code> 使用原始站下载稳定版（不带编译）环境。<code>USE_MIRROR=true</code> 为从镜像站下载最新 torch（附带编译） 和其余环境。默认为 <code>true</code></li>
+            <li><code>INSTALL_TYPE=preview</code> 下载编译环境。<code>INSTALL_TYPE=stable</code> 下载稳定版不带编译环境。</li>
+      </ul>
+   </li>
+   <li>若第2步 INSTALL_TYPE=preview 则执行这一步（可跳过，此步为激活编译模型环境）
+      <ol>
+            <li>使用如下链接下载 LLVM 编译器。
+               <ul>
+                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（原站站点下载）</a></li>
+                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（镜像站点下载）</a></li>
+                  <li>下载完 LLVM-17.0.6-win64.exe 后，双击进行安装，选择合适的安装位置，最重要的是勾选 <code>Add Path to Current User</code> 添加环境变量。</li>
+                  <li>确认安装完成。</li>
+               </ul>
+            </li>
+            <li>下载安装 Microsoft Visual C++ 可再发行程序包，解决潜在 .dll 丢失问题。
+               <ul>
+                  <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 下载</a></li>
+               </ul>
+            </li>
+            <li>下载安装 Visual Studio 社区版以获取 MSVC++ 编译工具, 解决 LLVM 的头文件依赖问题。
+               <ul>
+                  <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio 下载</a></li>
+                  <li>安装好Visual Studio Installer之后，下载Visual Studio Community 2022</li>
+                  <li>如下图点击<code>修改</code>按钮，找到<code>使用C++的桌面开发</code>项，勾选下载</li>
+                  <p align="center">
+                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                  </p>
+               </ul>
+            </li>
+      </ol>
+   </li>
+   <li>双击 start.bat, 进入 Fish-Speech 训练推理配置 WebUI 页面。
+      <ul>
+            <li>(可选) 想直接进入推理页面？编辑项目根目录下的 <code>API_FLAGS.txt</code>, 前三行修改成如下格式:
+               <pre><code>--infer
+# --api
+# --listen ...
+...</code></pre>
+            </li>
+            <li>(可选) 想启动 API 服务器？编辑项目根目录下的 <code>API_FLAGS.txt</code>, 前三行修改成如下格式:
+               <pre><code># --infer
+--api
+--listen ...
+...</code></pre>
+            </li>
+      </ul>
+   </li>
+   <li>（可选）双击 <code>run_cmd.bat</code> 进入本项目的 conda/python 命令行环境</li>
+</ol>
 
 ## Linux 配置
 
