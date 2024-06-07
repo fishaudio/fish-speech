@@ -37,11 +37,12 @@ Non-professional Windows users can consider the following methods to run the cod
    <li>Click <code>install_env.bat</code> to install the environment.
       <ul>
             <li>You can decide whether to use a mirror site for downloads by editing the <code>USE_MIRROR</code> item in <code>install_env.bat</code>.</li>
-            <li><code>USE_MIRROR=false</code> downloads the stable version (without compilation) from the original site. <code>USE_MIRROR=true</code> downloads the latest version of torch (with compilation) and other environments from a mirror site. The default is <code>true</code>.</li>
-            <li><code>INSTALL_TYPE=preview</code> downloads the compiled environment. <code>INSTALL_TYPE=stable</code> downloads the stable version without the compilation environment.</li>
+            <li><code>USE_MIRROR=false</code> downloads the latest stable version of <code>torch</code> from the original site. <code>USE_MIRROR=true</code> downloads the latest version of <code>torch</code> from a mirror site. The default is <code>true</code>.</li>
+            <li>You can decide whether to enable the compiled environment download by editing the <code>INSTALL_TYPE</code> item in <code>install_env.bat</code>.</li>
+            <li><code>INSTALL_TYPE=preview</code> downloads the preview version with the compiled environment. <code>INSTALL_TYPE=stable</code> downloads the stable version without the compiled environment.</li>
       </ul>
    </li>
-   <li>If step 2 has <code>INSTALL_TYPE=preview</code>, execute this step (optional, for activating the compiled model environment):
+   <li>If step 2 has <code>USE_MIRROR=preview</code>, execute this step (optional, for activating the compiled model environment):
       <ol>
             <li>Download the LLVM compiler using the following links:
                <ul>

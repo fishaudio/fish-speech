@@ -37,8 +37,9 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
    <li>点击 install_env.bat 安装环境。
       <ul>
             <li>可以通过编辑 install_env.bat 的 <code>USE_MIRROR</code> 项来决定是否使用镜像站下载。</li>
-            <li><code>USE_MIRROR=false</code> 使用原始站下载稳定版（不带编译）环境。<code>USE_MIRROR=true</code> 为从镜像站下载最新 torch（附带编译） 和其余环境。默认为 <code>true</code></li>
-            <li><code>INSTALL_TYPE=preview</code> 下载编译环境。<code>INSTALL_TYPE=stable</code> 下载稳定版不带编译环境。</li>
+            <li><code>USE_MIRROR=false</code> 使用原始站下载最新稳定版 <code>torch</code> 环境。<code>USE_MIRROR=true</code> 为从镜像站下载最新 <code>torch</code> 环境。默认为 <code>true</code>。</li>
+            <li>可以通过编辑 install_env.bat 的 <code>INSTALL_TYPE</code> 项来决定是否启用可编译环境下载。</li>
+            <li><code>INSTALL_TYPE=preview</code> 下载开发版编译环境。<code>INSTALL_TYPE=stable</code> 下载稳定版不带编译环境。</li>
       </ul>
    </li>
    <li>若第2步 INSTALL_TYPE=preview 则执行这一步（可跳过，此步为激活编译模型环境）
