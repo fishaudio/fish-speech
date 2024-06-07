@@ -1,9 +1,10 @@
 @echo off
 chcp 65001
 
-set USE_MIRROR=preview
+set USE_MIRROR=true
 set INSTALL_TYPE=preview
-echo use_mirror = %USE_MIRROR%
+echo "USE_MIRROR: %USE_MIRROR%"
+echo "INSTALL_TYPE: %INSTALL_TYPE%"
 setlocal enabledelayedexpansion
 
 cd /D "%~dp0"
@@ -124,11 +125,14 @@ if "!INSTALL_TYPE!" == "preview" (
     set "packages=!packages! triton_windows"
 )
 
-set "HF_ENDPOINT=https://hf-mirror.com"
-if "!USE_MIRROR!" == "false" (
-    set "HF_ENDPOINT=https://huggingface.co"
+set "HF_ENDPOINT=https://huggingface.co"
+set "no_proxy="
+if "!USE_MIRROR!" == "true" (
+    set "HF_ENDPOINT=https://hf-mirror.com"
+    set "no_proxy=localhost, 127.0.0.1, 0.0.0.0"
 )
 echo "HF_ENDPOINT: !HF_ENDPOINT!"
+echo "NO_PROXY: !no_proxy!"
 
 set "install_packages="
 for %%p in (%packages%) do (
@@ -138,47 +142,17 @@ for %%p in (%packages%) do (
     )
 )
 
-
 if not "!install_packages!"=="" (
     echo.
     echo Installing: !install_packages!
-
     for %%p in (!install_packages!) do (
-        if "!USE_MIRROR!"=="true" (
-            if "%%p"=="torch" (
-                %PIP_CMD% install torch --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-            ) else if "%%p"=="torchvision" (
-                %PIP_CMD% install torchvision --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-            ) else if "%%p"=="torchaudio" (
-                %PIP_CMD% install torchaudio --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-            ) else if "%%p"=="openai-whisper" (
-                %PIP_CMD% install -i https://pypi.tuna.tsinghua.edu.cn/simple openai-whisper --no-warn-script-location
-            ) else if "%%p"=="fish-speech" (
-                %PIP_CMD% install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
-            )
-        ) 
-
-        if "!USE_MIRROR!"=="false" (
-            if "%%p"=="torch" (
-                %PIP_CMD% install torch==2.4.0.dev20240427+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
-            ) else if "%%p"=="torchvision" (
-                %PIP_CMD% install torchvision==0.19.0.dev20240428+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
-            ) else if "%%p"=="torchaudio" (
-                %PIP_CMD% install torchaudio==2.2.0.dev20240427+cu121 --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
-            ) else if "%%p"=="openai-whisper" (
-                %PIP_CMD% install openai-whisper --no-warn-script-location
-            ) else if "%%p"=="fish-speech" (
-                %PIP_CMD% install -e .
-            )
-        )
-        
         if "!INSTALL_TYPE!"=="preview" (
             if "%%p"=="torch" (
                 set "WHEEL_FILE=torch-2.4.0.dev20240427+cu121-cp310-cp310-win_amd64.whl"
                 set "URL=!HF_ENDPOINT!/datasets/SpicyqSama007/windows_compile/resolve/main/torch-2.4.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true"
                 set "CHKSUM=b091308f4cb74e63d0323afd67c92f2279d9e488d8cbf467bcc7b939bcd74e0b"
                 :TORCH_DOWNLOAD
-		        echo "%CD%\!WHEEL_FILE!"
+                echo "%CD%\!WHEEL_FILE!"
                 if not exist "%CD%\!WHEEL_FILE!" (
                     call curl -Lk "!URL!" --output "!WHEEL_FILE!"
                 )
@@ -257,7 +231,50 @@ if not "!install_packages!"=="" (
             )
             
         )
+    )
+)
 
+set "install_packages="
+for %%p in (%packages%) do (
+    %PIP_CMD% show %%p >nul 2>&1
+    if errorlevel 1 (
+        set "install_packages=!install_packages! %%p"
+    )
+)
+
+if not "!install_packages!"=="" (
+    echo.
+    echo Installing: !install_packages!
+
+    for %%p in (!install_packages!) do (
+        if "!USE_MIRROR!"=="true" (
+            if "%%p"=="torch" (
+                %PIP_CMD% install torch --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
+            ) else if "%%p"=="torchvision" (
+                %PIP_CMD% install torchvision --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
+            ) else if "%%p"=="torchaudio" (
+                %PIP_CMD% install torchaudio --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
+            ) else if "%%p"=="openai-whisper" (
+                %PIP_CMD% install -i https://pypi.tuna.tsinghua.edu.cn/simple openai-whisper --no-warn-script-location
+            ) else if "%%p"=="fish-speech" (
+                %PIP_CMD% install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+            )
+        ) 
+
+        if "!USE_MIRROR!"=="false" (
+            if "%%p"=="torch" (
+                %PIP_CMD% install torch --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+            ) else if "%%p"=="torchvision" (
+                %PIP_CMD% install torchvision --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+            ) else if "%%p"=="torchaudio" (
+                %PIP_CMD% install torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+            ) else if "%%p"=="openai-whisper" (
+                %PIP_CMD% install openai-whisper --no-warn-script-location
+            ) else if "%%p"=="fish-speech" (
+                %PIP_CMD% install -e .
+            )
+        )
+        
     )
 )
 echo Environment Check: Success.
