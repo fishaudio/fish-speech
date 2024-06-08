@@ -357,7 +357,7 @@ def build_app():
                         streaming=True,
                         autoplay=True,
                         interactive=False,
-                        show_download_button=True
+                        show_download_button=True,
                     )
                 with gr.Row():
                     with gr.Column(scale=3):
