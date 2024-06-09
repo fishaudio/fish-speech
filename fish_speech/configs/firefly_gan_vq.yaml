@@ -29,5 +29,6 @@ quantizer:
   _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
   input_dim: 512
   n_groups: 4
+  n_codebooks: 1
   levels: [8, 5, 5, 5]
   downsample_factor: [2]
