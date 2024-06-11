@@ -17,7 +17,7 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from from chn_text_norm.text import Text as ChnNormedText
+from fromchn_text_norm.text import Text as ChnNormedText
 
 from fish_speech.i18n import i18n
 from tools.api import decode_vq_tokens, encode_reference
