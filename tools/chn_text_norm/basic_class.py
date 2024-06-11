@@ -9,8 +9,8 @@
 *中文其他符号类
 """
 
-__author__ = 'Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>'
-__data__ = '2019-05-02'
+__author__ = "Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>"
+__data__ = "2019-05-02"
 
 from chn_text_norm.basic_constant import NUMBERING_TYPES
 
@@ -49,26 +49,49 @@ class ChineseNumberUnit(ChineseChar):
         self.big_t = big_t
 
     def __str__(self):
-        return '10^{}'.format(self.power)
+        return "10^{}".format(self.power)
 
     @classmethod
     def create(cls, index, value, numbering_type=NUMBERING_TYPES[1], small_unit=False):
 
         if small_unit:
-            return ChineseNumberUnit(power=index + 1,
-                                     simplified=value[0], traditional=value[1], big_s=value[1], big_t=value[1])
+            return ChineseNumberUnit(
+                power=index + 1,
+                simplified=value[0],
+                traditional=value[1],
+                big_s=value[1],
+                big_t=value[1],
+            )
         elif numbering_type == NUMBERING_TYPES[0]:
-            return ChineseNumberUnit(power=index + 8,
-                                     simplified=value[0], traditional=value[1], big_s=value[0], big_t=value[1])
+            return ChineseNumberUnit(
+                power=index + 8,
+                simplified=value[0],
+                traditional=value[1],
+                big_s=value[0],
+                big_t=value[1],
+            )
         elif numbering_type == NUMBERING_TYPES[1]:
-            return ChineseNumberUnit(power=(index + 2) * 4,
-                                     simplified=value[0], traditional=value[1], big_s=value[0], big_t=value[1])
+            return ChineseNumberUnit(
+                power=(index + 2) * 4,
+                simplified=value[0],
+                traditional=value[1],
+                big_s=value[0],
+                big_t=value[1],
+            )
         elif numbering_type == NUMBERING_TYPES[2]:
-            return ChineseNumberUnit(power=pow(2, index + 3),
-                                     simplified=value[0], traditional=value[1], big_s=value[0], big_t=value[1])
+            return ChineseNumberUnit(
+                power=pow(2, index + 3),
+                simplified=value[0],
+                traditional=value[1],
+                big_s=value[0],
+                big_t=value[1],
+            )
         else:
             raise ValueError(
-                'Counting type should be in {0} ({1} provided).'.format(NUMBERING_TYPES, numbering_type))
+                "Counting type should be in {0} ({1} provided).".format(
+                    NUMBERING_TYPES, numbering_type
+                )
+            )
 
 
 class ChineseNumberDigit(ChineseChar):
@@ -76,7 +99,9 @@ class ChineseNumberDigit(ChineseChar):
     中文数字字符
     """
 
-    def __init__(self, value, simplified, traditional, big_s, big_t, alt_s=None, alt_t=None):
+    def __init__(
+        self, value, simplified, traditional, big_s, big_t, alt_s=None, alt_t=None
+    ):
         super(ChineseNumberDigit, self).__init__(simplified, traditional)
         self.value = value
         self.big_s = big_s
@@ -112,6 +137,7 @@ class NumberSystem(object):
     """
     中文数字系统
     """
+
     pass
 
 
@@ -144,4 +170,3 @@ class MathSymbol(object):
 #     def __iter__(self):
 #         for v in self.__dict__.values():
 #             yield v
-

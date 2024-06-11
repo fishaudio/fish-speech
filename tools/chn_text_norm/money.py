@@ -5,8 +5,8 @@
 """
 import re
 
-__author__ = 'Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>'
-__data__ = '2019-05-08'
+__author__ = "Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>"
+__data__ = "2019-05-08"
 
 from chn_text_norm.cardinal import Cardinal
 
@@ -25,18 +25,19 @@ class Money:
 
     def money2chntext(self):
         money = self.money
-        pattern = re.compile(r'(\d+(\.\d+)?)')
+        pattern = re.compile(r"(\d+(\.\d+)?)")
         matchers = pattern.findall(money)
         if matchers:
             for matcher in matchers:
-                money = money.replace(matcher[0], Cardinal(cardinal=matcher[0]).cardinal2chntext())
+                money = money.replace(
+                    matcher[0], Cardinal(cardinal=matcher[0]).cardinal2chntext()
+                )
         self.chntext = money
         return self.chntext
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # 测试
-    print(Money(money='21.5万元').money2chntext())
-    print(Money(money='230块5毛').money2chntext())
-
+    print(Money(money="21.5万元").money2chntext())
+    print(Money(money="230块5毛").money2chntext())

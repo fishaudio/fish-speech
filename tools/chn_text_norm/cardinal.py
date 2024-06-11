@@ -4,8 +4,8 @@
 中文字符串 <=> 纯数 方法
 """
 
-__author__ = 'Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>'
-__data__ = '2019-05-03'
+__author__ = "Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>"
+__data__ = "2019-05-03"
 
 from chn_text_norm.basic_util import *
 
@@ -26,8 +26,7 @@ class Cardinal:
         return num2chn(self.cardinal)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # 测试程序
-    print(Cardinal(cardinal='21357.230').cardinal2chntext())
-
+    print(Cardinal(cardinal="21357.230").cardinal2chntext())

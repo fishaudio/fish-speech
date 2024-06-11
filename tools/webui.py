@@ -17,6 +17,8 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+from chn_text_norm.text import *
+
 from fish_speech.i18n import i18n
 from tools.api import decode_vq_tokens, encode_reference
 from tools.llama.generate import (
@@ -26,7 +28,6 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
-from chn_text_norm.text import *
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -243,7 +244,8 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer.close()
     return wav_header_bytes
 
-def normalize_text(user_input,use_regex):
+
+def normalize_text(user_input, use_regex):
     if use_regex:
         return Text(raw_text=user_input).normalize()
     else:
@@ -268,18 +270,20 @@ def build_app():
                     label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=10
                 )
                 refined_text = gr.Textbox(
-                    label="Realtime Transform Text", placeholder="正则化后结果预览，目前只支持中文", lines=5
-                    ,interactive=False,
+                    label="Realtime Transform Text",
+                    placeholder="正则化后结果预览，目前只支持中文",
+                    lines=5,
+                    interactive=False,
                 )
-                
+
                 with gr.Row():
                     if_refine_text = gr.Checkbox(
                         label="Use Regular Expression?",
                         value=True,
                         scale=0,
-                        min_width=150
+                        min_width=150,
                     )
-                    
+
                 with gr.Row():
                     with gr.Tab(label=i18n("Advanced Config")):
                         chunk_length = gr.Slider(
@@ -389,11 +393,9 @@ def build_app():
                         )
 
         text.input(
-            fn=normalize_text,
-            inputs=[text,if_refine_text],
-            outputs=[refined_text]
+            fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
         )
-        
+
         # # Submit
         generate.click(
             inference_wrapper,
@@ -458,8 +460,6 @@ def parse_args():
     parser.add_argument("--max-gradio-length", type=int, default=0)
 
     return parser.parse_args()
-
-
 
 
 if __name__ == "__main__":

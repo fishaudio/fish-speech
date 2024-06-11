@@ -4,8 +4,8 @@
 中文字符串 <=> 数字串 方法
 """
 
-__author__ = 'Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>'
-__data__ = '2019-05-03'
+__author__ = "Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>"
+__data__ = "2019-05-03"
 
 from chn_text_norm.basic_util import *
 
@@ -26,8 +26,7 @@ class Digit:
         return num2chn(self.digit, alt_two=False, use_units=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # 测试程序
-    print(Digit(digit='2016').digit2chntext())
-
+    print(Digit(digit="2016").digit2chntext())
