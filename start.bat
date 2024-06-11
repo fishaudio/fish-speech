@@ -1,9 +1,10 @@
 @echo off
 chcp 65001
 
+call D:\Miniconda\Scripts\activate.bat vits
+
 set USE_MIRROR=true
 set PYTHONPATH=%~dp0
-set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 
 

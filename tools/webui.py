@@ -26,6 +26,7 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
+from chn_text_norm.text import *
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -242,6 +243,12 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer.close()
     return wav_header_bytes
 
+def normalize_text(user_input,use_regex):
+    if use_regex:
+        return Text(raw_text=user_input).normalize()
+    else:
+        return user_input
+
 
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
@@ -258,9 +265,21 @@ def build_app():
         with gr.Row():
             with gr.Column(scale=3):
                 text = gr.Textbox(
-                    label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=15
+                    label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=10
                 )
-
+                refined_text = gr.Textbox(
+                    label="Realtime Transform Text", placeholder="正则化后结果预览，目前只支持中文", lines=5
+                    ,interactive=False,
+                )
+                
+                with gr.Row():
+                    if_refine_text = gr.Checkbox(
+                        label="Use Regular Expression?",
+                        value=True,
+                        scale=0,
+                        min_width=150
+                    )
+                    
                 with gr.Row():
                     with gr.Tab(label=i18n("Advanced Config")):
                         chunk_length = gr.Slider(
@@ -357,6 +376,7 @@ def build_app():
                         streaming=True,
                         autoplay=True,
                         interactive=False,
+                        show_download_button=True,
                     )
                 with gr.Row():
                     with gr.Column(scale=3):
@@ -367,11 +387,18 @@ def build_app():
                             value="\U0001F3A7 " + i18n("Streaming Generate"),
                             variant="primary",
                         )
+
+        text.input(
+            fn=normalize_text,
+            inputs=[text,if_refine_text],
+            outputs=[refined_text]
+        )
+        
         # # Submit
         generate.click(
             inference_wrapper,
             [
-                text,
+                refined_text,
                 enable_reference_audio,
                 reference_audio,
                 reference_text,
@@ -390,7 +417,7 @@ def build_app():
         generate_stream.click(
             inference_stream,
             [
-                text,
+                refined_text,
                 enable_reference_audio,
                 reference_audio,
                 reference_text,
@@ -412,10 +439,10 @@ def parse_args():
     parser.add_argument(
         "--llama-checkpoint-path",
         type=Path,
-        default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
+        default="checkpoints/text2semantic-sft-large-v1.1-4k.pth",
     )
     parser.add_argument(
-        "--llama-config-name", type=str, default="dual_ar_2_codebook_medium"
+        "--llama-config-name", type=str, default="dual_ar_2_codebook_large"
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
@@ -431,6 +458,8 @@ def parse_args():
     parser.add_argument("--max-gradio-length", type=int, default=0)
 
     return parser.parse_args()
+
+
 
 
 if __name__ == "__main__":
