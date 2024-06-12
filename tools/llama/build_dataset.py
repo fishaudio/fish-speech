@@ -5,7 +5,7 @@ from collections import defaultdict
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import click
 import numpy as np
 from loguru import logger
@@ -20,12 +20,13 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
-def task_generator_folder(root: Path, text_extension: str):
+def task_generator_folder(root: Path, text_extension: str, max_workers=16):
     files = list(tqdm(Path(root).rglob("*.npy"), desc=f"Loading {root}"))
     files = sorted(files)
 
     grouped_files = defaultdict(list)
-    for file in tqdm(files, desc=f"Grouping {root}"):
+
+    def process_file(file):
         p = str(file.parent)
         speaker = file.parent.name
 
@@ -39,8 +40,15 @@ def task_generator_folder(root: Path, text_extension: str):
                 ]
         except Exception as e:
             logger.error(f"Failed to read text {file}: {e}")
-            continue
+            return None
 
+        return (speaker, file, texts)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        results = list(tqdm(executor.map(process_file, files), total=len(files), desc=f"Grouping {root}"))
+
+    for result in filter(None, results):
+        speaker, file, texts = result
         grouped_files[p].append((speaker, file, texts))
 
     logger.info(
