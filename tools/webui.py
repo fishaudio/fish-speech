@@ -245,13 +245,9 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     return wav_header_bytes
 
 
-def normalize_text(user_input, use_regex):
-    if use_regex:
-
-        return ChnNormedText(user_input).normalize()
-
+def normalize_text(user_input, use_normalization):
+    if use_normalization:
         return ChnNormedText(raw_text=user_input).normalize()
-
     else:
         return user_input
 
