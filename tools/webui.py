@@ -17,9 +17,11 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText 
 from fish_speech.i18n import i18n
 from tools.api import decode_vq_tokens, encode_reference
+from tools.chn_text_norm.text import Text as ChnNormedText
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -246,7 +248,11 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
 
 def normalize_text(user_input, use_regex):
     if use_regex:
+
         return ChnNormedText(user_input).normalize()
+
+        return ChnNormedText(raw_text=user_input).normalize()
+
     else:
         return user_input
 
