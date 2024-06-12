@@ -7,8 +7,8 @@
 __author__ = "Zhiyang Zhou <zyzhou@stu.xmu.edu.cn>"
 __data__ = "2019-05-07"
 
-from chn_text_norm.cardinal import Cardinal
-from chn_text_norm.digit import Digit
+from fish_speech.text.chn_text_norm.cardinal import Cardinal
+from fish_speech.text.chn_text_norm.digit import Digit
 
 
 class Date:

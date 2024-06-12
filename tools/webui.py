@@ -17,8 +17,7 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from chn_text_norm.text import Text as ChnNormedText
-
+from fish_speech.text.chn_text_norm.text import Text as ChnNormedText 
 from fish_speech.i18n import i18n
 from tools.api import decode_vq_tokens, encode_reference
 from tools.llama.generate import (
@@ -270,15 +269,15 @@ def build_app():
                     label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=10
                 )
                 refined_text = gr.Textbox(
-                    label="Realtime Transform Text",
-                    placeholder="正则化后结果预览，目前只支持中文",
+                    label=i18n("Realtime Transform Text"),
+                    placeholder=i18n("Normalization Result Preview (Currently Only Chinese)"),
                     lines=5,
                     interactive=False,
                 )
 
                 with gr.Row():
                     if_refine_text = gr.Checkbox(
-                        label="Use Regular Expression?",
+                        label=i18n("Text Normalization"),
                         value=True,
                         scale=0,
                         min_width=150,
