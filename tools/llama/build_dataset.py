@@ -5,7 +5,7 @@ from collections import defaultdict
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
+
 import click
 import numpy as np
 from loguru import logger
@@ -20,15 +20,12 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
-from concurrent.futures import ThreadPoolExecutor
-
-def task_generator_folder(root: Path, text_extension: str, max_workers=16):
+def task_generator_folder(root: Path, text_extension: str):
     files = list(tqdm(Path(root).rglob("*.npy"), desc=f"Loading {root}"))
     files = sorted(files)
 
     grouped_files = defaultdict(list)
-
-    def process_file(file):
+    for file in tqdm(files, desc=f"Grouping {root}"):
         p = str(file.parent)
         speaker = file.parent.name
 
@@ -42,15 +39,8 @@ def task_generator_folder(root: Path, text_extension: str, max_workers=16):
                 ]
         except Exception as e:
             logger.error(f"Failed to read text {file}: {e}")
-            return None
+            continue
 
-        return (p, speaker, file, texts)
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(tqdm(executor.map(process_file, files), total=len(files), desc=f"Grouping {root}"))
-
-    for result in filter(None, results):
-        p, speaker, file, texts = result
         grouped_files[p].append((speaker, file, texts))
 
     logger.info(
@@ -61,7 +51,7 @@ def task_generator_folder(root: Path, text_extension: str, max_workers=16):
         subset = [(f, t) for _, f, t in i]
         yield i[0][0], subset, "folder"
 
-        
+
 def task_generator_filelist(filelist):
     grouped_files = defaultdict(list)
     for filename, speaker, _, text in load_filelist(filelist):
@@ -117,6 +107,7 @@ def run_task(task):
         )
     )
 
+
 @click.command()
 @click.option(
     "--input",
@@ -153,8 +144,8 @@ def main(input, output, num_workers, text_extension, shard_size):
     tar_idx = 0
     written_size = 0
 
-    with Pool(num_workers) as pool:
-        for result in tqdm(pool.imap_unordered(run_task, generator_fn)):
+    with Pool(num_workers) as p:
+        for result in tqdm(p.imap_unordered(run_task, generator_fn)):
             if dataset_fp is None:
                 dataset_fp = open(Path(output) / f"{tar_idx:08d}.protos", "wb")
 
