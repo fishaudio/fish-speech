@@ -7,8 +7,6 @@ set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 
 
-%PYTHON_CMD% .\tools\download_models.py
-
 setlocal enabledelayedexpansion
 
 set "HF_ENDPOINT=https://huggingface.co"
@@ -19,6 +17,7 @@ if "%USE_MIRROR%" == "true" (
 )
 echo "HF_ENDPOINT: !HF_ENDPOINT!"
 echo "NO_PROXY: !no_proxy!"
+%PYTHON_CMD% .\tools\download_models.py
 
 set "API_FLAGS="
 set "flags="

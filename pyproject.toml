@@ -13,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "numpy<=1.26.4",
     "transformers>=4.35.2",
     "datasets>=2.14.5",
     "lightning>=2.1.0",
