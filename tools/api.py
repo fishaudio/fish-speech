@@ -485,6 +485,7 @@ if __name__ == "__main__":
                 format="wav",
                 ref_base=None,
                 ref_json=None,
+                streaming=False,
             )
         )
     )
