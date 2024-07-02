@@ -6,7 +6,6 @@ import soundfile as sf
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import Response
 from loguru import logger
-
 from stream_service import FishAgentPipeline
 
 app = FastAPI()

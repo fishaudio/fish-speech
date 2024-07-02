@@ -33,8 +33,8 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from fish_speech.models.vits_decoder.lit_module import VITSDecoder
-from fish_speech.models.vqgan.lit_module import VQGAN
+# from fish_speech.models.vqgan.lit_module import VQGAN
+from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -84,7 +84,7 @@ def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
     if enable_reference_audio and reference_audio is not None:
         # Load audios, and prepare basic info here
         reference_audio_content, _ = librosa.load(
-            reference_audio, sr=decoder_model.sampling_rate, mono=True
+            reference_audio, sr=decoder_model.spec_transform.sample_rate, mono=True
         )
         audios = torch.from_numpy(reference_audio_content).to(decoder_model.device)[
             None, None, :
@@ -93,33 +93,15 @@ def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
             [audios.shape[2]], device=decoder_model.device, dtype=torch.long
         )
         logger.info(
-            f"Loaded audio with {audios.shape[2] / decoder_model.sampling_rate:.2f} seconds"
+            f"Loaded audio with {audios.shape[2] / decoder_model.spec_transform.sample_rate:.2f} seconds"
         )
 
         # VQ Encoder
-        if isinstance(decoder_model, VQGAN):
+        if isinstance(decoder_model, FireflyArchitecture):
             prompt_tokens = decoder_model.encode(audios, audio_lengths)[0][0]
             reference_embedding = None  # VQGAN does not have reference embedding
-        elif isinstance(decoder_model, VITSDecoder):
-            reference_spec = decoder_model.spec_transform(audios[0])
-            reference_embedding = decoder_model.generator.encode_ref(
-                reference_spec,
-                torch.tensor([reference_spec.shape[-1]], device=decoder_model.device),
-            )
-            logger.info(f"Loaded reference audio from {reference_audio}")
-            prompt_tokens = decoder_model.generator.vq.encode(audios, audio_lengths)[0][
-                0
-            ]
-        else:
-            raise ValueError(f"Unknown model type: {type(decoder_model)}")
 
         logger.info(f"Encoded prompt: {prompt_tokens.shape}")
-    elif isinstance(decoder_model, VITSDecoder):
-        prompt_tokens = None
-        reference_embedding = torch.zeros(
-            1, decoder_model.generator.gin_channels, 1, device=decoder_model.device
-        )
-        logger.info("No reference audio provided, use zero embedding")
     else:
         prompt_tokens = None
         reference_embedding = None
@@ -138,27 +120,11 @@ def decode_vq_tokens(
     feature_lengths = torch.tensor([codes.shape[1]], device=decoder_model.device)
     logger.info(f"VQ features: {codes.shape}")
 
-    if isinstance(decoder_model, VQGAN):
+    if isinstance(decoder_model, FireflyArchitecture):
         # VQGAN Inference
         return decoder_model.decode(
             indices=codes[None],
             feature_lengths=feature_lengths,
-            return_audios=True,
-        ).squeeze()
-
-    if isinstance(decoder_model, VITSDecoder):
-        # VITS Inference
-        quantized = decoder_model.generator.vq.indicies_to_vq_features(
-            indices=codes[None], feature_lengths=feature_lengths
-        )
-        logger.info(f"Restored VQ features: {quantized.shape}")
-
-        return decoder_model.generator.decode(
-            quantized,
-            torch.tensor([quantized.shape[-1]], device=decoder_model.device),
-            text_tokens,
-            torch.tensor([text_tokens.shape[-1]], device=decoder_model.device),
-            ge=reference_embedding,
         ).squeeze()
 
     raise ValueError(f"Unknown model type: {type(decoder_model)}")
@@ -273,7 +239,7 @@ def inference(req: InvokeRequest):
         compile=args.compile,
         iterative_prompt=req.chunk_length > 0,
         chunk_length=req.chunk_length,
-        max_length=args.max_length,
+        max_length=2048,
         speaker=req.speaker,
         prompt_tokens=prompt_tokens,
         prompt_text=req.reference_text,
@@ -375,7 +341,12 @@ async def api_invoke_model(
     else:
         fake_audios = next(inference(req))
         buffer = io.BytesIO()
-        sf.write(buffer, fake_audios, decoder_model.sampling_rate, format=req.format)
+        sf.write(
+            buffer,
+            fake_audios,
+            decoder_model.spec_transform.sample_rate,
+            format=req.format,
+        )
 
         return StreamResponse(
             iterable=buffer_to_async_generator(buffer.getvalue()),

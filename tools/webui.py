@@ -68,7 +68,6 @@ def inference(
     top_p,
     repetition_penalty,
     temperature,
-    speaker,
     streaming=False,
 ):
     if args.max_gradio_length > 0 and len(text) > args.max_gradio_length:
@@ -89,7 +88,6 @@ def inference(
 
     # LLAMA Inference
     request = dict(
-        tokenizer=llama_tokenizer,
         device=decoder_model.device,
         max_new_tokens=max_new_tokens,
         text=text,
@@ -99,8 +97,7 @@ def inference(
         compile=args.compile,
         iterative_prompt=chunk_length > 0,
         chunk_length=chunk_length,
-        max_length=args.max_length,
-        speaker=speaker if speaker else None,
+        max_length=2048,
         prompt_tokens=prompt_tokens if enable_reference_audio else None,
         prompt_text=reference_text if enable_reference_audio else None,
     )
@@ -164,7 +161,7 @@ def inference(
 
     # No matter streaming or not, we need to return the final audio
     audio = np.concatenate(segments, axis=0)
-    yield None, (decoder_model.sampling_rate, audio), None
+    yield None, (decoder_model.spec_transform.sample_rate, audio), None
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -189,7 +186,6 @@ def inference_wrapper(
     top_p,
     repetition_penalty,
     temperature,
-    speaker,
     batch_infer_num,
 ):
     audios = []
@@ -206,7 +202,6 @@ def inference_wrapper(
             top_p,
             repetition_penalty,
             temperature,
-            speaker,
         )
 
         try:
@@ -299,7 +294,7 @@ def build_app():
                         max_new_tokens = gr.Slider(
                             label=i18n("Maximum tokens per batch, 0 means no limit"),
                             minimum=0,
-                            maximum=args.max_length,
+                            maximum=2048,
                             value=0,  # 0 means no limit
                             step=8,
                         )
@@ -322,12 +317,6 @@ def build_app():
                             maximum=2,
                             value=0.7,
                             step=0.01,
-                        )
-
-                        speaker = gr.Textbox(
-                            label=i18n("Speaker"),
-                            placeholder=i18n("Type name of the speaker"),
-                            lines=1,
                         )
 
                     with gr.Tab(label=i18n("Reference Audio")):
@@ -411,7 +400,6 @@ def build_app():
                 top_p,
                 repetition_penalty,
                 temperature,
-                speaker,
                 batch_infer_num,
             ],
             [stream_audio, *global_audio_list, *global_error_list],
@@ -430,7 +418,6 @@ def build_app():
                 top_p,
                 repetition_penalty,
                 temperature,
-                speaker,
             ],
             [stream_audio, global_audio_list[0], global_error_list[0]],
             concurrency_limit=10,
@@ -490,11 +477,10 @@ if __name__ == "__main__":
             reference_audio=None,
             reference_text="",
             max_new_tokens=0,
-            chunk_length=150,
+            chunk_length=100,
             top_p=0.7,
             repetition_penalty=1.5,
             temperature=0.7,
-            speaker=None,
         )
     )
 
