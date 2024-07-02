@@ -107,6 +107,7 @@ apt install libsox-dev
 
 ## 更新日志
 
+- 2024/07/02: 更新了 Fish-Speech 到 1.2 版本，移除 VITS Decoder，同时极大幅度提升zero-shot能力.
 - 2024/05/10: 更新了 Fish-Speech 到 1.1 版本，引入了 VITS Decoder 来降低口胡和提高音色相似度.
 - 2024/04/22: 完成了 Fish-Speech 1.0 版本, 大幅修改了 VQGAN 和 LLAMA 模型.
 - 2023/12/28: 添加了 `lora` 微调支持.
