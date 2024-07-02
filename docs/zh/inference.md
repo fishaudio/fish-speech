@@ -8,29 +8,22 @@
     1. 给定一段 ~10 秒的语音, 将它用 VQGAN 编码.  
     2. 将编码后的语义 token 和对应文本输入语言模型作为例子.  
     3. 给定一段新文本, 让模型生成对应的语义 token.  
-    4. 将生成的语义 token 输入 VITS / VQGAN 解码, 生成对应的语音.  
-
-在 V1.1 版本中, 我们推荐优先使用 VITS 解码器, 因为它在音质和口胡上都有更好的表现.
+    4. 将生成的语义 token 输入 VQGAN 解码, 生成对应的语音.  
 
 ## 命令行推理
 
-从我们的 huggingface 仓库下载所需的 `vqgan` 和 `text2semantic` 模型。
+从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
 ```
 
 对于中国大陆用户，可使用mirror下载。
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vq-gan-group-fsq-2x1024.pth --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 vits_decoder_v1.1.ckpt --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt --local-dir checkpoints
-
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
 ```
 
 ### 1. 从语音生成 prompt: 
@@ -52,7 +45,7 @@ python tools/llama/generate.py \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
     --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
+    --checkpoint-path "checkpoints/model.bin" \
     --num-samples 2 \
     --compile
 ```
@@ -71,15 +64,7 @@ python tools/llama/generate.py \
 
 ### 3. 从语义 token 生成人声: 
 
-#### VITS 解码
-```bash
-python tools/vits_decoder/inference.py \
-    --checkpoint-path checkpoints/vits_decoder_v1.1.ckpt \
-    -i codes_0.npy -r ref.wav \
-    --text "要生成的文本"
-```
-
-#### VQGAN 解码 (不推荐)
+#### VQGAN 解码 
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
@@ -93,8 +78,8 @@ python tools/vqgan/inference.py \
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_medium \
+    --llama-checkpoint-path "checkpoints/model.bin" \
+    --llama-config-name dual_ar_4_codebook_medium \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 
@@ -104,33 +89,17 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 
 随后, 你可以在 `http://127.0.0.1:8000/` 中查看并测试 API.
 
-!!! info
-    你应该使用以下参数来启动 VITS 解码器:
-
-    ```bash
-    --decoder-config-name vits_decoder_finetune \
-    --decoder-checkpoint-path "checkpoints/vits_decoder_v1.1.ckpt" # 或者你自己的模型
-    ```
-
 ## WebUI 推理
 
 你可以使用以下命令来启动 WebUI:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
-    --llama-config-name dual_ar_2_codebook_medium \
+    --llama-checkpoint-path "checkpoints/model.bin" \
+    --llama-config-name dual_ar_4_codebook_medium \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
-
-!!! info
-    你应该使用以下参数来启动 VITS 解码器:
-
-    ```bash
-    --decoder-config-name vits_decoder_finetune \
-    --decoder-checkpoint-path "checkpoints/vits_decoder_v1.1.ckpt" # 或者你自己的模型
-    ```
 
 !!! note
     你可以使用 Gradio 环境变量, 如 `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` 来配置 WebUI.
