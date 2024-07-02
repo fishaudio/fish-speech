@@ -13,7 +13,7 @@
 <img alt="Docker" src="https://img.shields.io/docker/pulls/lengyue233/fish-speech?style=flat-square&logo=docker"/>
 </a>
 <a target="_blank" href="https://github.com/fishaudio/fish-speech/actions/workflows/build-windows-package.yml">
-<img alt="Docker" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>
+<img alt="Action" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>
 </a>
 </div>
 
@@ -26,12 +26,10 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 
 ## Online Demo
-[Fish Speech](https://fs.firefly.matce.cn/)   
-支持中/日/英三语合成。基于原神/崩坏星穹铁道/BlueArchive角色。   
-音频所有权归米哈游网络科技有限公司及YoStar所有。  
+[Fish Audio](https://fish.audio)   
 
 ## Videos
-#### Demo Video: https://www.bilibili.com/video/BV18E421371Q    
+#### Demo Video: https://www.bilibili.com/video/BV1wz421B71D
 #### Tech slides Video: https://www.bilibili.com/video/BV1zJ4m1K7cj
 
 ## Documents / 文档
