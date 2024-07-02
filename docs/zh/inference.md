@@ -41,7 +41,7 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 你应该能得到一个 `fake.npy` 文件.
 
@@ -83,7 +83,7 @@ python tools/vits_decoder/inference.py \
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 
 ## HTTP API 推理
@@ -95,8 +95,8 @@ python -m tools.api \
     --listen 0.0.0.0:8000 \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
-    --decoder-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth" \
-    --decoder-config-name vqgan_pretrain
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --decoder-config-name firefly_gan_vq
 
 # 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
 HF_ENDPOINT=https://hf-mirror.com python -m ...
@@ -120,8 +120,8 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 python -m tools.webui \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
-    --decoder-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth" \
-    --decoder-config-name vqgan_pretrain
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --decoder-config-name firefly_gan_vq
 ```
 
 !!! info

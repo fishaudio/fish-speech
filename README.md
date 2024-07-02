@@ -1,5 +1,7 @@
 # Fish Speech
 
+# Warning: We are updating code to fish-speech 1.2, the last stable branch is [1.1.2](https://github.com/fishaudio/fish-speech/tree/v1.1.2)
+
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
 <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>

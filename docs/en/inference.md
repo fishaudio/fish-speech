@@ -31,7 +31,7 @@ huggingface-cli download fishaudio/fish-speech-1 firefly-gan-base-generator.ckpt
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 You should get a `fake.npy` file.
 
@@ -73,7 +73,7 @@ python tools/vits_decoder/inference.py \
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 
 ## HTTP API Inference
@@ -85,8 +85,8 @@ python -m tools.api \
     --listen 0.0.0.0:8000 \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
-    --decoder-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth" \
-    --decoder-config-name vqgan_pretrain
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --decoder-config-name firefly_gan_vq
 ```
 
 After that, you can view and test the API at http://127.0.0.1:8000/.  
@@ -107,7 +107,7 @@ You can start the WebUI using the following command:
 python -m tools.webui \
     --llama-checkpoint-path "checkpoints/text2semantic-sft-medium-v1.1-4k.pth" \
     --llama-config-name dual_ar_2_codebook_medium \
-    --vqgan-checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth" \
+    --vqgan-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --vits-checkpoint-path "checkpoints/vits_decoder_v1.1.ckpt"
 ```
 

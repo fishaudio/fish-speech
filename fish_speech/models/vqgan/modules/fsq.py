@@ -20,7 +20,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
     def __init__(
         self,
         input_dim: int = 512,
-        n_codebooks: int = 9,
+        n_codebooks: int = 1,
         n_groups: int = 1,
         levels: tuple[int] = (8, 5, 5, 5),  # Approximate 2**10
         downsample_factor: tuple[int] = (2, 2),

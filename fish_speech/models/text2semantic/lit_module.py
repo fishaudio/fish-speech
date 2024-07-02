@@ -6,8 +6,8 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
+from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
 from fish_speech.models.text2semantic.llama import NaiveTransformer
-from fish_speech.models.text2semantic.lora_utils import LoraConfig, setup_lora
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
@@ -137,15 +137,15 @@ class TextToSemantic(L.LightningModule):
             labels, negative_labels = labels.chunk(2)
 
         # Generate labels
-        base_loss = F.cross_entropy(
-            token_logits.reshape(-1, token_logits.size(-1)),
+        base_loss = fast_cross_entropy_loss(
+            token_logits.view(-1, token_logits.size(-1)),
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
 
         codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
-        semantic_loss = F.cross_entropy(
-            codebook_logits.reshape(-1, codebook_logits.size(-1)),
+        semantic_loss = fast_cross_entropy_loss(
+            codebook_logits.view(-1, codebook_logits.size(-1)),
             codebook_labels.reshape(-1),
             ignore_index=-100,
         )
@@ -281,11 +281,15 @@ class TextToSemantic(L.LightningModule):
         return loss
 
     def get_accuracy(self, logits, labels):
+        mask = (labels != -100) & (labels != CODEBOOK_PAD_TOKEN_ID)
+        if mask.sum() == 0:
+            return torch.tensor(0.0, device=logits.device)
+
         _, indices = logits.topk(5, dim=-1)
         correct = indices.eq(labels.unsqueeze(-1))
-        correct[labels == -100] = 0
+        correct[~mask] = 0
         correct = correct.sum()
-        accuracy = correct / (labels != -100).sum()
+        accuracy = correct / mask.sum()
 
         return accuracy
 

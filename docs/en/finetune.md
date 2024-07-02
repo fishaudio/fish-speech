@@ -59,8 +59,8 @@ You can then run the following command to extract semantic tokens:
 ```bash
 python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
-    --config-name "vqgan_pretrain" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --config-name "firefly_gan_vq" \
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 
 !!! note
@@ -233,16 +233,16 @@ This command will create `data/vq_train_filelist.txt` and `data/vq_val_filelist.
 ### 3. Start Training
 
 ```bash
-python fish_speech/train.py --config-name vqgan_finetune
+python fish_speech/train.py --config-name firefly_gan_vq
 ```
 
 !!! note
-    You can modify training parameters by editing `fish_speech/configs/vqgan_finetune.yaml`, but in most cases, this won't be necessary.
+    You can modify training parameters by editing `fish_speech/configs/firefly_gan_vq.yaml`, but in most cases, this won't be necessary.
 
 ### 4. Test the Audio
     
 ```bash
-python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_finetune/checkpoints/step_000010000.ckpt
+python tools/vqgan/inference.py -i test.wav --checkpoint-path results/firefly_gan_vq/checkpoints/step_000010000.ckpt
 ```
 
 You can review `fake.wav` to assess the fine-tuning results.

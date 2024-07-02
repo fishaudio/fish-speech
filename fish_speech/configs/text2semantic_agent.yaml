@@ -1,0 +1,66 @@
+defaults:
+  - base
+  - model@model.model: dual_ar_2_codebook_1.3b
+  - _self_
+
+project: text2semantic_agent_dual_ar_debug
+max_length: 2048
+ckpt_path: checkpoints/fish-speech-agent-1/step_000013000.ckpt
+resume_weights_only: true
+
+# Lightning Trainer
+trainer:
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+  gradient_clip_algorithm: 'norm'
+  max_steps: 1_000_000
+  precision: bf16-true
+  log_every_n_steps: 10
+  limit_val_batches: 10
+  val_check_interval: 1000
+
+# Dataset Configuration
+tokenizer:
+  _target_: transformers.AutoTokenizer.from_pretrained
+  pretrained_model_name_or_path: checkpoints/fish-speech-agent-1
+
+# Dataset Configuration
+train_dataset: {}
+val_dataset: {}
+
+data:
+  _target_: fish_speech.datasets.text.TextDataModule
+  train_dataset: ${train_dataset}
+  val_dataset: ${val_dataset}
+  num_workers: 4
+  batch_size: 8
+  tokenizer: ${tokenizer}
+  max_length: ${max_length}
+
+# Model Configuration
+model:
+  _target_: fish_speech.models.text2semantic.TextToSemantic
+  model: {}
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 3e-4
+    weight_decay: 0.01
+    betas: [0.9, 0.95]
+    eps: 1e-5
+
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.LambdaLR
+    _partial_: true
+    lr_lambda:
+      _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+      _partial_: true
+      num_warmup_steps: 1000
+      num_training_steps: ${trainer.max_steps}
+      final_lr_ratio: 0.1
+
+# Callbacks
+callbacks:
+  model_checkpoint:
+    every_n_train_steps: ${trainer.val_check_interval}

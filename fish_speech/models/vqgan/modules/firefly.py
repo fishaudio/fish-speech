@@ -1,5 +1,6 @@
 # A inference only version of the FireflyGAN model
 
+import math
 from functools import partial
 from math import prod
 from typing import Callable
@@ -12,6 +13,8 @@ from torch.nn import Conv1d
 from torch.nn.utils.parametrizations import weight_norm
 from torch.nn.utils.parametrize import remove_parametrizations
 from torch.utils.checkpoint import checkpoint
+
+from fish_speech.models.vqgan.utils import sequence_mask
 
 
 def init_weights(m, mean=0.0, std=0.01):
@@ -474,6 +477,89 @@ class ConvNeXtEncoder(nn.Module):
         return self.norm(x)
 
 
+class FireflyArchitecture(nn.Module):
+    def __init__(
+        self,
+        backbone: nn.Module,
+        head: nn.Module,
+        quantizer: nn.Module,
+        spec_transform: nn.Module,
+    ):
+        super().__init__()
+
+        self.backbone = backbone
+        self.head = head
+        self.quantizer = quantizer
+        self.spec_transform = spec_transform
+
+    def forward(self, x: torch.Tensor, template=None, mask=None) -> torch.Tensor:
+        if self.spec_transform is not None:
+            x = self.spec_transform(x)
+
+        x = self.backbone(x)
+        if mask is not None:
+            x = x * mask
+
+        if self.quantizer is not None:
+            vq_result = self.quantizer(x)
+            x = vq_result.z
+
+            if mask is not None:
+                x = x * mask
+
+        x = self.head(x, template=template)
+
+        if x.ndim == 2:
+            x = x[:, None, :]
+
+        if self.vq is not None:
+            return x, vq_result
+
+        return x
+
+    def encode(self, audios, audio_lengths):
+        audios = audios.float()
+
+        mels = self.spec_transform(audios)
+        mel_lengths = audio_lengths // self.spec_transform.hop_length
+        mel_masks = sequence_mask(mel_lengths, mels.shape[2])
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+        mels = mels * mel_masks_float_conv
+
+        # Encode
+        encoded_features = self.backbone(mels) * mel_masks_float_conv
+        feature_lengths = mel_lengths // math.prod(self.quantizer.downsample_factor)
+
+        return self.quantizer.encode(encoded_features), feature_lengths
+
+    def decode(self, indices, feature_lengths) -> torch.Tensor:
+        factor = math.prod(self.quantizer.downsample_factor)
+        mel_masks = sequence_mask(feature_lengths * factor, indices.shape[2] * factor)
+        mel_masks_float_conv = mel_masks[:, None, :].float()
+
+        audio_masks = sequence_mask(
+            feature_lengths * factor * self.spec_transform.hop_length,
+            indices.shape[2] * factor * self.spec_transform.hop_length,
+        )
+        audio_masks_float_conv = audio_masks[:, None, :].float()
+
+        z = self.quantizer.decode(indices) * mel_masks_float_conv
+        x = self.head(z) * audio_masks_float_conv
+
+        return x
+
+    def remove_parametrizations(self):
+        if hasattr(self.backbone, "remove_parametrizations"):
+            self.backbone.remove_parametrizations()
+
+        if hasattr(self.head, "remove_parametrizations"):
+            self.head.remove_parametrizations()
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+
 class FireflyBase(nn.Module):
     def __init__(self, ckpt_path: str = None, pretrained: bool = True):
         super().__init__()
@@ -500,7 +586,7 @@ class FireflyBase(nn.Module):
         )
 
         if ckpt_path is not None:
-            self.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
+            state_dict = torch.load(ckpt_path, map_location="cpu")
         elif pretrained:
             state_dict = torch.hub.load_state_dict_from_url(
                 "https://github.com/fishaudio/vocoder/releases/download/1.0.0/firefly-gan-base-generator.ckpt",

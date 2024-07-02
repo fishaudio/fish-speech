@@ -26,7 +26,7 @@ from fish_speech.i18n import i18n
 from fish_speech.webui.launch_utils import Seafoam, is_module_installed, versions_html
 
 config_path = cur_work_dir / "fish_speech" / "configs"
-vqgan_yml_path = config_path / "vqgan_finetune.yaml"
+vqgan_yml_path = config_path / "firefly_gan_vq.yaml"
 llama_yml_path = config_path / "text2semantic_finetune.yaml"
 vits_yml_path = config_path / "vits_decoder_finetune.yaml"
 
@@ -137,7 +137,7 @@ def change_decoder_config(decoder_model_path):
         choices = ["vits_decoder_finetune", "vits_decoder_pretrain"]
         return gr.Dropdown(choices=choices, value=choices[0])
     elif "vqgan" in decoder_model_path or "vq-gan" in decoder_model_path:
-        choices = ["vqgan_finetune", "vqgan_pretrain"]
+        choices = ["firefly_gan_vq", "firefly_gan_vq"]
         return gr.Dropdown(choices=choices, value=choices[0])
     else:
         raise ValueError("Invalid decoder name")
@@ -517,7 +517,7 @@ def train_process(
             PYTHON,
             "fish_speech/train.py",
             "--config-name",
-            "vqgan_finetune",
+            "firefly_gan_vq",
             f"project={project}",
             f"trainer.strategy.process_group_backend={backend}",
             f"model.optimizer.lr={vqgan_lr}",
@@ -590,9 +590,9 @@ def train_process(
                 "--batch-size",
                 "16",
                 "--config-name",
-                "vqgan_pretrain",
+                "firefly_gan_vq",
                 "--checkpoint-path",
-                "checkpoints/vq-gan-group-fsq-2x1024.pth",
+                "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
             ]
         )
 
@@ -1292,8 +1292,8 @@ with gr.Blocks(
                                     choices=[
                                         "vits_decoder_finetune",
                                         "vits_decoder_pretrain",
-                                        "vqgan_finetune",
-                                        "vqgan_pretrain",
+                                        "firefly_gan_vq",
+                                        "firefly_gan_vq",
                                     ],
                                     allow_custom_value=True,
                                 )
