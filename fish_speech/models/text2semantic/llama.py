@@ -71,7 +71,7 @@ class BaseModelArgs:
         if path.is_dir():
             path = path / "config.json"
 
-        with open(path, "r") as f:
+        with open(path, "r", encoding='utf-8') as f:
             data = json.load(f)
 
         match data["model_type"]:
