@@ -630,7 +630,7 @@ class Attention(nn.Module):
                         v,
                         dropout_p=self.dropout if self.training else 0.0,
                         is_causal=True,
-                        # No thirdparty attn_mask here to use flash_attention
+                        # No third party attn_mask here to use flash_attention
                     )
             else:
                 y = F.scaled_dot_product_attention(
