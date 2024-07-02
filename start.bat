@@ -1,16 +1,23 @@
 @echo off
 chcp 65001
 
-
+set USE_MIRROR=true
 set PYTHONPATH=%~dp0
 set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 
-set no_proxy="localhost, 127.0.0.1, 0.0.0.0"
-set HF_ENDPOINT=https://hf-mirror.com
-%PYTHON_CMD% .\tools\download_models.py
 
 setlocal enabledelayedexpansion
+
+set "HF_ENDPOINT=https://huggingface.co"
+set "no_proxy="
+if "%USE_MIRROR%" == "true" (
+    set "HF_ENDPOINT=https://hf-mirror.com"
+    set "no_proxy=localhost, 127.0.0.1, 0.0.0.0"
+)
+echo "HF_ENDPOINT: !HF_ENDPOINT!"
+echo "NO_PROXY: !no_proxy!"
+%PYTHON_CMD% .\tools\download_models.py
 
 set "API_FLAGS="
 set "flags="

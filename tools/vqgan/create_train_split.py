@@ -24,7 +24,7 @@ def main(root, val_ratio, val_count, filelist, min_duration, max_duration):
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
 
     if min_duration is None and max_duration is None:
-        filtered_files = list(map(str, files))
+        filtered_files = list(map(str, [file.relative_to(root) for file in files]))
     else:
         filtered_files = []
         for file in tqdm(files):

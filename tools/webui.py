@@ -17,7 +17,9 @@ from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+
 from fish_speech.i18n import i18n
+from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from tools.api import decode_vq_tokens, encode_reference
 from tools.llama.generate import (
     GenerateRequest,
@@ -131,7 +133,12 @@ def inference(
         )
 
         with torch.autocast(
-            device_type=decoder_model.device.type, dtype=args.precision
+            device_type=(
+                "cpu"
+                if decoder_model.device.type == "mps"
+                else decoder_model.device.type
+            ),
+            dtype=args.precision,
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,
@@ -238,6 +245,13 @@ def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     return wav_header_bytes
 
 
+def normalize_text(user_input, use_normalization):
+    if use_normalization:
+        return ChnNormedText(raw_text=user_input).normalize()
+    else:
+        return user_input
+
+
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
         gr.Markdown(HEADER_MD)
@@ -253,8 +267,24 @@ def build_app():
         with gr.Row():
             with gr.Column(scale=3):
                 text = gr.Textbox(
-                    label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=15
+                    label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=10
                 )
+                refined_text = gr.Textbox(
+                    label=i18n("Realtime Transform Text"),
+                    placeholder=i18n(
+                        "Normalization Result Preview (Currently Only Chinese)"
+                    ),
+                    lines=5,
+                    interactive=False,
+                )
+
+                with gr.Row():
+                    if_refine_text = gr.Checkbox(
+                        label=i18n("Text Normalization"),
+                        value=True,
+                        scale=0,
+                        min_width=150,
+                    )
 
                 with gr.Row():
                     with gr.Tab(label=i18n("Advanced Config")):
@@ -352,6 +382,7 @@ def build_app():
                         streaming=True,
                         autoplay=True,
                         interactive=False,
+                        show_download_button=True,
                     )
                 with gr.Row():
                     with gr.Column(scale=3):
@@ -362,11 +393,16 @@ def build_app():
                             value="\U0001F3A7 " + i18n("Streaming Generate"),
                             variant="primary",
                         )
+
+        text.input(
+            fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
+        )
+
         # # Submit
         generate.click(
             inference_wrapper,
             [
-                text,
+                refined_text,
                 enable_reference_audio,
                 reference_audio,
                 reference_text,
@@ -385,7 +421,7 @@ def build_app():
         generate_stream.click(
             inference_stream,
             [
-                text,
+                refined_text,
                 enable_reference_audio,
                 reference_audio,
                 reference_text,

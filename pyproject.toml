@@ -13,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "numpy<=1.26.4",
     "transformers>=4.35.2",
     "datasets>=2.14.5",
     "lightning>=2.1.0",
@@ -26,7 +27,7 @@ dependencies = [
     "wandb>=0.15.11",
     "grpcio>=1.58.0",
     "kui>=1.6.0",
-    "zibai-server>=0.9.0",
+    "uvicorn>=0.30.0",
     "loguru>=0.6.0",
     "loralib>=0.1.2",
     "natsort>=8.4.0",
