@@ -7,9 +7,7 @@ from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
 from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
-from fish_speech.models.text2semantic.kernels import fast_cross_entropy_loss
 from fish_speech.models.text2semantic.llama import NaiveTransformer
-from fish_speech.models.text2semantic.lora_utils import LoraConfig, setup_lora
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 

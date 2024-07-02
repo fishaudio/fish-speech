@@ -14,9 +14,7 @@ from fish_speech.models.text2semantic.lora_utils import (
 @click.command()
 @click.option("--llama-config", type=str, default="dual_ar_2_codebook_medium")
 @click.option("--lora-config", type=str, default="r_8_alpha_16")
-@click.option(
-    "--llama-weight", type=str, default="checkpoints/text2semantic-sft-medium-v1-4k.pth"
-)
+@click.option("--llama-weight", type=str, default="checkpoints/fish-speech-1.2")
 @click.option("--lora-weight", type=str, required=True)
 @click.option("--output", type=str, required=True)
 def merge(llama_config, lora_config, llama_weight, lora_weight, output):

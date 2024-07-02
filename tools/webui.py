@@ -407,10 +407,7 @@ def parse_args():
     parser.add_argument(
         "--llama-checkpoint-path",
         type=Path,
-        default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
-    )
-    parser.add_argument(
-        "--llama-config-name", type=str, default="dual_ar_2_codebook_medium"
+        default="checkpoints/fish-speech-1.2",
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
@@ -421,7 +418,6 @@ def parse_args():
     parser.add_argument("--tokenizer", type=str, default="fishaudio/fish-speech-1")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--half", action="store_true")
-    parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--max-gradio-length", type=int, default=0)
 
@@ -434,11 +430,9 @@ if __name__ == "__main__":
 
     logger.info("Loading Llama model...")
     llama_queue = launch_thread_safe_queue(
-        config_name=args.llama_config_name,
         checkpoint_path=args.llama_checkpoint_path,
         device=args.device,
         precision=args.precision,
-        max_length=args.max_length,
         compile=args.compile,
     )
     llama_tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)

@@ -20,6 +20,14 @@ def setup_lora(model, lora_config):
         lora_alpha=lora_config.lora_alpha,
     )
 
+    model.codebook_embeddings = lora.Embedding(
+        num_embeddings=model.codebook_embeddings.num_embeddings,
+        embedding_dim=model.codebook_embeddings.embedding_dim,
+        padding_idx=model.codebook_embeddings.padding_idx,
+        r=lora_config.r,
+        lora_alpha=lora_config.lora_alpha,
+    )
+
     # Replace output layer with a LoRA layer
     linears = [(model, "output")]
 

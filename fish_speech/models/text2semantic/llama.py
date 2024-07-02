@@ -1,5 +1,7 @@
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import torch
@@ -9,11 +11,14 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
+from transformers import AutoTokenizer
 
-try:
-    from fish_speech.models.text2semantic.kernels import fast_rms_layernorm
-except ImportError:
-    fast_rms_layernorm = None
+from fish_speech.conversation import SEMANTIC_TOKEN
+from fish_speech.utils import RankedLogger
+
+from .lora import LoraConfig, setup_lora
+
+log = RankedLogger(__name__, rank_zero_only=True)
 
 
 def find_multiple(n: int, k: int) -> int:
@@ -24,6 +29,8 @@ def find_multiple(n: int, k: int) -> int:
 
 @dataclass
 class BaseModelArgs:
+    model_type: str = "base"
+
     vocab_size: int = 32000
     n_layer: int = 32
     n_head: int = 32
@@ -35,12 +42,12 @@ class BaseModelArgs:
     norm_eps: float = 1e-5
     max_seq_len: int = 2048
     dropout: float = 0.0
+    tie_word_embeddings: bool = True
+    attention_qkv_bias: bool = False
 
     # Codebook configs
     codebook_size: int = 160
     num_codebooks: int = 4
-    num_in_codebooks: Optional[int] = None
-    codebook_padding_idx: int = 0
 
     # Gradient checkpointing
     use_gradient_checkpointing: bool = True
@@ -55,18 +62,41 @@ class BaseModelArgs:
             hidden_dim = 4 * self.dim
             n_hidden = int(2 * hidden_dim / 3)
             self.intermediate_size = find_multiple(n_hidden, 256)
-        if self.num_in_codebooks is None:
-            self.num_in_codebooks = self.num_codebooks
         self.head_dim = self.dim // self.n_head
+
+    @staticmethod
+    def from_pretrained(path: str):
+        path = Path(path)
+
+        if path.is_dir():
+            path = path / "config.json"
+
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        match data["model_type"]:
+            case "naive":
+                cls = NaiveModelArgs
+            case "dual_ar":
+                cls = DualARModelArgs
+            case _:
+                raise ValueError(f"Unknown model type: {data['model_type']}")
+
+        return cls(**data)
+
+    def save(self, path: str):
+        with open(path, "w") as f:
+            json.dump(self.__dict__, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
 @dataclass
 class NaiveModelArgs(BaseModelArgs):
-    pass
+    model_type: str = "naive"
 
 
 @dataclass
 class DualARModelArgs(BaseModelArgs):
+    model_type: str = "dual_ar"
     n_fast_layer: int = 4
 
 
@@ -104,24 +134,35 @@ class BaseTransformerForwardResult:
 
 
 class BaseTransformer(nn.Module):
-    def __init__(self, config: BaseModelArgs) -> None:
+    def __init__(
+        self, config: BaseModelArgs, tokenizer: AutoTokenizer, init_weights: bool = True
+    ) -> None:
         super().__init__()
         self.config = config
+        self.tokenizer = tokenizer
+
+        self.semantic_token_id = tokenizer.convert_tokens_to_ids(SEMANTIC_TOKEN)
 
         # Slow transformer
         self.embeddings = nn.Embedding(
-            config.vocab_size + config.codebook_size * config.num_in_codebooks,
+            config.vocab_size,
+            config.dim,
+        )
+        self.codebook_embeddings = nn.Embedding(
+            config.codebook_size * config.num_codebooks,
             config.dim,
         )
         self.layers = nn.ModuleList(
             TransformerBlock(config, use_sdpa=True) for _ in range(config.n_layer)
         )
         self.norm = RMSNorm(config.dim, eps=config.norm_eps)
-        self.output = nn.Linear(
-            config.dim,
-            config.vocab_size,
-            bias=False,
-        )
+
+        if self.config.tie_word_embeddings is False:
+            self.output = nn.Linear(
+                config.dim,
+                config.vocab_size,
+                bias=False,
+            )
 
         self.register_buffer(
             "freqs_cis",
@@ -148,6 +189,9 @@ class BaseTransformer(nn.Module):
         self.max_batch_size = -1
         self.max_seq_len = -1
 
+        if init_weights:
+            self.apply(self._init_weights)
+
     def setup_caches(
         self, max_batch_size: int, max_seq_len: int, dtype: torch.dtype = torch.bfloat16
     ):
@@ -170,11 +214,9 @@ class BaseTransformer(nn.Module):
 
     def embed(self, x: Tensor) -> Tensor:
         vocab_embeds = [self.embeddings(x[:, 0])]
-        for i in range(self.config.num_in_codebooks):
-            emb = self.embeddings(
-                x[:, i + 1] + i * self.config.codebook_size + self.config.vocab_size
-            )
-            emb[x[:, i + 1] == self.config.codebook_padding_idx] = 0
+        for i in range(self.config.num_codebooks):
+            emb = self.codebook_embeddings(x[:, i + 1] + i * self.config.codebook_size)
+            emb[x[:, 0] != self.semantic_token_id] = 0
             vocab_embeds.append(emb)
 
         x = torch.stack(vocab_embeds, dim=3)
@@ -183,9 +225,10 @@ class BaseTransformer(nn.Module):
         return x
 
     def forward(
-        self, inp: Tensor, key_padding_mask: Optional[Tensor] = None
+        self,
+        inp: Tensor,
+        key_padding_mask: Optional[Tensor] = None,
     ) -> BaseTransformerForwardResult:
-        # x: (batch, num_codebooks + 1, seq_len)
         seq_len = inp.size(2)
 
         # Here we want to merge the embeddings of the codebooks
@@ -209,7 +252,11 @@ class BaseTransformer(nn.Module):
 
         # We got slow_out here
         slow_out = self.norm(x)
-        token_logits = self.output(slow_out)
+
+        if self.config.tie_word_embeddings:
+            token_logits = F.linear(slow_out, self.embeddings.weight)
+        else:
+            token_logits = self.output(slow_out)
 
         return BaseTransformerForwardResult(
             logits=token_logits,
@@ -217,7 +264,10 @@ class BaseTransformer(nn.Module):
         )
 
     def forward_generate(
-        self, x: Tensor, input_pos: Optional[Tensor] = None, return_all: bool = False
+        self,
+        x: Tensor,
+        input_pos: Optional[Tensor] = None,
+        return_all: bool = False,
     ) -> BaseTransformerForwardResult:
         # This is used for generation, optimized for torch compile
         assert (
@@ -240,7 +290,11 @@ class BaseTransformer(nn.Module):
 
         # We got slow_out here
         slow_out = self.norm(x)
-        token_logits = self.output(slow_out)
+
+        if self.config.tie_word_embeddings:
+            token_logits = F.linear(slow_out, self.embeddings.weight)
+        else:
+            token_logits = self.output(slow_out)
 
         return BaseTransformerForwardResult(
             logits=token_logits,
@@ -258,10 +312,72 @@ class BaseTransformer(nn.Module):
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
 
+    @staticmethod
+    def from_pretrained(
+        path: str,
+        load_weights: bool = False,
+        max_length: int | None = None,
+        lora_config: LoraConfig | None = None,
+        rope_base: int | None = None,
+    ) -> "BaseTransformer":
+        config = BaseModelArgs.from_pretrained(path)
+        if max_length is not None:
+            config.max_seq_len = max_length
+            log.info(f"Override max_seq_len to {max_length}")
+
+        if rope_base is not None:
+            config.rope_base = rope_base
+            log.info(f"Override rope_base to {rope_base}")
+
+        match config.model_type:
+            case "naive":
+                model_cls = NaiveTransformer
+            case "dual_ar":
+                model_cls = DualARTransformer
+            case _:
+                raise ValueError(f"Unknown model type: {config.model_type}")
+
+        tokenizer = AutoTokenizer.from_pretrained(str(path))
+        log.info(f"Loading model from {path}, config: {config}")
+        model = model_cls(config, tokenizer=tokenizer)
+
+        if lora_config is not None:
+            setup_lora(model, lora_config)
+            log.info(f"LoRA setup: {lora_config}")
+
+        if load_weights is False:
+            log.info("Randomly initialized model")
+        else:
+            weights = torch.load(
+                Path(path) / "model.pth", map_location="cpu", mmap=True
+            )
+            err = model.load_state_dict(weights, strict=False, assign=True)
+            log.info(f"Loaded weights with error: {err}")
+
+        return model
+
+    def save_pretrained(self, path: str, drop_lora: bool = False):
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+
+        self.config.save(path / "config.json")
+        state_dict = self.state_dict()
+
+        if drop_lora:
+            for key in list(state_dict.keys()):
+                if "lora" not in key:
+                    continue
+
+                state_dict.pop(key)
+                log.info(f"Drop LoRA parameter: {key}")
+
+        torch.save(state_dict, path / "model.pth")
+        self.tokenizer.save_pretrained(path)
+
 
 class NaiveTransformer(BaseTransformer):
-    def __init__(self, config: NaiveModelArgs) -> None:
-        super().__init__(config)
+    def __init__(self, config: NaiveModelArgs, tokenizer: AutoTokenizer) -> None:
+        super().__init__(config, init_weights=False, tokenizer=tokenizer)
 
         self.codebook_norm = RMSNorm(config.dim, eps=config.norm_eps)
         self.codebook_output = nn.Linear(
@@ -288,9 +404,14 @@ class NaiveTransformer(BaseTransformer):
         )
 
     def forward(
-        self, inp: Tensor, key_padding_mask: Optional[Tensor] = None
+        self,
+        inp: Tensor,
+        key_padding_mask: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
-        result = super().forward(inp, key_padding_mask)
+        result = super().forward(
+            inp=inp,
+            key_padding_mask=key_padding_mask,
+        )
         return self.decode(result)
 
     def forward_generate(
@@ -301,13 +422,11 @@ class NaiveTransformer(BaseTransformer):
 
 
 class DualARTransformer(BaseTransformer):
-    def __init__(self, config: DualARModelArgs) -> None:
-        super().__init__(config)
+    def __init__(self, config: NaiveModelArgs, tokenizer: AutoTokenizer) -> None:
+        super().__init__(config, init_weights=False, tokenizer=tokenizer)
 
         # Fast transformer
-        self.fast_embeddings = nn.Embedding(
-            config.codebook_size, config.dim, padding_idx=config.codebook_padding_idx
-        )
+        self.fast_embeddings = nn.Embedding(config.codebook_size, config.dim)
 
         # The equivalent bs is so large that sdpa doesn't work
         self.fast_layers = nn.ModuleList(
@@ -341,7 +460,9 @@ class DualARTransformer(BaseTransformer):
             )
 
     def forward(
-        self, inp: Tensor, key_padding_mask: Optional[Tensor] = None
+        self,
+        inp: Tensor,
+        key_padding_mask: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
         parent_result = super().forward(inp, key_padding_mask)
         token_logits = parent_result.logits
@@ -452,7 +573,9 @@ class Attention(nn.Module):
 
         total_head_dim = (config.n_head + 2 * config.n_local_heads) * config.head_dim
         # key, query, value projections for all heads, but in a batch
-        self.wqkv = nn.Linear(config.dim, total_head_dim, bias=False)
+        self.wqkv = nn.Linear(
+            config.dim, total_head_dim, bias=config.attention_qkv_bias
+        )
         self.wo = nn.Linear(config.dim, config.dim, bias=False)
         self.kv_cache = None
 
@@ -580,9 +703,6 @@ class RMSNorm(nn.Module):
         return x * torch.rsqrt(torch.mean(x * x, dim=-1, keepdim=True) + self.eps)
 
     def forward(self, x: Tensor) -> Tensor:
-        if fast_rms_layernorm is not None and self.training:
-            return fast_rms_layernorm(self, x)
-
         output = self._norm(x.float()).type_as(x)
         return output * self.weight
 
@@ -598,7 +718,6 @@ def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor
     return cache.to(dtype=torch.bfloat16)
 
 
-@torch.compile
 def apply_rotary_emb(x: Tensor, freqs_cis: Tensor) -> Tensor:
     xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
     freqs_cis = freqs_cis.view(1, xshaped.size(1), 1, xshaped.size(3), 2)
@@ -612,29 +731,3 @@ def apply_rotary_emb(x: Tensor, freqs_cis: Tensor) -> Tensor:
 
     x_out2 = x_out2.flatten(3)
     return x_out2.type_as(x)
-
-
-if __name__ == "__main__":
-    args = DualARModelArgs(
-        max_seq_len=4096,
-        vocab_size=32312,
-        n_layer=12,
-        n_fast_layer=4,
-        n_head=12,
-        dim=768,
-        rope_base=10000,
-        norm_eps=1e-5,
-        codebook_size=128,
-        num_codebooks=4,
-    )
-
-    model = DualARTransformer(args)
-    model = model.cuda().bfloat16()
-    print("Total params:", sum(i.numel() for i in model.parameters()) / 1024 / 1024)
-
-    inputs = torch.randint(0, 100, (2, 5, 128)).cuda()
-    key_padding_mask = torch.zeros(2, 128).bool().cuda()
-    key_padding_mask[0, 2:] = True
-    x1 = model(inputs, key_padding_mask=key_padding_mask)
-    print(x1.token_logits.shape)
-    print(x1.codebook_logits.shape)
