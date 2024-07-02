@@ -419,7 +419,7 @@ class WeightOnlyInt4Linear(torch.nn.Module):
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
+    default="checkpoints/fish-speech-1.2",
 )
 @click.option("--config-name", type=str, default="dual_ar_2_codebook_medium")
 @click.option(

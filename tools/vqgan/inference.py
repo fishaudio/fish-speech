@@ -8,7 +8,6 @@ import torch
 import torchaudio
 from hydra import compose, initialize
 from hydra.utils import instantiate
-from lightning import LightningModule
 from loguru import logger
 from omegaconf import OmegaConf
 
@@ -23,20 +22,26 @@ def load_model(config_name, checkpoint_path, device="cuda"):
     with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
         cfg = compose(config_name=config_name)
 
-    model: LightningModule = instantiate(cfg.model)
+    model = instantiate(cfg)
     state_dict = torch.load(
         checkpoint_path,
-        map_location=model.device,
+        map_location=device,
     )
-
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
 
-    model.load_state_dict(state_dict, strict=False)
+    if any("generator" in k for k in state_dict):
+        state_dict = {
+            k.replace("generator.", ""): v
+            for k, v in state_dict.items()
+            if "generator." in k
+        }
+
+    result = model.load_state_dict(state_dict, strict=False)
     model.eval()
     model.to(device)
-    logger.info("Restored model from checkpoint")
 
+    logger.info(f"Loaded model: {result}")
     return model
 
 
@@ -51,11 +56,10 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option(
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
-@click.option("--config-name", "-cfg", default="vqgan_pretrain")
+@click.option("--config-name", default="firefly_gan_vq")
 @click.option(
     "--checkpoint-path",
-    "-ckpt",
-    default="checkpoints/vq-gan-group-fsq-2x1024.pth",
+    default="checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
 )
 @click.option(
     "--device",
@@ -72,17 +76,17 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         audio, sr = torchaudio.load(str(input_path))
         if audio.shape[0] > 1:
             audio = audio.mean(0, keepdim=True)
-        audio = torchaudio.functional.resample(audio, sr, model.sampling_rate)
+        audio = torchaudio.functional.resample(
+            audio, sr, model.spec_transform.sample_rate
+        )
 
-        audios = audio[None].to(model.device)
+        audios = audio[None].to(device)
         logger.info(
-            f"Loaded audio with {audios.shape[2] / model.sampling_rate:.2f} seconds"
+            f"Loaded audio with {audios.shape[2] / model.spec_transform.sample_rate:.2f} seconds"
         )
 
         # VQ Encoder
-        audio_lengths = torch.tensor(
-            [audios.shape[2]], device=model.device, dtype=torch.long
-        )
+        audio_lengths = torch.tensor([audios.shape[2]], device=device, dtype=torch.long)
         indices = model.encode(audios, audio_lengths)[0][0]
 
         logger.info(f"Generated indices of shape {indices.shape}")
@@ -92,17 +96,15 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
     elif input_path.suffix == ".npy":
         logger.info(f"Processing precomputed indices from {input_path}")
         indices = np.load(input_path)
-        indices = torch.from_numpy(indices).to(model.device).long()
+        indices = torch.from_numpy(indices).to(device).long()
         assert indices.ndim == 2, f"Expected 2D indices, got {indices.ndim}"
     else:
         raise ValueError(f"Unknown input type: {input_path}")
 
     # Restore
-    feature_lengths = torch.tensor([indices.shape[1]], device=model.device)
-    fake_audios = model.decode(
-        indices=indices[None], feature_lengths=feature_lengths, return_audios=True
-    )
-    audio_time = fake_audios.shape[-1] / model.sampling_rate
+    feature_lengths = torch.tensor([indices.shape[1]], device=device)
+    fake_audios = model.decode(indices=indices[None], feature_lengths=feature_lengths)
+    audio_time = fake_audios.shape[-1] / model.spec_transform.sample_rate
 
     logger.info(
         f"Generated audio of shape {fake_audios.shape}, equivalent to {audio_time:.2f} seconds from {indices.shape[1]} features, features/second: {indices.shape[1] / audio_time:.2f}"
@@ -110,7 +112,7 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
     # Save audio
     fake_audio = fake_audios[0, 0].float().cpu().numpy()
-    sf.write(output_path, fake_audio, model.sampling_rate)
+    sf.write(output_path, fake_audio, model.spec_transform.sample_rate)
     logger.info(f"Saved audio to {output_path}")
 
 

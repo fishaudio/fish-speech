@@ -72,7 +72,7 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option(
     "--checkpoint-path",
     "-ckpt",
-    default="checkpoints/vq-gan-group-fsq-2x1024.pth",
+    default="checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
 )
 @click.option(
     "--device",

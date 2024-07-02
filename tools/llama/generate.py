@@ -19,7 +19,7 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from fish_speech.datasets.text import CODEBOOK_EOS_TOKEN_ID, CODEBOOK_PAD_TOKEN_ID
+from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
 from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -31,7 +31,11 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
     torch._inductor.config.fx_graph_cache = True
 
 
-from fish_speech.models.text2semantic.llama import DualARTransformer, NaiveTransformer
+from fish_speech.models.text2semantic.llama import (
+    BaseTransformer,
+    DualARTransformer,
+    NaiveTransformer,
+)
 
 
 def multinomial_sample_one_no_sync(
@@ -161,7 +165,6 @@ def decode_n_tokens(
     cur_token: torch.Tensor,
     input_pos: torch.Tensor,
     num_new_tokens: int,
-    eos_token_id: int = 2,
     im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
     **sampling_kwargs,
@@ -197,11 +200,7 @@ def decode_n_tokens(
             model.config.num_codebooks + 1, -1
         )
 
-        if (
-            cur_token[0, 0, -1] == eos_token_id
-            or cur_token[0, 0, -1] == im_end_id
-            or (cur_token[0, 1:, -1] == CODEBOOK_EOS_TOKEN_ID).any()
-        ):
+        if cur_token[0, 0, -1] == im_end_id:
             break
 
     return previous_tokens[:, : i + 1]
@@ -214,7 +213,6 @@ def generate(
     model: NaiveTransformer,
     prompt: torch.Tensor,
     max_new_tokens: int,
-    eos_token_id: int = 2,
     im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
     **sampling_kwargs,
@@ -255,6 +253,7 @@ def generate(
         if isinstance(model, NaiveTransformer)
         else decode_one_token_ar
     )
+
     next_token = prefill_decode(
         model, prompt.view(1, codebook_dim, -1), input_pos, **sampling_kwargs
     )
@@ -266,7 +265,6 @@ def generate(
         next_token.view(1, codebook_dim, -1),
         input_pos,
         max_new_tokens - 1,
-        eos_token_id=eos_token_id,
         im_end_id=im_end_id,
         decode_one_token=decode_one_token,
         **sampling_kwargs,
@@ -281,22 +279,12 @@ def generate(
 def encode_tokens(
     tokenizer,
     string,
-    bos=True,
     device="cuda",
     prompt_tokens=None,
-    speaker=None,
     num_codebooks=4,
 ):
     string = clean_text(string)
-
-    if speaker is None:
-        speaker = "assistant"
-
-    string = (
-        f"<|im_start|>user<|im_sep|>{string}<|im_end|><|im_start|>{speaker}<|im_sep|>"
-    )
-    if bos:
-        string = f"<|begin_of_sequence|>{string}"
+    string = f"<|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n"
 
     new_tokens = tokenizer.encode(
         string,
@@ -324,7 +312,7 @@ def encode_tokens(
         prompt_tokens = prompt_tokens[0]
 
     assert prompt_tokens.ndim == 2
-    data = prompt_tokens + 2
+    data = prompt_tokens + 1
 
     if prompt_tokens.shape[0] > num_codebooks:
         logger.warning(
@@ -332,13 +320,9 @@ def encode_tokens(
         )
         data = data[:num_codebooks]
 
-    # Add eos token for each codebook
+    # Add pad token for each codebook
     data = torch.cat(
-        (
-            data,
-            torch.ones((data.size(0), 1), dtype=torch.int, device=device)
-            * CODEBOOK_EOS_TOKEN_ID,
-        ),
+        (data, torch.zeros((data.size(0), 1), dtype=torch.int, device=device)),
         dim=1,
     )
 
@@ -356,16 +340,10 @@ def encode_tokens(
     return prompt
 
 
-def load_model(
-    config_name, checkpoint_path, device, precision, max_length, compile=False
-):
-    hydra.core.global_hydra.GlobalHydra.instance().clear()
-    with initialize(version_base="1.3", config_path="../../fish_speech/configs/model"):
-        cfg = compose(
-            config_name=config_name, overrides=[f"config.max_seq_len={max_length}"]
-        )
-
-    model: Union[NaiveTransformer, DualARTransformer] = instantiate(cfg)
+def load_model(checkpoint_path, device, precision, compile=False):
+    model: Union[NaiveTransformer, DualARTransformer] = BaseTransformer.from_pretrained(
+        checkpoint_path, load_weights=True
+    )
 
     if "int8" in str(checkpoint_path):
         logger.info("Using int8 weight-only quantization!")
@@ -384,21 +362,8 @@ def load_model(
         simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
         model = simple_quantizer.convert_for_runtime()
 
-    checkpoint = torch.load(str(checkpoint_path), map_location="cpu")
-    if "state_dict" in checkpoint:
-        checkpoint = checkpoint["state_dict"]
-
-    if any(k.startswith("model.") for k in checkpoint):
-        checkpoint = {
-            k.replace("model.", ""): v
-            for k, v in checkpoint.items()
-            if k.startswith("model.")
-        }
-
-    model.load_state_dict(checkpoint, assign=True)
-
     model = model.to(device=device, dtype=precision)
-    logger.info("Restored model from checkpoint")
+    logger.info(f"Restored model from checkpoint")
 
     if isinstance(model, DualARTransformer):
         decode_one_token = decode_one_token_ar
@@ -426,7 +391,6 @@ class GenerateResponse:
 def generate_long(
     *,
     model,
-    tokenizer: callable,
     device: str | torch.device,
     decode_one_token: callable,
     text: str,
@@ -439,7 +403,6 @@ def generate_long(
     iterative_prompt: bool = True,
     max_length: int = 2048,
     chunk_length: int = 150,
-    speaker: Optional[str] = None,
     prompt_text: Optional[str | list[str]] = None,
     prompt_tokens: Optional[torch.Tensor | list[torch.Tensor]] = None,
 ):
@@ -457,6 +420,7 @@ def generate_long(
     ), "Prompt text and tokens must have the same length"
 
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    tokenizer = model.tokenizer
     im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
 
     encoded = []
@@ -469,10 +433,8 @@ def generate_long(
                 encode_tokens(
                     tokenizer,
                     string=t,
-                    bos=idx == 0,
                     device=device,
                     prompt_tokens=c,
-                    speaker=speaker,
                     num_codebooks=model.config.num_codebooks,
                 )
             )
@@ -482,9 +444,7 @@ def generate_long(
             encode_tokens(
                 tokenizer,
                 string=text,
-                bos=idx == 0 and not use_prompt,
                 device=device,
-                speaker=speaker,
                 num_codebooks=model.config.num_codebooks,
             )
         )
@@ -544,7 +504,6 @@ def generate_long(
                 model=model,
                 prompt=cat_encoded,
                 max_new_tokens=max_new_tokens,
-                eos_token_id=tokenizer.eos_token_id,
                 im_end_id=im_end_id,
                 decode_one_token=decode_one_token,
                 temperature=temperature,
@@ -576,19 +535,13 @@ def generate_long(
 
             # Put the generated tokens
             # since there is <im_end> and <eos> tokens, we remove last 2 tokens
-            codes = y[1:, prompt_length:-2].clone()
-
-            codes = codes - 2
+            codes = y[1:, prompt_length:-1].clone()
+            codes = codes - 1
             assert (codes >= 0).all(), f"Negative code found"
 
             decoded = y[:, prompt_length:-1].clone()
-            if decoded[0, -1] != im_end_id:  # <im_end>
-                val = [[im_end_id]] + [[CODEBOOK_EOS_TOKEN_ID]] * (decoded.size(0) - 1)
-                decoded = torch.cat(
-                    (decoded, torch.tensor(val, device=device, dtype=torch.int)), dim=1
-                )
-
             # But for global encoding, we should keep the <im_end> token
+
             global_encoded.append(decoded)
             assert (codes >= 0).all(), f"Negative code found: {codes}"
             yield GenerateResponse(action="sample", codes=codes, text=texts[seg_idx])
@@ -611,11 +564,9 @@ class GenerateRequest:
 
 
 def launch_thread_safe_queue(
-    config_name,
     checkpoint_path,
     device,
     precision,
-    max_length: int,
     compile: bool = False,
 ):
     input_queue = queue.Queue()
@@ -623,7 +574,7 @@ def launch_thread_safe_queue(
 
     def worker():
         model, decode_one_token = load_model(
-            config_name, checkpoint_path, device, precision, max_length, compile=compile
+            checkpoint_path, device, precision, compile=compile
         )
         init_event.set()
 
@@ -672,16 +623,12 @@ def launch_thread_safe_queue(
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/text2semantic-sft-medium-v1-4k.pth",
+    default="checkpoints/fish-speech-1.2",
 )
-@click.option("--config-name", type=str, default="dual_ar_2_codebook_medium")
-@click.option("--tokenizer", type=str, default="fishaudio/fish-speech-1")
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
-@click.option("--speaker", type=str, default=None)
 @click.option("--half/--no-half", default=False)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
-@click.option("--max-length", type=int, default=2048)
 @click.option("--chunk-length", type=int, default=150)
 def main(
     text: str,
@@ -693,14 +640,10 @@ def main(
     repetition_penalty: float,
     temperature: float,
     checkpoint_path: Path,
-    config_name: str,
-    tokenizer: str,
     compile: bool,
     seed: int,
-    speaker: Optional[str],
     half: bool,
     iterative_prompt: bool,
-    max_length: int,
     chunk_length: int,
 ) -> None:
     device = "cuda"
@@ -715,7 +658,7 @@ def main(
     logger.info("Loading model ...")
     t0 = time.time()
     model, decode_one_token = load_model(
-        config_name, checkpoint_path, device, precision, max_length, compile=compile
+        checkpoint_path, device, precision, compile=compile
     )
 
     if torch.cuda.is_available():
@@ -726,7 +669,6 @@ def main(
     if prompt_tokens is not None:
         prompt_tokens = [torch.from_numpy(np.load(p)).to(device) for p in prompt_tokens]
 
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer)
     torch.manual_seed(seed)
 
     if torch.cuda.is_available():
@@ -742,11 +684,8 @@ def main(
         top_p=top_p,
         repetition_penalty=repetition_penalty,
         temperature=temperature,
-        tokenizer=tokenizer,
         compile=compile,
-        speaker=speaker,
         iterative_prompt=iterative_prompt,
-        max_length=max_length,
         chunk_length=chunk_length,
         prompt_text=prompt_text,
         prompt_tokens=prompt_tokens,
