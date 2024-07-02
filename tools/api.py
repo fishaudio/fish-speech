@@ -399,9 +399,9 @@ def parse_args():
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=str,
-        default="checkpoints/vq-gan-group-fsq-2x1024.pth",
+        default="checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
     )
-    parser.add_argument("--decoder-config-name", type=str, default="vqgan_pretrain")
+    parser.add_argument("--decoder-config-name", type=str, default="firefly_gan_vq")
     parser.add_argument("--tokenizer", type=str, default="fishaudio/fish-speech-1")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--half", action="store_true")

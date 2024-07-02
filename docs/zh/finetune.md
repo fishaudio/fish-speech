@@ -63,8 +63,8 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 ```bash
 python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
-    --config-name "vqgan_pretrain" \
-    --checkpoint-path "checkpoints/vq-gan-group-fsq-2x1024.pth"
+    --config-name "firefly_gan_vq" \
+    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
 ```
 
 !!! note
@@ -239,16 +239,16 @@ python tools/vqgan/create_train_split.py data
 ### 3. 启动训练
 
 ```bash
-python fish_speech/train.py --config-name vqgan_finetune
+python fish_speech/train.py --config-name firefly_gan_vq
 ```
 
 !!! note
-    你可以通过修改 `fish_speech/configs/vqgan_finetune.yaml` 来修改训练参数, 但大部分情况下, 你不需要这么做.
+    你可以通过修改 `fish_speech/configs/firefly_gan_vq.yaml` 来修改训练参数, 但大部分情况下, 你不需要这么做.
 
 ### 4. 测试音频
     
 ```bash
-python tools/vqgan/inference.py -i test.wav --checkpoint-path results/vqgan_finetune/checkpoints/step_000010000.ckpt
+python tools/vqgan/inference.py -i test.wav --checkpoint-path results/firefly_gan_vq/checkpoints/step_000010000.ckpt
 ```
 
 你可以查看 `fake.wav` 来判断微调效果.
