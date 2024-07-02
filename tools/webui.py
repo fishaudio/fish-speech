@@ -202,7 +202,6 @@ def inference_wrapper(
             top_p,
             repetition_penalty,
             temperature,
-
         )
 
         try:

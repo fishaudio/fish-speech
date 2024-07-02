@@ -101,7 +101,6 @@ def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
             prompt_tokens = decoder_model.encode(audios, audio_lengths)[0][0]
             reference_embedding = None  # VQGAN does not have reference embedding
 
-
         logger.info(f"Encoded prompt: {prompt_tokens.shape}")
     else:
         prompt_tokens = None
@@ -342,7 +341,12 @@ async def api_invoke_model(
     else:
         fake_audios = next(inference(req))
         buffer = io.BytesIO()
-        sf.write(buffer, fake_audios, decoder_model.spec_transform.sample_rate, format=req.format)
+        sf.write(
+            buffer,
+            fake_audios,
+            decoder_model.spec_transform.sample_rate,
+            format=req.format,
+        )
 
         return StreamResponse(
             iterable=buffer_to_async_generator(buffer.getvalue()),

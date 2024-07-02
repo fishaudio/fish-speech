@@ -131,7 +131,6 @@ def change_label(if_label):
         yield build_html_ok_message("Nothing")
 
 
-
 def clean_infer_cache():
     import tempfile
 
@@ -565,10 +564,9 @@ def fresh_tb_dir():
 
 
 def list_decoder_models():
-    paths = (
-        [str(p) for p in Path("checkpoints").glob("vq*.*")]
-        + [str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")]
-    )
+    paths = [str(p) for p in Path("checkpoints").glob("vq*.*")] + [
+        str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")
+    ]
     if not paths:
         logger.warning("No decoder model found")
     return paths
@@ -753,9 +751,7 @@ with gr.Blocks(
                         with gr.Tab(label=i18n("VQGAN Configuration")) as vqgan_page:
                             gr.HTML("You don't need to train this model!")
 
-                        with gr.Tab(
-                            label=i18n("LLAMA Configuration")
-                        ) as llama_page:
+                        with gr.Tab(label=i18n("LLAMA Configuration")) as llama_page:
                             with gr.Row(equal_height=False):
                                 llama_use_lora = gr.Checkbox(
                                     label=i18n("Use LoRA"),
