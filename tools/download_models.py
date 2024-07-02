@@ -22,18 +22,16 @@ def check_and_download_files(repo_id, file_list, local_dir):
 
 
 # 1st
-repo_id_1 = "fishaudio/fish-speech-1"
-local_dir_1 = "./checkpoints"
+repo_id_1 = "fishaudio/fish-speech-1.2"
+local_dir_1 = "./checkpoints/fish-speech-1.2"
 files_1 = [
-    "firefly-gan-base-generator.ckpt",
+    "model.pth",
     "README.md",
     "special_tokens_map.json",
-    "text2semantic-sft-large-v1.1-4k.pth",
-    "text2semantic-sft-medium-v1.1-4k.pth",
     "tokenizer_config.json",
     "tokenizer.json",
-    "vits_decoder_v1.1.ckpt",
-    "vq-gan-group-fsq-2x1024.pth",
+    "config.json",
+    "firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
 ]
 
 # 2nd
