@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
     --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/model.bin" \
+    --checkpoint-path "checkpoints/model.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -71,7 +71,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/model.bin" \
+    --llama-checkpoint-path "checkpoints/model.pth" \
     --llama-config-name dual_ar_4_codebook_medium \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
@@ -84,7 +84,7 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/model.bin" \
+    --llama-checkpoint-path "checkpoints/model.pth" \
     --llama-config-name dual_ar_4_codebook_medium \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
