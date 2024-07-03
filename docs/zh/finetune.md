@@ -34,7 +34,7 @@
 确保你已经下载了 vqgan 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
@@ -80,12 +80,12 @@ python tools/vqgan/extract_vq.py data \
 ```bash
 python tools/llama/build_dataset.py \
     --input "data" \
-    --output "data/quantized-dataset-ft.protos" \
+    --output "data/protos" \
     --text-extension .lab \
     --num-workers 16
 ```
 
-命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
+命令执行完毕后, 你应该能在 `data` 目录下看到 `protos` 文件.
 
 
 ### 4. 最后, 使用 LoRA 进行微调
@@ -93,7 +93,7 @@ python tools/llama/build_dataset.py \
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
@@ -106,8 +106,8 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_4_codebook_medium \
-    +lora@model.lora_config=r_8_alpha_16
+    project=$project \
+    +lora@model.model.lora_config=r_8_alpha_16
 ```
 
 !!! note
@@ -126,10 +126,10 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 
 ```bash
 python tools/llama/merge_lora.py \
-    --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/fish-speech-1.2/model.pth \
-    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
-    --output checkpoints/fish-speech-1.2/merged.ckpt
+	--lora-config r_8_alpha_16 \
+	--base-weight checkpoints/fish-speech-1.2 \
+	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
+	--output checkpoints/fish-speech-1.2-yth-lora/
 ```
 
 !!! note

@@ -36,7 +36,7 @@ You need to convert your dataset into the above format and place it under `data`
 Make sure you have downloaded the VQGAN weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 You can then run the following command to extract semantic tokens:
@@ -77,7 +77,7 @@ This command will create `.npy` files in the `data` directory, as shown below:
 ```bash
 python tools/llama/build_dataset.py \
     --input "data" \
-    --output "data/quantized-dataset-ft.protos" \
+    --output "data/protos" \
     --text-extension .lab \
     --num-workers 16
 ```
@@ -89,17 +89,16 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 Finally, you can start the fine-tuning by running the following command:
 
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_4_codebook_medium \
-    +lora@model.lora_config=r_8_alpha_16
+    project=$project \
+    +lora@model.model.lora_config=r_8_alpha_16
 ```
-
 
 !!! note
     You can modify the training parameters such as `batch_size`, `gradient_accumulation_steps`, etc. to fit your GPU memory by modifying `fish_speech/configs/text2semantic_finetune.yaml`.
@@ -117,11 +116,10 @@ After training, you need to convert the LoRA weights to regular weights before p
 
 ```bash
 python tools/llama/merge_lora.py \
-    --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/fish-speech-1.2/model.pth \
-    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
-    --output checkpoints/fish-speech-1.2/merged.ckpt
+	--lora-config r_8_alpha_16 \
+	--base-weight checkpoints/fish-speech-1.2 \
+	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
+	--output checkpoints/fish-speech-1.2-yth-lora/
 ```
-
 !!! note
     You may also try other checkpoints. We suggest using the earliest checkpoint that meets your requirements, as they often perform better on out-of-distribution (OOD) data.
