@@ -15,8 +15,7 @@ Inference support command line, HTTP API and web UI.
 Download the required `vqgan` and `llama` models from our Hugging Face repository.
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 ### 1. Generate prompt from voice:
@@ -37,7 +36,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
+    --checkpoint-path "checkpoints/fish-speech-1.2" \
     --num-samples 2 \
     --compile
 ```
@@ -70,7 +69,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 
@@ -84,7 +83,7 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```

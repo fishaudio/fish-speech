@@ -40,7 +40,7 @@ huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 随后可运行以下命令来提取语义 token:
@@ -99,7 +99,7 @@ huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 最后, 你可以运行以下命令来启动微调:

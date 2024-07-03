@@ -15,15 +15,13 @@
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户，可使用mirror下载。
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 ### 1. 从语音生成 prompt: 
@@ -44,8 +42,7 @@ python tools/llama/generate.py \
     --text "要转换的文本" \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
+    --checkpoint-path "checkpoints/fish-speech-1.2" \
     --num-samples 2 \
     --compile
 ```
