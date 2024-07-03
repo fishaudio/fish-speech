@@ -343,22 +343,7 @@ def load_model(checkpoint_path, device, precision, compile=False):
         checkpoint_path, load_weights=True
     )
 
-    if "int8" in str(checkpoint_path):
-        logger.info("Using int8 weight-only quantization!")
-        from .quantize import WeightOnlyInt8QuantHandler
 
-        simple_quantizer = WeightOnlyInt8QuantHandler(model)
-        model = simple_quantizer.convert_for_runtime()
-
-    if "int4" in str(checkpoint_path):
-        logger.info("Using int4 quantization!")
-        path_comps = checkpoint_path.name.split(".")
-        assert path_comps[-2].startswith("g")
-        groupsize = int(path_comps[-2][1:])
-        from .quantize import WeightOnlyInt4QuantHandler
-
-        simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
-        model = simple_quantizer.convert_for_runtime()
 
     model = model.to(device=device, dtype=precision)
     logger.info(f"Restored model from checkpoint")
