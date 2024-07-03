@@ -34,13 +34,13 @@
 确保你已经下载了 vqgan 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 随后可运行以下命令来提取语义 token:
@@ -80,33 +80,34 @@ python tools/vqgan/extract_vq.py data \
 ```bash
 python tools/llama/build_dataset.py \
     --input "data" \
-    --output "data/quantized-dataset-ft.protos" \
+    --output "data/protos" \
     --text-extension .lab \
     --num-workers 16
 ```
 
-命令执行完毕后, 你应该能在 `data` 目录下看到 `quantized-dataset-ft.protos` 文件.
+命令执行完毕后, 你应该能在 `data` 目录下看到 `protos` 文件.
 
 
-### 4. 最后, 启动微调
+### 4. 最后, 使用 LoRA 进行微调
 
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 最后, 你可以运行以下命令来启动微调:
 
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_2_codebook_medium
+    project=$project \
+    +lora@model.model.lora_config=r_8_alpha_16
 ```
 
 !!! note
@@ -119,23 +120,16 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 
 !!! info
     默认配置下, 基本只会学到说话人的发音方式, 而不包含音色, 你依然需要使用 prompt 来保证音色的稳定性.  
-    如果你想要学到音色, 请将训练步数调大, 但这有可能会导致过拟合.
-
-#### 使用 LoRA 进行微调（建议）
-!!! note
-    LoRA 可以减少模型过拟合的风险, 但是相应的会导致在大数据集上欠拟合.   
-
-如果你想使用 LoRA, 请添加以下参数 `+lora@model.lora_config=r_8_alpha_16`.  
+    如果你想要学到音色, 请将训练步数调大, 但这有可能会导致过拟合. 
 
 训练完成后, 你需要先将 loRA 的权重转为普通权重, 然后再进行推理.
 
 ```bash
 python tools/llama/merge_lora.py \
-    --llama-config dual_ar_2_codebook_medium \
-    --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
-    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
-    --output checkpoints/merged.ckpt
+	--lora-config r_8_alpha_16 \
+	--base-weight checkpoints/fish-speech-1.2 \
+	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
+	--output checkpoints/fish-speech-1.2-yth-lora/
 ```
 
 !!! note

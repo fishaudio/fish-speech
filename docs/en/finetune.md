@@ -36,7 +36,7 @@ You need to convert your dataset into the above format and place it under `data`
 Make sure you have downloaded the VQGAN weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 You can then run the following command to extract semantic tokens:
@@ -77,25 +77,27 @@ This command will create `.npy` files in the `data` directory, as shown below:
 ```bash
 python tools/llama/build_dataset.py \
     --input "data" \
-    --output "data/quantized-dataset-ft.protos" \
+    --output "data/protos" \
     --text-extension .lab \
     --num-workers 16
 ```
 
 After the command finishes executing, you should see the `quantized-dataset-ft.protos` file in the `data` directory.
 
-### 4. Finally, start the fine-tuning
+### 4. Finally, fine-tuning with LoRA
 
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 Finally, you can start the fine-tuning by running the following command:
+
 ```bash
 python fish_speech/train.py --config-name text2semantic_finetune \
-    model@model.model=dual_ar_2_codebook_medium
+    project=$project \
+    +lora@model.model.lora_config=r_8_alpha_16
 ```
 
 !!! note
@@ -110,23 +112,14 @@ After training is complete, you can refer to the [inference](inference.md) secti
     By default, the model will only learn the speaker's speech patterns and not the timbre. You still need to use prompts to ensure timbre stability.
     If you want to learn the timbre, you can increase the number of training steps, but this may lead to overfitting.
 
-#### Fine-tuning with LoRA (recommend)
-
-!!! note
-    LoRA can reduce the risk of overfitting in models, but it may also lead to underfitting on large datasets. 
-
-If you want to use LoRA, please add the following parameter: `+lora@model.lora_config=r_8_alpha_16`. 
-
 After training, you need to convert the LoRA weights to regular weights before performing inference.
 
 ```bash
 python tools/llama/merge_lora.py \
-    --llama-config dual_ar_2_codebook_medium \
-    --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
-    --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
-    --output checkpoints/merged.ckpt
+	--lora-config r_8_alpha_16 \
+	--base-weight checkpoints/fish-speech-1.2 \
+	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
+	--output checkpoints/fish-speech-1.2-yth-lora/
 ```
-
 !!! note
     You may also try other checkpoints. We suggest using the earliest checkpoint that meets your requirements, as they often perform better on out-of-distribution (OOD) data.
