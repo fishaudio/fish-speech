@@ -15,15 +15,13 @@
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 对于中国大陆用户，可使用mirror下载。
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-speech-1.2
 ```
 
 ### 1. 从语音生成 prompt: 
@@ -44,8 +42,7 @@ python tools/llama/generate.py \
     --text "要转换的文本" \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/model.pth" \
+    --checkpoint-path "checkpoints/fish-speech-1.2" \
     --num-samples 2 \
     --compile
 ```
@@ -78,10 +75,11 @@ python tools/vqgan/inference.py \
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/model.pth" \
-    --llama-config-name dual_ar_4_codebook_medium \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
+
+如果你想要加速推理，可以加上--compile参数。
 
 # 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
 HF_ENDPOINT=https://hf-mirror.com python -m ...
@@ -95,8 +93,7 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/model.pth" \
-    --llama-config-name dual_ar_4_codebook_medium \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
