@@ -74,7 +74,7 @@ python -m tools.api \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 
-If you want to accelerate the speed, you can add --compile in the command.
+If you want to speed up inference, you can add the --compile parameter.
 
 After that, you can view and test the API at http://127.0.0.1:8000/.  
 
