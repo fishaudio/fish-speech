@@ -1,12 +1,10 @@
 defaults:
   - base
-  - model@model.model: dual_ar_2_codebook_small
   - _self_
 
 project: text2semantic_finetune_dual_ar
-max_length: 2048
-ckpt_path: checkpoints/text2semantic-sft-medium-v1.1-4k.pth
-resume_weights_only: true
+max_length: 4096
+pretrained_ckpt_path: checkpoints/fish-speech-1.2
 
 # Lightning Trainer
 trainer:
@@ -21,31 +19,31 @@ trainer:
 # Dataset Configuration
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: fishaudio/fish-speech-1
+  pretrained_model_name_or_path: ${pretrained_ckpt_path}
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.text.AutoAugTextDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
+  causal: true
   max_length: ${max_length}
-  num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: 0.5
+  use_speaker: false
   interactive_prob: 0.7
 
 val_dataset:
-  _target_: fish_speech.datasets.text.AutoAugTextDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
+  causal: true
   max_length: ${max_length}
-  num_codebooks: ${model.model.config.num_codebooks}
-  use_speaker: 0.5
+  use_speaker: false
   interactive_prob: 0.7
 
 data:
-  _target_: fish_speech.datasets.text.TextDataModule
+  _target_: fish_speech.datasets.semantic.SemanticDataModule
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
@@ -55,13 +53,18 @@ data:
 
 # Model Configuration
 model:
-  _target_: fish_speech.models.text2semantic.TextToSemantic
-  model: {}
+  _target_: fish_speech.models.text2semantic.lit_module.TextToSemantic
+  model: 
+    _target_: fish_speech.models.text2semantic.llama.BaseTransformer.from_pretrained
+    path: ${pretrained_ckpt_path}
+    load_weights: true
+    max_length: ${max_length}
+    lora_config: null
 
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-5
+    lr: 1e-4
     weight_decay: 0
     betas: [0.9, 0.95]
     eps: 1e-5
@@ -70,12 +73,12 @@ model:
     _target_: torch.optim.lr_scheduler.LambdaLR
     _partial_: true
     lr_lambda:
-      _target_: fish_speech.scheduler.get_cosine_schedule_with_warmup_lr_lambda
+      _target_: fish_speech.scheduler.get_constant_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 0.1
-      num_training_steps: ${trainer.max_steps}
+      num_warmup_steps: 10
 
 # Callbacks
 callbacks:
   model_checkpoint:
-    every_n_train_steps: ${trainer.val_check_interval}
+    every_n_train_steps: 10
+    # ${trainer.val_check_interval}

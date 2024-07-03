@@ -18,31 +18,23 @@ class TextToSemantic(L.LightningModule):
         model: NaiveTransformer,
         optimizer: Any,
         lr_scheduler: Any,
-        lora_config: Optional[LoraConfig] = None,
-        use_dpo: bool = False,
-        dpo_beta: float = 0.2,
     ):
         super().__init__()
 
         self.model = model
         self.optimizer_builder = optimizer
         self.lr_scheduler_builder = lr_scheduler
-        self.lora_config = lora_config
-        self.use_dpo = use_dpo  # We don't support reference model yet
-        self.dpo_beta = dpo_beta
-
-        if self.lora_config is not None:
-            setup_lora(self.model, self.lora_config)
 
     def forward(self, x):
         return self.model(x)
 
     def on_save_checkpoint(self, checkpoint):
-        if self.lora_config is None:
-            return
-
         # Save only LoRA parameters
         state_dict = checkpoint["state_dict"]
+        use_lora = any("lora" in name for name in state_dict.keys())
+        if not use_lora:
+            return
+
         for name in list(state_dict.keys()):
             if "lora" not in name:
                 state_dict.pop(name)
@@ -130,95 +122,21 @@ class TextToSemantic(L.LightningModule):
         token_logits = outputs.token_logits
         codebook_logits = outputs.codebook_logits
 
-        if self.use_dpo:
-            # Firtst half is positive, second half is negative
-            token_logits, negative_token_logits = token_logits.chunk(2)
-            codebook_logits, negative_codebook_logits = codebook_logits.chunk(2)
-            labels, negative_labels = labels.chunk(2)
-
         # Generate labels
-        base_loss = fast_cross_entropy_loss(
+        base_loss = F.cross_entropy(
             token_logits.view(-1, token_logits.size(-1)),
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
 
         codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
-        semantic_loss = fast_cross_entropy_loss(
+        semantic_loss = F.cross_entropy(
             codebook_logits.view(-1, codebook_logits.size(-1)),
             codebook_labels.reshape(-1),
             ignore_index=-100,
         )
 
         loss = base_loss + semantic_loss
-
-        # If we use dpo
-        if self.use_dpo:
-            negative_codebook_labels = negative_labels[
-                :, 1 : 1 + self.model.config.num_codebooks
-            ].mT
-
-            positive_codebook_logps = self.get_batch_logps(
-                codebook_logits, codebook_labels
-            )
-            negative_codebook_logps = self.get_batch_logps(
-                negative_codebook_logits, negative_codebook_labels
-            )
-
-            # TODO: implement the reference model, avoid screwing up the gradients
-            dpo_loss = -F.logsigmoid(
-                (positive_codebook_logps - negative_codebook_logps) * self.dpo_beta
-            ).mean()
-
-            chosen_rewards = self.dpo_beta * positive_codebook_logps.detach()
-            rejected_rewards = self.dpo_beta * negative_codebook_logps.detach()
-            reward_accuracy = (chosen_rewards > rejected_rewards).float().mean()
-            chosen_rewards, rejected_rewards = (
-                chosen_rewards.mean(),
-                rejected_rewards.mean(),
-            )
-
-            loss = loss + dpo_loss
-
-            self.log(
-                f"{stage}/dpo_loss",
-                dpo_loss,
-                on_step=is_train,
-                on_epoch=not is_train,
-                prog_bar=False,
-                logger=True,
-                sync_dist=not is_train,
-            )
-
-            self.log(
-                f"{stage}/chosen_rewards",
-                chosen_rewards,
-                on_step=is_train,
-                on_epoch=not is_train,
-                prog_bar=False,
-                logger=True,
-                sync_dist=not is_train,
-            )
-
-            self.log(
-                f"{stage}/rejected_rewards",
-                rejected_rewards,
-                on_step=is_train,
-                on_epoch=not is_train,
-                prog_bar=False,
-                logger=True,
-                sync_dist=not is_train,
-            )
-
-            self.log(
-                f"{stage}/reward_accuracy",
-                reward_accuracy,
-                on_step=is_train,
-                on_epoch=not is_train,
-                prog_bar=False,
-                logger=True,
-                sync_dist=not is_train,
-            )
 
         self.log(
             f"{stage}/loss",
@@ -261,22 +179,6 @@ class TextToSemantic(L.LightningModule):
             logger=True,
             sync_dist=not is_train,
         )
-
-        if self.model.config.num_codebooks != self.model.config.num_in_codebooks:
-            accuracy = self.get_accuracy(
-                codebook_logits[:, :, : self.model.config.num_in_codebooks],
-                codebook_labels[:, :, : self.model.config.num_in_codebooks],
-            )
-
-            self.log(
-                f"{stage}/top_5_accuracy_in",
-                accuracy,
-                on_step=is_train,
-                on_epoch=not is_train,
-                prog_bar=True,
-                logger=True,
-                sync_dist=not is_train,
-            )
 
         return loss
 

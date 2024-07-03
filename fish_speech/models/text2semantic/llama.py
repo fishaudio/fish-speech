@@ -477,7 +477,7 @@ class DualARTransformer(BaseTransformer):
 
         # Drop the last token and rotate left
         codebooks = inp[:, 1:-1, 1:]
-        codebooks = F.pad(codebooks, (0, 1), value=self.config.codebook_padding_idx)
+        codebooks = F.pad(codebooks, (0, 1), value=0)
         codebook_embeddings = self.fast_embeddings(codebooks)
         x = torch.cat([x[:, None], codebook_embeddings], dim=1)
         b, s = x.size(0), x.size(2)
@@ -485,7 +485,7 @@ class DualARTransformer(BaseTransformer):
 
         # Remove padded part
         codebooks = rearrange(codebooks, "b n s -> (b s) n")
-        codebook_mask = (codebooks == self.config.codebook_padding_idx).all(dim=-1)
+        codebook_mask = (codebooks == 0).all(dim=-1)
 
         if torch.all(codebook_mask):
             # If all codebooks are padded, we keep first 8 to make sure the model runs
