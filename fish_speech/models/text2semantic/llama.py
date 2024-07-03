@@ -7,6 +7,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from einops import rearrange
+from loguru import logger
 from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
@@ -320,7 +321,7 @@ class BaseTransformer(nn.Module):
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
     ) -> "BaseTransformer":
-        config = BaseModelArgs.from_pretrained(path)
+        config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:
             config.max_seq_len = max_length
             log.info(f"Override max_seq_len to {max_length}")
@@ -348,6 +349,24 @@ class BaseTransformer(nn.Module):
         if load_weights is False:
             log.info("Randomly initialized model")
         else:
+
+            if "int8" in str(Path(path)):
+                logger.info("Using int8 weight-only quantization!")
+                from tools.llama.quantize import WeightOnlyInt8QuantHandler
+
+                simple_quantizer = WeightOnlyInt8QuantHandler(model)
+                model = simple_quantizer.convert_for_runtime()
+
+            if "int4" in str(Path(path)):
+                logger.info("Using int4 quantization!")
+                path_comps = path.name.split("-")
+                assert path_comps[-2].startswith("g")
+                groupsize = int(path_comps[-2][1:])
+                from tools.llama.quantize import WeightOnlyInt4QuantHandler
+
+                simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
+                model = simple_quantizer.convert_for_runtime()
+
             weights = torch.load(
                 Path(path) / "model.pth", map_location="cpu", mmap=True
             )

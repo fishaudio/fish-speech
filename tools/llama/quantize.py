@@ -1,5 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import datetime
+import shutil
 
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
@@ -11,7 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .generate import load_model
+from fish_speech.models.text2semantic.llama import find_multiple
+from tools.llama.generate import load_model
 
 ##### Quantization Primitives ######
 
@@ -415,23 +418,26 @@ class WeightOnlyInt4Linear(torch.nn.Module):
         )
 
 
+def generate_folder_name():
+    now = datetime.datetime.now()
+    folder_name = now.strftime("%Y%m%d_%H%M%S")
+    return folder_name
+
+
 @click.command()
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
     default="checkpoints/fish-speech-1.2",
 )
-@click.option("--config-name", type=str, default="dual_ar_2_codebook_medium")
 @click.option(
     "--mode", type=str, default="int8", help="type of quantization to perform"
 )
 @click.option(
     "--groupsize", type=int, default=128, help="Group size for int4 quantization."
 )
-def quantize(
-    checkpoint_path: Path, config_name: str, mode: str, groupsize: int
-) -> None:
-    assert checkpoint_path.is_file(), checkpoint_path
+@click.option("--timestamp", type=str, default="None", help="When to do quantization")
+def quantize(checkpoint_path: Path, mode: str, groupsize: int, timestamp: str) -> None:
 
     device = "cpu"
     precision = torch.bfloat16
@@ -440,13 +446,13 @@ def quantize(
     t0 = time.time()
 
     model, _ = load_model(
-        config_name,
         checkpoint_path=checkpoint_path,
         device=device,
         precision=precision,
         compile=False,
-        max_length=2048,
     )
+    vq_model = "firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    now = timestamp if timestamp != "None" else generate_folder_name()
 
     if mode == "int8":
         print(
@@ -455,10 +461,11 @@ def quantize(
         quant_handler = WeightOnlyInt8QuantHandler(model)
         quantized_state_dict = quant_handler.create_quantized_state_dict()
 
-        dir_name = checkpoint_path.parent
-        base_name = checkpoint_path.stem
-        suffix = checkpoint_path.suffix
-        quantize_path = dir_name / f"{base_name}.int8{suffix}"
+        dir_name = checkpoint_path
+        dst_name = Path(f"checkpoints/fs-1.2-int8-{now}")
+        shutil.copytree(str(dir_name.resolve()), str(dst_name.resolve()))
+        (dst_name / vq_model).unlink()
+        quantize_path = dst_name / "model.pth"
 
     elif mode == "int4":
         print(
@@ -467,10 +474,11 @@ def quantize(
         quant_handler = WeightOnlyInt4QuantHandler(model, groupsize)
         quantized_state_dict = quant_handler.create_quantized_state_dict()
 
-        dir_name = checkpoint_path.parent
-        base_name = checkpoint_path.name
-        suffix = checkpoint_path.suffix
-        quantize_path = dir_name / f"{base_name}.int4.g{groupsize}{suffix}"
+        dir_name = checkpoint_path
+        dst_name = Path(f"checkpoints/fs-1.2-int4-g{groupsize}-{now}")
+        shutil.copytree(str(dir_name.resolve()), str(dst_name.resolve()))
+        (dst_name / vq_model).unlink()
+        quantize_path = dst_name / "model.pth"
 
     else:
         raise ValueError(
