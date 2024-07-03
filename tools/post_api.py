@@ -54,10 +54,13 @@ if __name__ == "__main__":
         help="Reference text for voice synthesis",
     )
     parser.add_argument(
-        "--max_new_tokens", type=int, default=0, help="Maximum new tokens to generate"
+        "--max_new_tokens",
+        type=int,
+        default=1024,
+        help="Maximum new tokens to generate",
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=150, help="Chunk length for synthesis"
+        "--chunk_length", type=int, default=100, help="Chunk length for synthesis"
     )
     parser.add_argument(
         "--top_p", type=float, default=0.7, help="Top-p sampling for synthesis"
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--repetition_penalty",
         type=float,
-        default=1.5,
+        default=1.2,
         help="Repetition penalty for synthesis",
     )
     parser.add_argument(
