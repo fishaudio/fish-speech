@@ -89,7 +89,7 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1 text2semantic-sft-medium-v1.1-4k.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
 ```
 
 Finally, you can start the fine-tuning by running the following command:
