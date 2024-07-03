@@ -96,7 +96,9 @@ def decode_one_token_ar(
     codebooks = [
         sample(
             x.logits,
-            previous_tokens=None,  # Disable repetition penalty for the token codebook
+            previous_tokens=(
+                previous_tokens[0] if previous_tokens is not None else None
+            ),  # Disable repetition penalty for the token codebook
             **sampling_kwargs,
         )[0]
     ]
