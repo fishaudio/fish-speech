@@ -80,7 +80,7 @@ def inference(
         )
 
     # Parse reference audio aka prompt
-    prompt_tokens, reference_embedding = encode_reference(
+    prompt_tokens = encode_reference(
         decoder_model=decoder_model,
         reference_audio=reference_audio,
         enable_reference_audio=enable_reference_audio,
@@ -125,10 +125,6 @@ def inference(
         if result.action == "next":
             break
 
-        text_tokens = llama_tokenizer.encode(result.text, return_tensors="pt").to(
-            decoder_model.device
-        )
-
         with torch.autocast(
             device_type=(
                 "cpu"
@@ -140,8 +136,6 @@ def inference(
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,
                 codes=result.codes,
-                text_tokens=text_tokens,
-                reference_embedding=reference_embedding,
             )
 
         fake_audios = fake_audios.float().cpu().numpy()
@@ -287,7 +281,7 @@ def build_app():
                             label=i18n("Iterative Prompt Length, 0 means off"),
                             minimum=0,
                             maximum=500,
-                            value=150,
+                            value=100,
                             step=8,
                         )
 
@@ -295,26 +289,30 @@ def build_app():
                             label=i18n("Maximum tokens per batch, 0 means no limit"),
                             minimum=0,
                             maximum=2048,
-                            value=0,  # 0 means no limit
+                            value=1024,  # 0 means no limit
                             step=8,
                         )
 
                         top_p = gr.Slider(
-                            label="Top-P", minimum=0, maximum=1, value=0.7, step=0.01
+                            label="Top-P",
+                            minimum=0.6,
+                            maximum=0.9,
+                            value=0.7,
+                            step=0.01,
                         )
 
                         repetition_penalty = gr.Slider(
                             label=i18n("Repetition Penalty"),
-                            minimum=0,
-                            maximum=2,
-                            value=1.5,
+                            minimum=1,
+                            maximum=1.5,
+                            value=1.2,
                             step=0.01,
                         )
 
                         temperature = gr.Slider(
                             label="Temperature",
-                            minimum=0,
-                            maximum=2,
+                            minimum=0.6,
+                            maximum=0.9,
                             value=0.7,
                             step=0.01,
                         )
@@ -438,7 +436,6 @@ def parse_args():
         default="checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
     )
     parser.add_argument("--decoder-config-name", type=str, default="firefly_gan_vq")
-    parser.add_argument("--tokenizer", type=str, default="fishaudio/fish-speech-1")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--compile", action="store_true")
@@ -458,7 +455,6 @@ if __name__ == "__main__":
         precision=args.precision,
         compile=args.compile,
     )
-    llama_tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
     logger.info("Llama model loaded, loading VQ-GAN model...")
 
     decoder_model = load_decoder_model(
@@ -479,7 +475,7 @@ if __name__ == "__main__":
             max_new_tokens=0,
             chunk_length=100,
             top_p=0.7,
-            repetition_penalty=1.5,
+            repetition_penalty=1.2,
             temperature=0.7,
         )
     )

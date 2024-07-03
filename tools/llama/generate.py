@@ -1,6 +1,5 @@
 import os
 import queue
-import string
 import threading
 import time
 from dataclasses import dataclass
@@ -13,11 +12,8 @@ import numpy as np
 import torch
 import torch._dynamo.config
 import torch._inductor.config
-from hydra import compose, initialize
-from hydra.utils import instantiate
 from loguru import logger
 from tqdm import tqdm
-from transformers import AutoTokenizer
 
 from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
 from fish_speech.text import clean_text, split_text
@@ -618,7 +614,7 @@ def launch_thread_safe_queue(
 @click.option("--num-samples", type=int, default=1)
 @click.option("--max-new-tokens", type=int, default=0)
 @click.option("--top-p", type=float, default=0.7)
-@click.option("--repetition-penalty", type=float, default=1.5)
+@click.option("--repetition-penalty", type=float, default=1.2)
 @click.option("--temperature", type=float, default=0.7)
 @click.option(
     "--checkpoint-path",
@@ -629,7 +625,7 @@ def launch_thread_safe_queue(
 @click.option("--seed", type=int, default=42)
 @click.option("--half/--no-half", default=False)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
-@click.option("--chunk-length", type=int, default=150)
+@click.option("--chunk-length", type=int, default=100)
 def main(
     text: str,
     prompt_text: Optional[list[str]],
