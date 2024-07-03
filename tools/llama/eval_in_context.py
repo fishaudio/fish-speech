@@ -9,7 +9,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from torch.utils.data import DataLoader
 
-from fish_speech.datasets.text import AutoAugTextDataset, TextDataCollator
+from fish_speech.datasets.semantic import AutoAugTextDataset, TextDataCollator
 from tools.llama.generate import load_model
 
 

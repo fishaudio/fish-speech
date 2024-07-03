@@ -1,3 +1,7 @@
+import shutil
+from copy import deepcopy
+from pathlib import Path
+
 import click
 import hydra
 import torch
@@ -5,42 +9,37 @@ from hydra import compose, initialize
 from hydra.utils import instantiate
 from loguru import logger
 
-from fish_speech.models.text2semantic.lora_utils import (
-    get_merged_state_dict,
-    setup_lora,
-)
+from fish_speech.models.text2semantic.llama import BaseTransformer
+from fish_speech.models.text2semantic.lora import get_merged_state_dict
 
 
 @click.command()
-@click.option("--llama-config", type=str, default="dual_ar_2_codebook_medium")
 @click.option("--lora-config", type=str, default="r_8_alpha_16")
-@click.option("--llama-weight", type=str, default="checkpoints/fish-speech-1.2")
+@click.option("--base-weight", type=str, default="checkpoints/fish-speech-1.2")
 @click.option("--lora-weight", type=str, required=True)
 @click.option("--output", type=str, required=True)
-def merge(llama_config, lora_config, llama_weight, lora_weight, output):
+def merge(lora_config, base_weight, lora_weight, output):
+    output = Path(output)
     logger.info(
-        f"Merging {llama_weight} and {lora_weight} into {output} with configs {llama_config} and {lora_config}"
+        f"Merging {base_weight} and {lora_weight} into {output} with {lora_config}"
     )
 
-    hydra.core.global_hydra.GlobalHydra.instance().clear()
-    with initialize(version_base="1.3", config_path="../../fish_speech/configs/model"):
-        # The max_seq_len here doesn't matter.
-        cfg = compose(config_name=llama_config, overrides=[f"config.max_seq_len=2048"])
-
-    llama_model = instantiate(cfg)
-    logger.info(f"Loaded llama model with config {llama_config}")
-
-    hydra.core.global_hydra.GlobalHydra.instance().clear()
     with initialize(version_base="1.3", config_path="../../fish_speech/configs/lora"):
         cfg = compose(config_name=lora_config)
 
     lora_config = instantiate(cfg)
     logger.info(f"Loaded lora model with config {lora_config}")
 
-    setup_lora(llama_model, lora_config)
-    logger.info(f"Merged model setup complete")
+    llama_model = BaseTransformer.from_pretrained(
+        path=base_weight,
+        load_weights=True,
+        lora_config=lora_config,
+    )
+    logger.info(f"Loaded llama model")
 
-    llama_state_dict = torch.load(llama_weight, map_location="cpu")
+    llama_state_dict = llama_model.state_dict()
+    llama_state_dict = {k: v for k, v in llama_state_dict.items() if "lora" not in k}
+    llama_state_dict_copy = deepcopy(llama_state_dict)
     lora_state_dict = torch.load(lora_weight, map_location="cpu")
 
     if "state_dict" in llama_state_dict:
@@ -70,9 +69,26 @@ def merge(llama_config, lora_config, llama_weight, lora_weight, output):
     llama_model.load_state_dict(merged_state_dict, strict=True)
     logger.info(f"Merged model loaded")
 
-    state_dict = get_merged_state_dict(llama_model)
-    torch.save(state_dict, output)
-    logger.info(f"Merged model saved to {output}")
+    # Trigger eval mode to merge lora
+    llama_model.eval()
+    llama_model.save_pretrained(output, drop_lora=True)
+    logger.info(f"Saved merged model to {output}, validating")
+
+    new_state_dict = torch.load(output / "model.pth", map_location="cpu")
+    original_keys = set(llama_state_dict_copy.keys())
+    merged_keys = set(new_state_dict.keys())
+
+    assert original_keys == merged_keys, "Keys should be same"
+
+    for key in original_keys:
+        diff_l1 = (new_state_dict[key] - llama_state_dict_copy[key]).abs().sum().item()
+        if diff_l1 != 0:
+            break
+    else:
+        logger.error("Merged model is same as the original model")
+        exit(1)
+
+    logger.info("Merged model is different from the original model, check passed")
 
 
 if __name__ == "__main__":
