@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import html
 import json
 import os
@@ -8,7 +9,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import datetime
 from pathlib import Path
 
 import gradio as gr
@@ -398,10 +398,12 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
         data_path, max_depth=max_depth
     )
 
+
 def generate_folder_name():
     now = datetime.datetime.now()
     folder_name = now.strftime("%Y%m%d_%H%M%S")
     return folder_name
+
 
 def train_process(
     data_path: str,
@@ -551,6 +553,7 @@ def fresh_tb_dir():
         choices=[str(p) for p in Path("results").glob("**/tensorboard/")]
     )
 
+
 def list_decoder_models():
     paths = [str(p) for p in Path("checkpoints").glob("vq*.*")] + [
         str(p) for p in Path("results").glob("vqgan*/**/*.ckpt")
@@ -561,9 +564,7 @@ def list_decoder_models():
 
 
 def list_llama_models():
-    choices = [
-        str(p.parent) for p in Path("checkpoints").glob("merged*/*.pth")
-    ]
+    choices = [str(p.parent) for p in Path("checkpoints").glob("merged*/*.pth")]
     if not choices:
         logger.warning("No LLaMA model found")
     return choices
