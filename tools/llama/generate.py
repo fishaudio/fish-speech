@@ -343,8 +343,6 @@ def load_model(checkpoint_path, device, precision, compile=False):
         checkpoint_path, load_weights=True
     )
 
-
-
     model = model.to(device=device, dtype=precision)
     logger.info(f"Restored model from checkpoint")
 

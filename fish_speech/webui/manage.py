@@ -624,10 +624,7 @@ def llama_lora_merge(llama_weight, lora_llama_config, lora_weight, llama_lora_ou
 
 
 def llama_quantify(llama_weight, quantify_mode):
-    if (
-        llama_weight is None
-        or not Path(llama_weight).exists()
-    ):
+    if llama_weight is None or not Path(llama_weight).exists():
         return build_html_error_message(
             i18n(
                 "Path error, please check the model file exists in the corresponding path"
@@ -642,15 +639,21 @@ def llama_quantify(llama_weight, quantify_mode):
         "--mode",
         quantify_mode,
         "--timestamp",
-        now
+        now,
     ]
     logger.info(quantify_cmd)
     subprocess.run(quantify_cmd)
     if quantify_mode == "int8":
-        quantize_path = str(Path(os.getcwd()) / "checkpoints" / f"fs-1.2-{quantify_mode}-{now}")
+        quantize_path = str(
+            Path(os.getcwd()) / "checkpoints" / f"fs-1.2-{quantify_mode}-{now}"
+        )
     else:
-        quantize_path = str(Path(os.getcwd()) / "checkpoints" / f"fs-1.2-{quantify_mode}-g128-{now}")
-    return build_html_ok_message(i18n("Quantify successfully") + f"Path: {quantize_path}")
+        quantize_path = str(
+            Path(os.getcwd()) / "checkpoints" / f"fs-1.2-{quantify_mode}-g128-{now}"
+        )
+    return build_html_ok_message(
+        i18n("Quantify successfully") + f"Path: {quantize_path}"
+    )
 
 
 init_vqgan_yml = load_yaml_data_in_fact(vqgan_yml_path)
@@ -947,7 +950,9 @@ with gr.Blocks(
                                 )
                                 quantify_mode = gr.Dropdown(
                                     label=i18n("Post-quantification Precision"),
-                                    info=i18n("The lower the quantitative precision, the more the effectiveness may decrease, but the greater the efficiency will increase"),
+                                    info=i18n(
+                                        "The lower the quantitative precision, the more the effectiveness may decrease, but the greater the efficiency will increase"
+                                    ),
                                     choices=["int8", "int4"],
                                     value="int8",
                                     allow_custom_value=False,
@@ -1176,7 +1181,7 @@ with gr.Blocks(
     llama_quantify_btn.click(
         fn=llama_quantify,
         inputs=[llama_weight_to_quantify, quantify_mode],
-        outputs=[train_error]
+        outputs=[train_error],
     )
     infer_checkbox.change(
         fn=change_infer,

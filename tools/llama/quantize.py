@@ -2,6 +2,7 @@
 # All rights reserved.
 import datetime
 import shutil
+
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 import time
@@ -416,10 +417,12 @@ class WeightOnlyInt4Linear(torch.nn.Module):
             input, self.weight, self.scales_and_zeros, self.out_features, self.groupsize
         )
 
+
 def generate_folder_name():
     now = datetime.datetime.now()
     folder_name = now.strftime("%Y%m%d_%H%M%S")
     return folder_name
+
 
 @click.command()
 @click.option(
@@ -433,12 +436,8 @@ def generate_folder_name():
 @click.option(
     "--groupsize", type=int, default=128, help="Group size for int4 quantization."
 )
-@click.option(
-    "--timestamp", type=str, default="None", help="When to do quantization"
-)
-def quantize(
-    checkpoint_path: Path, mode: str, groupsize: int, timestamp: str
-) -> None:
+@click.option("--timestamp", type=str, default="None", help="When to do quantization")
+def quantize(checkpoint_path: Path, mode: str, groupsize: int, timestamp: str) -> None:
 
     device = "cpu"
     precision = torch.bfloat16
