@@ -30,7 +30,11 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--url", "-u", type=str, required=True, help="URL of the server"
+        "--url",
+        "-u",
+        type=str,
+        default="http://127.0.0.1:8000/v1/invoke",
+        help="URL of the server",
     )
     parser.add_argument(
         "--text", "-t", type=str, required=True, help="Text to be synthesized"
