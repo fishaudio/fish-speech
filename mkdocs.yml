@@ -73,6 +73,9 @@ plugins:
           default: true
           name: 简体中文
           build: true
+        - locale: ja
+          name: 日本語
+          build: true
 
 markdown_extensions:
   - pymdownx.highlight:
