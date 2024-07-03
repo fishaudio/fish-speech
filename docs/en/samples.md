@@ -1,5 +1,9 @@
 # Samples
 
+v1.2 samples are available on [Bilibili](https://www.bilibili.com/video/BV1wz421B71D/).
+
+The following samples are from the v1.1 model.
+
 ## Chinese Sentence 1
 ```
 人间灯火倒映湖中，她的渴望让静水泛起涟漪。若代价只是孤独，那就让这份愿望肆意流淌。
