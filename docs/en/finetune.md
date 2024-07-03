@@ -36,7 +36,7 @@ You need to convert your dataset into the above format and place it under `data`
 Make sure you have downloaded the VQGAN weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
 ```
 
 You can then run the following command to extract semantic tokens:
@@ -89,7 +89,7 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
 ```
 
 Finally, you can start the fine-tuning by running the following command:
@@ -123,7 +123,7 @@ After training, you need to convert the LoRA weights to regular weights before p
 python tools/llama/merge_lora.py \
     --llama-config dual_ar_2_codebook_medium \
     --lora-config r_8_alpha_16 \
-    --llama-weight checkpoints/text2semantic-sft-medium-v1.1-4k.pth \
+    --llama-weight checkpoints/fish-speech-1.2/model.pth \
     --lora-weight results/text2semantic-finetune-medium-lora/checkpoints/step_000000200.ckpt \
     --output checkpoints/merged.ckpt
 ```

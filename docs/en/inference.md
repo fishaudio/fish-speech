@@ -15,8 +15,8 @@ Inference support command line, HTTP API and web UI.
 Download the required `vqgan` and `llama` models from our Hugging Face repository.
     
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints
-huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints
+huggingface-cli download fishaudio/fish-speech-1.2 firefly-gan-vq-fsq-4x1024-42hz-generator.pth --local-dir checkpoints/fish-speech-1.2
+huggingface-cli download fishaudio/fish-speech-1.2 model.pth --local-dir checkpoints/fish-speech-1.2
 ```
 
 ### 1. Generate prompt from voice:
@@ -37,8 +37,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --config-name dual_ar_2_codebook_medium \
-    --checkpoint-path "checkpoints/model.pth" \
+    --checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
     --num-samples 2 \
     --compile
 ```
@@ -71,10 +70,11 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8000 \
-    --llama-checkpoint-path "checkpoints/model.pth" \
-    --llama-config-name dual_ar_4_codebook_medium \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
+
+If you want to accelerate the speed, you can add --compile in the command.
 
 After that, you can view and test the API at http://127.0.0.1:8000/.  
 
@@ -84,8 +84,7 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/model.pth" \
-    --llama-config-name dual_ar_4_codebook_medium \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.2/model.pth" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
