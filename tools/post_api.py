@@ -6,15 +6,6 @@ import pyaudio
 import requests
 
 
-def wav_to_base64(file_path):
-    if not file_path:
-        return None
-    with open(file_path, "rb") as wav_file:
-        wav_content = wav_file.read()
-        base64_encoded = base64.b64encode(wav_content)
-        return base64_encoded.decode("utf-8")
-
-
 def play_audio(audio_content, format, channels, rate):
     p = pyaudio.PyAudio()
     stream = p.open(format=format, channels=channels, rate=rate, output=True)
@@ -88,12 +79,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    base64_audio = wav_to_base64(args.reference_audio)
-
     data = {
         "text": args.text,
         "reference_text": args.reference_text,
-        "reference_audio": base64_audio,
+        "reference_audio": args.reference_audio,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
         "top_p": args.top_p,

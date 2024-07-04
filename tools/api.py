@@ -200,11 +200,9 @@ def inference(req: InvokeRequest):
     lab_path, wav_path = get_random_paths(ref_base, ref_data, req.speaker, req.emotion)
 
     if lab_path and wav_path:
-        with open(wav_path, "rb") as wav_file:
-            audio_bytes = wav_file.read()
         with open(lab_path, "r", encoding="utf-8") as lab_file:
             ref_text = lab_file.read()
-        req.reference_audio = base64.b64encode(audio_bytes).decode("utf-8")
+        req.reference_audio = wav_path
         req.reference_text = ref_text
         logger.info("ref_path: " + str(wav_path))
         logger.info("ref_text: " + ref_text)
@@ -212,11 +210,7 @@ def inference(req: InvokeRequest):
     # Parse reference audio aka prompt
     prompt_tokens = encode_reference(
         decoder_model=decoder_model,
-        reference_audio=(
-            io.BytesIO(base64.b64decode(req.reference_audio))
-            if req.reference_audio is not None
-            else None
-        ),
+        reference_audio=req.reference_audio,
         enable_reference_audio=req.reference_audio is not None,
     )
 
@@ -423,7 +417,7 @@ if __name__ == "__main__":
                 text="Hello world.",
                 reference_text=None,
                 reference_audio=None,
-                max_new_tokens=1024,
+                max_new_tokens=0,
                 top_p=0.7,
                 repetition_penalty=1.2,
                 temperature=0.7,
