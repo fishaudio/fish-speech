@@ -18,7 +18,7 @@
 このコードベースは `BSD-3-Clause` ライセンスの下でリリースされており、すべてのモデルは CC-BY-NC-SA-4.0 ライセンスの下でリリースされています。
 
 <p align="center">
-<img src="/assets/figs/diagram.png" width="75%">
+<img src="/docs/assets/figs/diagram.png" width="75%">
 </p>
 
 ## 要件
@@ -63,7 +63,7 @@ Windowsのプロユーザーは、コードベースを実行するためにWSL2
                   <li>Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロードします。</li>
                   <li>以下の図のように<code>Modify</code>ボタンをクリックし、<code>Desktop development with C++</code>オプションを見つけてチェックしてダウンロードします。</li>
                   <p align="center">
-                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                     <img src="/docs/assets/figs/VS_1.jpg" width="75%">
                   </p>
                </ul>
             </li>
