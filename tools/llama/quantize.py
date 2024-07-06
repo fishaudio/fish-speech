@@ -464,7 +464,8 @@ def quantize(checkpoint_path: Path, mode: str, groupsize: int, timestamp: str) -
         dir_name = checkpoint_path
         dst_name = Path(f"checkpoints/fs-1.2-int8-{now}")
         shutil.copytree(str(dir_name.resolve()), str(dst_name.resolve()))
-        (dst_name / vq_model).unlink()
+        if (dst_name / vq_model).exists():
+            (dst_name / vq_model).unlink()
         quantize_path = dst_name / "model.pth"
 
     elif mode == "int4":
@@ -477,7 +478,8 @@ def quantize(checkpoint_path: Path, mode: str, groupsize: int, timestamp: str) -
         dir_name = checkpoint_path
         dst_name = Path(f"checkpoints/fs-1.2-int4-g{groupsize}-{now}")
         shutil.copytree(str(dir_name.resolve()), str(dst_name.resolve()))
-        (dst_name / vq_model).unlink()
+        if (dst_name / vq_model).exists():
+            (dst_name / vq_model).unlink()
         quantize_path = dst_name / "model.pth"
 
     else:

@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--speaker", type=str, default=None, help="Speaker ID for voice synthesis"
     )
+    parser.add_argument("--emotion", type=str, default=None, help="Speaker's Emotion")
     parser.add_argument("--format", type=str, default="wav", help="Audio format")
     parser.add_argument(
         "--streaming", type=bool, default=False, help="Enable streaming response"
@@ -89,6 +90,7 @@ if __name__ == "__main__":
         "repetition_penalty": args.repetition_penalty,
         "temperature": args.temperature,
         "speaker": args.speaker,
+        "emotion": args.emotion,
         "format": args.format,
         "streaming": args.streaming,
     }

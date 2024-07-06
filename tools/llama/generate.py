@@ -606,6 +606,7 @@ def launch_thread_safe_queue(
     type=click.Path(path_type=Path, exists=True),
     default="checkpoints/fish-speech-1.2",
 )
+@click.option("--device", type=str, default="cuda")
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
 @click.option("--half/--no-half", default=False)
@@ -621,13 +622,13 @@ def main(
     repetition_penalty: float,
     temperature: float,
     checkpoint_path: Path,
+    device: str,
     compile: bool,
     seed: int,
     half: bool,
     iterative_prompt: bool,
     chunk_length: int,
 ) -> None:
-    device = "cuda"
 
     precision = torch.half if half else torch.bfloat16
 
