@@ -29,7 +29,7 @@ def save_to_json(data, output_file):
         json.dump(data, file, ensure_ascii=False, indent=2)
 
 
-base_path = "ref_audio"
+base_path = "ref_data"
 out_ref_file = "ref_data.json"
 
 wav_lab_pairs = scan_folder(base_path)
