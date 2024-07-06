@@ -3,7 +3,7 @@
 Inference support command line, HTTP API and web UI.
 
 !!! note
-Overall, reasoning consists of several parts:
+    Overall, reasoning consists of several parts:
 
     1. Encode a given ~10 seconds of voice using VQGAN.
     2. Input the encoded semantic tokens and the corresponding text into the language model as an example.
@@ -148,6 +148,6 @@ python -m tools.webui \
 ```
 
 !!! note
-You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
+    You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
 
 Enjoy!
