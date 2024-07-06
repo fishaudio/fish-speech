@@ -21,7 +21,7 @@ huggingface-cli download fishaudio/fish-speech-1.2 --local-dir checkpoints/fish-
 ### 1. Generate prompt from voice:
 
 !!! note
-If you plan to let the model randomly choose a voice timbre, you can skip this step.
+    If you plan to let the model randomly choose a voice timbre, you can skip this step.
 
 ```bash
 python tools/vqgan/inference.py \
@@ -46,11 +46,11 @@ python tools/llama/generate.py \
 This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
 
 !!! note
-You may want to use `--compile` to fuse CUDA kernels for faster inference (~30 tokens/second -> ~500 tokens/second).
-Correspondingly, if you do not plan to use acceleration, you can comment out the `--compile` parameter.
+    You may want to use `--compile` to fuse CUDA kernels for faster inference (~30 tokens/second -> ~500 tokens/second).
+    Correspondingly, if you do not plan to use acceleration, you can comment out the `--compile` parameter.
 
 !!! info
-For GPUs that do not support bf16, you may need to use the `--half` parameter.
+    For GPUs that do not support bf16, you may need to use the `--half` parameter.
 
 ### 3. Generate vocals from semantic tokens:
 
