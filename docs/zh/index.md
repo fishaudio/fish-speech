@@ -18,7 +18,7 @@
 此代码库根据 `BSD-3-Clause` 许可证发布, 所有模型根据 CC-BY-NC-SA-4.0 许可证发布.
 
 <p align="center">
-<img src="/assets/figs/diagram.png" width="75%">
+<img src="/docs/assets/figs/diagram.png" width="75%">
 </p>
 
 ## 要求
@@ -63,7 +63,7 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
                   <li>安装好Visual Studio Installer之后，下载Visual Studio Community 2022</li>
                   <li>如下图点击<code>修改</code>按钮，找到<code>使用C++的桌面开发</code>项，勾选下载</li>
                   <p align="center">
-                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                     <img src="/docs/assets/figs/VS_1.jpg" width="75%">
                   </p>
                </ul>
             </li>
