@@ -263,11 +263,11 @@ if not "!install_packages!"=="" (
 
         if "!USE_MIRROR!"=="false" (
             if "%%p"=="torch" (
-                %PIP_CMD% install torch --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+                %PIP_CMD% install torch --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
             ) else if "%%p"=="torchvision" (
-                %PIP_CMD% install torchvision --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+                %PIP_CMD% install torchvision --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
             ) else if "%%p"=="torchaudio" (
-                %PIP_CMD% install torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121 --no-warn-script-location
+                %PIP_CMD% install torchaudio --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
             ) else if "%%p"=="openai-whisper" (
                 %PIP_CMD% install openai-whisper --no-warn-script-location
             ) else if "%%p"=="fish-speech" (
