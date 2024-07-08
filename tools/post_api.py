@@ -1,10 +1,11 @@
 import argparse
 import base64
 import json
+from pathlib import Path
 
 import pyaudio
 import requests
-from pathlib import Path
+
 
 def wav_to_base64(file_path):
     if not file_path or not Path(file_path).exists():
@@ -18,7 +19,7 @@ def wav_to_base64(file_path):
 def read_ref_text(ref_text):
     path = Path(ref_text)
     if path.exists() and path.is_file():
-        with path.open('r', encoding='utf-8') as file:
+        with path.open("r", encoding="utf-8") as file:
             return file.read()
     return ref_text
 

@@ -84,16 +84,18 @@ def load_audio(reference_audio, sr):
             reference_audio = io.BytesIO(audio_data)
         except base64.binascii.Error:
             raise ValueError("Invalid path or base64 string")
-    
+
     audio, _ = librosa.load(reference_audio, sr=sr, mono=True)
     return audio
 
 
 def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
     if enable_reference_audio and reference_audio is not None:
-        # Load audios, and prepare basic info here  
-        reference_audio_content = load_audio(reference_audio, decoder_model.spec_transform.sample_rate)
-            
+        # Load audios, and prepare basic info here
+        reference_audio_content = load_audio(
+            reference_audio, decoder_model.spec_transform.sample_rate
+        )
+
         audios = torch.from_numpy(reference_audio_content).to(decoder_model.device)[
             None, None, :
         ]
