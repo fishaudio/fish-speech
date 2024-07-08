@@ -84,7 +84,7 @@ python -m tools.api \
 python -m tools.post_api \
     --text "入力するテキスト" \
     --reference_audio "参照音声へのパス" \
-    --reference_text "参照音声テキスト"
+    --reference_text "参照音声テキスト" \
     --streaming True
 ```
 
@@ -133,7 +133,7 @@ python tools/gen_ref.py
 python -m tools.post_api \
     --text "入力するテキスト" \
     --speaker "${SPEAKER1}" \
-    --emotion "${EMOTION1}"
+    --emotion "${EMOTION1}" \
     --streaming True
 
 ```

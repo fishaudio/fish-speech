@@ -84,7 +84,7 @@ Below is an example of sending a request using `tools/post_api.py`.
 python -m tools.post_api \
     --text "Text to be input" \
     --reference_audio "Path to reference audio" \
-    --reference_text "Text content of the reference audio"
+    --reference_text "Text content of the reference audio" \
     --streaming True
 ```
 
@@ -130,7 +130,7 @@ python tools/gen_ref.py
 python -m tools.post_api \
     --text "Text to be input" \
     --speaker "${SPEAKER1}" \
-    --emotion "${EMOTION1}"
+    --emotion "${EMOTION1}" \
     --streaming True
 ```
 

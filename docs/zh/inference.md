@@ -93,7 +93,7 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...
 python -m tools.post_api \
     --text "要输入的文本" \
     --reference_audio "参考音频路径" \
-    --reference_text "参考音频的文本内容"
+    --reference_text "参考音频的文本内容" \
     --streaming True
 ```
 
