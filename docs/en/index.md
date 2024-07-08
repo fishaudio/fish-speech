@@ -23,7 +23,7 @@ This codebase is released under the `BSD-3-Clause` license, and all models are r
 
 ## Requirements
 
-- GPU Memory: 4GB (for inference), 16GB (for fine-tuning)
+- GPU Memory: 4GB (for inference), 8GB (for fine-tuning)
 - System: Linux, Windows
 
 ## Windows Setup
@@ -67,6 +67,7 @@ Non-professional Windows users can consider the following methods to run the cod
                   </p>
                </ul>
             </li>
+            <li>Install <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
    <li>Double-click <code>start.bat</code> to enter the Fish-Speech training inference configuration WebUI page.

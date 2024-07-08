@@ -68,7 +68,7 @@ python tools/vqgan/inference.py \
 
 ```bash
 python -m tools.api \
-    --listen 0.0.0.0:8000 \
+    --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
@@ -76,14 +76,16 @@ python -m tools.api \
 
 推論を高速化したい場合は、--compile パラメータを追加できます。
 
-その後、`http://127.0.0.1:8000/`で API を表示およびテストできます。
+その後、`http://127.0.0.1:8080/`で API を表示およびテストできます。
 
 以下は、`tools/post_api.py` を使用してリクエストを送信する例です。
 
 ```bash
-python tools/vqgan/inference.py \
-    -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+python -m tools.post_api \
+    --text "入力するテキスト" \
+    --reference_audio "参照音声へのパス" \
+    --reference_text "参照音声テキスト"
+    --streaming True
 ```
 
 上記のコマンドは、参照音声の情報に基づいて必要な音声を合成し、ストリーミング方式で返すことを示しています。

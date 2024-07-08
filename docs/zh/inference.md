@@ -74,7 +74,7 @@ python tools/vqgan/inference.py \
 
 ```bash
 python -m tools.api \
-    --listen 0.0.0.0:8000 \
+    --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
@@ -85,7 +85,7 @@ python -m tools.api \
 HF_ENDPOINT=https://hf-mirror.com python -m ...
 ```
 
-随后, 你可以在 `http://127.0.0.1:8000/` 中查看并测试 API.
+随后, 你可以在 `http://127.0.0.1:8080/` 中查看并测试 API.
 
 下面是使用`tools/post_api.py`发送请求的示例。
 

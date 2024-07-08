@@ -23,7 +23,7 @@
 
 ## 要求
 
-- GPU 内存: 4GB (用于推理), 16GB (用于微调)
+- GPU 内存: 4GB (用于推理), 8GB (用于微调)
 - 系统: Linux, Windows
 
 ## Windows 配置
@@ -67,6 +67,7 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
                   </p>
                </ul>
             </li>
+            <li>インストール <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
    <li>双击 start.bat, 进入 Fish-Speech 训练推理配置 WebUI 页面。
