@@ -94,7 +94,7 @@ def main(model_size, compute_type, audio_dir, save_dir, sample_rate, device, lan
                 file_path.unlink()
             continue
 
-        audio = AudioSegment.from_wav(file_path)
+        audio = AudioSegment.from_file(file_path)
 
         segments, info = model.transcribe(
             file_path, beam_size=5, language=None if language == "auto" else language
