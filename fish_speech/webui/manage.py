@@ -727,9 +727,7 @@ with gr.Blocks(
                     )
                     label_model = gr.Dropdown(
                         label=i18n("Whisper Model"),
-                        info=i18n(
-                            "Faster Whisper, Up to 5g GPU memory usage"
-                        ),
+                        info=i18n("Faster Whisper, Up to 5g GPU memory usage"),
                         choices=["large-v3"],
                         value="large-v3",
                         interactive=False,
