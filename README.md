@@ -17,35 +17,43 @@
 </a>
 </div>
 
-This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 
+This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
 此代码库及模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节.
 
 ## Disclaimer / 免责声明
+
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.  
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 
 ## Online Demo
-[Fish Audio](https://fish.audio)   
+
+[Fish Audio](https://fish.audio)
 
 ## Quick Start
+
 [inference.ipynb](https://nbviewer.org/github/AnyaCoder/fish-speech/blob/main/inference.ipynb)
 
 ## Videos
+
 #### Demo Video: https://www.bilibili.com/video/BV1wz421B71D
+
 #### Tech slides Video: https://www.bilibili.com/video/BV1zJ4m1K7cj
 
 ## Documents / 文档
+
 - [English](https://speech.fish.audio/en/)
 - [中文](https://speech.fish.audio/)
-- [日本語](https://speech.fish.audio/)
+- [日本語](https://speech.fish.audio/ja/)
 
 ## Samples / 例子
+
 - [English](https://speech.fish.audio/en/samples/)
 - [中文](https://speech.fish.audio/samples/)
 - [日本語](https://speech.fish.audio/ja/samples/)
 
 ## Credits / 鸣谢
+
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
 - [GPT VITS](https://github.com/innnky/gpt-vits)
