@@ -28,6 +28,9 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Online Demo
 [Fish Audio](https://fish.audio)   
 
+## Quick Start
+[inference.ipynb](https://nbviewer.org/github/AnyaCoder/fish-speech/blob/main/inference.ipynb)
+
 ## Videos
 #### Demo Video: https://www.bilibili.com/video/BV1wz421B71D
 #### Tech slides Video: https://www.bilibili.com/video/BV1zJ4m1K7cj
@@ -35,10 +38,12 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Documents / 文档
 - [English](https://speech.fish.audio/en/)
 - [中文](https://speech.fish.audio/)
+- [日本語](https://speech.fish.audio/)
 
 ## Samples / 例子
 - [English](https://speech.fish.audio/en/samples/)
 - [中文](https://speech.fish.audio/samples/)
+- [日本語](https://speech.fish.audio/ja/samples/)
 
 ## Credits / 鸣谢
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)

@@ -1,9 +1,27 @@
 import argparse
 import base64
 import json
+from pathlib import Path
 
 import pyaudio
 import requests
+
+
+def wav_to_base64(file_path):
+    if not file_path or not Path(file_path).exists():
+        return None
+    with open(file_path, "rb") as wav_file:
+        wav_content = wav_file.read()
+        base64_encoded = base64.b64encode(wav_content)
+        return base64_encoded.decode("utf-8")
+
+
+def read_ref_text(ref_text):
+    path = Path(ref_text)
+    if path.exists() and path.is_file():
+        with path.open("r", encoding="utf-8") as file:
+            return file.read()
+    return ref_text
 
 
 def play_audio(audio_content, format, channels, rate):
@@ -24,7 +42,7 @@ if __name__ == "__main__":
         "--url",
         "-u",
         type=str,
-        default="http://127.0.0.1:8000/v1/invoke",
+        default="http://127.0.0.1:8080/v1/invoke",
         help="URL of the server",
     )
     parser.add_argument(
@@ -34,14 +52,14 @@ if __name__ == "__main__":
         "--reference_audio",
         "-ra",
         type=str,
-        required=False,
+        default=None,
         help="Path to the WAV file",
     )
     parser.add_argument(
         "--reference_text",
         "-rt",
         type=str,
-        required=False,
+        default=None,
         help="Reference text for voice synthesis",
     )
     parser.add_argument(
@@ -80,10 +98,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    base64_audio = wav_to_base64(args.reference_audio)
+
+    ref_text = args.reference_text
+    if ref_text:
+        ref_text = read_ref_text(ref_text)
+
     data = {
         "text": args.text,
-        "reference_text": args.reference_text,
-        "reference_audio": args.reference_audio,
+        "reference_text": ref_text,
+        "reference_audio": base64_audio,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
         "top_p": args.top_p,

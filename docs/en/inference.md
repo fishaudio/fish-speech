@@ -68,7 +68,7 @@ We provide a HTTP API for inference. You can use the following command to start 
 
 ```bash
 python -m tools.api \
-    --listen 0.0.0.0:8000 \
+    --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
@@ -76,7 +76,7 @@ python -m tools.api \
 
 If you want to speed up inference, you can add the --compile parameter.
 
-After that, you can view and test the API at http://127.0.0.1:8000/.
+After that, you can view and test the API at http://127.0.0.1:8080/.
 
 Below is an example of sending a request using `tools/post_api.py`.
 
@@ -84,7 +84,7 @@ Below is an example of sending a request using `tools/post_api.py`.
 python -m tools.post_api \
     --text "Text to be input" \
     --reference_audio "Path to reference audio" \
-    --reference_text "Text content of the reference audio"
+    --reference_text "Text content of the reference audio" \
     --streaming True
 ```
 
@@ -130,7 +130,7 @@ python tools/gen_ref.py
 python -m tools.post_api \
     --text "Text to be input" \
     --speaker "${SPEAKER1}" \
-    --emotion "${EMOTION1}"
+    --emotion "${EMOTION1}" \
     --streaming True
 ```
 

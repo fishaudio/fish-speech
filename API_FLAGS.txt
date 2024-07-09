@@ -1,6 +1,6 @@
 # --infer
 # --api
---listen 0.0.0.0:8000 \
+--listen 0.0.0.0:8080 \
 --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
 --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
 --decoder-config-name firefly_gan_vq

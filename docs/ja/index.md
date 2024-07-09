@@ -23,7 +23,7 @@
 
 ## 要件
 
-- GPU メモリ: 4GB（推論用）、16GB（微調整用）
+- GPU メモリ: 4GB（推論用）、8GB（微調整用）
 - システム: Linux、Windows
 
 ## Windows セットアップ
@@ -67,6 +67,7 @@ Windows のプロユーザーは、コードベースを実行するために WS
                   </p>
                </ul>
             </li>
+            <li>インストール <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
    <li><code>start.bat</code>をダブルクリックして、Fish-Speechトレーニング推論設定WebUIページに入ります。
