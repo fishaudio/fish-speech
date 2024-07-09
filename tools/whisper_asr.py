@@ -120,7 +120,7 @@ def main(model_size, compute_type, audio_dir, save_dir, sample_rate, device, lan
             audio_save_path = (
                 save_path / rel_path.parent / f"{file_stem}-{id:03d}{file_suffix}"
             )
-            segment_audio.export(audio_save_path, format="wav")
+            segment_audio.export(audio_save_path, format=file_suffix[1:])
             print(f"Exported {audio_save_path}")
 
             transcript_save_path = (
