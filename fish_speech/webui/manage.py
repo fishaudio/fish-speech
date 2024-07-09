@@ -728,11 +728,11 @@ with gr.Blocks(
                     label_model = gr.Dropdown(
                         label=i18n("Whisper Model"),
                         info=i18n(
-                            "Use large for 10G+ GPU, medium for 5G, small for 2G"
+                            "Faster Whisper, Up to 5g GPU memory usage"
                         ),
-                        choices=["large", "medium", "small"],
-                        value="small",
-                        interactive=True,
+                        choices=["large-v3"],
+                        value="large-v3",
+                        interactive=False,
                     )
                     label_radio = gr.Dropdown(
                         label=i18n("Optional Label Language"),
@@ -744,6 +744,7 @@ with gr.Blocks(
                             (i18n("English"), "EN"),
                             (i18n("Japanese"), "JA"),
                             (i18n("Disabled"), "IGNORE"),
+                            (i18n("auto"), "auto"),
                         ],
                         value="IGNORE",
                         interactive=True,
