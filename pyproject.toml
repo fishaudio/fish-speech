@@ -36,7 +36,9 @@ dependencies = [
     "samplerate>=0.2.1",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
-    "zstandard>=0.22.0"
+    "zstandard>=0.22.0",
+    "pydub",
+    "faster_whisper",
 ]
 
 [project.optional-dependencies]
