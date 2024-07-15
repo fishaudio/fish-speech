@@ -251,8 +251,13 @@ def new_explorer(data_path, max_depth):
     )
 
 
-def add_item(folder: str, method: str, label_lang: str, 
-             if_initial_prompt: bool, initial_prompt: str | None):
+def add_item(
+    folder: str,
+    method: str,
+    label_lang: str,
+    if_initial_prompt: bool,
+    initial_prompt: str | None,
+):
     folder = folder.strip(" ").strip('"')
 
     folder_path = Path(folder)
@@ -261,9 +266,9 @@ def add_item(folder: str, method: str, label_lang: str,
         if folder_path.is_dir():
             items.append(folder)
             dict_items[folder] = dict(
-                type="folder", 
-                method=method, 
-                label_lang=label_lang, 
+                type="folder",
+                method=method,
+                label_lang=label_lang,
                 initial_prompt=initial_prompt if if_initial_prompt else None,
             )
         elif folder:
@@ -394,11 +399,7 @@ def check_files(data_path: str, max_depth: int, label_model: str, label_device: 
             ]
 
             if initial_prompt is not None:
-                transcribe_cmd += [
-                    "--initial-prompt",
-                    initial_prompt
-                ]
-
+                transcribe_cmd += ["--initial-prompt", initial_prompt]
 
             if cur_lang != "IGNORE":
                 try:
@@ -593,7 +594,9 @@ def list_llama_models():
 
 
 def list_lora_llama_models():
-    choices = sorted([str(p) for p in Path("results").glob("lora*/**/*.ckpt")], reverse=True)
+    choices = sorted(
+        [str(p) for p in Path("results").glob("lora*/**/*.ckpt")], reverse=True
+    )
     if not choices:
         logger.warning("No LoRA LLaMA model found")
     return choices
@@ -652,7 +655,7 @@ def llama_quantify(llama_weight, quantify_mode):
                 "Path error, please check the model file exists in the corresponding path"
             )
         )
-    
+
     gr.Warning("Quantifying begins...")
 
     now = generate_folder_name()
@@ -715,7 +718,6 @@ with gr.Blocks(
                         if_label = gr.Checkbox(
                             label=i18n("Open Labeler WebUI"), scale=0, show_label=True
                         )
-                
 
                 with gr.Row():
                     label_device = gr.Dropdown(
@@ -759,7 +761,9 @@ with gr.Blocks(
                     )
                     initial_prompt = gr.Textbox(
                         label=i18n("Initial Prompt"),
-                        info=i18n("Initial prompt can provide contextual or vocabulary-specific guidance to the model."),
+                        info=i18n(
+                            "Initial prompt can provide contextual or vocabulary-specific guidance to the model."
+                        ),
                         placeholder="This audio introduces the basic concepts and applications of artificial intelligence and machine learning.",
                         interactive=False,
                     )
@@ -772,8 +776,6 @@ with gr.Blocks(
                     remove_button = gr.Button(
                         "\U000026D4 " + i18n("Remove Selected Data")
                     )
-
-               
 
             with gr.Tab("\U0001F6E0 " + i18n("Training Configuration")):
                 with gr.Row():
@@ -1144,9 +1146,9 @@ with gr.Blocks(
     )
     if_label.change(fn=change_label, inputs=[if_label], outputs=[error])
     if_initial_prompt.change(
-        fn=lambda x : gr.Textbox(value="", interactive=x), 
-        inputs=[if_initial_prompt], 
-        outputs=[initial_prompt]
+        fn=lambda x: gr.Textbox(value="", interactive=x),
+        inputs=[if_initial_prompt],
+        outputs=[initial_prompt],
     )
     train_btn.click(
         fn=train_process,

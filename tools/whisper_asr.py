@@ -55,7 +55,16 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 @click.option("--device", default="cuda", help="Device to use [cuda / cpu]")
 @click.option("--language", default="auto", help="Language of the transcription")
 @click.option("--initial-prompt", default=None, help="Inital prompt for transcribing")
-def main(model_size, compute_type, audio_dir, save_dir, sample_rate, device, language, initial_prompt):
+def main(
+    model_size,
+    compute_type,
+    audio_dir,
+    save_dir,
+    sample_rate,
+    device,
+    language,
+    initial_prompt,
+):
     logger.info("Loading / Downloading Faster Whisper model...")
 
     model = WhisperModel(
@@ -98,8 +107,10 @@ def main(model_size, compute_type, audio_dir, save_dir, sample_rate, device, lan
         audio = AudioSegment.from_file(file_path)
 
         segments, info = model.transcribe(
-            file_path, beam_size=5, language=None if language == "auto" else language,
-            initial_prompt=initial_prompt
+            file_path,
+            beam_size=5,
+            language=None if language == "auto" else language,
+            initial_prompt=initial_prompt,
         )
 
         print(
