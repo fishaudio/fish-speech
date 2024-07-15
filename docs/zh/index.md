@@ -18,12 +18,16 @@
 此代码库根据 `BSD-3-Clause` 许可证发布, 所有模型根据 CC-BY-NC-SA-4.0 许可证发布.
 
 <p align="center">
+<<<<<<< HEAD
   <img src="https://s2.loli.net/2024/05/11/h9qSpRboTs5dGMQ.png" width="75%">
+=======
+   <img src="/docs/assets/figs/diagram.png" width="75%">
+>>>>>>> upstream/main
 </p>
 
 ## 要求
 
-- GPU 内存: 4GB (用于推理), 16GB (用于微调)
+- GPU 内存: 4GB (用于推理), 8GB (用于微调)
 - 系统: Linux, Windows
 
 ## Windows 配置
@@ -32,6 +36,7 @@ Windows 专业用户可以考虑 WSL2 或 docker 来运行代码库。
 
 Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法（附带模型编译功能，即 `torch.compile`）：
 
+<<<<<<< HEAD
 1. 解压项目压缩包。
 2. 点击 `install_env.bat` 安装环境。
     - 可以通过编辑 `install_env.bat` 的 `USE_MIRROR` 项来决定是否使用镜像站下载。
@@ -87,6 +92,64 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
     
     双击 `run_cmd.bat` 进入本项目的 conda/python 命令行环境
 
+=======
+<ol>
+   <li>解压项目压缩包。</li>
+   <li>点击 install_env.bat 安装环境。
+      <ul>
+            <li>可以通过编辑 install_env.bat 的 <code>USE_MIRROR</code> 项来决定是否使用镜像站下载。</li>
+            <li><code>USE_MIRROR=false</code> 使用原始站下载最新稳定版 <code>torch</code> 环境。<code>USE_MIRROR=true</code> 为从镜像站下载最新 <code>torch</code> 环境。默认为 <code>true</code>。</li>
+            <li>可以通过编辑 install_env.bat 的 <code>INSTALL_TYPE</code> 项来决定是否启用可编译环境下载。</li>
+            <li><code>INSTALL_TYPE=preview</code> 下载开发版编译环境。<code>INSTALL_TYPE=stable</code> 下载稳定版不带编译环境。</li>
+      </ul>
+   </li>
+   <li>若第2步 INSTALL_TYPE=preview 则执行这一步（可跳过，此步为激活编译模型环境）
+      <ol>
+            <li>使用如下链接下载 LLVM 编译器。
+               <ul>
+                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（原站站点下载）</a></li>
+                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（镜像站点下载）</a></li>
+                  <li>下载完 LLVM-17.0.6-win64.exe 后，双击进行安装，选择合适的安装位置，最重要的是勾选 <code>Add Path to Current User</code> 添加环境变量。</li>
+                  <li>确认安装完成。</li>
+               </ul>
+            </li>
+            <li>下载安装 Microsoft Visual C++ 可再发行程序包，解决潜在 .dll 丢失问题。
+               <ul>
+                  <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 下载</a></li>
+               </ul>
+            </li>
+            <li>下载安装 Visual Studio 社区版以获取 MSVC++ 编译工具, 解决 LLVM 的头文件依赖问题。
+               <ul>
+                  <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio 下载</a></li>
+                  <li>安装好Visual Studio Installer之后，下载Visual Studio Community 2022</li>
+                  <li>如下图点击<code>修改</code>按钮，找到<code>使用C++的桌面开发</code>项，勾选下载</li>
+                  <p align="center">
+                     <img src="/docs/assets/figs/VS_1.jpg" width="75%">
+                  </p>
+               </ul>
+            </li>
+            <li>安装 <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
+      </ol>
+   </li>
+   <li>双击 start.bat, 进入 Fish-Speech 训练推理配置 WebUI 页面。
+      <ul>
+            <li>(可选) 想直接进入推理页面？编辑项目根目录下的 <code>API_FLAGS.txt</code>, 前三行修改成如下格式:
+               <pre><code>--infer
+# --api
+# --listen ...
+...</code></pre>
+            </li>
+            <li>(可选) 想启动 API 服务器？编辑项目根目录下的 <code>API_FLAGS.txt</code>, 前三行修改成如下格式:
+               <pre><code># --infer
+--api
+--listen ...
+...</code></pre>
+            </li>
+      </ul>
+   </li>
+   <li>（可选）双击 <code>run_cmd.bat</code> 进入本项目的 conda/python 命令行环境</li>
+</ol>
+>>>>>>> upstream/main
 
 ## Linux 配置
 
@@ -107,7 +170,7 @@ apt install libsox-dev
 
 ## 更新日志
 
-- 2024/07/02: 更新了 Fish-Speech 到 1.2 版本，移除 VITS Decoder，同时极大幅度提升zero-shot能力.
+- 2024/07/02: 更新了 Fish-Speech 到 1.2 版本，移除 VITS Decoder，同时极大幅度提升 zero-shot 能力.
 - 2024/05/10: 更新了 Fish-Speech 到 1.1 版本，引入了 VITS Decoder 来降低口胡和提高音色相似度.
 - 2024/04/22: 完成了 Fish-Speech 1.0 版本, 大幅修改了 VQGAN 和 LLAMA 模型.
 - 2023/12/28: 添加了 `lora` 微调支持.

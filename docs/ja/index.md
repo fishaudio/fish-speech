@@ -13,24 +13,24 @@
 </div>
 
 !!! warning
-私たちは、コードベースの違法な使用について一切の責任を負いません。お住まいの地域のDMCA（デジタルミレニアム著作権法）およびその他の関連法については、現地の法律を参照してください。
+私たちは、コードベースの違法な使用について一切の責任を負いません。お住まいの地域の DMCA（デジタルミレニアム著作権法）およびその他の関連法については、現地の法律を参照してください。
 
 このコードベースは `BSD-3-Clause` ライセンスの下でリリースされており、すべてのモデルは CC-BY-NC-SA-4.0 ライセンスの下でリリースされています。
 
 <p align="center">
-<img src="/assets/figs/diagram.png" width="75%">
+   <img src="/docs/assets/figs/diagram.png" width="75%">
 </p>
 
 ## 要件
 
-- GPUメモリ: 4GB（推論用）、16GB（微調整用）
+- GPU メモリ: 4GB（推論用）、8GB（微調整用）
 - システム: Linux、Windows
 
-## Windowsセットアップ
+## Windows セットアップ
 
-Windowsのプロユーザーは、コードベースを実行するためにWSL2またはDockerを検討することができます。
+Windows のプロユーザーは、コードベースを実行するために WSL2 または Docker を検討することができます。
 
-非プロのWindowsユーザーは、Linux環境なしでコードベースを実行するために以下の方法を検討することができます（モデルコンパイル機能付き、つまり `torch.compile`）：
+非プロの Windows ユーザーは、Linux 環境なしでコードベースを実行するために以下の方法を検討することができます（モデルコンパイル機能付き、つまり `torch.compile`）：
 
 <ol>
    <li>プロジェクトパッケージを解凍します。</li>
@@ -63,10 +63,11 @@ Windowsのプロユーザーは、コードベースを実行するためにWSL2
                   <li>Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロードします。</li>
                   <li>以下の図のように<code>Modify</code>ボタンをクリックし、<code>Desktop development with C++</code>オプションを見つけてチェックしてダウンロードします。</li>
                   <p align="center">
-                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                     <img src="/docs/assets/figs/VS_1.jpg" width="75%">
                   </p>
                </ul>
             </li>
+            <li>インストール <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
    <li><code>start.bat</code>をダブルクリックして、Fish-Speechトレーニング推論設定WebUIページに入ります。
@@ -88,7 +89,7 @@ Windowsのプロユーザーは、コードベースを実行するためにWSL2
    <li>（オプション）<code>run_cmd.bat</code>をダブルクリックして、このプロジェクトのconda/pythonコマンドライン環境に入ります。</li>
 </ol>
 
-## Linuxセットアップ
+## Linux セットアップ
 
 ```bash
 # python 3.10仮想環境を作成します。virtualenvも使用できます。
@@ -107,15 +108,15 @@ apt install libsox-dev
 
 ## 変更履歴
 
-- 2024/07/02: Fish-Speechを1.2バージョンに更新し、VITSデコーダーを削除し、ゼロショット能力を大幅に強化しました。
-- 2024/05/10: Fish-Speechを1.1バージョンに更新し、VITSデコーダーを実装してWERを減少させ、音色の類似性を向上させました。
-- 2024/04/22: Fish-Speech 1.0バージョンを完成させ、VQGANおよびLLAMAモデルを大幅に修正しました。
+- 2024/07/02: Fish-Speech を 1.2 バージョンに更新し、VITS デコーダーを削除し、ゼロショット能力を大幅に強化しました。
+- 2024/05/10: Fish-Speech を 1.1 バージョンに更新し、VITS デコーダーを実装して WER を減少させ、音色の類似性を向上させました。
+- 2024/04/22: Fish-Speech 1.0 バージョンを完成させ、VQGAN および LLAMA モデルを大幅に修正しました。
 - 2023/12/28: `lora`微調整サポートを追加しました。
 - 2023/12/27: `gradient checkpointing`、`causual sampling`、および`flash-attn`サポートを追加しました。
-- 2023/12/19: webuiおよびHTTP APIを更新しました。
+- 2023/12/19: webui および HTTP API を更新しました。
 - 2023/12/18: 微調整ドキュメントおよび関連例を更新しました。
 - 2023/12/17: `text2semantic`モデルを更新し、音素フリーモードをサポートしました。
-- 2023/12/13: ベータ版をリリースし、VQGANモデルおよびLLAMAに基づく言語モデル（音素のみサポート）を含みます。
+- 2023/12/13: ベータ版をリリースし、VQGAN モデルおよび LLAMA に基づく言語モデル（音素のみサポート）を含みます。
 
 ## 謝辞
 

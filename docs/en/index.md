@@ -18,12 +18,12 @@ We assume no responsibility for any illegal use of the codebase. Please refer to
 This codebase is released under the `BSD-3-Clause` license, and all models are released under the CC-BY-NC-SA-4.0 license.
 
 <p align="center">
-<img src="/assets/figs/diagram.png" width="75%">
+   <img src="/docs/assets/figs/diagram.png" width="75%">
 </p>
 
 ## Requirements
 
-- GPU Memory: 4GB (for inference), 16GB (for fine-tuning)
+- GPU Memory: 4GB (for inference), 8GB (for fine-tuning)
 - System: Linux, Windows
 
 ## Windows Setup
@@ -63,10 +63,11 @@ Non-professional Windows users can consider the following methods to run the cod
                   <li>After installing Visual Studio Installer, download Visual Studio Community 2022.</li>
                   <li>Click the <code>Modify</code> button as shown below, find the <code>Desktop development with C++</code> option, and check it for download.</li>
                   <p align="center">
-                     <img src="/assets/figs/VS_1.jpg" width="75%">
+                     <img src="/docs/assets/figs/VS_1.jpg" width="75%">
                   </p>
                </ul>
             </li>
+            <li>Install <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
    <li>Double-click <code>start.bat</code> to enter the Fish-Speech training inference configuration WebUI page.
