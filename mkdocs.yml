@@ -53,9 +53,6 @@ theme:
       primary: black
       font:
         code: Roboto Mono
-  
-extra:
-  homepage: https://speech.fish.audio
 
 # Plugins
 plugins:
