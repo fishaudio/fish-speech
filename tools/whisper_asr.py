@@ -54,7 +54,7 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
 )
 @click.option("--device", default="cuda", help="Device to use [cuda / cpu]")
 @click.option("--language", default="auto", help="Language of the transcription")
-@click.option("--initial-prompt", default=None, help="Inital prompt for transcribing")
+@click.option("--initial-prompt", default=None, help="Initial prompt for transcribing")
 def main(
     model_size,
     compute_type,
