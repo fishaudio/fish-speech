@@ -58,7 +58,10 @@ python tools/llama/generate.py \
 !!! info
     对于不支持 bf16 的 GPU, 你可能需要使用 `--half` 参数.
 
+<<<<<<< HEAD
+=======
 ### 3. 从语义 token 生成人声:
+>>>>>>> upstream/main
 
 #### VQGAN 解码
 
