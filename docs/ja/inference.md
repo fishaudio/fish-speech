@@ -152,6 +152,6 @@ python -m tools.webui \
 ```
 
 !!! note
-Gradio 環境変数（`GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME`など）を使用して WebUI を構成できます。
+    Gradio 環境変数（`GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME`など）を使用して WebUI を構成できます。
 
 お楽しみください！
