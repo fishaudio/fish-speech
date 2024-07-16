@@ -51,37 +51,26 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
         - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
         - 安装好Visual Studio Installer之后，下载Visual Studio Community 2022
         - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
-<p align="center">
-   <img src="https://s2.loli.net/2024/07/15/pWdlYXNAMIzb8Lq.png" width="60%">
-</p>
-4. 双击 `start.bat`，进入 Fish-Speech 训练推理配置 WebUI 页面。
-    - (可选) 想直接进入推理页面？编辑项目根目录下的
-    -  进入网页后：
+    4. 下载安装 [CUDA Toolkit 12](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
+   
+!!! info "可选"
 
-<p align="center">
-  <img src="https://s2.loli.net/2024/05/06/gw2L39Qj4mClJSG.png" width="75%">
-</p>
-
-   -  简单说一下各部分区域构成，如下图所示，方便按图索骥：
-
-<p align="center">
-  <img src="https://s2.loli.net/2024/05/06/NvfsgyRZCSk72MG.png" width="75%">
-</p>
-
-   -  **1** banner（横幅）：进入网页后从左到右逐渐显示"Welcome to Fish-Speech"字样。以后可能变动。
-   -  **2** 功能区: 在这里，你将决定数据集文件的来源，文本标签的修改，训练参数的调整、推理页面的设置。
-   -  **3** 文件信息展示区：一般不可更改。指引你如何找到自己的预处理后的数据文件、训练后的模型文件所在路径。
-   -  **4** 版本/作者信息。可以多多支持一下作者。
-   -  **5** 欢迎更好的动效~
+    想启动 推理 WebUI 界面？编辑项目根目录下的 `API_FLAGS.txt`, 前三行修改成如下格式:
+    ```
+    --infer
+    # --api
+    # --listen ...
+    ...
+    ```
 
 !!! info "可选"
 
     想启动 API 服务器？编辑项目根目录下的 `API_FLAGS.txt`, 前三行修改成如下格式:
     ```
     # --infer
-        --api
-        --listen ...
-        ...
+    --api
+    --listen ...
+    ...
     ```
 
 !!! info "可选"
