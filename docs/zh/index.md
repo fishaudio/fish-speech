@@ -52,6 +52,7 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
         - 安装好Visual Studio Installer之后，下载Visual Studio Community 2022
         - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
     4. 下载安装 [CUDA Toolkit 12](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
+4. 双击 `start.bat` 打开训练推理WebUI管理界面. 如有需要，可照下列提示修改`API_FLAGS`.
    
 !!! info "可选"
 
