@@ -18,7 +18,7 @@
 此代码库根据 `BSD-3-Clause` 许可证发布, 所有模型根据 CC-BY-NC-SA-4.0 许可证发布.
 
 <p align="center">
-  <img src="https://s2.loli.net/2024/05/11/h9qSpRboTs5dGMQ.png" width="75%">
+   <img src="../assets/figs/diagram.png" width="75%">
 </p>
 
 ## 要求
@@ -31,6 +31,7 @@
 Windows 专业用户可以考虑 WSL2 或 docker 来运行代码库。
 
 Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法（附带模型编译功能，即 `torch.compile`）：
+
 
 1. 解压项目压缩包。
 2. 点击 `install_env.bat` 安装环境。
