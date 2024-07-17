@@ -58,10 +58,7 @@ python tools/llama/generate.py \
 !!! info
     对于不支持 bf16 的 GPU, 你可能需要使用 `--half` 参数.
 
-<<<<<<< HEAD
-=======
 ### 3. 从语义 token 生成人声:
->>>>>>> upstream/main
 
 #### VQGAN 解码
 
@@ -81,11 +78,12 @@ python -m tools.api \
     --llama-checkpoint-path "checkpoints/fish-speech-1.2" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
+```
+如果你想要加速推理，可以加上`--compile`参数。
 
-如果你想要加速推理，可以加上--compile参数。
-
-# 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
-HF_ENDPOINT=https://hf-mirror.com python -m ...
+推荐中国大陆用户运行以下命令来启动 HTTP 服务:
+```bash
+HF_ENDPOINT=https://hf-mirror.com python -m ...(同上)
 ```
 
 随后, 你可以在 `http://127.0.0.1:8080/` 中查看并测试 API.
