@@ -21,6 +21,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from tools.api import decode_vq_tokens, encode_reference
+from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -28,7 +29,6 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
-from tools.auto_rerank import batch_asr, load_model, is_chinese, calculate_wer
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -162,6 +162,7 @@ def inference(
         torch.cuda.empty_cache()
         gc.collect()
 
+
 def inference_with_auto_rerank(
     text,
     enable_reference_audio,
@@ -173,23 +174,41 @@ def inference_with_auto_rerank(
     repetition_penalty,
     temperature,
     streaming=False,
-    use_auto_rerank=True
+    use_auto_rerank=True,
 ):
     if not use_auto_rerank:
-        return inference(text, enable_reference_audio, reference_audio, reference_text,
-                         max_new_tokens, chunk_length, top_p, repetition_penalty,
-                         temperature, streaming)
+        return inference(
+            text,
+            enable_reference_audio,
+            reference_audio,
+            reference_text,
+            max_new_tokens,
+            chunk_length,
+            top_p,
+            repetition_penalty,
+            temperature,
+            streaming,
+        )
 
     zh_model, en_model = load_model()
     max_attempts = 2
-    best_wer = float('inf')
+    best_wer = float("inf")
     best_audio = None
     best_sample_rate = None
 
     for attempt in range(max_attempts):
-        audio_generator = inference(text, enable_reference_audio, reference_audio, reference_text,
-                                    max_new_tokens, chunk_length, top_p, repetition_penalty,
-                                    temperature, streaming=False)
+        audio_generator = inference(
+            text,
+            enable_reference_audio,
+            reference_audio,
+            reference_text,
+            max_new_tokens,
+            chunk_length,
+            top_p,
+            repetition_penalty,
+            temperature,
+            streaming=False,
+        )
 
         # 获取音频数据
         for _ in audio_generator:
@@ -199,10 +218,12 @@ def inference_with_auto_rerank(
         if audio is None:
             return None, None, message
 
-        asr_result = batch_asr(zh_model if is_chinese(text) else en_model, [audio], sample_rate)[0]
-        wer = calculate_wer(text, asr_result['text'])
+        asr_result = batch_asr(
+            zh_model if is_chinese(text) else en_model, [audio], sample_rate
+        )[0]
+        wer = calculate_wer(text, asr_result["text"])
 
-        if wer <= 0.3 and not asr_result['huge_gap']:
+        if wer <= 0.3 and not asr_result["huge_gap"]:
             return None, (sample_rate, audio), None
 
         if wer < best_wer:
@@ -214,6 +235,7 @@ def inference_with_auto_rerank(
             break
 
     return None, (best_sample_rate, best_audio), None
+
 
 inference_stream = partial(inference_with_auto_rerank, streaming=True)
 
