@@ -54,7 +54,7 @@ This command will create a `codes_N` file in the working directory, where N is a
 
 ### 3. Generate vocals from semantic tokens:
 
-#### VQGAN Decoder (not recommended)
+#### VQGAN Decoder
 
 ```bash
 python tools/vqgan/inference.py \

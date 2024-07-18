@@ -50,15 +50,11 @@ python tools/llama/generate.py \
     それに対応して、加速を使用しない場合は、`--compile`パラメータをコメントアウトできます。
 
 !!! info
-<<<<<<< HEAD
-    bf16をサポートしていないGPUの場合、`--half`パラメータを使用する必要があるかもしれません。
-=======
     bf16 をサポートしていない GPU の場合、`--half`パラメータを使用する必要があるかもしれません。
->>>>>>> upstream/main
 
 ### 3. セマンティックトークンから音声を生成する：
 
-#### VQGAN デコーダー（推奨されません）
+#### VQGAN デコーダー
 
 ```bash
 python tools/vqgan/inference.py \
