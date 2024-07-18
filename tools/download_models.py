@@ -22,8 +22,8 @@ def check_and_download_files(repo_id, file_list, local_dir):
 
 
 # 1st
-repo_id_1 = "fishaudio/fish-speech-1.2"
-local_dir_1 = "./checkpoints/fish-speech-1.2"
+repo_id_1 = "fishaudio/fish-speech-1.2-sft"
+local_dir_1 = "./checkpoints/fish-speech-1.2-sft"
 files_1 = [
     "model.pth",
     "README.md",
