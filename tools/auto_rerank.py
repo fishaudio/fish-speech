@@ -1,4 +1,4 @@
-import time
+ï»¿import time
 import numpy as np
 import torch
 import torchaudio
@@ -29,11 +29,11 @@ def load_model(*, device="cuda"):
 def batch_asr_internal(model, audios, sr):
     resampled_audios = []
     for audio in audios:
-        # ½« NumPy Êı×é×ª»»Îª PyTorch ÕÅÁ¿
+        # å°† NumPy æ•°ç»„è½¬æ¢ä¸º PyTorch å¼ é‡
         if isinstance(audio, np.ndarray):
             audio = torch.from_numpy(audio).float()
         
-        # È·±£ÒôÆµÊÇÒ»Î¬µÄ
+        # ç¡®ä¿éŸ³é¢‘æ˜¯ä¸€ç»´çš„
         if audio.dim() > 1:
             audio = audio.squeeze()
         
@@ -86,7 +86,7 @@ def calculate_wer(text1,text2):
     words1 = text1.split()
     words2 = text2.split()
     
-    # ¼ÆËã±à¼­¾àÀë
+    # è®¡ç®—ç¼–è¾‘è·ç¦»
     m, n = len(words1), len(words2)
     dp = [[0] * (n + 1) for _ in range(m + 1)]
     
@@ -102,7 +102,7 @@ def calculate_wer(text1,text2):
             else:
                 dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
     
-    # ¼ÆËãWER
+    # è®¡ç®—WER
     edits = dp[m][n]
     wer = edits / len(words1)
     
