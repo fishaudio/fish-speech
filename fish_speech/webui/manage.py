@@ -469,7 +469,7 @@ def train_process(
                 "--config-name",
                 "firefly_gan_vq",
                 "--checkpoint-path",
-                "checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
+                "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
             ]
         )
 
@@ -485,7 +485,7 @@ def train_process(
                 "16",
             ]
         )
-        ckpt_path = "checkpoints/fish-speech-1.2/model.pth"
+        ckpt_path = "checkpoints/fish-speech-1.2-sft/model.pth"
         lora_prefix = "lora_" if llama_use_lora else ""
         llama_name = lora_prefix + "text2semantic_" + new_project
         latest = next(
@@ -918,9 +918,9 @@ with gr.Blocks(
                                         "Type the path or select from the dropdown"
                                     ),
                                     choices=[
-                                        "checkpoints/fish-speech-1.2/model.pth",
+                                        "checkpoints/fish-speech-1.2-sft/model.pth",
                                     ],
-                                    value="checkpoints/fish-speech-1.2/model.pth",
+                                    value="checkpoints/fish-speech-1.2-sft/model.pth",
                                     allow_custom_value=True,
                                     interactive=True,
                                 )
@@ -972,7 +972,7 @@ with gr.Blocks(
                                         "Type the path or select from the dropdown"
                                     ),
                                     choices=list_llama_models(),
-                                    value="checkpoints/fish-speech-1.2",
+                                    value="checkpoints/fish-speech-1.2-sft",
                                     allow_custom_value=True,
                                     interactive=True,
                                 )
@@ -1035,7 +1035,7 @@ with gr.Blocks(
                                         "Type the path or select from the dropdown"
                                     ),
                                     choices=list_decoder_models(),
-                                    value="checkpoints/fish-speech-1.2/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
+                                    value="checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
                                     allow_custom_value=True,
                                 )
                                 infer_decoder_config = gr.Dropdown(
@@ -1053,7 +1053,7 @@ with gr.Blocks(
                                     info=i18n(
                                         "Type the path or select from the dropdown"
                                     ),
-                                    value="checkpoints/fish-speech-1.2",
+                                    value="checkpoints/fish-speech-1.2-sft",
                                     choices=list_llama_models(),
                                     allow_custom_value=True,
                                 )

@@ -428,7 +428,7 @@ def generate_folder_name():
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/fish-speech-1.2",
+    default="checkpoints/fish-speech-1.2-sft",
 )
 @click.option(
     "--mode", type=str, default="int8", help="type of quantization to perform"
