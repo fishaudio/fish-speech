@@ -1,10 +1,11 @@
 ﻿import time
+from threading import Lock
+
 import numpy as np
 import torch
 import torchaudio
 from funasr import AutoModel
 from funasr.models.seaco_paraformer.model import SeacoParaformer
-from threading import Lock
 
 # Monkey patching to disable hotwords
 SeacoParaformer.generate_hotwords_list = lambda self, *args, **kwargs: None
@@ -32,11 +33,11 @@ def batch_asr_internal(model, audios, sr):
         # 将 NumPy 数组转换为 PyTorch 张量
         if isinstance(audio, np.ndarray):
             audio = torch.from_numpy(audio).float()
-        
+
         # 确保音频是一维的
         if audio.dim() > 1:
             audio = audio.squeeze()
-        
+
         audio = torchaudio.functional.resample(audio, sr, 16000)
         assert audio.dim() == 1
         resampled_audios.append(audio)
@@ -79,34 +80,37 @@ global_lock = Lock()
 def batch_asr(model, audios, sr):
     return batch_asr_internal(model, audios, sr)
 
+
 def is_chinese(text):
     return True
 
-def calculate_wer(text1,text2):
+
+def calculate_wer(text1, text2):
     words1 = text1.split()
     words2 = text2.split()
-    
+
     # 计算编辑距离
     m, n = len(words1), len(words2)
     dp = [[0] * (n + 1) for _ in range(m + 1)]
-    
+
     for i in range(m + 1):
         dp[i][0] = i
     for j in range(n + 1):
         dp[0][j] = j
-    
+
     for i in range(1, m + 1):
         for j in range(1, n + 1):
-            if words1[i-1] == words2[j-1]:
-                dp[i][j] = dp[i-1][j-1]
+            if words1[i - 1] == words2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1]
             else:
-                dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
-    
+                dp[i][j] = min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]) + 1
+
     # 计算WER
     edits = dp[m][n]
     wer = edits / len(words1)
-    
+
     return wer
+
 
 if __name__ == "__main__":
     zh_model, en_model = load_model()
