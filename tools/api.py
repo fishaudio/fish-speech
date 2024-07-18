@@ -39,6 +39,7 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
+from tools.auto_rerank import batch_asr, load_model, is_chinese, calculate_wer
 
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
@@ -292,6 +293,35 @@ def inference(req: InvokeRequest):
     fake_audios = np.concatenate(segments, axis=0)
     yield fake_audios
 
+def auto_rerank_inference(req: InvokeRequest, use_auto_rerank: bool = True):
+    if not use_auto_rerank:
+        # 如果不使用 auto_rerank，直接调用原始的 inference 函数
+        return inference(req)
+    
+    zh_model, en_model = load_model()
+    max_attempts = 5
+    best_wer = float('inf')
+    best_audio = None
+
+    for attempt in range(max_attempts):
+        # 调用原始的 inference 函数
+        audio_generator = inference(req)
+        fake_audios = next(audio_generator)
+
+        asr_result = batch_asr(zh_model if is_chinese(req.text) else en_model, [fake_audios], 44100)[0]
+        wer = calculate_wer(req.text, asr_result['text'])
+
+        if wer <= 0.1 and not asr_result['huge_gap']:
+            return fake_audios
+
+        if wer < best_wer:
+            best_wer = wer
+            best_audio = fake_audios
+
+        if attempt == max_attempts - 1:
+            break
+        
+    return best_audio
 
 async def inference_async(req: InvokeRequest):
     for chunk in inference(req):
@@ -377,7 +407,8 @@ def parse_args():
     parser.add_argument("--max-text-length", type=int, default=0)
     parser.add_argument("--listen", type=str, default="127.0.0.1:8000")
     parser.add_argument("--workers", type=int, default=1)
-
+    parser.add_argument("--use-auto-rerank", type=bool, default=True)
+    
     return parser.parse_args()
 
 
