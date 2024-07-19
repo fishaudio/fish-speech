@@ -181,7 +181,7 @@ def inference_with_auto_rerank(
     best_wer = float("inf")
     best_audio = None
     best_sample_rate = None
-    PUNCS = set([",", "，", ".", "。", ":", "：", "?", "？"])
+
     for attempt in range(max_attempts):
         audio_generator = inference(
             text,
