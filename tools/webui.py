@@ -181,7 +181,7 @@ def inference_with_auto_rerank(
     best_wer = float("inf")
     best_audio = None
     best_sample_rate = None
-
+    PUNCS = set([",", "，", ".", "。", ":", "：", "?", "？"])
     for attempt in range(max_attempts):
         audio_generator = inference(
             text,
@@ -208,10 +208,9 @@ def inference_with_auto_rerank(
             return None, (sample_rate, audio), None
 
         asr_result = batch_asr(
-            zh_model if is_chinese(text) else en_model, [audio], sample_rate
+            asr_model, [audio], sample_rate
         )[0]
         wer = calculate_wer(text, asr_result["text"])
-        print("wer: ", wer, ", asr_res: ", asr_result)
         if wer <= 0.3 and not asr_result["huge_gap"]:
             return None, (sample_rate, audio), None
 
@@ -304,27 +303,26 @@ def normalize_text(user_input, use_normalization):
         return user_input
 
 
-zh_model, en_model = None, None
+asr_model = None
 
 
 def change_if_load_asr_model(if_load):
-    global zh_model, en_model
+    global asr_model
 
     if if_load:
-        gr.Warning("Loading funasr model...")
-        if zh_model is None and en_model is None:
-            zh_model, en_model = load_model()
-        return gr.Checkbox(label="Unload funasr model", value=if_load)
+        gr.Warning("Loading faster whisper model...")
+        if asr_model is None:
+            asr_model = load_model()
+        return gr.Checkbox(label="Unload faster whisper model", value=if_load)
 
     if if_load is False:
-        gr.Warning("Unloading funasr model...")
-        del zh_model
-        del en_model
-        zh_model, en_model = None, None
+        gr.Warning("Unloading faster whisper model...")
+        del asr_model
+        asr_model = None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             gc.collect()
-        return gr.Checkbox(label="Load funasr model", value=if_load)
+        return gr.Checkbox(label="Load faster whisper model", value=if_load)
 
 
 def build_app():
