@@ -15,7 +15,7 @@ classifiers = [
 dependencies = [
     "numpy<=1.26.4",
     "transformers>=4.35.2",
-    "datasets>=2.14.5",
+    "datasets==2.18.0",
     "lightning>=2.1.0",
     "hydra-core>=1.3.2",
     "tensorboard>=2.14.1",
@@ -33,12 +33,13 @@ dependencies = [
     "natsort>=8.4.0",
     "pyrootutils>=1.0.4",
     "vector_quantize_pytorch>=1.14.24",
-    "samplerate>=0.2.1",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
     "pydub",
     "faster_whisper",
+    "modelscope=1.16.1",
+    "funasr=1.1.2"
 ]
 
 [project.optional-dependencies]
