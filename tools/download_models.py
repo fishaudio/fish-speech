@@ -34,14 +34,6 @@ files_1 = [
     "firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
 ]
 
-# 2nd
-repo_id_2 = "SpicyqSama007/fish-speech-packed"
-local_dir_2 = ".cache/whisper"
-files_2 = [
-    "medium.pt",
-    "small.pt",
-]
-
 # 3rd
 repo_id_3 = "fishaudio/fish-speech-1"
 local_dir_3 = "./"
@@ -58,6 +50,6 @@ files_4 = [
 ]
 
 check_and_download_files(repo_id_1, files_1, local_dir_1)
-check_and_download_files(repo_id_2, files_2, local_dir_2)
+
 check_and_download_files(repo_id_3, files_3, local_dir_3)
 check_and_download_files(repo_id_4, files_4, local_dir_4)
