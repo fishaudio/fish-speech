@@ -173,25 +173,11 @@ def inference_with_auto_rerank(
     top_p,
     repetition_penalty,
     temperature,
+    use_auto_rerank,
     streaming=False,
-    use_auto_rerank=True,
 ):
-    if not use_auto_rerank:
-        return inference(
-            text,
-            enable_reference_audio,
-            reference_audio,
-            reference_text,
-            max_new_tokens,
-            chunk_length,
-            top_p,
-            repetition_penalty,
-            temperature,
-            streaming,
-        )
 
-    zh_model, en_model = load_model()
-    max_attempts = 2
+    max_attempts = 2 if use_auto_rerank else 1
     best_wer = float("inf")
     best_audio = None
     best_sample_rate = None
@@ -218,11 +204,14 @@ def inference_with_auto_rerank(
         if audio is None:
             return None, None, message
 
+        if not use_auto_rerank:
+            return None, (sample_rate, audio), None
+
         asr_result = batch_asr(
             zh_model if is_chinese(text) else en_model, [audio], sample_rate
         )[0]
         wer = calculate_wer(text, asr_result["text"])
-
+        print("wer: ", wer, ", asr_res: ", asr_result)
         if wer <= 0.3 and not asr_result["huge_gap"]:
             return None, (sample_rate, audio), None
 
@@ -237,7 +226,7 @@ def inference_with_auto_rerank(
     return None, (best_sample_rate, best_audio), None
 
 
-inference_stream = partial(inference_with_auto_rerank, streaming=True)
+inference_stream = partial(inference, streaming=True)
 
 n_audios = 4
 
@@ -256,6 +245,7 @@ def inference_wrapper(
     repetition_penalty,
     temperature,
     batch_infer_num,
+    if_load_asr_model,
 ):
     audios = []
     errors = []
@@ -271,6 +261,7 @@ def inference_wrapper(
             top_p,
             repetition_penalty,
             temperature,
+            if_load_asr_model,
         )
 
         _, audio_data, error_message = result
@@ -312,6 +303,26 @@ def normalize_text(user_input, use_normalization):
     else:
         return user_input
 
+zh_model, en_model = None, None
+
+def change_if_load_asr_model(if_load):
+    global zh_model, en_model
+
+    if if_load:
+        gr.Warning("Loading funasr model...")
+        if zh_model is None and en_model is None:
+            zh_model, en_model = load_model()
+        return gr.Checkbox(label="Unload funasr model", value=if_load)
+
+    if if_load is False:
+        gr.Warning("Unloading funasr model...")
+        del zh_model; del en_model
+        zh_model, en_model = None, None
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+        return gr.Checkbox(label="Load funasr model", value=if_load)
+
 
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
@@ -343,9 +354,15 @@ def build_app():
                     if_refine_text = gr.Checkbox(
                         label=i18n("Text Normalization"),
                         value=True,
-                        scale=0,
-                        min_width=150,
+                        scale=1,
                     )
+
+                    if_load_asr_model = gr.Checkbox(
+                        label=i18n("Load / Unload ASR model for auto-reranking"),
+                        value=False,
+                        scale=3,
+                    )
+
 
                 with gr.Row():
                     with gr.Tab(label=i18n("Advanced Config")):
@@ -457,6 +474,9 @@ def build_app():
             fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
         )
 
+        if_load_asr_model.change(fn=change_if_load_asr_model, 
+                                 inputs=[if_load_asr_model], outputs=[if_load_asr_model])
+
         # # Submit
         generate.click(
             inference_wrapper,
@@ -471,6 +491,7 @@ def build_app():
                 repetition_penalty,
                 temperature,
                 batch_infer_num,
+                if_load_asr_model,
             ],
             [stream_audio, *global_audio_list, *global_error_list],
             concurrency_limit=1,
