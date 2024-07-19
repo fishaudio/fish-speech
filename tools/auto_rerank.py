@@ -2,17 +2,18 @@
 
 os.environ["MODELSCOPE_CACHE"] = ".cache/"
 
+import string
 import time
 from threading import Lock
 
 import librosa
 import numpy as np
-import torch
-import string
-from faster_whisper import WhisperModel
 import opencc
+import torch
+from faster_whisper import WhisperModel
 
-t2s_converter = opencc.OpenCC('t2s')
+t2s_converter = opencc.OpenCC("t2s")
+
 
 def load_model(*, device="cuda"):
     model = WhisperModel(
@@ -45,15 +46,13 @@ def batch_asr_internal(model: WhisperModel, audios, sr):
 
     for resampled_audio in resampled_audios:
         segments, info = model.transcribe(
-            resampled_audio.numpy(),
-            language=None,
-            beam_size=5
+            resampled_audio.numpy(), language=None, beam_size=5
         )
         trans_results.append(list(segments))
-    
+
     results = []
     for trans_res, audio in zip(trans_results, audios):
-        
+
         duration = len(audio) / sr * 1000
         huge_gap = False
         max_gap = 0.0
@@ -98,8 +97,8 @@ def is_chinese(text):
 
 def calculate_wer(text1, text2):
     # 将文本分割成字符列表
-    chars1 = remove_punctuation(text1) 
-    chars2 = remove_punctuation(text2) 
+    chars1 = remove_punctuation(text1)
+    chars2 = remove_punctuation(text2)
 
     # 计算编辑距离
     m, n = len(chars1), len(chars2)
@@ -126,10 +125,14 @@ def calculate_wer(text1, text2):
     print(" edits/tot = wer: ", edits, "/", tot, "=", wer)
     return wer
 
+
 def remove_punctuation(text):
-    chinese_punctuation = ' \n\t”“！？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—''‛""„‟…‧﹏'
+    chinese_punctuation = (
+        " \n\t”“！？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—"
+        '‛""„‟…‧﹏'
+    )
     all_punctuation = string.punctuation + chinese_punctuation
-    translator = str.maketrans('', '', all_punctuation)
+    translator = str.maketrans("", "", all_punctuation)
     text_without_punctuation = text.translate(translator)
     return text_without_punctuation
 
@@ -138,7 +141,7 @@ if __name__ == "__main__":
     model = load_model()
     audios = [
         librosa.load("44100.wav", sr=44100)[0],
-        librosa.load("lengyue.wav", sr=44100)[0]
+        librosa.load("lengyue.wav", sr=44100)[0],
     ]
     print(np.array(audios[0]))
     print(batch_asr(model, audios, 44100))

@@ -207,9 +207,7 @@ def inference_with_auto_rerank(
         if not use_auto_rerank:
             return None, (sample_rate, audio), None
 
-        asr_result = batch_asr(
-            asr_model, [audio], sample_rate
-        )[0]
+        asr_result = batch_asr(asr_model, [audio], sample_rate)[0]
         wer = calculate_wer(text, asr_result["text"])
         if wer <= 0.3 and not asr_result["huge_gap"]:
             return None, (sample_rate, audio), None
