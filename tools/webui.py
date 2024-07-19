@@ -303,7 +303,9 @@ def normalize_text(user_input, use_normalization):
     else:
         return user_input
 
+
 zh_model, en_model = None, None
+
 
 def change_if_load_asr_model(if_load):
     global zh_model, en_model
@@ -316,7 +318,8 @@ def change_if_load_asr_model(if_load):
 
     if if_load is False:
         gr.Warning("Unloading funasr model...")
-        del zh_model; del en_model
+        del zh_model
+        del en_model
         zh_model, en_model = None, None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -362,7 +365,6 @@ def build_app():
                         value=False,
                         scale=3,
                     )
-
 
                 with gr.Row():
                     with gr.Tab(label=i18n("Advanced Config")):
@@ -474,8 +476,11 @@ def build_app():
             fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
         )
 
-        if_load_asr_model.change(fn=change_if_load_asr_model, 
-                                 inputs=[if_load_asr_model], outputs=[if_load_asr_model])
+        if_load_asr_model.change(
+            fn=change_if_load_asr_model,
+            inputs=[if_load_asr_model],
+            outputs=[if_load_asr_model],
+        )
 
         # # Submit
         generate.click(

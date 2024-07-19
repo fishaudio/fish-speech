@@ -1,16 +1,17 @@
 ﻿import os
-os.environ["MODELSCOPE_CACHE"] = ".cache/" 
+
+os.environ["MODELSCOPE_CACHE"] = ".cache/"
 
 import time
 from threading import Lock
 
+import librosa
 import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
 from funasr import AutoModel
 from funasr.models.seaco_paraformer.model import SeacoParaformer
-import librosa
-import soundfile as sf
 
 # Monkey patching to disable hotwords
 SeacoParaformer.generate_hotwords_list = lambda self, *args, **kwargs: None
@@ -31,7 +32,6 @@ def load_model(*, device="cuda"):
     return zh_model, en_model
 
 
-
 @torch.no_grad()
 def batch_asr_internal(model, audios, sr):
     resampled_audios = []
@@ -43,7 +43,7 @@ def batch_asr_internal(model, audios, sr):
         if audio.dim() > 1 and audio.size(0) > 1:
             audio = torch.mean(audio, dim=0)
             audio = audio.squeeze()
-        
+
         assert audio.dim() == 1
         audio_np = audio.numpy()
         resampled_audio = librosa.resample(audio_np, orig_sr=sr, target_sr=16000)
