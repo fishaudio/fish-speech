@@ -47,8 +47,6 @@ def batch_asr_internal(model, audios, sr):
         assert audio.dim() == 1
         audio_np = audio.numpy()
         resampled_audio = librosa.resample(audio_np, orig_sr=sr, target_sr=16000)
-        sf.write("16000.wav", resampled_audio, 16000)
-
         resampled_audios.append(torch.from_numpy(resampled_audio))
 
     res = model.generate(input=resampled_audios, batch_size=len(resampled_audios))
