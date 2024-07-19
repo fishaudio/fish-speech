@@ -38,8 +38,8 @@ dependencies = [
     "zstandard>=0.22.0",
     "pydub",
     "faster_whisper",
-    "modelscope",
-    "funasr=1.1.2"
+    "modelscope==1.16.1",
+    "funasr==1.1.2"
 ]
 
 [project.optional-dependencies]
