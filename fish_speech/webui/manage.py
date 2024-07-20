@@ -800,7 +800,7 @@ with gr.Blocks(
                                         "Use LoRA can save GPU memory, but may reduce the quality of the model"
                                     ),
                                     value=True,
-                                    interactive=False,
+                                    interactive=True,
                                 )
                                 llama_ckpt = gr.Dropdown(
                                     label=i18n("Select LLAMA ckpt"),
