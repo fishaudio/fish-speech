@@ -39,7 +39,8 @@ dependencies = [
     "pydub",
     "faster_whisper",
     "modelscope==1.16.1",
-    "funasr==1.1.2"
+    "funasr==1.1.2",
+    "opencc-python-reimplemented==0.1.7"
 ]
 
 [project.optional-dependencies]
