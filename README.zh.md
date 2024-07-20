@@ -1,5 +1,11 @@
 # Fish Speech
 
+<div align="center">
+
+[English](README.md) | **中文简体** | [Português (Brasil)](README.pt-BR)
+
+</div>
+
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
 <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
@@ -40,12 +46,14 @@
 - [English](https://speech.fish.audio/en/)
 - [中文](https://speech.fish.audio/)
 - [日本語](https://speech.fish.audio/ja/)
+- [Portuguese (Brazil)](https://speech.fish.audio/pt/)
 
 ## 例子
 
 - [English](https://speech.fish.audio/en/samples/)
 - [中文](https://speech.fish.audio/samples/)
 - [日本語](https://speech.fish.audio/ja/samples/)
+- [Portuguese (Brazil)](https://speech.fish.audio/pt/samples/)
 
 ## 鸣谢
 

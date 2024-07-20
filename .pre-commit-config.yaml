@@ -13,13 +13,6 @@ repos:
     hooks:
       - id: black
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
-    hooks:
-      - id: codespell
-        files: ^.*\.(py|md|rst|yml)$
-        args: [-L=fro]
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
