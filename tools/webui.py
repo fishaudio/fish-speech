@@ -321,7 +321,8 @@ def build_app():
         app.load(
             None,
             None,
-            js="() => {const params = new URLSearchParams(window.location.search);if (!params.has('__theme')) {params.set('__theme', 'light');window.location.search = params.toString();}}",
+            js="() => {const params = new URLSearchParams(window.location.search);if (!params.has('__theme')) {params.set('__theme', '%s');window.location.search = params.toString();}}"
+            % args.theme,
         )
 
         # Inference
@@ -512,6 +513,7 @@ def parse_args():
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--max-gradio-length", type=int, default=0)
+    parser.add_argument("--theme", type=str, default="light")
 
     return parser.parse_args()
 
