@@ -99,16 +99,16 @@ def is_chinese(text):
 def calculate_wer(text1, text2, debug=False):
     chars1 = remove_punctuation(text1)
     chars2 = remove_punctuation(text2)
-    
+
     m, n = len(chars1), len(chars2)
-    
+
     if m > n:
         chars1, chars2 = chars2, chars1
         m, n = n, m
-    
-    prev = list(range(m + 1)) # row 0 distance: [0, 1, 2, ...] 
+
+    prev = list(range(m + 1))  # row 0 distance: [0, 1, 2, ...]
     curr = [0] * (m + 1)
-    
+
     for j in range(1, n + 1):
         curr[0] = j
         for i in range(1, m + 1):
@@ -117,17 +117,18 @@ def calculate_wer(text1, text2, debug=False):
             else:
                 curr[i] = min(prev[i], curr[i - 1], prev[i - 1]) + 1
         prev, curr = curr, prev
-    
+
     edits = prev[m]
     tot = max(len(chars1), len(chars2))
     wer = edits / tot
-    
+
     if debug:
         print("            gt:   ", chars1)
         print("          pred:   ", chars2)
         print(" edits/tot = wer: ", edits, "/", tot, "=", wer)
-        
+
     return wer
+
 
 def remove_punctuation(text):
     chinese_punctuation = (
