@@ -74,6 +74,9 @@ plugins:
         - locale: ja
           name: 日本語
           build: true
+        - locale: pt
+          name: Português (Brasil)
+          build: true
 
 markdown_extensions:
   - pymdownx.highlight:

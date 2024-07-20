@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**English** | [中文简体](README.zh.md) | [Portuguese (Brazil)](README.pt-BR)
+[Inglês](README.md) | [Chinês](README.zh.md) | **Português (Brasil)**
 
 </div>
 
@@ -18,32 +18,41 @@
 </a>
 </div>
 
-This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
+Este código-fonte e os modelos são publicados sob a licença CC-BY-NC-SA-4.0. Consulte [LICENSE](LICENSE) para mais detalhes.
 
-## Disclaimer
+## Isenção de Responsabilidade
 
-We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
+Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região.
 
-## Online Demo
+## Demonstração Online
 
 [Fish Audio](https://fish.audio)
 
-## Quick Start for Local Inference
+## Início Rápido de Inferência Local
 
 [inference.ipynb](/inference.ipynb)
 
-## Videos
+## Vídeos
 
-#### V1.2 Demo Video: https://www.bilibili.com/video/BV1wz421B71D
+#### 1.2 Introdução: https://www.bilibili.com/video/BV1wz421B71D
 
-## Documents
+#### 1.1 Apresentação Técnica: https://www.bilibili.com/video/BV1zJ4m1K7cj
 
-- [English](https://speech.fish.audio/en/)
-- [中文](https://speech.fish.audio/)
-- [日本語](https://speech.fish.audio/ja/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/)
+## Documentação
 
-## Credits
+- [Inglês](https://speech.fish.audio/en/)
+- [Chinês](https://speech.fish.audio/)
+- [Japonês](https://speech.fish.audio/ja/)
+- [Português (Brasil)](https://speech.fish.audio/pt/)
+
+## Exemplos
+
+- [Inglês](https://speech.fish.audio/en/samples/)
+- [Chinês](https://speech.fish.audio/samples/)
+- [Japonês](https://speech.fish.audio/ja/samples/)
+- [Português (Brasil)](https://speech.fish.audio/pt/samples/)
+
+## Agradecimentos
 
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
@@ -52,19 +61,19 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
-## Sponsor
+## Patrocinadores
 
 <div>
   <a href="https://6block.com/">
     <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
   </a>
   <br>
-  <a href="https://6block.com/">Data Processing sponsor by 6Block</a>
+  <a href="https://6block.com/">Servidores de processamento de dados fornecidos por 6Block</a>
 </div>
 <div>
   <a href="https://www.lepton.ai/">
     <img src="https://www.lepton.ai/favicons/apple-touch-icon.png" width="100" height="100" alt="Lepton Avatar"/>
   </a>
   <br>
-  <a href="https://www.lepton.ai/">Fish Audio is served on Lepton.AI</a>
+  <a href="https://www.lepton.ai/">Inferência online do Fish Audio em parceria com a Lepton</a>
 </div>
