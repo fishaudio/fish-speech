@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**English** | [中文简体](README.zh.md) | [Portuguese (Brazil)](README.pt-BR)
+**English** | [中文简体](README.zh.md) | [Portuguese (Brazil)](README.pt-BR.md)
 
 </div>
 
