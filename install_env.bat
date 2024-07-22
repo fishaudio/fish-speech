@@ -33,7 +33,10 @@ set INSTALL_ENV_DIR=%cd%\fishenv\env
 set PIP_CMD=%cd%\fishenv\env\python -m pip
 set PYTHON_CMD=%cd%\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
-set MINICONDA_DOWNLOAD_URL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
+set MINICONDA_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
+if "!USE_MIRROR!" == "true" (
+    set MINICONDA_DOWNLOAD_URL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
+)
 set MINICONDA_CHECKSUM=307194e1f12bbeb52b083634e89cc67db4f7980bd542254b43d3309eaf7cb358
 set conda_exists=F
 
@@ -86,7 +89,11 @@ if "%conda_exists%" == "F" (
 if not exist "%INSTALL_ENV_DIR%" (
     echo.
     echo Creating Conda Environment...
-    call "%CONDA_ROOT_PREFIX%\_conda.exe" create --no-shortcuts -y -k --prefix "%INSTALL_ENV_DIR%" -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ python=3.10
+    if "!USE_MIRROR!" == "true" (
+        call "%CONDA_ROOT_PREFIX%\_conda.exe" create --no-shortcuts -y -k --prefix "%INSTALL_ENV_DIR%" -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ python=3.10
+    ) else (
+        call "%CONDA_ROOT_PREFIX%\_conda.exe" create --no-shortcuts -y -k --prefix "%INSTALL_ENV_DIR%" python=3.10
+    )
 
     if errorlevel 1 (
         echo.
