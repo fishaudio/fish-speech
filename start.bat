@@ -17,6 +17,14 @@ if "%USE_MIRROR%" == "true" (
 )
 echo "HF_ENDPOINT: !HF_ENDPOINT!"
 echo "NO_PROXY: !no_proxy!"
+
+echo "%CD%"| findstr /R /C:"[!#\$%&()\*+,;<=>?@\[\]\^`{|}~\u4E00-\u9FFF ] " >nul && (
+    echo.
+    echo There are special characters in the current path, please make the path of fish-speech free of special characters before running. && (
+        goto end
+    )
+)
+
 %PYTHON_CMD% .\tools\download_models.py
 
 set "API_FLAGS="
