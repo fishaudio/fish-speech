@@ -2,6 +2,7 @@
 
 os.environ["MODELSCOPE_CACHE"] = ".cache/"
 
+import random
 import string
 import time
 from threading import Lock
@@ -40,13 +41,14 @@ def batch_asr_internal(model: WhisperModel, audios, sr):
         assert audio.dim() == 1
         audio_np = audio.numpy()
         resampled_audio = librosa.resample(audio_np, orig_sr=sr, target_sr=16000)
-        resampled_audios.append(torch.from_numpy(resampled_audio))
+        resampled_audios.append(resampled_audio)
 
     trans_results = []
 
     for resampled_audio in resampled_audios:
         segments, info = model.transcribe(
-            resampled_audio.numpy(), language=None, beam_size=5
+            resampled_audio, language=None, beam_size=5, 
+            initial_prompt="Punctuation is needed in any language."
         )
         trans_results.append(list(segments))
 

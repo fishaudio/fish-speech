@@ -14,6 +14,7 @@ import pyrootutils
 import torch
 from loguru import logger
 from transformers import AutoTokenizer
+import librosa
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -323,6 +324,18 @@ def change_if_load_asr_model(if_load):
         return gr.Checkbox(label="Load faster whisper model", value=if_load)
 
 
+def change_if_auto_label(if_load, if_auto_label, enable_ref, ref_audio, ref_text):
+    if if_load and asr_model is not None:
+        if if_auto_label and enable_ref and ref_audio is not None and ref_text.strip() == "":
+            data, sample_rate = librosa.load(ref_audio)
+            res = batch_asr(asr_model, [data], sample_rate)[0]
+            ref_text = res["text"]
+    else:
+        gr.Warning("Whisper model not loaded!")
+
+    return gr.Textbox(value=ref_text)
+
+
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
         gr.Markdown(HEADER_MD)
@@ -419,12 +432,19 @@ def build_app():
                             label=i18n("Reference Audio"),
                             type="filepath",
                         )
-                        reference_text = gr.Textbox(
-                            label=i18n("Reference Text"),
-                            placeholder=i18n("Reference Text"),
-                            lines=1,
-                            value="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
-                        )
+                        with gr.Row():
+                            if_auto_label = gr.Checkbox(
+                                label=i18n("Auto Labeling"),
+                                min_width=100,
+                                scale=0,
+                                value=False,
+                            )
+                            reference_text = gr.Textbox(
+                                label=i18n("Reference Text"),
+                                lines=1,
+                                placeholder="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
+                                value="",
+                            )
                     with gr.Tab(label=i18n("Batch Inference")):
                         batch_infer_num = gr.Slider(
                             label="Batch infer nums",
@@ -477,6 +497,16 @@ def build_app():
             fn=change_if_load_asr_model,
             inputs=[if_load_asr_model],
             outputs=[if_load_asr_model],
+        )
+
+        if_auto_label.change(
+            fn=lambda : gr.Textbox(value=""),
+            inputs=[], outputs=[reference_text],
+        ).then(
+            fn=change_if_auto_label,
+            inputs=[if_load_asr_model, if_auto_label, enable_reference_audio, 
+                    reference_audio, reference_text],
+            outputs=[reference_text],
         )
 
         # # Submit
