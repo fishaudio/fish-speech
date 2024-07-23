@@ -9,12 +9,12 @@ from functools import partial
 from pathlib import Path
 
 import gradio as gr
+import librosa
 import numpy as np
 import pyrootutils
 import torch
 from loguru import logger
 from transformers import AutoTokenizer
-import librosa
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -326,7 +326,12 @@ def change_if_load_asr_model(if_load):
 
 def change_if_auto_label(if_load, if_auto_label, enable_ref, ref_audio, ref_text):
     if if_load and asr_model is not None:
-        if if_auto_label and enable_ref and ref_audio is not None and ref_text.strip() == "":
+        if (
+            if_auto_label
+            and enable_ref
+            and ref_audio is not None
+            and ref_text.strip() == ""
+        ):
             data, sample_rate = librosa.load(ref_audio)
             res = batch_asr(asr_model, [data], sample_rate)[0]
             ref_text = res["text"]
@@ -500,12 +505,18 @@ def build_app():
         )
 
         if_auto_label.change(
-            fn=lambda : gr.Textbox(value=""),
-            inputs=[], outputs=[reference_text],
+            fn=lambda: gr.Textbox(value=""),
+            inputs=[],
+            outputs=[reference_text],
         ).then(
             fn=change_if_auto_label,
-            inputs=[if_load_asr_model, if_auto_label, enable_reference_audio, 
-                    reference_audio, reference_text],
+            inputs=[
+                if_load_asr_model,
+                if_auto_label,
+                enable_reference_audio,
+                reference_audio,
+                reference_text,
+            ],
             outputs=[reference_text],
         )
 

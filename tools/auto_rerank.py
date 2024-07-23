@@ -47,8 +47,10 @@ def batch_asr_internal(model: WhisperModel, audios, sr):
 
     for resampled_audio in resampled_audios:
         segments, info = model.transcribe(
-            resampled_audio, language=None, beam_size=5, 
-            initial_prompt="Punctuation is needed in any language."
+            resampled_audio,
+            language=None,
+            beam_size=5,
+            initial_prompt="Punctuation is needed in any language.",
         )
         trans_results.append(list(segments))
 
