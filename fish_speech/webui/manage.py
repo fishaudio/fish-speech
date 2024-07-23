@@ -816,19 +816,21 @@ with gr.Blocks(
                             with gr.Row(equal_height=False):
                                 llama_lr_slider = gr.Slider(
                                     label=i18n("Initial Learning Rate"),
+                                    info=i18n("lr smaller -> train slower but more stable"),
                                     interactive=True,
                                     minimum=1e-5,
                                     maximum=1e-4,
                                     step=1e-5,
-                                    value=init_llama_yml["model"]["optimizer"]["lr"],
+                                    value=5e-5,
                                 )
                                 llama_maxsteps_slider = gr.Slider(
                                     label=i18n("Maximum Training Steps"),
+                                    info=i18n("recommend: max_steps = num_audios // batch_size * (2~5)"),
                                     interactive=True,
-                                    minimum=50,
+                                    minimum=1,
                                     maximum=10000,
-                                    step=50,
-                                    value=init_llama_yml["trainer"]["max_steps"],
+                                    step=1,
+                                    value=50,
                                 )
                             with gr.Row(equal_height=False):
                                 llama_base_config = gr.Dropdown(
@@ -841,13 +843,9 @@ with gr.Blocks(
                                 llama_data_num_workers_slider = gr.Slider(
                                     label=i18n("Number of Workers"),
                                     minimum=1,
-                                    maximum=16,
+                                    maximum=32,
                                     step=1,
-                                    value=(
-                                        init_llama_yml["data"]["num_workers"]
-                                        if sys.platform == "linux"
-                                        else 1
-                                    ),
+                                    value=4,
                                 )
                             with gr.Row(equal_height=False):
                                 llama_data_batch_size_slider = gr.Slider(
@@ -856,7 +854,7 @@ with gr.Blocks(
                                     minimum=1,
                                     maximum=32,
                                     step=1,
-                                    value=init_llama_yml["data"]["batch_size"],
+                                    value=4,
                                 )
                                 llama_data_max_length_slider = gr.Slider(
                                     label=i18n("Maximum Length per Sample"),
@@ -864,7 +862,7 @@ with gr.Blocks(
                                     minimum=1024,
                                     maximum=4096,
                                     step=128,
-                                    value=init_llama_yml["max_length"],
+                                    value=1024,
                                 )
                             with gr.Row(equal_height=False):
                                 llama_precision_dropdown = gr.Dropdown(
@@ -879,12 +877,10 @@ with gr.Blocks(
                                 llama_check_interval_slider = gr.Slider(
                                     label=i18n("Save model every n steps"),
                                     interactive=True,
-                                    minimum=50,
+                                    minimum=1,
                                     maximum=1000,
-                                    step=50,
-                                    value=init_llama_yml["trainer"][
-                                        "val_check_interval"
-                                    ],
+                                    step=1,
+                                    value=50,
                                 )
                             with gr.Row(equal_height=False):
                                 llama_grad_batches = gr.Slider(
