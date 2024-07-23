@@ -2,7 +2,6 @@
 
 os.environ["MODELSCOPE_CACHE"] = ".cache/"
 
-import random
 import string
 import time
 from threading import Lock
