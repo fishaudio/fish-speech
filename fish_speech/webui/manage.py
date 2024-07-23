@@ -816,7 +816,9 @@ with gr.Blocks(
                             with gr.Row(equal_height=False):
                                 llama_lr_slider = gr.Slider(
                                     label=i18n("Initial Learning Rate"),
-                                    info=i18n("lr smaller -> train slower but more stable"),
+                                    info=i18n(
+                                        "lr smaller -> train slower but more stable"
+                                    ),
                                     interactive=True,
                                     minimum=1e-5,
                                     maximum=1e-4,
@@ -825,7 +827,9 @@ with gr.Blocks(
                                 )
                                 llama_maxsteps_slider = gr.Slider(
                                     label=i18n("Maximum Training Steps"),
-                                    info=i18n("recommend: max_steps = num_audios // batch_size * (2~5)"),
+                                    info=i18n(
+                                        "recommend: max_steps = num_audios // batch_size * (2~5)"
+                                    ),
                                     interactive=True,
                                     minimum=1,
                                     maximum=10000,
