@@ -3,7 +3,11 @@ chcp 65001
 
 set USE_MIRROR=true
 set PYTHONPATH=%~dp0
-set PYTHON_CMD=%cd%\fishenv\env\python
+set PYTHON_CMD=python
+if exist "fishenv" (
+    set PYTHON_CMD=%cd%\fishenv\env\python
+)
+
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 set KMP_DUPLICATE_LIB_OK=TRUE
 
