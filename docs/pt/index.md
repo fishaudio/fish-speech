@@ -14,7 +14,7 @@
 
 !!! warning
      Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região. <br/>
-     Este código-fonte é liberado sob a licença `BSD-3-Clause`, e todos os modelos são liberados sob a licença CC-BY-NC-SA-4.0.
+     Este repositório de código e os modelos são distribuídos sob a licença CC-BY-NC-SA-4.0.
 
 <p align="center">
    <img src="../assets/figs/diagrama.png" width="75%">
