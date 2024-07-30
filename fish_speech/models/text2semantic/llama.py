@@ -1,9 +1,9 @@
 import json
 import math
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -372,13 +372,17 @@ class BaseTransformer(nn.Module):
                 Path(path) / "model.pth", map_location="cpu", mmap=True
             )
 
-            if 'state_dict' in weights:
-                logger.warning("Using a TextToSemantic LightningModule checkpoint, "
-                               "please make sure it is a full model, not a LoRA model.")
-                weights = weights['state_dict']
+            if "state_dict" in weights:
+                logger.warning(
+                    "Using a TextToSemantic LightningModule checkpoint, "
+                    "please make sure it is a full model, not a LoRA model."
+                )
+                weights = weights["state_dict"]
 
             if next(iter(weights.keys())).startswith("model."):
-                logger.info(f"Remove prefix 'model.' created by TextToSemantic LightningModule from keys")
+                logger.info(
+                    f"Remove prefix 'model.' created by TextToSemantic LightningModule from keys"
+                )
                 new_weights = OrderedDict()
                 for k, v in weights.items():
                     new_weights[k.replace("model.", "")] = v
@@ -389,7 +393,9 @@ class BaseTransformer(nn.Module):
                 if k not in weights:
                     logger.warning(f"No weight for {k}")
                 elif v.shape != weights[k].shape:
-                    logger.warning(f"Shape mismatch for {k}: {v.shape} vs {weights[k].shape}")
+                    logger.warning(
+                        f"Shape mismatch for {k}: {v.shape} vs {weights[k].shape}"
+                    )
 
             err = model.load_state_dict(weights, strict=False, assign=True)
             log.info(f"Loaded weights with error: {err}")
