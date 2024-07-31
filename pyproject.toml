@@ -40,7 +40,8 @@ dependencies = [
     "faster_whisper",
     "modelscope==1.16.1",
     "funasr==1.1.2",
-    "opencc-python-reimplemented==0.1.7"
+    "opencc-python-reimplemented==0.1.7",
+    "torchaudio"
 ]
 
 [project.optional-dependencies]
