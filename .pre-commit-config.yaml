@@ -9,7 +9,7 @@ repos:
         args: [--profile=black]
 
   - repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 24.8.0
     hooks:
       - id: black
 
