@@ -94,6 +94,66 @@ pip3 install -e .
 # (Ubuntu / Debian 用户) 安装 sox
 apt install libsox-dev
 ```
+## Docker 配置
+1. 安装 NVIDIA Container Toolkit：
+
+    Docker 如果想使用 GPU 进行模型训练和推理，需要安装 NVIDIA Container Toolkit ：
+
+    对于 Ubuntu 用户：
+    ``` bash
+    # 添加远程仓库
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    # 安装 nvidia-container-toolkit
+    sudo apt-get update
+    sudo apt-get install -y nvidia-container-toolkit
+    # 重启 Docker 服务
+    sudo systemctl restart docker
+    ``` 
+    对于使用其他 Linux 发行版的用户，安装指南请参考：[NVIDIA Container Toolkit Install-guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。
+   
+    注：对于中国大陆的用户，您可能需要使用代理来完成相关工具的安装。
+
+2. 拉取并运行 fish-speech 镜像 
+   
+    ``` shell
+    # 拉取镜像
+    docker pull lengyue233/fish-speech
+    # 运行镜像
+    docker run -it \
+        --name fish-speech \
+        --gpus all \
+        -p 7860:7860 \
+        lengyue233/fish-speech \
+        zsh
+    # 如果需要使用其他端口，请修改 -p 参数为 YourPort:7860
+    ```
+
+3. 下载模型依赖
+   
+    确保您在 docker 容器内的终端，然后再从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
+   
+    ```bash
+    huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+    ```
+
+    对于中国大陆用户，可以通过镜像站下载。
+
+    ```bash
+    HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+    ```
+
+4. 配置环境变量，访问 WebUI
+
+    在 docker 容器内的终端，输入 `export GRADIO_SERVER_NAME="0.0.0.0"` ，从而让外部可以访问 docker 内的 gradio 服务。
+    接着在 docker 容器内的终端，输入 `python tools/webui.py` 即可开启 WebUI 服务。
+    
+    如果是 WSL 或者是 MacOS ，访问 [http://localhost:7860](http://localhost:7860) 即可打开 WebUI 界面。
+    
+    如果是部署在服务器上，更换 localhost 为您的服务器 ip 即可。
+
 
 ## 更新日志
 
