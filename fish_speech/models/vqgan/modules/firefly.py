@@ -512,7 +512,7 @@ class FireflyArchitecture(nn.Module):
         if x.ndim == 2:
             x = x[:, None, :]
 
-        if self.vq is not None:
+        if self.quantizer is not None:
             return x, vq_result
 
         return x
