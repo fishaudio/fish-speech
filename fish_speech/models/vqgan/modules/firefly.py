@@ -242,7 +242,7 @@ class HiFiGANGenerator(nn.Module):
             if self.use_template:
                 x = x + self.noise_convs[i](template)
 
-            if self.training and self.checkpointing:
+            if self.training:
                 x = checkpoint(
                     self.resblocks[i],
                     x,
