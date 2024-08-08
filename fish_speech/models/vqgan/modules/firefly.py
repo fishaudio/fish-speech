@@ -242,7 +242,7 @@ class HiFiGANGenerator(nn.Module):
             if self.use_template:
                 x = x + self.noise_convs[i](template)
 
-            if self.training and self.checkpointing:
+            if self.training:
                 x = checkpoint(
                     self.resblocks[i],
                     x,
@@ -512,7 +512,7 @@ class FireflyArchitecture(nn.Module):
         if x.ndim == 2:
             x = x[:, None, :]
 
-        if self.vq is not None:
+        if self.quantizer is not None:
             return x, vq_result
 
         return x
