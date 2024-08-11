@@ -268,9 +268,9 @@ def inference(req: InvokeRequest):
             break
 
         with (
-            torch.autocast(device_type=decoder_model.device.type, dtype=args.precision)
-            if torch.cuda.is_available()
-            else nullcontext()
+            nullcontext()
+            if torch.backends.mps.is_available()
+            else torch.autocast(device_type=decoder_model.device.type, dtype=args.precision)
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,

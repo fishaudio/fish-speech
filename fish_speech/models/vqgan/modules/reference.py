@@ -98,9 +98,9 @@ class ReferenceEncoder(WaveNet):
 
 if __name__ == "__main__":
     with (
-        torch.autocast(device_type="cpu", dtype=torch.bfloat16)
-        if torch.cuda.is_available()
-        else nullcontext()
+        nullcontext()
+        if torch.backends.mps.is_available()
+        else torch.autocast(device_type="cpu", dtype=torch.bfloat16)
     ):
         model = ReferenceEncoder(
             input_channels=128,
