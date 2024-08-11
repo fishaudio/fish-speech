@@ -270,7 +270,7 @@ def inference(req: InvokeRequest):
         with (
             torch.autocast(device_type=decoder_model.device.type, dtype=args.precision)
             if torch.cuda.is_available()
-            else nullcontext
+            else nullcontext()
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,

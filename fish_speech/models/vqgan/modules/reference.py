@@ -100,7 +100,7 @@ if __name__ == "__main__":
     with (
         torch.autocast(device_type="cpu", dtype=torch.bfloat16)
         if torch.cuda.is_available()
-        else nullcontext
+        else nullcontext()
     ):
         model = ReferenceEncoder(
             input_channels=128,
