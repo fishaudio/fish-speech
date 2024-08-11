@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from typing import Optional
 
 import torch
@@ -96,7 +97,11 @@ class ReferenceEncoder(WaveNet):
 
 
 if __name__ == "__main__":
-    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+    with (
+        torch.autocast(device_type="cpu", dtype=torch.bfloat16)
+        if torch.cuda.is_available()
+        else nullcontext
+    ):
         model = ReferenceEncoder(
             input_channels=128,
             output_channels=64,

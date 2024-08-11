@@ -6,6 +6,7 @@ import random
 import traceback
 import wave
 from argparse import ArgumentParser
+from contextlib import nullcontext
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, Literal, Optional
@@ -266,8 +267,10 @@ def inference(req: InvokeRequest):
         if result.action == "next":
             break
 
-        with torch.autocast(
-            device_type=decoder_model.device.type, dtype=args.precision
+        with (
+            torch.autocast(device_type=decoder_model.device.type, dtype=args.precision)
+            if torch.cuda.is_available()
+            else nullcontext
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,
