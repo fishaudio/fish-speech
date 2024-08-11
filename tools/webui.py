@@ -128,12 +128,7 @@ def inference(
             break
 
         with torch.autocast(
-            device_type=(
-                "cpu"
-                if decoder_model.device.type == "mps"
-                else decoder_model.device.type
-            ),
-            dtype=args.precision,
+            device_type=decoder_model.device.type, dtype=args.precision
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,
