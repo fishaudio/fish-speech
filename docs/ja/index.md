@@ -37,7 +37,7 @@ Windowにて開発を行っている方へ: 本コードベースを実行する
       <ul>
             <li><code>install_env.bat</code>の<code>USE_MIRROR</code>ミラーサイトを使用する場合、項目を編集してください。</li>
             <li><code>USE_MIRROR=false</code>は、最新の安定版の<code>torch</code>をオリジナルサイトからダウンロードします。<code>USE_MIRROR=true</code>は、最新の<code>torch</code>をミラーサイトからダウンロードします。デフォルトは<code>true</code>です。</li>
-            <li><code>install_env.bat</code>の<code>INSTALL_TYPE</code>を編集して、コンパイル環境のダウンロードを行うかを設定できます。</li>
+            <li><code>install_env.bat</code>の<code>INSTALL_TYPE</code>を編集して、コンパイル環境をダウンロードするかを設定できます。</li>
             <li><code>INSTALL_TYPE=preview</code>は、コンパイル環境付きのプレビュー版をダウンロードします。<code>INSTALL_TYPE=stable</code>は、コンパイル環境なしの安定版をダウンロードします。</li>
       </ul>
    </li>
@@ -71,13 +71,13 @@ Windowにて開発を行っている方へ: 本コードベースを実行する
    </li>
    <li><code>start.bat</code>を実行し、Fish-Speechのトレーニング/推論設定WebUIを開いてください。。
       <ul>
-            <li>（オプション）直接推論ページに行きたい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更します：
+            <li>（オプション）直接推論ページに行きたい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更してください：
                <pre><code>--infer
 # --api
 # --listen ...
 ...</code></pre>
             </li>
-            <li>（オプション）APIサーバーを起動したい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更します：
+            <li>（オプション）APIサーバーを起動したい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更してください：
                <pre><code># --infer
 --api
 --listen ...
