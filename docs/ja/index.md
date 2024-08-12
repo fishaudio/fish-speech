@@ -1,4 +1,4 @@
-# イントロダクション
+# Fish Speechの紹介
 
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
@@ -13,8 +13,8 @@
 </div>
 
 !!! warning
-    私たちは、コードベースの違法な使用について一切の責任を負いません。お住まいの地域の DMCA（デジタルミレニアム著作権法）およびその他の関連法については、現地の法律を参照してください。 <br/>
-    このコードベースとモデルは、CC-BY-NC-SA-4.0ライセンスの下でリリースされています。
+    私たちは、コードベースの違法な使用について一切の責任を負いません。お住まいの地域の DMCA（デジタルミレニアム著作権法）およびその他の関連法を参照してください。 <br/>
+    このコードベースとモデルは、CC-BY-NC-SA-4.0ライセンス下でリリースされています。
 
 <p align="center">
    <img src="../assets/figs/diagram.png" width="75%">
@@ -22,36 +22,36 @@
 
 ## 要件
 
-- GPU メモリ: 4GB（推論用）、8GB（微調整用）
+- GPU メモリ: 4GB（推論用）、8GB（ファインチューニング用）
 - システム: Linux、Windows
 
 ## Windows セットアップ
 
-Windows のプロユーザーは、コードベースを実行するために WSL2 または Docker を検討することができます。
+Windowにて開発を行っている方へ: 本コードベースを実行するのに WSL2 または Docker を利用することができます。
 
-非プロの Windows ユーザーは、Linux 環境なしでコードベースを実行するために以下の方法を検討することができます（モデルコンパイル機能付き、つまり `torch.compile`）：
+あまり詳しくない人は、Linux 環境なしでコードベースを実行するために以下の手順に従ってください。（モデルコンパイル機能`torch.compile`を利用できます。）：
 
 <ol>
-   <li>プロジェクトパッケージを解凍します。</li>
-   <li><code>install_env.bat</code>をクリックして環境をインストールします。
+   <li>プロジェクトの圧縮ファイルをダウンロードし、展開</li>
+   <li><code>install_env.bat</code>を開いて実行に必要な環境を整えます。
       <ul>
-            <li><code>install_env.bat</code>の<code>USE_MIRROR</code>項目を編集して、ミラーサイトを使用するかどうかを決定できます。</li>
-            <li><code>USE_MIRROR=false</code>は、最新の安定版<code>torch</code>をオリジナルサイトからダウンロードします。<code>USE_MIRROR=true</code>は、最新の<code>torch</code>をミラーサイトからダウンロードします。デフォルトは<code>true</code>です。</li>
-            <li><code>install_env.bat</code>の<code>INSTALL_TYPE</code>項目を編集して、コンパイル環境のダウンロードを有効にするかどうかを決定できます。</li>
+            <li><code>install_env.bat</code>の<code>USE_MIRROR</code>ミラーサイトを使用する場合、項目を編集してください。</li>
+            <li><code>USE_MIRROR=false</code>は、最新の安定版の<code>torch</code>をオリジナルサイトからダウンロードします。<code>USE_MIRROR=true</code>は、最新の<code>torch</code>をミラーサイトからダウンロードします。デフォルトは<code>true</code>です。</li>
+            <li><code>install_env.bat</code>の<code>INSTALL_TYPE</code>を編集して、コンパイル環境のダウンロードを行うかを設定できます。</li>
             <li><code>INSTALL_TYPE=preview</code>は、コンパイル環境付きのプレビュー版をダウンロードします。<code>INSTALL_TYPE=stable</code>は、コンパイル環境なしの安定版をダウンロードします。</li>
       </ul>
    </li>
-   <li>ステップ2で<code>USE_MIRROR=preview</code>の場合、このステップを実行します（オプション、コンパイルモデル環境を有効にするため）：
+   <li>ステップ2で<code>USE_MIRROR=preview</code>の場合、オプション、コンパイルモデル環境を有効にするたに以下のステップを実行してください。：
       <ol>
-            <li>以下のリンクを使用してLLVMコンパイラをダウンロードします：
+            <li>以下のリンクからLLVMコンパイラをダウンロードします：
                <ul>
-                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（オリジナルサイトダウンロード）</a></li>
-                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（ミラーサイトダウンロード）</a></li>
-                  <li><code>LLVM-17.0.6-win64.exe</code>をダウンロードした後、ダブルクリックしてインストールし、適切なインストール場所を選択し、最も重要なのは<code>Add Path to Current User</code>をチェックして環境変数に追加することです。</li>
-                  <li>インストールが完了したことを確認します。</li>
+                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（オリジナルサイト）</a></li>
+                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（ミラーサイト）</a></li>
+                  <li><code>LLVM-17.0.6-win64.exe</code>をダウンロードした後、ダブルクリックしてインストールし、適当な場所にインストールしてください。必ず<code>Add Path to Current User</code>をチェックして環境変数に追加することです。</li>
+                  <li>インストールが完了したことを確認してください。</li>
                </ul>
             </li>
-            <li>Microsoft Visual C++ 再頒布可能パッケージをダウンロードしてインストールし、潜在的な.dllの欠落問題を解決します。
+            <li>Microsoft Visual C++ 再頒布可能パッケージをダウンロードしてインストールし、dllの欠落問題を解決します。
                <ul>
                   <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 ダウンロード</a></li>
                </ul>
@@ -60,7 +60,7 @@ Windows のプロユーザーは、コードベースを実行するために WS
                <ul>
                   <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio ダウンロード</a></li>
                   <li>Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロードします。</li>
-                  <li>以下の図のように<code>Modify</code>ボタンをクリックし、<code>Desktop development with C++</code>オプションを見つけてチェックしてダウンロードします。</li>
+                  <li>以下のスクリーンショットのように<code>Modify</code>ボタンをクリックし、<code>Desktop development with C++</code>オプションにチェックをつけてダウンロードします。</li>
                   <p align="center">
                      <img src="../assets/figs/VS_1.jpg" width="75%">
                   </p>
@@ -69,15 +69,15 @@ Windows のプロユーザーは、コードベースを実行するために WS
             <li>インストール <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
       </ol>
    </li>
-   <li><code>start.bat</code>をダブルクリックして、Fish-Speechトレーニング推論設定WebUIページに入ります。
+   <li><code>start.bat</code>を実行し、Fish-Speechのトレーニング/推論設定WebUIを開いてください。。
       <ul>
-            <li>（オプション）直接推論ページに行きたい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>を編集し、最初の3行を次のように変更します：
+            <li>（オプション）直接推論ページに行きたい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更します：
                <pre><code>--infer
 # --api
 # --listen ...
 ...</code></pre>
             </li>
-            <li>（オプション）APIサーバーを起動したい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>を編集し、最初の3行を次のように変更します：
+            <li>（オプション）APIサーバーを起動したい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更します：
                <pre><code># --infer
 --api
 --listen ...
@@ -85,13 +85,13 @@ Windows のプロユーザーは、コードベースを実行するために WS
             </li>
       </ul>
    </li>
-   <li>（オプション）<code>run_cmd.bat</code>をダブルクリックして、このプロジェクトのconda/pythonコマンドライン環境に入ります。</li>
+   <li>（オプション）<code>run_cmd.bat</code>をダブルクリックして、このプロジェクトの仮想環境を有効化できます。</li>
 </ol>
 
 ## Linux セットアップ
 
 ```bash
-# python 3.10仮想環境を作成します。virtualenvも使用できます。
+# python 3.10の仮想環境を作成します。virtualenvも使用できます。
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 
@@ -107,14 +107,14 @@ apt install libsox-dev
 
 ## 変更履歴
 
-- 2024/07/02: Fish-Speech を 1.2 バージョンに更新し、VITS デコーダーを削除し、ゼロショット能力を大幅に強化しました。
-- 2024/05/10: Fish-Speech を 1.1 バージョンに更新し、VITS デコーダーを実装して WER を減少させ、音色の類似性を向上させました。
-- 2024/04/22: Fish-Speech 1.0 バージョンを完成させ、VQGAN および LLAMA モデルを大幅に修正しました。
+- 2024/07/02: Fish-Speech を Ver.1.2 に更新し、VITS デコーダーを削除し、ゼロショット能力を大幅に強化しました。
+- 2024/05/10: Fish-Speech を Ver.1.1 に更新し、VITS デコーダーを実装して WER を減少させ、音色の類似性を向上させました。
+- 2024/04/22: Fish-Speech Ver.1.0 を完成させ、VQGAN および LLAMA モデルを大幅に修正しました。
 - 2023/12/28: `lora`微調整サポートを追加しました。
 - 2023/12/27: `gradient checkpointing`、`causual sampling`、および`flash-attn`サポートを追加しました。
 - 2023/12/19: webui および HTTP API を更新しました。
 - 2023/12/18: 微調整ドキュメントおよび関連例を更新しました。
-- 2023/12/17: `text2semantic`モデルを更新し、音素フリーモードをサポートしました。
+- 2023/12/17: `text2semantic`モデルを更新し、自由音素モードをサポートしました。
 - 2023/12/13: ベータ版をリリースし、VQGAN モデルおよび LLAMA に基づく言語モデル（音素のみサポート）を含みます。
 
 ## 謝辞
