@@ -6,7 +6,6 @@ import random
 import traceback
 import wave
 from argparse import ArgumentParser
-from contextlib import nullcontext
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, Literal, Optional
@@ -33,6 +32,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 # from fish_speech.models.vqgan.lit_module import VQGAN
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.utils import autocast_exclude_mps
 from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
 from tools.llama.generate import (
     GenerateRequest,
@@ -267,12 +267,8 @@ def inference(req: InvokeRequest):
         if result.action == "next":
             break
 
-        with (
-            nullcontext()
-            if torch.backends.mps.is_available()
-            else torch.autocast(
-                device_type=decoder_model.device.type, dtype=args.precision
-            )
+        with autocast_exclude_mps(
+            device_type=decoder_model.device.type, dtype=args.precision
         ):
             fake_audios = decode_vq_tokens(
                 decoder_model=decoder_model,

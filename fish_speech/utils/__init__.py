@@ -1,4 +1,5 @@
 from .braceexpand import braceexpand
+from .context import autocast_exclude_mps
 from .file import get_latest_checkpoint
 from .instantiators import instantiate_callbacks, instantiate_loggers
 from .logger import RankedLogger
@@ -18,4 +19,5 @@ __all__ = [
     "task_wrapper",
     "braceexpand",
     "get_latest_checkpoint",
+    "autocast_exclude_mps",
 ]
