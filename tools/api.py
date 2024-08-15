@@ -32,6 +32,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 # from fish_speech.models.vqgan.lit_module import VQGAN
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.utils import autocast_exclude_mps
 from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
 from tools.llama.generate import (
     GenerateRequest,
@@ -266,7 +267,7 @@ def inference(req: InvokeRequest):
         if result.action == "next":
             break
 
-        with torch.autocast(
+        with autocast_exclude_mps(
             device_type=decoder_model.device.type, dtype=args.precision
         ):
             fake_audios = decode_vq_tokens(

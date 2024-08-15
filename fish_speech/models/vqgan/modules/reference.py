@@ -4,6 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from fish_speech.utils import autocast_exclude_mps
+
 from .wavenet import WaveNet
 
 
@@ -96,7 +98,7 @@ class ReferenceEncoder(WaveNet):
 
 
 if __name__ == "__main__":
-    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+    with autocast_exclude_mps(device_type="cpu", dtype=torch.bfloat16):
         model = ReferenceEncoder(
             input_channels=128,
             output_channels=64,

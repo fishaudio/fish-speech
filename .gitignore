@@ -1,3 +1,4 @@
+.DS_Store
 .pgx.*
 .pdm-python
 /fish_speech.egg-info
