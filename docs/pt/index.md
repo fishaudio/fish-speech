@@ -13,8 +13,8 @@
 </div>
 
 !!! warning
-     Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região. <br/>
-     Este repositório de código e os modelos são distribuídos sob a licença CC-BY-NC-SA-4.0.
+    Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região. <br/>
+    Este repositório de código e os modelos são distribuídos sob a licença CC-BY-NC-SA-4.0.
 
 <p align="center">
    <img src="../assets/figs/diagrama.png" width="75%">
@@ -102,7 +102,7 @@ conda activate fish-speech
 pip3 install torch torchvision torchaudio
 
 # Instale o fish-speech
-pip3 install -e .
+pip3 install -e .[stable]
 
 # Para os Usuário do Ubuntu / Debian: Instale o sox
 apt install libsox-dev

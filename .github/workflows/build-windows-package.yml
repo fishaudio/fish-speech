@@ -42,7 +42,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          if [ "${{ github.actor }}" = "AnyaCoder" ]; then
+          if [ "${{ github.actor }}" = "NoNeedToUpload" ]; then
             echo "Author is AnyaCoder. Performing the zipping && upload."
             zip -qr fish-speech-main-${{ github.run_id }}.zip ./fish-speech
             huggingface-cli upload SpicyqSama007/fish-speech-packed ./fish-speech-main-${{ github.run_id }}.zip fish-speech-main-${{ github.run_id }}.zip

@@ -32,7 +32,6 @@ dependencies = [
     "loralib>=0.1.2",
     "natsort>=8.4.0",
     "pyrootutils>=1.0.4",
-    "torch==2.3.1",
     "vector_quantize_pytorch>=1.14.24",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
@@ -42,13 +41,12 @@ dependencies = [
     "modelscope==1.16.1",
     "funasr==1.1.2",
     "opencc-python-reimplemented==0.1.7",
-    "torchaudio",
 ]
 
 [project.optional-dependencies]
-asr = [
-    "openai-whisper",
-    "modelscope"
+stable = [
+    "torch==2.3.1",
+    "torchaudio",
 ]
 
 [build-system]
