@@ -1,11 +1,11 @@
 import argparse
 import base64
 import json
+import wave
 from pathlib import Path
 
 import pyaudio
 import requests
-import wave
 
 
 def wav_to_base64(file_path):
@@ -131,7 +131,7 @@ if __name__ == "__main__":
                 format=audio_format, channels=args.channels, rate=args.rate, output=True
             )
 
-            wf = wave.open("generated_audio.wav", 'wb')
+            wf = wave.open("generated_audio.wav", "wb")
             wf.setnchannels(args.channels)
             wf.setsampwidth(p.get_sample_size(audio_format))
             wf.setframerate(args.rate)
