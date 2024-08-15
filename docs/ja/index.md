@@ -1,4 +1,4 @@
-# Fish Speechの紹介
+# Fish Speech の紹介
 
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
@@ -14,7 +14,7 @@
 
 !!! warning
     私たちは、コードベースの違法な使用について一切の責任を負いません。お住まいの地域の DMCA（デジタルミレニアム著作権法）およびその他の関連法を参照してください。 <br/>
-    このコードベースとモデルは、CC-BY-NC-SA-4.0ライセンス下でリリースされています。
+    このコードベースとモデルは、CC-BY-NC-SA-4.0 ライセンス下でリリースされています。
 
 <p align="center">
    <img src="../assets/figs/diagram.png" width="75%">
@@ -27,7 +27,7 @@
 
 ## Windows セットアップ
 
-Windowにて開発を行っている方へ: 本コードベースを実行するのに WSL2 または Docker を利用することができます。
+Window にて開発を行っている方へ: 本コードベースを実行するのに WSL2 または Docker を利用することができます。
 
 あまり詳しくない人は、Linux 環境なしでコードベースを実行するために以下の手順に従ってください。（モデルコンパイル機能`torch.compile`を利用できます。）：
 
@@ -99,7 +99,7 @@ conda activate fish-speech
 pip3 install torch torchvision torchaudio
 
 # fish-speechをインストールします。
-pip3 install -e .
+pip3 install -e .[stable]
 
 # (Ubuntu / Debianユーザー) soxをインストールします。
 apt install libsox-dev

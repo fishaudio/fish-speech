@@ -99,7 +99,7 @@ conda activate fish-speech
 pip3 install torch torchvision torchaudio
 
 # Install fish-speech
-pip3 install -e .
+pip3 install -e .[stable]
 
 # (Ubuntu / Debian User) Install sox
 apt install libsox-dev
