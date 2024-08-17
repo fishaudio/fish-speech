@@ -1,34 +1,43 @@
+import gc
+import os
+import re
+
 from audio_separator.separator import Separator
 
-import re
-import os
-import gc
 os.environ["MODELSCOPE_CACHE"] = "./.cache/funasr"
 os.environ["UVR5_CACHE"] = "./.cache/uvr5-models"
 import json
-import torch
 import subprocess
-from tools.sensevoice.auto_model import AutoModel
 from pathlib import Path
+
 import click
+import torch
 from loguru import logger
 from pydub import AudioSegment
 from tqdm import tqdm
 
 from tools.file import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, list_files
+from tools.sensevoice.auto_model import AutoModel
 
 
 def uvr5_cli(
-    audio_dir: Path, output_folder: Path, audio_files: list[Path] | None = None,
-    output_format: str = "flac", model: str = "BS-Roformer-Viperx-1296.ckpt"
+    audio_dir: Path,
+    output_folder: Path,
+    audio_files: list[Path] | None = None,
+    output_format: str = "flac",
+    model: str = "BS-Roformer-Viperx-1296.ckpt",
 ):
     # ["BS-Roformer-Viperx-1297.ckpt", "BS-Roformer-Viperx-1296.ckpt", "BS-Roformer-Viperx-1053.ckpt", "Mel-Roformer-Viperx-1143.ckpt"]
-    sepr = Separator(model_file_dir=os.environ["UVR5_CACHE"], output_dir=output_folder, output_format=output_format)
+    sepr = Separator(
+        model_file_dir=os.environ["UVR5_CACHE"],
+        output_dir=output_folder,
+        output_format=output_format,
+    )
     dictmodel = {
-        'BS-Roformer-Viperx-1297.ckpt': 'model_bs_roformer_ep_317_sdr_12.9755.ckpt',
-        'BS-Roformer-Viperx-1296.ckpt': 'model_bs_roformer_ep_368_sdr_12.9628.ckpt',
-        'BS-Roformer-Viperx-1053.ckpt': 'model_bs_roformer_ep_937_sdr_10.5309.ckpt',
-        'Mel-Roformer-Viperx-1143.ckpt': 'model_mel_band_roformer_ep_3005_sdr_11.4360.ckpt'
+        "BS-Roformer-Viperx-1297.ckpt": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+        "BS-Roformer-Viperx-1296.ckpt": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+        "BS-Roformer-Viperx-1053.ckpt": "model_bs_roformer_ep_937_sdr_10.5309.ckpt",
+        "Mel-Roformer-Viperx-1143.ckpt": "model_mel_band_roformer_ep_3005_sdr_11.4360.ckpt",
     }
     roformer_model = dictmodel[model]
     sepr.load_model(roformer_model)
@@ -55,37 +64,64 @@ def uvr5_cli(
 
     return res, roformer_model
 
+
 def get_sample_rate(media_path: Path):
-    result = subprocess.run([
-        "ffprobe", "-v", "quiet", "-print_format", 
-        "json", "-show_streams", str(media_path)
-    ], capture_output=True, text=True, check=True)
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_streams",
+            str(media_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     media_info = json.loads(result.stdout)
     for stream in media_info.get("streams", []):
         if stream.get("codec_type") == "audio":
             return stream.get("sample_rate")
     return "44100"  # Default sample rate if not found
 
-def convert_to_mono(src_path: Path, out_path: Path, out_fmt: str ='wav'):
+
+def convert_to_mono(src_path: Path, out_path: Path, out_fmt: str = "wav"):
     sr = get_sample_rate(src_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if src_path.resolve() == out_path.resolve():
         output = str(out_path.with_stem(out_path.stem + f"_{sr}"))
     else:
         output = str(out_path)
-    subprocess.run([
-        "ffmpeg", "-loglevel", "error",
-        "-i", str(src_path),
-        "-acodec", "pcm_s16le" if out_fmt == 'wav' else "flac",
-        "-ar", sr, "-ac", "1", "-y",
-        output
-    ], check=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-loglevel",
+            "error",
+            "-i",
+            str(src_path),
+            "-acodec",
+            "pcm_s16le" if out_fmt == "wav" else "flac",
+            "-ar",
+            sr,
+            "-ac",
+            "1",
+            "-y",
+            output,
+        ],
+        check=True,
+    )
     return out_path
+
 
 def convert_video_to_audio(video_path: Path, audio_dir: Path):
     cur_dir = audio_dir / video_path.relative_to(audio_dir).parent
-    vocals = [p for p in cur_dir.glob(f"{video_path.stem}_(Vocals)*.*") 
-              if p.suffix in AUDIO_EXTENSIONS]
+    vocals = [
+        p
+        for p in cur_dir.glob(f"{video_path.stem}_(Vocals)*.*")
+        if p.suffix in AUDIO_EXTENSIONS
+    ]
     if len(vocals) > 0:
         return vocals[0]
     audio_path = cur_dir / f"{video_path.stem}.wav"
@@ -100,8 +136,12 @@ def convert_video_to_audio(video_path: Path, audio_dir: Path):
 )
 @click.option("--device", default="cuda", help="Device to use [cuda / cpu]")
 @click.option("--language", default="auto", help="Language of the transcription")
-@click.option("--max_single_segment_time", default=20000, type=int, 
-              help="Maximum of Output single audio duration(ms)")
+@click.option(
+    "--max_single_segment_time",
+    default=20000,
+    type=int,
+    help="Maximum of Output single audio duration(ms)",
+)
 @click.option("--punc/--no-punc", default=False)
 @click.option("--denoise/--no-denoise", default=False)
 def main(
@@ -113,7 +153,7 @@ def main(
     punc: bool,
     denoise: bool,
 ):
-    
+
     audios_path = Path(audio_dir)
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -122,25 +162,33 @@ def main(
         path=audio_dir, extensions=VIDEO_EXTENSIONS, recursive=True
     )
     v2a_files = [convert_video_to_audio(p, audio_dir) for p in video_files]
-    
+
     if denoise:
         VOCAL = "_(Vocals)"
-        original_files = [p for p in audios_path.glob("**/*") 
-                          if p.suffix in AUDIO_EXTENSIONS and VOCAL not in p.stem]
+        original_files = [
+            p
+            for p in audios_path.glob("**/*")
+            if p.suffix in AUDIO_EXTENSIONS and VOCAL not in p.stem
+        ]
 
-        _, cur_model = uvr5_cli(audio_dir=audio_dir, output_folder=audio_dir, audio_files=original_files)
+        _, cur_model = uvr5_cli(
+            audio_dir=audio_dir, output_folder=audio_dir, audio_files=original_files
+        )
         need_remove = [p for p in audios_path.glob("**/*(Instrumental)*")]
         need_remove.extend(original_files)
         for _ in need_remove:
             _.unlink()
-        vocal_files = [p for p in audios_path.glob("**/*") 
-                    if p.suffix in AUDIO_EXTENSIONS and VOCAL in p.stem]
+        vocal_files = [
+            p
+            for p in audios_path.glob("**/*")
+            if p.suffix in AUDIO_EXTENSIONS and VOCAL in p.stem
+        ]
         for f in vocal_files:
             fn, ext = f.stem, f.suffix
 
             v_pos = fn.find(VOCAL + "_" + cur_model.split(".")[0])
             if v_pos != -1:
-                new_fn = fn[:v_pos+len(VOCAL)]
+                new_fn = fn[: v_pos + len(VOCAL)]
                 new_f = f.with_name(new_fn + ext)
                 f = f.rename(new_f)
                 convert_to_mono(f, f, "flac")
@@ -155,14 +203,12 @@ def main(
     model_dir = "iic/SenseVoiceSmall"
 
     vad_model = "fsmn-vad"
-    vad_kwargs = {
-        "max_single_segment_time": max_single_segment_time
-    }
+    vad_kwargs = {"max_single_segment_time": max_single_segment_time}
     punc_model = "ct-punc" if punc else None
 
     manager = AutoModel(
         model=model_dir,
-        trust_remote_code=False,  
+        trust_remote_code=False,
         vad_model=vad_model,
         vad_kwargs=vad_kwargs,
         punc_model=punc_model,
@@ -171,7 +217,7 @@ def main(
 
     logger.info("Model loaded.")
 
-    pattern = re.compile(r'_\d{3}\.')
+    pattern = re.compile(r"_\d{3}\.")
 
     for file_path in tqdm(audio_files, desc="Processing audio file"):
 
@@ -189,26 +235,21 @@ def main(
 
         cfg = dict(
             cache={},
-            language=language, # "zh", "en", "yue", "ja", "ko", "nospeech"
+            language=language,  # "zh", "en", "yue", "ja", "ko", "nospeech"
             use_itn=False,
             batch_size_s=60,
         )
 
-        elapsed, vad_res = manager.vad(
-            input=str(file_path), 
-            **cfg
-        )
-        
+        elapsed, vad_res = manager.vad(input=str(file_path), **cfg)
+
         res = manager.inference_with_vadres(
-            input=str(file_path),
-            vad_res=vad_res,
-            **cfg
+            input=str(file_path), vad_res=vad_res, **cfg
         )
-    
+
         for i, info in enumerate(res):
             [start_ms, end_ms] = info["interval"]
             text = info["text"]
-            emo  = info["emo"]
+            emo = info["emo"]
             sliced_audio = audio[start_ms:end_ms]
             audio_save_path = (
                 save_path / rel_path.parent / f"{file_stem}_{i:03d}{file_suffix}"
@@ -226,9 +267,7 @@ def main(
             ) as f:
                 f.write(text)
 
-            emo_save_path = (
-                save_path / rel_path.parent / f"{file_stem}_{i:03d}.emo"
-            )
+            emo_save_path = save_path / rel_path.parent / f"{file_stem}_{i:03d}.emo"
             with open(
                 emo_save_path,
                 "w",
@@ -244,6 +283,7 @@ if __name__ == "__main__":
     main()
     exit(0)
     from funasr.utils.postprocess_utils import rich_transcription_postprocess
+
     # Load the audio file
     audio_path = Path(r"D:\PythonProject\ok\1_output_(Vocals).wav")
     model_dir = "iic/SenseVoiceSmall"
@@ -252,7 +292,7 @@ if __name__ == "__main__":
 
     res = m.inference(
         data_in=f"{kwargs['model_path']}/example/zh.mp3",
-        language="auto", # "zh", "en", "yue", "ja", "ko", "nospeech"
+        language="auto",  # "zh", "en", "yue", "ja", "ko", "nospeech"
         use_itn=False,
         ban_emo_unk=False,
         **kwargs,

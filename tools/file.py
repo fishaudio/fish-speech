@@ -1,7 +1,8 @@
-from loguru import logger
 from pathlib import Path
-from natsort import natsorted
 from typing import Union
+
+from loguru import logger
+from natsort import natsorted
 
 AUDIO_EXTENSIONS = {
     ".mp3",
@@ -20,6 +21,7 @@ VIDEO_EXTENSIONS = {
     ".mp4",
     ".avi",
 }
+
 
 def list_files(
     path: Union[Path, str],

@@ -82,7 +82,7 @@ def main(
     audio_files = list_files(
         path=audio_dir, extensions=AUDIO_EXTENSIONS, recursive=True
     )
-    
+
     for file_path in tqdm(audio_files, desc="Processing audio file"):
         file_stem = file_path.stem
         file_suffix = file_path.suffix
@@ -121,22 +121,17 @@ def main(
 
         whole_text += "."
 
-        audio_save_path = (
-            save_path / rel_path.parent / f"{file_stem}{file_suffix}"
-        )
+        audio_save_path = save_path / rel_path.parent / f"{file_stem}{file_suffix}"
         audio.export(audio_save_path, format=file_suffix[1:])
         print(f"Exported {audio_save_path}")
 
-        transcript_save_path = (
-            save_path / rel_path.parent / f"{file_stem}.lab"
-        )
+        transcript_save_path = save_path / rel_path.parent / f"{file_stem}.lab"
         with open(
             transcript_save_path,
             "w",
             encoding="utf-8",
         ) as f:
             f.write(whole_text)
-
 
 
 if __name__ == "__main__":

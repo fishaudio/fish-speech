@@ -3,36 +3,33 @@
 # Copyright FunASR (https://github.com/alibaba-damo-academy/FunASR). All Rights Reserved.
 #  MIT License  (https://opensource.org/licenses/MIT)
 
-import re
-import json
-import time
 import copy
-import torch
-import random
-import string
+import json
 import logging
 import os.path
+import random
+import re
+import string
+import time
+
 import numpy as np
+import torch
+from funasr.download.download_model_from_hub import download_model
+from funasr.download.file import download_from_url
+from funasr.register import tables
+from funasr.train_utils.load_pretrained_model import load_pretrained_model
+from funasr.train_utils.set_all_random_seed import set_all_random_seed
+from funasr.utils import export_utils, misc
+from funasr.utils.load_utils import load_audio_text_image_video, load_bytes
+from funasr.utils.misc import deep_update
+from funasr.utils.timestamp_tools import timestamp_sentence, timestamp_sentence_en
 from tqdm import tqdm
 
-from funasr.utils.misc import deep_update
-from funasr.register import tables
-from funasr.utils.load_utils import load_bytes
-from funasr.download.file import download_from_url
-from funasr.utils.timestamp_tools import timestamp_sentence
-from funasr.utils.timestamp_tools import timestamp_sentence_en
-from funasr.download.download_model_from_hub import download_model
-from .vad_utils import slice_padding_audio_samples
-from .vad_utils import merge_vad
-from funasr.utils.load_utils import load_audio_text_image_video
-from funasr.train_utils.set_all_random_seed import set_all_random_seed
-from funasr.train_utils.load_pretrained_model import load_pretrained_model
-from funasr.utils import export_utils
-from funasr.utils import misc
+from .vad_utils import merge_vad, slice_padding_audio_samples
 
 try:
-    from funasr.models.campplus.utils import sv_chunk, postprocess, distribute_spk
     from funasr.models.campplus.cluster_backend import ClusterBackend
+    from funasr.models.campplus.utils import distribute_spk, postprocess, sv_chunk
 except:
     pass
 
@@ -57,7 +54,9 @@ def prepare_data_iterator(data_in, input_len=None, data_type=None, key=None):
             with open(data_in, encoding="utf-8") as fin:
                 for line in fin:
                     key = "rand_key_" + "".join(random.choice(chars) for _ in range(13))
-                    if data_in.endswith(".jsonl"):  # file.jsonl: json.dumps({"source": data})
+                    if data_in.endswith(
+                        ".jsonl"
+                    ):  # file.jsonl: json.dumps({"source": data})
                         lines = json.loads(line.strip())
                         data = lines["source"]
                         key = data["key"] if "key" in data else key
@@ -75,7 +74,9 @@ def prepare_data_iterator(data_in, input_len=None, data_type=None, key=None):
             data_list = [data_in]
             key_list = [key]
     elif isinstance(data_in, (list, tuple)):
-        if data_type is not None and isinstance(data_type, (list, tuple)):  # mutiple inputs
+        if data_type is not None and isinstance(
+            data_type, (list, tuple)
+        ):  # mutiple inputs
             data_list_tmp = []
             for data_in_i, data_type_i in zip(data_in, data_type):
                 key_list, data_list_i = prepare_data_iterator(
@@ -94,7 +95,9 @@ def prepare_data_iterator(data_in, input_len=None, data_type=None, key=None):
                     key = misc.extract_filename_without_extension(data_i)
                 else:
                     if key is None:
-                        key = "rand_key_" + "".join(random.choice(chars) for _ in range(13))
+                        key = "rand_key_" + "".join(
+                            random.choice(chars) for _ in range(13)
+                        )
                 key_list.append(key)
 
     else:  # raw text; audio sample point, fbank; bytes
@@ -129,7 +132,9 @@ class AutoModel:
 
         # if vad_model is not None, build vad model else None
         vad_model = kwargs.get("vad_model", None)
-        vad_kwargs = {} if kwargs.get("vad_kwargs", {}) is None else kwargs.get("vad_kwargs", {})
+        vad_kwargs = (
+            {} if kwargs.get("vad_kwargs", {}) is None else kwargs.get("vad_kwargs", {})
+        )
         if vad_model is not None:
             logging.info("Building VAD model.")
             vad_kwargs["model"] = vad_model
@@ -139,7 +144,11 @@ class AutoModel:
 
         # if punc_model is not None, build punc model else None
         punc_model = kwargs.get("punc_model", None)
-        punc_kwargs = {} if kwargs.get("punc_kwargs", {}) is None else kwargs.get("punc_kwargs", {})
+        punc_kwargs = (
+            {}
+            if kwargs.get("punc_kwargs", {}) is None
+            else kwargs.get("punc_kwargs", {})
+        )
         if punc_model is not None:
             logging.info("Building punc model.")
             punc_kwargs["model"] = punc_model
@@ -149,7 +158,9 @@ class AutoModel:
 
         # if spk_model is not None, build spk model else None
         spk_model = kwargs.get("spk_model", None)
-        spk_kwargs = {} if kwargs.get("spk_kwargs", {}) is None else kwargs.get("spk_kwargs", {})
+        spk_kwargs = (
+            {} if kwargs.get("spk_kwargs", {}) is None else kwargs.get("spk_kwargs", {})
+        )
         if spk_model is not None:
             logging.info("Building SPK model.")
             spk_kwargs["model"] = spk_model
@@ -159,7 +170,9 @@ class AutoModel:
             self.cb_model = ClusterBackend().to(kwargs["device"])
             spk_mode = kwargs.get("spk_mode", "punc_segment")
             if spk_mode not in ["default", "vad_segment", "punc_segment"]:
-                logging.error("spk_mode should be one of default, vad_segment and punc_segment.")
+                logging.error(
+                    "spk_mode should be one of default, vad_segment and punc_segment."
+                )
             self.spk_mode = spk_mode
 
         self.kwargs = kwargs
@@ -176,7 +189,9 @@ class AutoModel:
     def build_model(**kwargs):
         assert "model" in kwargs
         if "model_conf" not in kwargs:
-            logging.info("download models from model hub: {}".format(kwargs.get("hub", "ms")))
+            logging.info(
+                "download models from model hub: {}".format(kwargs.get("hub", "ms"))
+            )
             kwargs = download_model(**kwargs)
 
         set_all_random_seed(kwargs.get("seed", 0))
@@ -198,9 +213,13 @@ class AutoModel:
                 tokenizer.token_list if hasattr(tokenizer, "token_list") else None
             )
             kwargs["token_list"] = (
-                tokenizer.get_vocab() if hasattr(tokenizer, "get_vocab") else kwargs["token_list"]
+                tokenizer.get_vocab()
+                if hasattr(tokenizer, "get_vocab")
+                else kwargs["token_list"]
             )
-            vocab_size = len(kwargs["token_list"]) if kwargs["token_list"] is not None else -1
+            vocab_size = (
+                len(kwargs["token_list"]) if kwargs["token_list"] is not None else -1
+            )
             if vocab_size == -1 and hasattr(tokenizer, "get_vocab_size"):
                 vocab_size = tokenizer.get_vocab_size()
         else:
@@ -266,7 +285,9 @@ class AutoModel:
         else:
             return self.inference_with_vad(input, input_len=input_len, **cfg)
 
-    def inference(self, input, input_len=None, model=None, kwargs=None, key=None, **cfg):
+    def inference(
+        self, input, input_len=None, model=None, kwargs=None, key=None, **cfg
+    ):
         kwargs = self.kwargs if kwargs is None else kwargs
         if "cache" in kwargs:
             kwargs.pop("cache")
@@ -287,7 +308,9 @@ class AutoModel:
         num_samples = len(data_list)
         disable_pbar = self.kwargs.get("disable_pbar", False)
         pbar = (
-            tqdm(colour="blue", total=num_samples, dynamic_ncols=True) if not disable_pbar else None
+            tqdm(colour="blue", total=num_samples, dynamic_ncols=True)
+            if not disable_pbar
+            else None
         )
         time_speech_total = 0.0
         time_escape_total = 0.0
@@ -297,7 +320,9 @@ class AutoModel:
             key_batch = key_list[beg_idx:end_idx]
             batch = {"data_in": data_batch, "key": key_batch}
 
-            if (end_idx - beg_idx) == 1 and kwargs.get("data_type", None) == "fbank":  # fbank
+            if (end_idx - beg_idx) == 1 and kwargs.get(
+                "data_type", None
+            ) == "fbank":  # fbank
                 batch["data_in"] = data_batch[0]
                 batch["data_lengths"] = input_len
 
@@ -338,7 +363,11 @@ class AutoModel:
         deep_update(self.vad_kwargs, cfg)
         beg_vad = time.time()
         res = self.inference(
-            input, input_len=input_len, model=self.vad_model, kwargs=self.vad_kwargs, **cfg
+            input,
+            input_len=input_len,
+            model=self.vad_model,
+            kwargs=self.vad_kwargs,
+            **cfg,
         )
         end_vad = time.time()
         #  FIX(gcf): concat the vad clips for sense vocie model for better aed
@@ -351,9 +380,9 @@ class AutoModel:
         return elapsed, res
 
     def inference_with_vadres(self, input, vad_res, input_len=None, **cfg):
-        
+
         kwargs = self.kwargs
-        
+
         # step.2 compute asr model
         model = self.model
         deep_update(kwargs, cfg)
@@ -373,13 +402,15 @@ class AutoModel:
             if not kwargs.get("disable_pbar", False)
             else None
         )
-        
+
         for i in range(len(vad_res)):
             key = vad_res[i]["key"]
             vadsegments = vad_res[i]["value"]
             input_i = data_list[i]
             fs = kwargs["frontend"].fs if hasattr(kwargs["frontend"], "fs") else 16000
-            speech = load_audio_text_image_video(input_i, fs=fs, audio_fs=kwargs.get("fs", 16000))
+            speech = load_audio_text_image_video(
+                input_i, fs=fs, audio_fs=kwargs.get("fs", 16000)
+            )
             speech_lengths = len(speech)
             n = len(vadsegments)
             data_with_index = [(vadsegments[i], i) for i in range(n)]
@@ -392,7 +423,9 @@ class AutoModel:
                 continue
 
             if len(sorted_data) > 0 and len(sorted_data[0]) > 0:
-                batch_size = max(batch_size, sorted_data[0][0][1] - sorted_data[0][0][0])
+                batch_size = max(
+                    batch_size, sorted_data[0][0][1] - sorted_data[0][0][0]
+                )
 
             if kwargs["device"] == "cpu":
                 batch_size = 0
@@ -411,7 +444,9 @@ class AutoModel:
             for j, _ in enumerate(range(0, n)):
                 # pbar_sample.update(1)
                 sample_length = sorted_data[j][0][1] - sorted_data[j][0][0]
-                potential_batch_length = max(max_len_in_batch, sample_length) * (j + 1 - beg_idx)
+                potential_batch_length = max(max_len_in_batch, sample_length) * (
+                    j + 1 - beg_idx
+                )
                 # batch_size_ms_cum += sorted_data[j][0][1] - sorted_data[j][0][0]
                 if (
                     j < n - 1
@@ -428,7 +463,7 @@ class AutoModel:
                 results = self.inference(
                     speech_j, input_len=None, model=model, kwargs=kwargs, **cfg
                 )
-                
+
                 for _b in range(len(speech_j)):
                     results[_b]["interval"] = intervals[_b]
 
@@ -446,7 +481,11 @@ class AutoModel:
                         all_segments.extend(segments)
                         speech_b = [i[2] for i in segments]
                         spk_res = self.inference(
-                            speech_b, input_len=None, model=self.spk_model, kwargs=kwargs, **cfg
+                            speech_b,
+                            input_len=None,
+                            model=self.spk_model,
+                            kwargs=kwargs,
+                            **cfg,
                         )
                         results[_b]["spk_embedding"] = spk_res[0]["spk_embedding"]
 
@@ -468,19 +507,22 @@ class AutoModel:
             for j in range(n):
                 index = sorted_data[j][1]
                 cur = results_sorted[j]
-                pattern = r'<\|([^|]+)\|>'
-                emotion_string = re.findall(pattern, cur['text'])
-                cur['text'] = re.sub(pattern, '', cur['text'])
-                cur['emo'] = "".join([f"<|{t}|>" for t in emotion_string])
-                if self.punc_model is not None and len(cur['text'].strip()) > 0:
+                pattern = r"<\|([^|]+)\|>"
+                emotion_string = re.findall(pattern, cur["text"])
+                cur["text"] = re.sub(pattern, "", cur["text"])
+                cur["emo"] = "".join([f"<|{t}|>" for t in emotion_string])
+                if self.punc_model is not None and len(cur["text"].strip()) > 0:
                     deep_update(self.punc_kwargs, cfg)
                     punc_res = self.inference(
-                        cur['text'], model=self.punc_model, kwargs=self.punc_kwargs, **cfg
+                        cur["text"],
+                        model=self.punc_model,
+                        kwargs=self.punc_kwargs,
+                        **cfg,
                     )
                     cur["text"] = punc_res[0]["text"]
 
                 restored_data[index] = cur
-                
+
             end_asr_total = time.time()
             time_escape_total_per_sample = end_asr_total - beg_asr_total
             if pbar_total:

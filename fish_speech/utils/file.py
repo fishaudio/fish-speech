@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+
 def get_latest_checkpoint(path: Path | str) -> Path | None:
     # Find the latest checkpoint
     ckpt_dir = Path(path)
