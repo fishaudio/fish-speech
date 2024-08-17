@@ -3,18 +3,19 @@ import io
 import json
 import queue
 import random
+import sys
 import traceback
 import wave
 from argparse import ArgumentParser
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, Literal, Optional
-import sys
-import torchaudio
+
 import numpy as np
 import pyrootutils
 import soundfile as sf
 import torch
+import torchaudio
 from kui.asgi import (
     Body,
     HTTPException,
@@ -87,8 +88,9 @@ def load_audio(reference_audio, sr):
         except base64.binascii.Error:
             raise ValueError("Invalid path or base64 string")
 
-    waveform, original_sr = torchaudio.load(reference_audio, 
-                                            backend="sox" if sys.platform == 'linux' else "soundfile")
+    waveform, original_sr = torchaudio.load(
+        reference_audio, backend="sox" if sys.platform == "linux" else "soundfile"
+    )
 
     if waveform.shape[0] > 1:
         waveform = torch.mean(waveform, dim=0, keepdim=True)
