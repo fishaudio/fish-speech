@@ -29,7 +29,7 @@ set INSTALL_ENV_DIR=%cd%\fishenv\env
 
 
 set PYTHONNOUSERSITE=1
-set PYTHONPATH=
+set PYTHONPATH=%~dp0
 set PYTHONHOME=
 
 
