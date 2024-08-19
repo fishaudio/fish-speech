@@ -41,13 +41,14 @@ dependencies = [
     "modelscope==1.17.1",
     "funasr==1.1.5",
     "opencc-python-reimplemented==0.1.7",
+    "audio-seperator[gpu]==0.18.3",
+    "silero-vad",
 ]
 
 [project.optional-dependencies]
 stable = [
     "torch==2.3.1",
     "torchaudio",
-    "audio-seperator[gpu]==0.18.3",
 ]
 
 [build-system]
