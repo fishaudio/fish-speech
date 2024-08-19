@@ -14,11 +14,12 @@ import click
 import torch
 from loguru import logger
 from pydub import AudioSegment
+from silero_vad import get_speech_timestamps, load_silero_vad, read_audio
 from tqdm import tqdm
 
 from tools.file import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, list_files
 from tools.sensevoice.auto_model import AutoModel
-from silero_vad import load_silero_vad, read_audio, get_speech_timestamps
+
 
 def uvr5_cli(
     audio_dir: Path,
@@ -250,19 +251,22 @@ def main(
         if fsmn_vad:
             elapsed, vad_res = manager.vad(input=str(file_path), **cfg)
         else:
-            wav = read_audio(str(file_path)) # backend (sox, soundfile, or ffmpeg) required!
+            wav = read_audio(
+                str(file_path)
+            )  # backend (sox, soundfile, or ffmpeg) required!
             audio_key = file_path.stem
             audio_val = []
-            speech_timestamps = get_speech_timestamps(wav, vad_model, return_seconds=True)
-            
-            audio_val = [[int(timestamp["start"] * 1000), int(timestamp["end"] * 1000)] 
-                         for timestamp in speech_timestamps]
+            speech_timestamps = get_speech_timestamps(
+                wav, vad_model, return_seconds=True
+            )
+
+            audio_val = [
+                [int(timestamp["start"] * 1000), int(timestamp["end"] * 1000)]
+                for timestamp in speech_timestamps
+            ]
             vad_res = []
-            vad_res.append(dict(
-                key=audio_key,
-                value=audio_val
-            ))
- 
+            vad_res.append(dict(key=audio_key, value=audio_val))
+
         res = manager.inference_with_vadres(
             input=str(file_path), vad_res=vad_res, **cfg
         )
