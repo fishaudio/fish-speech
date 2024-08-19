@@ -144,6 +144,7 @@ def convert_video_to_audio(video_path: Path, audio_dir: Path):
 )
 @click.option("--punc/--no-punc", default=False)
 @click.option("--denoise/--no-denoise", default=False)
+@click.option("--save_emo/--no_save_emo", default=False)
 def main(
     audio_dir: str,
     save_dir: str,
@@ -152,6 +153,7 @@ def main(
     max_single_segment_time: int,
     punc: bool,
     denoise: bool,
+    save_emo: bool,
 ):
 
     audios_path = Path(audio_dir)
@@ -267,13 +269,14 @@ def main(
             ) as f:
                 f.write(text)
 
-            emo_save_path = save_path / rel_path.parent / f"{file_stem}_{i:03d}.emo"
-            with open(
-                emo_save_path,
-                "w",
-                encoding="utf-8",
-            ) as f:
-                f.write(emo)
+            if save_emo:
+                emo_save_path = save_path / rel_path.parent / f"{file_stem}_{i:03d}.emo"
+                with open(
+                    emo_save_path,
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(emo)
 
         if audios_path.resolve() == save_path.resolve():
             file_path.unlink()
