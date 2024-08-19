@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torchaudio
 from tqdm import tqdm
 
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from tools.file import AUDIO_EXTENSIONS, list_files
 
 threshold = 10 ** (-50 / 20.0)
 

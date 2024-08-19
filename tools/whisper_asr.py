@@ -32,7 +32,7 @@ from loguru import logger
 from pydub import AudioSegment
 from tqdm import tqdm
 
-from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files
+from tools.file import AUDIO_EXTENSIONS, list_files
 
 
 @click.command()
@@ -83,26 +83,12 @@ def main(
         path=audio_dir, extensions=AUDIO_EXTENSIONS, recursive=True
     )
 
-    numbered_suffix_pattern = re.compile(r"-\d{3}$")
-
     for file_path in tqdm(audio_files, desc="Processing audio file"):
         file_stem = file_path.stem
         file_suffix = file_path.suffix
 
         rel_path = Path(file_path).relative_to(audio_dir)
         (save_path / rel_path.parent).mkdir(parents=True, exist_ok=True)
-
-        # Skip files that already have a .lab file or a -{3-digit number} suffix
-        numbered_suffix = numbered_suffix_pattern.search(file_stem)
-        lab_file = file_path.with_suffix(".lab")
-
-        if numbered_suffix and lab_file.exists():
-            continue
-
-        if not numbered_suffix and lab_file.with_stem(lab_file.stem + "-001").exists():
-            if file_path.exists():
-                file_path.unlink()
-            continue
 
         audio = AudioSegment.from_file(file_path)
 
@@ -119,6 +105,7 @@ def main(
         )
         print("Total len(ms): ", len(audio))
 
+        whole_text = None
         for segment in segments:
             id, start, end, text = (
                 segment.id,
@@ -127,26 +114,24 @@ def main(
                 segment.text,
             )
             print("Segment %03d [%.2fs -> %.2fs] %s" % (id, start, end, text))
-            start_ms = int(start * 1000)
-            end_ms = int(end * 1000) + 200  # add 0.2s avoid truncating
-            segment_audio = audio[start_ms:end_ms]
-            audio_save_path = (
-                save_path / rel_path.parent / f"{file_stem}-{id:03d}{file_suffix}"
-            )
-            segment_audio.export(audio_save_path, format=file_suffix[1:])
-            print(f"Exported {audio_save_path}")
+            if not whole_text:
+                whole_text = text
+            else:
+                whole_text += ", " + text
 
-            transcript_save_path = (
-                save_path / rel_path.parent / f"{file_stem}-{id:03d}.lab"
-            )
-            with open(
-                transcript_save_path,
-                "w",
-                encoding="utf-8",
-            ) as f:
-                f.write(segment.text)
+        whole_text += "."
 
-        file_path.unlink()
+        audio_save_path = save_path / rel_path.parent / f"{file_stem}{file_suffix}"
+        audio.export(audio_save_path, format=file_suffix[1:])
+        print(f"Exported {audio_save_path}")
+
+        transcript_save_path = save_path / rel_path.parent / f"{file_stem}.lab"
+        with open(
+            transcript_save_path,
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(whole_text)
 
 
 if __name__ == "__main__":

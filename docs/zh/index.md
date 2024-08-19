@@ -13,8 +13,8 @@
 </div>
 
 !!! warning
-   我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规. <br/>
-   此代码库与所有模型根据 CC-BY-NC-SA-4.0 许可证发布.
+    我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规. <br/>
+    此代码库与所有模型根据 CC-BY-NC-SA-4.0 许可证发布.
 
 <p align="center">
    <img src="../assets/figs/diagram.png" width="75%">
@@ -33,23 +33,23 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
 
 1. 解压项目压缩包。
 2. 点击 `install_env.bat` 安装环境。
-   - 可以通过编辑 `install_env.bat` 的 `USE_MIRROR` 项来决定是否使用镜像站下载。
-   - `USE_MIRROR=false` 使用原始站下载最新稳定版 `torch` 环境。`USE_MIRROR=true` 为从镜像站下载最新 `torch` 环境。默认为 `true`。
-   - 可以通过编辑 `install_env.bat` 的 `INSTALL_TYPE` 项来决定是否启用可编译环境下载。
-   - `INSTALL_TYPE=preview` 下载开发版编译环境。`INSTALL_TYPE=stable` 下载稳定版不带编译环境。
+    - 可以通过编辑 `install_env.bat` 的 `USE_MIRROR` 项来决定是否使用镜像站下载。
+    - `USE_MIRROR=false` 使用原始站下载最新稳定版 `torch` 环境。`USE_MIRROR=true` 为从镜像站下载最新 `torch` 环境。默认为 `true`。
+    - 可以通过编辑 `install_env.bat` 的 `INSTALL_TYPE` 项来决定是否启用可编译环境下载。
+    - `INSTALL_TYPE=preview` 下载开发版编译环境。`INSTALL_TYPE=stable` 下载稳定版不带编译环境。
 3. 若第 2 步 `INSTALL_TYPE=preview` 则执行这一步（可跳过，此步为激活编译模型环境）
-   1. 使用如下链接下载 LLVM 编译器。
-      - [LLVM-17.0.6（原站站点下载）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - [LLVM-17.0.6（镜像站点下载）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-      - 下载完 `LLVM-17.0.6-win64.exe` 后，双击进行安装，选择合适的安装位置，最重要的是勾选 `Add Path to Current User` 添加环境变量。
-      - 确认安装完成。
-   2. 下载安装 Microsoft Visual C++ 可再发行程序包，解决潜在 .dll 丢失问题。
-      - [MSVC++ 14.40.33810.0 下载](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-   3. 下载安装 Visual Studio 社区版以获取 MSVC++ 编译工具, 解决 LLVM 的头文件依赖问题。
-      - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
-      - 安装好 Visual Studio Installer 之后，下载 Visual Studio Community 2022
-      - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
-   4. 下载安装 [CUDA Toolkit 12](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
+    1. 使用如下链接下载 LLVM 编译器。
+        - [LLVM-17.0.6（原站站点下载）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - [LLVM-17.0.6（镜像站点下载）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - 下载完 `LLVM-17.0.6-win64.exe` 后，双击进行安装，选择合适的安装位置，最重要的是勾选 `Add Path to Current User` 添加环境变量。
+        - 确认安装完成。
+    2. 下载安装 Microsoft Visual C++ 可再发行程序包，解决潜在 .dll 丢失问题。
+        - [MSVC++ 14.40.33810.0 下载](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+    3. 下载安装 Visual Studio 社区版以获取 MSVC++ 编译工具, 解决 LLVM 的头文件依赖问题。
+        - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
+        - 安装好 Visual Studio Installer 之后，下载 Visual Studio Community 2022
+        - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
+    4. 下载安装 [CUDA Toolkit 12](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
 4. 双击 `start.bat` 打开训练推理 WebUI 管理界面. 如有需要，可照下列提示修改`API_FLAGS`.
 
 !!! info "可选"
