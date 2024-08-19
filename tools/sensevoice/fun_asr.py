@@ -257,7 +257,7 @@ def main(
             audio_key = file_path.stem
             audio_val = []
             speech_timestamps = get_speech_timestamps(
-                wav, vad_model, return_seconds=True
+                wav, vad_model, max_speech_duration_s=max_single_segment_time // 1000, return_seconds=True
             )
 
             audio_val = [
