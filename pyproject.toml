@@ -41,7 +41,6 @@ dependencies = [
     "modelscope==1.17.1",
     "funasr==1.1.5",
     "opencc-python-reimplemented==0.1.7",
-    "audio-seperator[gpu]==0.18.3",
     "silero-vad",
 ]
 
