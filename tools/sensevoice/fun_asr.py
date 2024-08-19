@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from tools.file import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, list_files
 from tools.sensevoice.auto_model import AutoModel
-
+from silero_vad import load_silero_vad, read_audio, get_speech_timestamps
 
 def uvr5_cli(
     audio_dir: Path,
@@ -142,6 +142,7 @@ def convert_video_to_audio(video_path: Path, audio_dir: Path):
     type=int,
     help="Maximum of Output single audio duration(ms)",
 )
+@click.option("--fsmn-vad/--silero-vad", default=False)
 @click.option("--punc/--no-punc", default=False)
 @click.option("--denoise/--no-denoise", default=False)
 @click.option("--save_emo/--no_save_emo", default=False)
@@ -151,6 +152,7 @@ def main(
     device: str,
     language: str,
     max_single_segment_time: int,
+    fsmn_vad: bool,
     punc: bool,
     denoise: bool,
     save_emo: bool,
@@ -204,7 +206,7 @@ def main(
 
     model_dir = "iic/SenseVoiceSmall"
 
-    vad_model = "fsmn-vad"
+    vad_model = "fsmn-vad" if fsmn_vad else None
     vad_kwargs = {"max_single_segment_time": max_single_segment_time}
     punc_model = "ct-punc" if punc else None
 
@@ -216,6 +218,9 @@ def main(
         punc_model=punc_model,
         device=device,
     )
+
+    if not fsmn_vad and vad_model is None:
+        vad_model = load_silero_vad()
 
     logger.info("Model loaded.")
 
@@ -242,8 +247,22 @@ def main(
             batch_size_s=60,
         )
 
-        elapsed, vad_res = manager.vad(input=str(file_path), **cfg)
-
+        if fsmn_vad:
+            elapsed, vad_res = manager.vad(input=str(file_path), **cfg)
+        else:
+            wav = read_audio(str(file_path)) # backend (sox, soundfile, or ffmpeg) required!
+            audio_key = file_path.stem
+            audio_val = []
+            speech_timestamps = get_speech_timestamps(wav, vad_model, return_seconds=True)
+            
+            audio_val = [[int(timestamp["start"] * 1000), int(timestamp["end"] * 1000)] 
+                         for timestamp in speech_timestamps]
+            vad_res = []
+            vad_res.append(dict(
+                key=audio_key,
+                value=audio_val
+            ))
+ 
         res = manager.inference_with_vadres(
             input=str(file_path), vad_res=vad_res, **cfg
         )
