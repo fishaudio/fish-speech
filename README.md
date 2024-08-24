@@ -5,7 +5,7 @@
 **English** | [中文简体](README.zh.md) | [Portuguese (Brazil)](README.pt-BR.md)
 
 </div>
-
+<a href="https://trendshift.io/repositories/7014" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
 <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
