@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional, Tuple, Union
+from contextlib import nullcontext
 
 import click
 import hydra
@@ -183,7 +184,7 @@ def decode_n_tokens(
 
         with torch.backends.cuda.sdp_kernel(
             enable_flash=False, enable_mem_efficient=False, enable_math=True
-        ):  # Actually better for Inductor to codegen attention here
+        ) if torch.cuda.is_available() else nullcontext():  # Actually better for Inductor to codegen attention here
             next_token = decode_one_token(
                 model=model,
                 x=cur_token,
