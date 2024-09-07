@@ -35,7 +35,6 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps
-
 from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
 from tools.file import AUDIO_EXTENSIONS, audio_to_base64, list_files, read_ref_text
 from tools.llama.generate import (
@@ -224,12 +223,16 @@ def inference(req: InvokeRequest):
             for audio_text_pair in refs
         ]
         prompt_texts = [audio_text_pair["text"] for audio_text_pair in refs]
-    
+
     # LLAMA Inference
     request = dict(
         device=decoder_model.device,
         max_new_tokens=req.max_new_tokens,
-        text=req.text if not req.normalize else ChnNormedText(raw_text=req.text).normalize(),
+        text=(
+            req.text
+            if not req.normalize
+            else ChnNormedText(raw_text=req.text).normalize()
+        ),
         top_p=req.top_p,
         repetition_penalty=req.repetition_penalty,
         temperature=req.temperature,
