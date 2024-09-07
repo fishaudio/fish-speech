@@ -153,56 +153,24 @@ def decode_vq_tokens(
 routes = MultimethodRoutes(base_class=HttpView)
 
 
-def get_random_paths(base_path, data, speaker, emotion):
-    if base_path and data and speaker and emotion and (Path(base_path).exists()):
-        if speaker in data and emotion in data[speaker]:
-            files = data[speaker][emotion]
-            lab_files = [f for f in files if f.endswith(".lab")]
-            wav_files = [f for f in files if f.endswith(".wav")]
-
-            if lab_files and wav_files:
-                selected_lab = random.choice(lab_files)
-                selected_wav = random.choice(wav_files)
-
-                lab_path = Path(base_path) / speaker / emotion / selected_lab
-                wav_path = Path(base_path) / speaker / emotion / selected_wav
-                if lab_path.exists() and wav_path.exists():
-                    return lab_path, wav_path
-
-    return None, None
-
-
-def load_json(json_file):
-    if not json_file:
-        logger.info("Not using a json file")
-        return None
-    try:
-        with open(json_file, "r", encoding="utf-8") as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        logger.warning(f"ref json not found: {json_file}")
-        data = None
-    except Exception as e:
-        logger.warning(f"Loading json failed: {e}")
-        data = None
-    return data
-
-
 class InvokeRequest(BaseModel):
+    # keep up with closed ai
     text: str = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
-    reference_text: Optional[str] = None
-    reference_audio: Optional[str] = None
+    references: Optional[list[dict]] = None
+    reference_id: Optional[str] = None
+    chunk_length: Annotated[int, Field(ge=0, le=500, strict=True)] = 200
+    normalize: bool = True
+    format: Literal["wav", "mp3", "flac"] = "wav"
+    mp3_bitrate: Optional[int] = 64
+    opus_bitrate: Optional[int] = -1000
+    latency: Optional[str] = "normal"
+    # not usually used below
+    streaming: bool = False
+    emotion: Optional[str] = None
     max_new_tokens: int = 1024
-    chunk_length: Annotated[int, Field(ge=0, le=500, strict=True)] = 100
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
-    emotion: Optional[str] = None
-    format: Literal["wav", "mp3", "flac"] = "wav"
-    streaming: bool = False
-    ref_json: Optional[str] = "ref_data.json"
-    ref_base: Optional[str] = "ref_data"
-    speaker: Optional[str] = None
 
 
 def get_content_type(audio_format):
@@ -218,29 +186,19 @@ def get_content_type(audio_format):
 
 @torch.inference_mode()
 def inference(req: InvokeRequest):
-    # Parse reference audio aka prompt
-    prompt_tokens = None
-
-    ref_data = load_json(req.ref_json)
-    ref_base = req.ref_base
-
-    lab_path, wav_path = get_random_paths(ref_base, ref_data, req.speaker, req.emotion)
-
-    if lab_path and wav_path:
-        with open(lab_path, "r", encoding="utf-8") as lab_file:
-            ref_text = lab_file.read()
-        req.reference_audio = wav_path
-        req.reference_text = ref_text
-        logger.info("ref_path: " + str(wav_path))
-        logger.info("ref_text: " + ref_text)
 
     # Parse reference audio aka prompt
-    prompt_tokens = encode_reference(
-        decoder_model=decoder_model,
-        reference_audio=req.reference_audio,
-        enable_reference_audio=req.reference_audio is not None,
-    )
-    logger.info(f"ref_text: {req.reference_text}")
+    prompt_tokens = [
+        encode_reference(
+            decoder_model=decoder_model,
+            reference_audio=audio_text_pair["audio"],
+            enable_reference_audio=True,
+        ) for audio_text_pair in req.references
+    ]
+    prompt_texts = [
+        audio_text_pair["text"]
+        for audio_text_pair in req.references
+    ]
     # LLAMA Inference
     request = dict(
         device=decoder_model.device,
@@ -254,7 +212,7 @@ def inference(req: InvokeRequest):
         chunk_length=req.chunk_length,
         max_length=2048,
         prompt_tokens=prompt_tokens,
-        prompt_text=req.reference_text,
+        prompt_text=prompt_texts,
     )
 
     response_queue = queue.Queue()
@@ -307,39 +265,6 @@ def inference(req: InvokeRequest):
     yield fake_audios
 
 
-def auto_rerank_inference(req: InvokeRequest, use_auto_rerank: bool = True):
-    if not use_auto_rerank:
-        # 如果不使用 auto_rerank，直接调用原始的 inference 函数
-        return inference(req)
-
-    zh_model, en_model = load_model()
-    max_attempts = 5
-    best_wer = float("inf")
-    best_audio = None
-
-    for attempt in range(max_attempts):
-        # 调用原始的 inference 函数
-        audio_generator = inference(req)
-        fake_audios = next(audio_generator)
-
-        asr_result = batch_asr(
-            zh_model if is_chinese(req.text) else en_model, [fake_audios], 44100
-        )[0]
-        wer = calculate_wer(req.text, asr_result["text"])
-
-        if wer <= 0.1 and not asr_result["huge_gap"]:
-            return fake_audios
-
-        if wer < best_wer:
-            best_wer = wer
-            best_audio = fake_audios
-
-        if attempt == max_attempts - 1:
-            break
-
-    return best_audio
-
-
 async def inference_async(req: InvokeRequest):
     for chunk in inference(req):
         yield chunk
@@ -349,7 +274,7 @@ async def buffer_to_async_generator(buffer):
     yield buffer
 
 
-@routes.http.post("/v1/invoke")
+@routes.http.post("/v1/tts")
 async def api_invoke_model(
     req: Annotated[InvokeRequest, Body(exclusive=True)],
 ):
@@ -422,7 +347,7 @@ def parse_args():
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--max-text-length", type=int, default=0)
-    parser.add_argument("--listen", type=str, default="127.0.0.1:8000")
+    parser.add_argument("--listen", type=str, default="127.0.0.1:8080")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--use-auto-rerank", type=bool, default=True)
 
@@ -447,7 +372,6 @@ app = Kui(
 
 
 if __name__ == "__main__":
-    import threading
 
     import uvicorn
 
@@ -476,16 +400,14 @@ if __name__ == "__main__":
         inference(
             InvokeRequest(
                 text="Hello world.",
-                reference_text=None,
-                reference_audio=None,
+                references=[],
+                reference_id=None,
                 max_new_tokens=0,
                 top_p=0.7,
                 repetition_penalty=1.2,
                 temperature=0.7,
                 emotion=None,
                 format="wav",
-                ref_base=None,
-                ref_json=None,
             )
         )
     )

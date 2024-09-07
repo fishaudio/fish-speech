@@ -25,6 +25,6 @@ asr-label*
 /fishenv
 /.locale
 /demo-audios
-ref_data*
+/references
 /example
 /faster_whisper
