@@ -1,6 +1,7 @@
+import base64
 from pathlib import Path
 from typing import Union
-import base64
+
 from loguru import logger
 from natsort import natsorted
 

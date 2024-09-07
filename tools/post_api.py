@@ -7,6 +7,7 @@ import pyaudio
 import requests
 from pydub import AudioSegment
 from pydub.playback import play
+
 from tools.file import audio_to_base64, read_ref_text
 
 
@@ -119,11 +120,14 @@ if __name__ == "__main__":
     else:
         base64_audios = []
         ref_texts = []
-        pass # in api.py
+        pass  # in api.py
 
     data = {
         "text": args.text,
-        "references": [dict(text=ref_text, audio=ref_audio) for ref_text, ref_audio in zip(ref_texts, base64_audios)],
+        "references": [
+            dict(text=ref_text, audio=ref_audio)
+            for ref_text, ref_audio in zip(ref_texts, base64_audios)
+        ],
         "reference_id": idstr,
         "normalize": args.normalize,
         "format": args.format,

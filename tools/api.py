@@ -35,6 +35,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.utils import autocast_exclude_mps
 from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
+from tools.file import AUDIO_EXTENSIONS, audio_to_base64, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -42,7 +43,7 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
-from tools.file import AUDIO_EXTENSIONS, list_files, audio_to_base64, read_ref_text
+
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
@@ -187,17 +188,20 @@ def get_content_type(audio_format):
 @torch.inference_mode()
 def inference(req: InvokeRequest):
 
-    idstr: str | None = req.reference_id 
+    idstr: str | None = req.reference_id
     if idstr is not None:
         ref_folder = Path("references") / idstr
         ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
+        ref_audios = list_files(
+            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
+        )
         prompt_tokens = [
             encode_reference(
                 decoder_model=decoder_model,
                 reference_audio=audio_to_base64(str(ref_audio)),
                 enable_reference_audio=True,
-            ) for ref_audio in ref_audios
+            )
+            for ref_audio in ref_audios
         ]
         prompt_texts = [
             read_ref_text(str(ref_audio.with_suffix(".lab")))
@@ -211,13 +215,10 @@ def inference(req: InvokeRequest):
                 decoder_model=decoder_model,
                 reference_audio=audio_text_pair["audio"],
                 enable_reference_audio=True,
-            ) for audio_text_pair in req.references
-        ]
-        prompt_texts = [
-            audio_text_pair["text"]
+            )
             for audio_text_pair in req.references
         ]
-  
+        prompt_texts = [audio_text_pair["text"] for audio_text_pair in req.references]
 
     # LLAMA Inference
     request = dict(
