@@ -193,12 +193,10 @@ def inference(req: InvokeRequest):
             decoder_model=decoder_model,
             reference_audio=audio_text_pair["audio"],
             enable_reference_audio=True,
-        ) for audio_text_pair in req.references
-    ]
-    prompt_texts = [
-        audio_text_pair["text"]
+        )
         for audio_text_pair in req.references
     ]
+    prompt_texts = [audio_text_pair["text"] for audio_text_pair in req.references]
     # LLAMA Inference
     request = dict(
         device=decoder_model.device,
