@@ -210,15 +210,18 @@ def inference(req: InvokeRequest):
 
     else:
         # Parse reference audio aka prompt
+        refs = req.references
+        if refs is None:
+            refs = []
         prompt_tokens = [
             encode_reference(
                 decoder_model=decoder_model,
                 reference_audio=audio_text_pair["audio"],
                 enable_reference_audio=True,
             )
-            for audio_text_pair in req.references
+            for audio_text_pair in refs
         ]
-        prompt_texts = [audio_text_pair["text"] for audio_text_pair in req.references]
+        prompt_texts = [audio_text_pair["text"] for audio_text_pair in refs]
 
     # LLAMA Inference
     request = dict(
