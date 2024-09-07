@@ -7,23 +7,7 @@ import pyaudio
 import requests
 from pydub import AudioSegment
 from pydub.playback import play
-from tools.file import AUDIO_EXTENSIONS, list_files
-
-def audio_to_base64(file_path):
-    if not file_path or not Path(file_path).exists():
-        return None
-    with open(file_path, "rb") as wav_file:
-        wav_content = wav_file.read()
-        base64_encoded = base64.b64encode(wav_content)
-        return base64_encoded.decode("utf-8")
-
-
-def read_ref_text(ref_text):
-    path = Path(ref_text)
-    if path.exists() and path.is_file():
-        with path.open("r", encoding="utf-8") as file:
-            return file.read()
-    return ref_text
+from tools.file import audio_to_base64, read_ref_text
 
 
 def parse_args():
@@ -129,15 +113,14 @@ if __name__ == "__main__":
         base64_audios = [audio_to_base64(ref_audio) for ref_audio in args.reference_audio]
         ref_texts = [read_ref_text(ref_text) for ref_text in args.reference_text]
     else:
-        ref_folder = Path("references") / idstr
-        ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
-        base64_audios = [audio_to_base64(str(ref_audio)) for ref_audio in ref_audios]
-        ref_texts = [read_ref_text(str(ref_audio.with_suffix(".lab"))) for ref_audio in ref_audios]
+        base64_audios = []
+        ref_texts = []
+        pass # in api.py
 
     data = {
         "text": args.text,
         "references": [dict(text=ref_text, audio=ref_audio) for ref_text, ref_audio in zip(ref_texts, base64_audios)],
+        "reference_id": idstr,
         "normalize": args.normalize,
         "format": args.format,
         "mp3_bitrate": args.mp3_bitrate,
