@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, conint
 from typing import Annotated, Literal, Optional
+
+from pydantic import BaseModel, Field, conint
+
 
 class ServeReferenceAudio(BaseModel):
     audio: bytes

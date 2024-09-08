@@ -2,14 +2,15 @@ import argparse
 import base64
 import wave
 
+import ormsgpack
 import pyaudio
 import requests
 from pydub import AudioSegment
 from pydub.playback import play
 
-from tools.file import audio_to_bytes, read_ref_text
 from tools.commons import ServeReferenceAudio, ServeTTSRequest
-import ormsgpack
+from tools.file import audio_to_bytes, read_ref_text
+
 
 def parse_args():
 
@@ -118,9 +119,7 @@ if __name__ == "__main__":
         if ref_audios is None:
             byte_audios = []
         else:
-            byte_audios = [
-                audio_to_bytes(ref_audio) for ref_audio in ref_audios
-            ]
+            byte_audios = [audio_to_bytes(ref_audio) for ref_audio in ref_audios]
         if ref_texts is None:
             ref_texts = []
         else:
@@ -153,14 +152,15 @@ if __name__ == "__main__":
 
     pydantic_data = ServeTTSRequest(**data)
 
-    response = requests.post(args.url, 
-                             data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC), 
-                             stream=args.streaming,
-                             headers={
-                                "authorization": "Bearer YOUR_API_KEY",
-                                "content-type": "application/msgpack",
-                            },
-                            )
+    response = requests.post(
+        args.url,
+        data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+        stream=args.streaming,
+        headers={
+            "authorization": "Bearer YOUR_API_KEY",
+            "content-type": "application/msgpack",
+        },
+    )
 
     if response.status_code == 200:
         if args.streaming:
