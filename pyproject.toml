@@ -42,6 +42,7 @@ dependencies = [
     "funasr==1.1.5",
     "opencc-python-reimplemented==0.1.7",
     "silero-vad",
+    "ormsgpack",
 ]
 
 [project.optional-dependencies]

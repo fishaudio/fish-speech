@@ -39,7 +39,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps
-from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
+from tools.commons import ServeReferenceAudio, ServeTTSRequest
 from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
@@ -154,38 +154,6 @@ def decode_vq_tokens(
 
 
 routes = MultimethodRoutes(base_class=HttpView)
-
-
-class ServeReferenceAudio(BaseModel):
-    audio: bytes
-    text: str
-
-
-class ServeTTSRequest(BaseModel):
-    text: str = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
-    chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
-    # Audio format
-    format: Literal["wav", "pcm", "mp3"] = "wav"
-    mp3_bitrate: Literal[64, 128, 192] = 128
-    # References audios for in-context learning
-    references: list[ServeReferenceAudio] = []
-    # Reference id
-    # For example, if you want use https://fish.audio/m/7f92f8afb8ec43bf81429cc1c9199cb1/
-    # Just pass 7f92f8afb8ec43bf81429cc1c9199cb1
-    reference_id: str | None = None
-    # Normalize text for en & zh, this increase stability for numbers
-    normalize: bool = True
-    mp3_bitrate: Optional[int] = 64
-    opus_bitrate: Optional[int] = -1000
-    # Balance mode will reduce latency to 300ms, but may decrease stability
-    latency: Literal["normal", "balanced"] = "normal"
-    # not usually used below
-    streaming: bool = False
-    emotion: Optional[str] = None
-    max_new_tokens: int = 1024
-    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
-    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2
-    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
 
 
 def get_content_type(audio_format):
