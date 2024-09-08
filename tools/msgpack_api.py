@@ -1,9 +1,8 @@
-from typing import Annotated, AsyncGenerator, Literal
+from typing import Annotated, AsyncGenerator, Literal, Optional
 
 import httpx
 import ormsgpack
-from pydantic import AfterValidator, BaseModel, conint, Field
-from typing import Optional
+from pydantic import AfterValidator, BaseModel, Field, conint
 
 
 class ServeReferenceAudio(BaseModel):
@@ -37,17 +36,17 @@ class ServeTTSRequest(BaseModel):
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
 
+
 # priority: ref_id > references
 request = ServeTTSRequest(
     text="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
-    # reference_id="114514", 
+    # reference_id="114514",
     references=[
         ServeReferenceAudio(
             audio=open("lengyue.wav", "rb").read(),
             text=open("lengyue.lab", "r", encoding="utf-8").read(),
         )
     ],
-    
     streaming=True,
 )
 

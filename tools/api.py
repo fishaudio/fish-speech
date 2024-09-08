@@ -9,28 +9,29 @@ import wave
 from argparse import ArgumentParser
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Any
-from baize.datastructures import ContentType
+from typing import Annotated, Any, Literal, Optional
+
 import numpy as np
+import ormsgpack
 import pyrootutils
 import soundfile as sf
 import torch
 import torchaudio
+from baize.datastructures import ContentType
 from kui.asgi import (
     Body,
+    FactoryClass,
     HTTPException,
+    HttpRequest,
     HttpView,
     JSONResponse,
     Kui,
     OpenAPI,
     StreamResponse,
-    FactoryClass,
-    HttpRequest
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
 from pydantic import BaseModel, Field, conint
-import ormsgpack
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -402,6 +403,7 @@ openapi = OpenAPI(
     },
 ).routes
 
+
 class MsgPackRequest(HttpRequest):
     async def data(self) -> Annotated[Any, ContentType("application/msgpack")]:
         if self.content_type == "application/msgpack":
@@ -411,7 +413,8 @@ class MsgPackRequest(HttpRequest):
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
             headers={"Accept": "application/msgpack"},
         )
-    
+
+
 app = Kui(
     routes=routes + openapi[1:],  # Remove the default route
     exception_handlers={
