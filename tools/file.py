@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from typing import Union
 
@@ -21,6 +22,22 @@ VIDEO_EXTENSIONS = {
     ".mp4",
     ".avi",
 }
+
+
+def audio_to_bytes(file_path):
+    if not file_path or not Path(file_path).exists():
+        return None
+    with open(file_path, "rb") as wav_file:
+        wav = wav_file.read()
+    return wav
+
+
+def read_ref_text(ref_text):
+    path = Path(ref_text)
+    if path.exists() and path.is_file():
+        with path.open("r", encoding="utf-8") as file:
+            return file.read()
+    return ref_text
 
 
 def list_files(

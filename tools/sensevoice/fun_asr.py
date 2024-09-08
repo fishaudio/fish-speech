@@ -26,7 +26,7 @@ def uvr5_cli(
     output_folder: Path,
     audio_files: list[Path] | None = None,
     output_format: str = "flac",
-    model: str = "BS-Roformer-Viperx-1296.ckpt",
+    model: str = "BS-Roformer-Viperx-1297.ckpt",
 ):
     # ["BS-Roformer-Viperx-1297.ckpt", "BS-Roformer-Viperx-1296.ckpt", "BS-Roformer-Viperx-1053.ckpt", "Mel-Roformer-Viperx-1143.ckpt"]
     sepr = Separator(
