@@ -9,8 +9,8 @@ import wave
 from argparse import ArgumentParser
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated, Literal, Optional
-
+from typing import Annotated, Literal, Optional, Any
+from baize.datastructures import ContentType
 import numpy as np
 import pyrootutils
 import soundfile as sf
@@ -24,10 +24,13 @@ from kui.asgi import (
     Kui,
     OpenAPI,
     StreamResponse,
+    FactoryClass,
+    HttpRequest
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conint
+import ormsgpack
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -36,7 +39,7 @@ from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps
 from tools.auto_rerank import batch_asr, calculate_wer, is_chinese, load_model
-from tools.file import AUDIO_EXTENSIONS, audio_to_base64, list_files, read_ref_text
+from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -84,11 +87,8 @@ async def other_exception_handler(exc: "Exception"):
 
 def load_audio(reference_audio, sr):
     if len(reference_audio) > 255 or not Path(reference_audio).exists():
-        try:
-            audio_data = base64.b64decode(reference_audio)
-            reference_audio = io.BytesIO(audio_data)
-        except base64.binascii.Error:
-            raise ValueError("Invalid path or base64 string")
+        audio_data = reference_audio
+        reference_audio = io.BytesIO(audio_data)
 
     waveform, original_sr = torchaudio.load(
         reference_audio, backend="sox" if sys.platform == "linux" else "soundfile"
@@ -155,17 +155,29 @@ def decode_vq_tokens(
 routes = MultimethodRoutes(base_class=HttpView)
 
 
-class InvokeRequest(BaseModel):
-    # keep up with closed ai
+class ServeReferenceAudio(BaseModel):
+    audio: bytes
+    text: str
+
+
+class ServeTTSRequest(BaseModel):
     text: str = "你说的对, 但是原神是一款由米哈游自主研发的开放世界手游."
-    references: Optional[list[dict]] = None
-    reference_id: Optional[str] = None
-    chunk_length: Annotated[int, Field(ge=0, le=500, strict=True)] = 200
+    chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
+    # Audio format
+    format: Literal["wav", "pcm", "mp3"] = "wav"
+    mp3_bitrate: Literal[64, 128, 192] = 128
+    # References audios for in-context learning
+    references: list[ServeReferenceAudio] = []
+    # Reference id
+    # For example, if you want use https://fish.audio/m/7f92f8afb8ec43bf81429cc1c9199cb1/
+    # Just pass 7f92f8afb8ec43bf81429cc1c9199cb1
+    reference_id: str | None = None
+    # Normalize text for en & zh, this increase stability for numbers
     normalize: bool = True
-    format: Literal["wav", "mp3", "flac"] = "wav"
     mp3_bitrate: Optional[int] = 64
     opus_bitrate: Optional[int] = -1000
-    latency: Optional[str] = "normal"
+    # Balance mode will reduce latency to 300ms, but may decrease stability
+    latency: Literal["normal", "balanced"] = "normal"
     # not usually used below
     streaming: bool = False
     emotion: Optional[str] = None
@@ -187,7 +199,7 @@ def get_content_type(audio_format):
 
 
 @torch.inference_mode()
-def inference(req: InvokeRequest):
+def inference(req: ServeTTSRequest):
 
     idstr: str | None = req.reference_id
     if idstr is not None:
@@ -199,7 +211,7 @@ def inference(req: InvokeRequest):
         prompt_tokens = [
             encode_reference(
                 decoder_model=decoder_model,
-                reference_audio=audio_to_base64(str(ref_audio)),
+                reference_audio=audio_to_bytes(str(ref_audio)),
                 enable_reference_audio=True,
             )
             for ref_audio in ref_audios
@@ -217,12 +229,12 @@ def inference(req: InvokeRequest):
         prompt_tokens = [
             encode_reference(
                 decoder_model=decoder_model,
-                reference_audio=audio_text_pair["audio"],
+                reference_audio=ref.audio,
                 enable_reference_audio=True,
             )
-            for audio_text_pair in refs
+            for ref in refs
         ]
-        prompt_texts = [audio_text_pair["text"] for audio_text_pair in refs]
+        prompt_texts = [ref.text for ref in refs]
 
     # LLAMA Inference
     request = dict(
@@ -294,7 +306,7 @@ def inference(req: InvokeRequest):
     yield fake_audios
 
 
-async def inference_async(req: InvokeRequest):
+async def inference_async(req: ServeTTSRequest):
     for chunk in inference(req):
         yield chunk
 
@@ -305,7 +317,7 @@ async def buffer_to_async_generator(buffer):
 
 @routes.http.post("/v1/tts")
 async def api_invoke_model(
-    req: Annotated[InvokeRequest, Body(exclusive=True)],
+    req: Annotated[ServeTTSRequest, Body(exclusive=True)],
 ):
     """
     Invoke model and generate audio
@@ -390,12 +402,23 @@ openapi = OpenAPI(
     },
 ).routes
 
+class MsgPackRequest(HttpRequest):
+    async def data(self) -> Annotated[Any, ContentType("application/msgpack")]:
+        if self.content_type == "application/msgpack":
+            return ormsgpack.unpackb(await self.body)
+
+        raise HTTPException(
+            HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            headers={"Accept": "application/msgpack"},
+        )
+    
 app = Kui(
     routes=routes + openapi[1:],  # Remove the default route
     exception_handlers={
         HTTPException: http_execption_handler,
         Exception: other_exception_handler,
     },
+    factory_class=FactoryClass(http=MsgPackRequest),
     cors_config={},
 )
 
@@ -427,7 +450,7 @@ if __name__ == "__main__":
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     list(
         inference(
-            InvokeRequest(
+            ServeTTSRequest(
                 text="Hello world.",
                 references=[],
                 reference_id=None,

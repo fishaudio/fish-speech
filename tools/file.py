@@ -24,13 +24,12 @@ VIDEO_EXTENSIONS = {
 }
 
 
-def audio_to_base64(file_path):
+def audio_to_bytes(file_path):
     if not file_path or not Path(file_path).exists():
         return None
     with open(file_path, "rb") as wav_file:
-        wav_content = wav_file.read()
-        base64_encoded = base64.b64encode(wav_content)
-        return base64_encoded.decode("utf-8")
+        wav = wav_file.read()
+    return wav
 
 
 def read_ref_text(ref_text):

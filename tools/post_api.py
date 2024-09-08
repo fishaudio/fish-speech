@@ -8,7 +8,7 @@ import requests
 from pydub import AudioSegment
 from pydub.playback import play
 
-from tools.file import audio_to_base64, read_ref_text
+from tools.file import audio_to_bytes, read_ref_text
 
 
 def parse_args():
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # priority: ref_id > [{text, audio},...]
     if idstr is None:
         base64_audios = [
-            audio_to_base64(ref_audio) for ref_audio in args.reference_audio
+            audio_to_bytes(ref_audio) for ref_audio in args.reference_audio
         ]
         ref_texts = [read_ref_text(ref_text) for ref_text in args.reference_text]
     else:

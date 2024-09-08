@@ -15,6 +15,7 @@ filelists
 /*.npy
 /*.wav
 /*.mp3
+/*.lab
 /results
 /data
 /.idea
