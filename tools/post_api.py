@@ -1,7 +1,6 @@
 import argparse
 import base64
 import wave
-from pathlib import Path
 
 import pyaudio
 import requests
@@ -9,7 +8,8 @@ from pydub import AudioSegment
 from pydub.playback import play
 
 from tools.file import audio_to_bytes, read_ref_text
-
+from tools.commons import ServeReferenceAudio, ServeTTSRequest
+import ormsgpack
 
 def parse_args():
 
@@ -113,20 +113,28 @@ if __name__ == "__main__":
     idstr: str | None = args.reference_id
     # priority: ref_id > [{text, audio},...]
     if idstr is None:
-        base64_audios = [
-            audio_to_bytes(ref_audio) for ref_audio in args.reference_audio
-        ]
-        ref_texts = [read_ref_text(ref_text) for ref_text in args.reference_text]
+        ref_audios = args.reference_audio
+        ref_texts = args.reference_text
+        if ref_audios is None:
+            byte_audios = []
+        else:
+            byte_audios = [
+                audio_to_bytes(ref_audio) for ref_audio in ref_audios
+            ]
+        if ref_texts is None:
+            ref_texts = []
+        else:
+            ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
     else:
-        base64_audios = []
+        byte_audios = []
         ref_texts = []
         pass  # in api.py
 
     data = {
         "text": args.text,
         "references": [
-            dict(text=ref_text, audio=ref_audio)
-            for ref_text, ref_audio in zip(ref_texts, base64_audios)
+            ServeReferenceAudio(audio=ref_audio, text=ref_text)
+            for ref_text, ref_audio in zip(ref_texts, byte_audios)
         ],
         "reference_id": idstr,
         "normalize": args.normalize,
@@ -143,7 +151,16 @@ if __name__ == "__main__":
         "streaming": args.streaming,
     }
 
-    response = requests.post(args.url, json=data, stream=args.streaming)
+    pydantic_data = ServeTTSRequest(**data)
+
+    response = requests.post(args.url, 
+                             data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC), 
+                             stream=args.streaming,
+                             headers={
+                                "authorization": "Bearer YOUR_API_KEY",
+                                "content-type": "application/msgpack",
+                            },
+                            )
 
     if response.status_code == 200:
         if args.streaming:
