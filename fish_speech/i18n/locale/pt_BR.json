@@ -84,7 +84,7 @@
   "Reference Text": "Texto de Referência",
   "warning": "Aviso",
   "Pre-processing begins...": "O pré-processamento começou!",
-  "Related code are released under BSD-3-Clause License, and weights are released under CC BY-NC-SA 4.0 License.": "O código relacionado é licenciado sob a Licença BSD-3-Clause, e os pesos sob a Licença CC BY-NC-SA 4.0.",
+  "Related code and weights are released under CC BY-NC-SA 4.0 License.": "O código relacionado e os pesos são licenciados sob a Licença CC BY-NC-SA 4.0.",
   "Remove Selected Data": "Remover Dados Selecionados",
   "Removed path successfully!": "Caminho removido com sucesso!",
   "Repetition Penalty": "Penalidade de Repetição",

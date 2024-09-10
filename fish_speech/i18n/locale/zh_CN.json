@@ -72,7 +72,7 @@
   "Put your text here.": "在此处输入文本.",
   "Reference Audio": "参考音频",
   "Reference Text": "参考文本",
-  "Related code are released under BSD-3-Clause License, and weights are released under CC BY-NC-SA 4.0 License.": "相关代码使用 BSD-3-Clause 许可证发布，权重使用 CC BY-NC-SA 4.0 许可证发布.",
+  "Related code and weights are released under CC BY-NC-SA 4.0 License.": "相关代码和权重使用 CC BY-NC-SA 4.0 许可证发布.",
   "Remove Selected Data": "移除选中数据",
   "Removed path successfully!": "移除路径成功!",
   "Repetition Penalty": "重复惩罚",

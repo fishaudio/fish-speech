@@ -72,7 +72,7 @@
   "Put your text here.": "Ponga su texto aquí.",
   "Reference Audio": "Audio de Referencia",
   "Reference Text": "Texto de Referencia",
-  "Related code are released under BSD-3-Clause License, and weights are released under CC BY-NC-SA 4.0 License.": "El código relacionado se publica bajo la Licencia BSD-3-Clause, y los pesos se publican bajo la Licencia CC BY-NC-SA 4.0.",
+  "Related code and weights are released under CC BY-NC-SA 4.0 License.": "El código relacionado y los pesos se publican bajo la Licencia CC BY-NC-SA 4.0.",
   "Remove Selected Data": "Eliminar Datos Seleccionados",
   "Removed path successfully!": "¡Ruta eliminada exitosamente!",
   "Repetition Penalty": "Penalización por Repetición",
