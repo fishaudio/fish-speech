@@ -15,7 +15,7 @@ from fish_speech.models.text2semantic.lora import get_merged_state_dict
 
 @click.command()
 @click.option("--lora-config", type=str, default="r_8_alpha_16")
-@click.option("--base-weight", type=str, default="checkpoints/fish-speech-1.2-sft")
+@click.option("--base-weight", type=str, default="checkpoints/fish-speech-1.4")
 @click.option("--lora-weight", type=str, required=True)
 @click.option("--output", type=str, required=True)
 def merge(lora_config, base_weight, lora_weight, output):

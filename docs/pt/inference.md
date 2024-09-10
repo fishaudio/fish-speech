@@ -15,7 +15,7 @@ Suporte para inferência por linha de comando, API HTTP e interface web (WebUI).
 Baixe os modelos `vqgan` e `llama` necessários do nosso repositório Hugging Face.
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 ### 1. Gerar prompt a partir da voz:
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/f
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 Você deverá obter um arquivo `fake.npy`.
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "O texto que você deseja converter" \
     --prompt-text "Seu texto de referência" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft" \
+    --checkpoint-path "checkpoints/fish-speech-1.4" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ Este comando criará um arquivo `codes_N` no diretório de trabalho, onde N é u
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## Inferência por API HTTP
@@ -69,8 +69,8 @@ Fornecemos uma API HTTP para inferência. O seguinte comando pode ser usado para
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2-sft" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
@@ -142,8 +142,8 @@ Para iniciar a WebUI de Inferência execute o seguinte comando:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2-sft" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
