@@ -22,13 +22,12 @@ head:
   resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
   num_mels: 512
   upsample_initial_channel: 512
-  use_template: false
   pre_conv_kernel_size: 13
   post_conv_kernel_size: 13
 quantizer:
   _target_: fish_speech.models.vqgan.modules.fsq.DownsampleFiniteScalarQuantize
   input_dim: 512
-  n_groups: 4
+  n_groups: 8
   n_codebooks: 1
   levels: [8, 5, 5, 5]
-  downsample_factor: [2]
+  downsample_factor: [2, 2]

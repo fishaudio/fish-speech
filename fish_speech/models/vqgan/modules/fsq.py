@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from einops import rearrange
 from vector_quantize_pytorch import GroupedResidualFSQ
 
-from .firefly import ConvNeXtBlock
+from .firefly import ConvNeXtBlock, FishConvNet, FishTransConvNet
 
 
 @dataclass
@@ -20,7 +20,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
     def __init__(
         self,
         input_dim: int = 512,
-        n_codebooks: int = 1,
+        n_codebooks: int = 9,
         n_groups: int = 1,
         levels: tuple[int] = (8, 5, 5, 5),  # Approximate 2**10
         downsample_factor: tuple[int] = (2, 2),
@@ -46,7 +46,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
         self.downsample = nn.Sequential(
             *[
                 nn.Sequential(
-                    nn.Conv1d(
+                    FishConvNet(
                         all_dims[idx],
                         all_dims[idx + 1],
                         kernel_size=factor,
@@ -61,7 +61,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
         self.upsample = nn.Sequential(
             *[
                 nn.Sequential(
-                    nn.ConvTranspose1d(
+                    FishTransConvNet(
                         all_dims[idx + 1],
                         all_dims[idx],
                         kernel_size=factor,
@@ -114,26 +114,3 @@ class DownsampleFiniteScalarQuantize(nn.Module):
         z_q = self.residual_fsq.get_output_from_indices(indices)
         z_q = self.upsample(z_q.mT)
         return z_q
-
-    # def from_latents(self, latents: torch.Tensor):
-    #     z_q, z_p, codes = super().from_latents(latents)
-    #     z_q = self.upsample(z_q)
-    #     return z_q, z_p, codes
-
-
-if __name__ == "__main__":
-    rvq = DownsampleFiniteScalarQuantize(
-        n_codebooks=1,
-        downsample_factor=(2, 2),
-    )
-    x = torch.randn(16, 512, 80)
-
-    result = rvq(x)
-    print(rvq)
-    print(result.latents.shape, result.codes.shape, result.z.shape)
-
-    # y = rvq.from_codes(result.codes)
-    # print(y[0].shape)
-
-    # y = rvq.from_latents(result.latents)
-    # print(y[0].shape)
