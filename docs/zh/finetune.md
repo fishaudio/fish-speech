@@ -34,13 +34,13 @@
 确保你已经下载了 vqgan 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 随后可运行以下命令来提取语义 token:
@@ -49,7 +49,7 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
     --config-name "firefly_gan_vq" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 !!! note
@@ -93,13 +93,13 @@ python tools/llama/build_dataset.py \
 同样的, 请确保你已经下载了 `LLAMA` 权重, 如果没有, 请运行以下命令:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 对于中国大陆用户, 可使用 mirror 下载.
 
 ```bash
-HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 最后, 你可以运行以下命令来启动微调:
@@ -127,9 +127,9 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 ```bash
 python tools/llama/merge_lora.py \
 	--lora-config r_8_alpha_16 \
-	--base-weight checkpoints/fish-speech-1.2-sft \
+	--base-weight checkpoints/fish-speech-1.4 \
 	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
-	--output checkpoints/fish-speech-1.2-sft-yth-lora/
+	--output checkpoints/fish-speech-1.4-yth-lora/
 ```
 
 !!! note

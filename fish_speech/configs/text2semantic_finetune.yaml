@@ -4,7 +4,7 @@ defaults:
 
 project: text2semantic_finetune_dual_ar
 max_length: 4096
-pretrained_ckpt_path: checkpoints/fish-speech-1.2-sft
+pretrained_ckpt_path: checkpoints/fish-speech-1.4
 
 # Lightning Trainer
 trainer:
