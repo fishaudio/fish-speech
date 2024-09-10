@@ -36,7 +36,7 @@ You need to convert your dataset into the above format and place it under `data`
 Make sure you have downloaded the VQGAN weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 You can then run the following command to extract semantic tokens:
@@ -45,7 +45,7 @@ You can then run the following command to extract semantic tokens:
 python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
     --config-name "firefly_gan_vq" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 !!! note
@@ -89,7 +89,7 @@ After the command finishes executing, you should see the `quantized-dataset-ft.p
 Similarly, make sure you have downloaded the `LLAMA` weights. If not, run the following command:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 Finally, you can start the fine-tuning by running the following command:
@@ -117,9 +117,9 @@ After training, you need to convert the LoRA weights to regular weights before p
 ```bash
 python tools/llama/merge_lora.py \
 	--lora-config r_8_alpha_16 \
-	--base-weight checkpoints/fish-speech-1.2-sft \
+	--base-weight checkpoints/fish-speech-1.4 \
 	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
-	--output checkpoints/fish-speech-1.2-sft-yth-lora/
+	--output checkpoints/fish-speech-1.4-yth-lora/
 ```
 !!! note
     You may also try other checkpoints. We suggest using the earliest checkpoint that meets your requirements, as they often perform better on out-of-distribution (OOD) data.

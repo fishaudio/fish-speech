@@ -138,13 +138,13 @@ apt install libsox-dev
     确保您在 docker 容器内的终端，然后再从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
 
     ```bash
-    huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
     ```
 
     对于中国大陆用户，可以通过镜像站下载。
 
     ```bash
-    HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+    HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
     ```
 
 4. 配置环境变量，访问 WebUI

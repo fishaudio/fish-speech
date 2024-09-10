@@ -38,10 +38,17 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 
 ## Documents
 
-- [English](https://speech.fish.audio/en/)
-- [中文](https://speech.fish.audio/)
+- [English](https://speech.fish.audio/)
+- [中文](https://speech.fish.audio/zh/)
 - [日本語](https://speech.fish.audio/ja/)
 - [Portuguese (Brazil)](https://speech.fish.audio/pt/)
+
+## Samples
+
+- [English](https://speech.fish.audio/samples/)
+- [中文](https://speech.fish.audio/zh/samples/)
+- [日本語](https://speech.fish.audio/ja/samples/)
+- [Portuguese (Brazil)](https://speech.fish.audio/pt/samples/)
 
 ## Credits
 

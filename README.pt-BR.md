@@ -40,15 +40,15 @@ Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as
 
 ## Documentação
 
-- [Inglês](https://speech.fish.audio/en/)
-- [Chinês](https://speech.fish.audio/)
+- [Inglês](https://speech.fish.audio/)
+- [Chinês](https://speech.fish.audio/zh/)
 - [Japonês](https://speech.fish.audio/ja/)
 - [Português (Brasil)](https://speech.fish.audio/pt/)
 
 ## Exemplos
 
-- [Inglês](https://speech.fish.audio/en/samples/)
-- [Chinês](https://speech.fish.audio/samples/)
+- [Inglês](https://speech.fish.audio/samples/)
+- [Chinês](https://speech.fish.audio/zh/samples/)
 - [Japonês](https://speech.fish.audio/ja/samples/)
 - [Português (Brasil)](https://speech.fish.audio/pt/samples/)
 

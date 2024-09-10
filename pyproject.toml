@@ -8,7 +8,7 @@ description = "Fish Speech"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["TTS", "Speech"]
-license = {text = "BSD-3-Clause"}
+license = {text = "CC BY-NC-SA 4.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
@@ -56,4 +56,4 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["fish_speech"]
+packages = ["fish_speech", "tools"]

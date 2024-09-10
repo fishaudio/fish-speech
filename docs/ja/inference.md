@@ -15,7 +15,7 @@
 必要な`vqgan`および`llama`モデルを Hugging Face リポジトリからダウンロードします。
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/fish-speech-1.2-sft
+huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
 ```
 
 ### 1. 音声からプロンプトを生成する：
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.2-sft --local-dir checkpoints/f
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 `fake.npy`ファイルが生成されるはずです。
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "変換したいテキスト" \
     --prompt-text "参照テキスト" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft" \
+    --checkpoint-path "checkpoints/fish-speech-1.4" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ python tools/llama/generate.py \
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## HTTP API 推論
@@ -69,8 +69,8 @@ python tools/vqgan/inference.py \
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2-sft" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
@@ -146,8 +146,8 @@ python -m tools.post_api \
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.2-sft" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 

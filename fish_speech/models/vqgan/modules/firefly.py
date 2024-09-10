@@ -1,30 +1,136 @@
-# A inference only version of the FireflyGAN model
-
 import math
 from functools import partial
 from math import prod
 from typing import Callable
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import Conv1d
 from torch.nn.utils.parametrizations import weight_norm
 from torch.nn.utils.parametrize import remove_parametrizations
 from torch.utils.checkpoint import checkpoint
 
-from fish_speech.models.vqgan.utils import sequence_mask
+
+def sequence_mask(length, max_length=None):
+    if max_length is None:
+        max_length = length.max()
+    x = torch.arange(max_length, dtype=length.dtype, device=length.device)
+    return x.unsqueeze(0) < length.unsqueeze(1)
 
 
 def init_weights(m, mean=0.0, std=0.01):
     classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
+    if classname.find("Conv1D") != -1:
         m.weight.data.normal_(mean, std)
 
 
 def get_padding(kernel_size, dilation=1):
     return (kernel_size * dilation - dilation) // 2
+
+
+def unpad1d(x: torch.Tensor, paddings: tuple[int, int]):
+    """Remove padding from x, handling properly zero padding. Only for 1d!"""
+    padding_left, padding_right = paddings
+    assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
+    assert (padding_left + padding_right) <= x.shape[-1]
+    end = x.shape[-1] - padding_right
+    return x[..., padding_left:end]
+
+
+def get_extra_padding_for_conv1d(
+    x: torch.Tensor, kernel_size: int, stride: int, padding_total: int = 0
+) -> int:
+    """See `pad_for_conv1d`."""
+    length = x.shape[-1]
+    n_frames = (length - kernel_size + padding_total) / stride + 1
+    ideal_length = (math.ceil(n_frames) - 1) * stride + (kernel_size - padding_total)
+    return ideal_length - length
+
+
+def pad1d(
+    x: torch.Tensor,
+    paddings: tuple[int, int],
+    mode: str = "zeros",
+    value: float = 0.0,
+):
+    """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
+    If this is the case, we insert extra 0 padding to the right
+    before the reflection happen.
+    """
+    length = x.shape[-1]
+    padding_left, padding_right = paddings
+    assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
+    if mode == "reflect":
+        max_pad = max(padding_left, padding_right)
+        extra_pad = 0
+        if length <= max_pad:
+            extra_pad = max_pad - length + 1
+            x = F.pad(x, (0, extra_pad))
+        padded = F.pad(x, paddings, mode, value)
+        end = padded.shape[-1] - extra_pad
+        return padded[..., :end]
+    else:
+        return F.pad(x, paddings, mode, value)
+
+
+class FishConvNet(nn.Module):
+    def __init__(
+        self, in_channels, out_channels, kernel_size, dilation=1, stride=1, groups=1
+    ):
+        super(FishConvNet, self).__init__()
+        self.conv = nn.Conv1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            dilation=dilation,
+            groups=groups,
+        )
+        self.stride = stride
+        self.kernel_size = (kernel_size - 1) * dilation + 1
+        self.dilation = dilation
+
+    def forward(self, x):
+        pad = self.kernel_size - self.stride
+        extra_padding = get_extra_padding_for_conv1d(
+            x, self.kernel_size, self.stride, pad
+        )
+        x = pad1d(x, (pad, extra_padding), mode="constant", value=0)
+        return self.conv(x).contiguous()
+
+    def weight_norm(self, name="weight", dim=0):
+        self.conv = weight_norm(self.conv, name=name, dim=dim)
+        return self
+
+    def remove_weight_norm(self):
+        self.conv = remove_parametrizations(self.conv)
+        return self
+
+
+class FishTransConvNet(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, dilation=1, stride=1):
+        super(FishTransConvNet, self).__init__()
+        self.conv = nn.ConvTranspose1d(
+            in_channels, out_channels, kernel_size, stride=stride, dilation=dilation
+        )
+        self.stride = stride
+        self.kernel_size = kernel_size
+
+    def forward(self, x):
+        x = self.conv(x)
+        pad = self.kernel_size - self.stride
+        padding_right = math.ceil(pad)
+        padding_left = pad - padding_right
+        x = unpad1d(x, (padding_left, padding_right))
+        return x.contiguous()
+
+    def weight_norm(self, name="weight", dim=0):
+        self.conv = weight_norm(self.conv, name=name, dim=dim)
+        return self
+
+    def remove_weight_norm(self):
+        self.conv = remove_parametrizations(self.conv)
+        return self
 
 
 class ResBlock1(torch.nn.Module):
@@ -33,72 +139,30 @@ class ResBlock1(torch.nn.Module):
 
         self.convs1 = nn.ModuleList(
             [
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[0],
-                        padding=get_padding(kernel_size, dilation[0]),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[1],
-                        padding=get_padding(kernel_size, dilation[1]),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[2],
-                        padding=get_padding(kernel_size, dilation[2]),
-                    )
-                ),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[0]
+                ).weight_norm(),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[1]
+                ).weight_norm(),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[2]
+                ).weight_norm(),
             ]
         )
         self.convs1.apply(init_weights)
 
         self.convs2 = nn.ModuleList(
             [
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[0]
+                ).weight_norm(),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[1]
+                ).weight_norm(),
+                FishConvNet(
+                    channels, channels, kernel_size, stride=1, dilation=dilation[2]
+                ).weight_norm(),
             ]
         )
         self.convs2.apply(init_weights)
@@ -119,7 +183,7 @@ class ResBlock1(torch.nn.Module):
             remove_parametrizations(conv, tensor_name="weight")
 
 
-class ParralelBlock(nn.Module):
+class ParallelBlock(nn.Module):
     def __init__(
         self,
         channels: int,
@@ -153,7 +217,6 @@ class HiFiGANGenerator(nn.Module):
         resblock_dilation_sizes: tuple[tuple[int]] = ((1, 3, 5), (1, 3, 5), (1, 3, 5)),
         num_mels: int = 128,
         upsample_initial_channel: int = 512,
-        use_template: bool = True,
         pre_conv_kernel_size: int = 7,
         post_conv_kernel_size: int = 7,
         post_activation: Callable = partial(nn.SiLU, inplace=True),
@@ -164,85 +227,51 @@ class HiFiGANGenerator(nn.Module):
             prod(upsample_rates) == hop_length
         ), f"hop_length must be {prod(upsample_rates)}"
 
-        self.conv_pre = weight_norm(
-            nn.Conv1d(
-                num_mels,
-                upsample_initial_channel,
-                pre_conv_kernel_size,
-                1,
-                padding=get_padding(pre_conv_kernel_size),
-            )
-        )
+        self.conv_pre = FishConvNet(
+            num_mels,
+            upsample_initial_channel,
+            pre_conv_kernel_size,
+            stride=1,
+        ).weight_norm()
 
         self.num_upsamples = len(upsample_rates)
         self.num_kernels = len(resblock_kernel_sizes)
 
         self.noise_convs = nn.ModuleList()
-        self.use_template = use_template
         self.ups = nn.ModuleList()
 
         for i, (u, k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
-            c_cur = upsample_initial_channel // (2 ** (i + 1))
             self.ups.append(
-                weight_norm(
-                    nn.ConvTranspose1d(
-                        upsample_initial_channel // (2**i),
-                        upsample_initial_channel // (2 ** (i + 1)),
-                        k,
-                        u,
-                        padding=(k - u) // 2,
-                    )
-                )
+                FishTransConvNet(
+                    upsample_initial_channel // (2**i),
+                    upsample_initial_channel // (2 ** (i + 1)),
+                    k,
+                    stride=u,
+                ).weight_norm()
             )
-
-            if not use_template:
-                continue
-
-            if i + 1 < len(upsample_rates):
-                stride_f0 = np.prod(upsample_rates[i + 1 :])
-                self.noise_convs.append(
-                    Conv1d(
-                        1,
-                        c_cur,
-                        kernel_size=stride_f0 * 2,
-                        stride=stride_f0,
-                        padding=stride_f0 // 2,
-                    )
-                )
-            else:
-                self.noise_convs.append(Conv1d(1, c_cur, kernel_size=1))
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
             self.resblocks.append(
-                ParralelBlock(ch, resblock_kernel_sizes, resblock_dilation_sizes)
+                ParallelBlock(ch, resblock_kernel_sizes, resblock_dilation_sizes)
             )
 
         self.activation_post = post_activation()
-        self.conv_post = weight_norm(
-            nn.Conv1d(
-                ch,
-                1,
-                post_conv_kernel_size,
-                1,
-                padding=get_padding(post_conv_kernel_size),
-            )
-        )
+        self.conv_post = FishConvNet(
+            ch, 1, post_conv_kernel_size, stride=1
+        ).weight_norm()
         self.ups.apply(init_weights)
         self.conv_post.apply(init_weights)
 
-    def forward(self, x, template=None):
+    def forward(self, x):
         x = self.conv_pre(x)
 
         for i in range(self.num_upsamples):
             x = F.silu(x, inplace=True)
             x = self.ups[i](x)
 
-            if self.use_template:
-                x = x + self.noise_convs[i](template)
-
-            if self.training:
+            if self.training and self.checkpointing:
                 x = checkpoint(
                     self.resblocks[i],
                     x,
@@ -364,11 +393,11 @@ class ConvNeXtBlock(nn.Module):
     ):
         super().__init__()
 
-        self.dwconv = nn.Conv1d(
+        self.dwconv = FishConvNet(
             dim,
             dim,
             kernel_size=kernel_size,
-            padding=int(dilation * (kernel_size - 1) / 2),
+            # padding=int(dilation * (kernel_size - 1) / 2),
             groups=dim,
         )  # depthwise conv
         self.norm = LayerNorm(dim, eps=1e-6)
@@ -421,12 +450,13 @@ class ConvNeXtEncoder(nn.Module):
 
         self.downsample_layers = nn.ModuleList()
         stem = nn.Sequential(
-            nn.Conv1d(
+            FishConvNet(
                 input_channels,
                 dims[0],
-                kernel_size=kernel_size,
-                padding=kernel_size // 2,
-                padding_mode="zeros",
+                kernel_size=7,
+                # padding=3,
+                # padding_mode="replicate",
+                # padding_mode="zeros",
             ),
             LayerNorm(dims[0], eps=1e-6, data_format="channels_first"),
         )
@@ -491,6 +521,7 @@ class FireflyArchitecture(nn.Module):
         self.head = head
         self.quantizer = quantizer
         self.spec_transform = spec_transform
+        self.downsample_factor = math.prod(self.quantizer.downsample_factor)
 
     def forward(self, x: torch.Tensor, template=None, mask=None) -> torch.Tensor:
         if self.spec_transform is not None:
@@ -512,7 +543,7 @@ class FireflyArchitecture(nn.Module):
         if x.ndim == 2:
             x = x[:, None, :]
 
-        if self.quantizer is not None:
+        if self.vq is not None:
             return x, vq_result
 
         return x
@@ -528,25 +559,30 @@ class FireflyArchitecture(nn.Module):
 
         # Encode
         encoded_features = self.backbone(mels) * mel_masks_float_conv
-        feature_lengths = mel_lengths // math.prod(self.quantizer.downsample_factor)
+        feature_lengths = mel_lengths // self.downsample_factor
 
         return self.quantizer.encode(encoded_features), feature_lengths
 
     def decode(self, indices, feature_lengths) -> torch.Tensor:
-        factor = math.prod(self.quantizer.downsample_factor)
-        mel_masks = sequence_mask(feature_lengths * factor, indices.shape[2] * factor)
+        mel_masks = sequence_mask(
+            feature_lengths * self.downsample_factor,
+            indices.shape[2] * self.downsample_factor,
+        )
         mel_masks_float_conv = mel_masks[:, None, :].float()
+        audio_lengths = (
+            feature_lengths * self.downsample_factor * self.spec_transform.hop_length
+        )
 
         audio_masks = sequence_mask(
-            feature_lengths * factor * self.spec_transform.hop_length,
-            indices.shape[2] * factor * self.spec_transform.hop_length,
+            audio_lengths,
+            indices.shape[2] * self.downsample_factor * self.spec_transform.hop_length,
         )
         audio_masks_float_conv = audio_masks[:, None, :].float()
 
         z = self.quantizer.decode(indices) * mel_masks_float_conv
         x = self.head(z) * audio_masks_float_conv
 
-        return x
+        return x, audio_lengths
 
     def remove_parametrizations(self):
         if hasattr(self.backbone, "remove_parametrizations"):
@@ -558,68 +594,3 @@ class FireflyArchitecture(nn.Module):
     @property
     def device(self):
         return next(self.parameters()).device
-
-
-class FireflyBase(nn.Module):
-    def __init__(self, ckpt_path: str = None, pretrained: bool = True):
-        super().__init__()
-
-        self.backbone = ConvNeXtEncoder(
-            input_channels=128,
-            depths=[3, 3, 9, 3],
-            dims=[128, 256, 384, 512],
-            drop_path_rate=0.2,
-            kernel_size=7,
-        )
-
-        self.head = HiFiGANGenerator(
-            hop_length=512,
-            upsample_rates=[8, 8, 2, 2, 2],
-            upsample_kernel_sizes=[16, 16, 4, 4, 4],
-            resblock_kernel_sizes=[3, 7, 11],
-            resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-            num_mels=512,
-            upsample_initial_channel=512,
-            use_template=False,
-            pre_conv_kernel_size=13,
-            post_conv_kernel_size=13,
-        )
-
-        if ckpt_path is not None:
-            state_dict = torch.load(ckpt_path, map_location="cpu")
-        elif pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                "https://github.com/fishaudio/vocoder/releases/download/1.0.0/firefly-gan-base-generator.ckpt",
-                map_location="cpu",
-                model_dir="checkpoints",
-            )
-
-        if "state_dict" in state_dict:
-            state_dict = state_dict["state_dict"]
-
-        if any("generator." in k for k in state_dict):
-            state_dict = {
-                k.replace("generator.", ""): v
-                for k, v in state_dict.items()
-                if "generator." in k
-            }
-
-        self.load_state_dict(state_dict, strict=True)
-        self.head.remove_parametrizations()
-
-    @torch.no_grad()
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.backbone(x)
-        x = self.head(x)
-        if x.ndim == 2:
-            x = x[:, None, :]
-        return x
-
-
-if __name__ == "__main__":
-    model = FireflyBase()
-    model.eval()
-    x = torch.randn(1, 128, 128)
-    with torch.no_grad():
-        y = model(x)
-    print(y.shape)

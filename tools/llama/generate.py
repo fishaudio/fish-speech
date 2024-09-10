@@ -94,15 +94,20 @@ def decode_one_token_ar(
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
+
+    sampling_kwargs_main = sampling_kwargs.copy()
+    sampling_kwargs_main["temperature"] = 0.1
+    sampling_kwargs_main["top_p"] = 0.1
+    sampling_kwargs_main["repetition_penalty"] = 1.0
+
     codebooks = [
         sample(
             x.logits,
-            previous_tokens=(
-                previous_tokens[0] if previous_tokens is not None else None
-            ),  # Disable repetition penalty for the token codebook
-            **sampling_kwargs,
+            previous_tokens=None,  # Disable repetition penalty for the token codebook
+            **sampling_kwargs_main,
         )[0]
     ]
+
     x = x.hidden_states
 
     # Cleanup the cache
@@ -137,11 +142,16 @@ def decode_one_token_naive(
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
 
+    sampling_kwargs_main = sampling_kwargs.copy()
+    sampling_kwargs_main["temperature"] = 0.1
+    sampling_kwargs_main["top_p"] = 0.1
+    sampling_kwargs_main["repetition_penalty"] = 1.0
+
     codebooks = [
         sample(
-            x.token_logits,
+            x.logits,
             previous_tokens=None,  # Disable repetition penalty for the token codebook
-            **sampling_kwargs,
+            **sampling_kwargs_main,
         )[0]
     ]
 
@@ -612,7 +622,7 @@ def launch_thread_safe_queue(
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/fish-speech-1.2-sft",
+    default="checkpoints/fish-speech-1.4",
 )
 @click.option("--device", type=str, default="cuda")
 @click.option("--compile/--no-compile", default=False)

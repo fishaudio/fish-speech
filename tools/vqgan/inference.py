@@ -59,7 +59,7 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option("--config-name", default="firefly_gan_vq")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/fish-speech-1.2-sft/firefly-gan-vq-fsq-4x1024-42hz-generator.pth",
+    default="checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
 )
 @click.option(
     "--device",
@@ -103,7 +103,9 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
     # Restore
     feature_lengths = torch.tensor([indices.shape[1]], device=device)
-    fake_audios = model.decode(indices=indices[None], feature_lengths=feature_lengths)
+    fake_audios, _ = model.decode(
+        indices=indices[None], feature_lengths=feature_lengths
+    )
     audio_time = fake_audios.shape[-1] / model.spec_transform.sample_rate
 
     logger.info(
