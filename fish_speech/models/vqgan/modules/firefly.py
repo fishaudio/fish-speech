@@ -183,7 +183,7 @@ class ResBlock1(torch.nn.Module):
             remove_parametrizations(conv, tensor_name="weight")
 
 
-class ParralelBlock(nn.Module):
+class ParallelBlock(nn.Module):
     def __init__(
         self,
         channels: int,
@@ -254,7 +254,7 @@ class HiFiGANGenerator(nn.Module):
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
             self.resblocks.append(
-                ParralelBlock(ch, resblock_kernel_sizes, resblock_dilation_sizes)
+                ParallelBlock(ch, resblock_kernel_sizes, resblock_dilation_sizes)
             )
 
         self.activation_post = post_activation()
