@@ -103,7 +103,9 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
     # Restore
     feature_lengths = torch.tensor([indices.shape[1]], device=device)
-    fake_audios = model.decode(indices=indices[None], feature_lengths=feature_lengths)
+    fake_audios, _ = model.decode(
+        indices=indices[None], feature_lengths=feature_lengths
+    )
     audio_time = fake_audios.shape[-1] / model.spec_transform.sample_rate
 
     logger.info(
