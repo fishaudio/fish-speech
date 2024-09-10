@@ -64,6 +64,6 @@ def clean_text(text):
 
     # Replace all chinese symbols with their english counterparts
     text = REPLACE_SYMBOL_REGEX.sub(lambda x: SYMBOLS_MAPPING[x.group()], text)
-    text = REMOVE_UNKNOWN_SYMBOL_REGEX.sub("", text)
+    # text = REMOVE_UNKNOWN_SYMBOL_REGEX.sub("", text)
 
     return text

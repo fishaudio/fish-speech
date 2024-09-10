@@ -148,7 +148,7 @@ def decode_vq_tokens(
         return decoder_model.decode(
             indices=codes[None],
             feature_lengths=feature_lengths,
-        ).squeeze()
+        )[0].squeeze()
 
     raise ValueError(f"Unknown model type: {type(decoder_model)}")
 
