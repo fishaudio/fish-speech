@@ -12,7 +12,7 @@ copyright: Copyright &copy; 2023-2024 by Fish Audio
 
 theme:
   name: material
-  language: zh
+  language: en
   features:
     - content.action.edit
     - content.action.view
@@ -59,8 +59,8 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang:
-        - zh
         - en
+        - zh
         - ja
         - pt
   - i18n:
@@ -68,9 +68,9 @@ plugins:
       languages:
         - locale: en
           name: English
+          default: true
           build: true
         - locale: zh
-          default: true
           name: 简体中文
           build: true
         - locale: ja
