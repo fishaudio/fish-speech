@@ -12,7 +12,7 @@ copyright: Copyright &copy; 2023-2024 by Fish Audio
 
 theme:
   name: material
-  language: zh
+  language: en
   features:
     - content.action.edit
     - content.action.view
