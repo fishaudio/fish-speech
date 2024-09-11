@@ -25,68 +25,72 @@
 - GPU Memory: 4GB (for inference), 8GB (for fine-tuning)
 - System: Linux, Windows
 
-## Windows Setup
+### Windows Setup
 
-Windows professional users may consider WSL2 or Docker to run the codebase.
+Professional Windows users may consider using WSL2 or Docker to run the codebase.
 
-Non-professional Windows users can consider the following methods to run the codebase without a Linux environment (with model compilation capabilities aka `torch.compile`):
+```bash
+# Create a python 3.10 virtual environment, you can also use virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
 
-<ol>
-   <li>Unzip the project package.</li>
-   <li>Click <code>install_env.bat</code> to install the environment.
-      <ul>
-            <li>You can decide whether to use a mirror site for downloads by editing the <code>USE_MIRROR</code> item in <code>install_env.bat</code>.</li>
-            <li><code>USE_MIRROR=false</code> downloads the latest stable version of <code>torch</code> from the original site. <code>USE_MIRROR=true</code> downloads the latest version of <code>torch</code> from a mirror site. The default is <code>true</code>.</li>
-            <li>You can decide whether to enable the compiled environment download by editing the <code>INSTALL_TYPE</code> item in <code>install_env.bat</code>.</li>
-            <li><code>INSTALL_TYPE=preview</code> downloads the preview version with the compiled environment. <code>INSTALL_TYPE=stable</code> downloads the stable version without the compiled environment.</li>
-      </ul>
-   </li>
-   <li>If step 2 has <code>USE_MIRROR=preview</code>, execute this step (optional, for activating the compiled model environment):
-      <ol>
-            <li>Download the LLVM compiler using the following links:
-               <ul>
-                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6 (original site download)</a></li>
-                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6 (mirror site download)</a></li>
-                  <li>After downloading <code>LLVM-17.0.6-win64.exe</code>, double-click to install it, choose an appropriate installation location, and most importantly, check <code>Add Path to Current User</code> to add to the environment variables.</li>
-                  <li>Confirm the installation is complete.</li>
-               </ul>
-            </li>
-            <li>Download and install the Microsoft Visual C++ Redistributable package to resolve potential .dll missing issues.
-               <ul>
-                  <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 Download</a></li>
-               </ul>
-            </li>
-            <li>Download and install Visual Studio Community Edition to obtain MSVC++ build tools, resolving LLVM header file dependencies.
-               <ul>
-                  <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio Download</a></li>
-                  <li>After installing Visual Studio Installer, download Visual Studio Community 2022.</li>
-                  <li>Click the <code>Modify</code> button as shown below, find the <code>Desktop development with C++</code> option, and check it for download.</li>
-                  <p align="center">
-                     <img src="../assets/figs/VS_1.jpg" width="75%">
-                  </p>
-               </ul>
-            </li>
-            <li>Install <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
-      </ol>
-   </li>
-   <li>Double-click <code>start.bat</code> to enter the Fish-Speech training inference configuration WebUI page.
-      <ul>
-            <li>(Optional) Want to go directly to the inference page? Edit the <code>API_FLAGS.txt</code> in the project root directory and modify the first three lines as follows:
-               <pre><code>--infer
-# --api
-# --listen ...
-...</code></pre>
-            </li>
-            <li>(Optional) Want to start the API server? Edit the <code>API_FLAGS.txt</code> in the project root directory and modify the first three lines as follows:
-               <pre><code># --infer
---api
---listen ...
-...</code></pre>
-            </li>
-      </ul>
-   </li>
-   <li>(Optional) Double-click <code>run_cmd.bat</code> to enter the conda/python command line environment of this project.</li>
-</ol>
+# Install pytorch
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install fish-speech
+pip3 install -e .
+
+# (Enable acceleration) Install triton-windows
+pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
+```
+
+Non-professional Windows users can consider the following basic methods to run the project without a Linux environment (with model compilation capabilities, i.e., `torch.compile`):
+
+1. Extract the project package.
+2. Click `install_env.bat` to install the environment.
+3. If you want to enable compilation acceleration, follow this step:
+    1. Download the LLVM compiler from the following links:
+        - [LLVM-17.0.6 (Official Site Download)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - [LLVM-17.0.6 (Mirror Site Download)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - After downloading `LLVM-17.0.6-win64.exe`, double-click to install, select an appropriate installation location, and most importantly, check the `Add Path to Current User` option to add the environment variable.
+        - Confirm that the installation is complete.
+    2. Download and install the Microsoft Visual C++ Redistributable to solve potential .dll missing issues:
+        - [MSVC++ 14.40.33810.0 Download](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+    3. Download and install Visual Studio Community Edition to get MSVC++ build tools and resolve LLVM's header file dependencies:
+        - [Visual Studio Download](https://visualstudio.microsoft.com/zh-hans/downloads/)
+        - After installing Visual Studio Installer, download Visual Studio Community 2022.
+        - As shown below, click the `Modify` button and find the `Desktop development with C++` option to select and download.
+    4. Download and install [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
+4. Double-click `start.bat` to open the training inference WebUI management interface. If needed, you can modify the `API_FLAGS` as prompted below.
+
+!!! info "Optional"
+
+	Want to start the inference WebUI? 
+
+    Edit the `API_FLAGS.txt` file in the project root directory and modify the first three lines as follows: 
+    ```
+     --infer 
+     # --api 
+     # --listen ...
+     ...
+    ```
+
+!!! info "Optional"
+
+	Want to start the API server? 
+
+    Edit the `API_FLAGS.txt` file in the project root directory and modify the first three lines as follows:
+
+    ``` 
+    # --infer
+    --api
+    --listen ...
+    ...
+    ```
+
+!!! info "Optional"
+
+	Double-click `run_cmd.bat` to enter the conda/python command line environment of this project.
 
 ## Linux Setup
 
