@@ -196,7 +196,7 @@ def inference_wrapper(
         )
 
         _, audio_data, error_message = next(result)
-        
+
         audios.append(
             gr.Audio(value=audio_data if audio_data else None, visible=True),
         )
