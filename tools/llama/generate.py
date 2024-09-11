@@ -238,7 +238,7 @@ def generate(
     T = prompt.size(1)
 
     device, dtype = prompt.device, prompt.dtype
-    
+
     codebook_dim = 1 + model.config.num_codebooks
     # create an empty tensor of the expected final shape and fill in the current tokens
     empty = torch.empty((codebook_dim, max_new_tokens), dtype=dtype, device=device)

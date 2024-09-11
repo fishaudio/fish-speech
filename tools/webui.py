@@ -383,7 +383,6 @@ def build_app():
             fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
         )
 
-
         # # Submit
         generate.click(
             inference_wrapper,
