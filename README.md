@@ -2,9 +2,13 @@
 
 **English** | [中文简体](README.zh.md) | [Portuguese (Brazil)](README.pt-BR.md)
 
+<div>
+<a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 <a href="https://trendshift.io/repositories/7014" target="_blank">
 <img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
 </a>
+</div>
 
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
@@ -33,6 +37,8 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 [inference.ipynb](/inference.ipynb)
 
 ## Videos
+
+#### V1.4 Demo Video: https://www.bilibili.com/video/BV1pu46eVEk7
 
 #### V1.2 Demo Video: https://www.bilibili.com/video/BV1wz421B71D
 
