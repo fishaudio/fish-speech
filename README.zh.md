@@ -37,9 +37,11 @@
 
 ## 视频
 
+#### 1.4 介绍: https://www.bilibili.com/video/BV1pu46eVEk7
+
 #### 1.2 介绍: https://www.bilibili.com/video/BV1wz421B71D
 
-#### 1.1 技术介绍: https://www.bilibili.com/video/BV1zJ4m1K7cj
+#### 1.1 介绍: https://www.bilibili.com/video/BV1zJ4m1K7cj
 
 ## 文档
 

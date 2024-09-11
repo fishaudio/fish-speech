@@ -38,6 +38,8 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 
 ## Videos
 
+#### V1.4 Demo Video: https://www.bilibili.com/video/BV1pu46eVEk7
+
 #### V1.2 Demo Video: https://www.bilibili.com/video/BV1wz421B71D
 
 ## Documents
