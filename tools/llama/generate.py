@@ -237,25 +237,11 @@ def generate(
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
 
-    if max_new_tokens:
-        if T + max_new_tokens > model.config.max_seq_len:
-            max_new_tokens = model.config.max_seq_len - T
-            logger.info(f"Truncating max_new_tokens to {max_new_tokens}")
-
-        T_new = T + max_new_tokens
-    else:
-        T_new = model.config.max_seq_len
-        max_new_tokens = T_new - T
-
     device, dtype = prompt.device, prompt.dtype
-    with torch.device(device):
-        model.setup_caches(
-            max_batch_size=1, max_seq_len=T_new, dtype=next(model.parameters()).dtype
-        )
-
+    
     codebook_dim = 1 + model.config.num_codebooks
     # create an empty tensor of the expected final shape and fill in the current tokens
-    empty = torch.empty((codebook_dim, T_new), dtype=dtype, device=device)
+    empty = torch.empty((codebook_dim, max_new_tokens), dtype=dtype, device=device)
     empty[:, :T] = prompt
     seq = empty
     input_pos = torch.arange(0, T, device=device)
@@ -575,6 +561,10 @@ def launch_thread_safe_queue(
         model, decode_one_token = load_model(
             checkpoint_path, device, precision, compile=compile
         )
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=1, max_seq_len=2048, dtype=next(model.parameters()).dtype
+            )
         init_event.set()
 
         while True:

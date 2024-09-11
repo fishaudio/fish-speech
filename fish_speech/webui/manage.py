@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
+
+os.environ["USE_LIBUV"] = "0"
 import datetime
 import html
 import json
-import os
+
 import platform
 import shutil
 import signal
@@ -862,7 +865,7 @@ with gr.Blocks(
                                     minimum=1,
                                     maximum=32,
                                     step=1,
-                                    value=4,
+                                    value=2,
                                 )
                                 llama_data_max_length_slider = gr.Slider(
                                     label=i18n("Maximum Length per Sample"),
@@ -870,7 +873,7 @@ with gr.Blocks(
                                     minimum=1024,
                                     maximum=4096,
                                     step=128,
-                                    value=1024,
+                                    value=2048,
                                 )
                             with gr.Row(equal_height=False):
                                 llama_precision_dropdown = gr.Dropdown(

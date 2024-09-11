@@ -1,4 +1,6 @@
 import os
+
+os.environ["USE_LIBUV"] = "0"
 import sys
 from typing import Optional
 
