@@ -108,7 +108,7 @@ python -m tools.post_api \
     --reference_audio "参考音频路径1" "参考音频路径2" \
     --reference_text "参考音频的文本内容1" "参考音频的文本内容2"\
     --streaming False \
-    --output "generated"
+    --output "generated" \
     --format "mp3"
 ```
 
