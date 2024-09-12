@@ -111,6 +111,7 @@ apt install libsox-dev
 
 ## Changelog
 
+- 2024/09/10: Updated Fish-Speech to 1.4 version, with an increase in dataset size and a change in the quantizer's n_groups from 4 to 8.
 - 2024/07/02: Updated Fish-Speech to 1.2 version, remove VITS Decoder, and greatly enhanced zero-shot ability.
 - 2024/05/10: Updated Fish-Speech to 1.1 version, implement VITS decoder to reduce WER and improve timbre similarity.
 - 2024/04/22: Finished Fish-Speech 1.0 version, significantly modified VQGAN and LLAMA models.

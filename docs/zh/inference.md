@@ -114,6 +114,9 @@ python -m tools.post_api \
 
 上面的命令表示按照多个参考音频的信息，合成所需的`MP3`格式音频，并保存为当前目录的`generated.mp3`文件。
 
+## GUI 推理 
+[下载客户端](https://github.com/AnyaCoder/fish-speech-gui/releases/tag/v0.1.0)
+
 ## WebUI 推理
 
 你可以使用以下命令来启动 WebUI:
