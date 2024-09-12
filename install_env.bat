@@ -2,9 +2,7 @@
 chcp 65001
 
 set USE_MIRROR=true
-set INSTALL_TYPE=preview
 echo "USE_MIRROR: %USE_MIRROR%"
-echo "INSTALL_TYPE: %INSTALL_TYPE%"
 setlocal enabledelayedexpansion
 
 cd /D "%~dp0"
@@ -125,12 +123,6 @@ if errorlevel 1 (
     echo successfully create env.
 )
 
-set "packages=torch torchvision torchaudio fish-speech"
-
-if "%INSTALL_TYPE%"=="preview" (
-    set "packages=!packages! triton_windows"
-)
-
 set "HF_ENDPOINT=https://huggingface.co"
 set "no_proxy="
 if "%USE_MIRROR%"=="true" (
@@ -141,27 +133,14 @@ if "%USE_MIRROR%"=="true" (
 echo "HF_ENDPOINT: !HF_ENDPOINT!"
 echo "NO_PROXY: !no_proxy!"
 
-set "install_packages="
+%PIP_CMD% install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-for %%p in (%packages%) do (
-    %PIP_CMD% show %%p >nul 2>&1
-    if errorlevel 1 (
-        set "install_packages=!install_packages! %%p"
-    )
-)
+%PIP_CMD% install -e . --upgrade-strategy only-if-needed
 
-if not "%install_packages%"=="" (
-    echo.
-    echo Installing: %install_packages%
-    
-    for %%p in (%install_packages%) do (
-        if "%INSTALL_TYPE%"=="preview" (
-            call :install_preview %%p
-        ) else (
-            call :install_stable %%p
-        )
-    )
-)
+call :download_and_install "triton_windows-0.1.0-py3-none-any.whl" ^
+        "%HF_ENDPOINT%/datasets/SpicyqSama007/windows_compile/resolve/main/triton_windows-0.1.0-py3-none-any.whl?download=true" ^
+        "2cc998638180f37cf5025ab65e48c7f629aa5a369176cfa32177d2bd9aa26a0a"
+
 
 endlocal
 echo "Environment Check: Success."
@@ -169,67 +148,6 @@ pause
 
 goto :EOF
 
-:install_preview
-setlocal
-
-if "%1"=="torch" (
-    call :download_and_install "torch-2.4.0.dev20240427+cu121-cp310-cp310-win_amd64.whl" ^
-        "%HF_ENDPOINT%/datasets/SpicyqSama007/windows_compile/resolve/main/torch-2.4.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true" ^
-        "b091308f4cb74e63d0323afd67c92f2279d9e488d8cbf467bcc7b939bcd74e0b"
-
-) else if "%1"=="torchvision" (
-    call :download_and_install "torchvision-0.19.0.dev20240428+cu121-cp310-cp310-win_amd64.whl" ^
-        "%HF_ENDPOINT%/datasets/SpicyqSama007/windows_compile/resolve/main/torchvision-0.19.0.dev20240428_cu121-cp310-cp310-win_amd64.whl?download=true" ^
-        "7e46d0a89534013f001563d15e80f9eb431089571720c51f2cc595feeb01d785"
-
-) else if "%1"=="torchaudio" (
-    call :download_and_install "torchaudio-2.2.0.dev20240427+cu121-cp310-cp310-win_amd64.whl" ^
-        "%HF_ENDPOINT%/datasets/SpicyqSama007/windows_compile/resolve/main/torchaudio-2.2.0.dev20240427_cu121-cp310-cp310-win_amd64.whl?download=true" ^
-        "abafb4bc82cbc6f58f18e1b95191bc1884c28e404781082db2eb540b4fae8a5d"
-
-) else if "%1"=="fish-speech" (
-    %PIP_CMD% install -e . --upgrade-strategy only-if-needed
-
-) else if "%1"=="triton_windows" (
-    call :download_and_install "triton_windows-0.1.0-py3-none-any.whl" ^
-        "%HF_ENDPOINT%/datasets/SpicyqSama007/windows_compile/resolve/main/triton_windows-0.1.0-py3-none-any.whl?download=true" ^
-        "2cc998638180f37cf5025ab65e48c7f629aa5a369176cfa32177d2bd9aa26a0a"
-)
-
-endlocal
-goto :EOF
-
-:install_stable
-if "%USE_MIRROR%"=="true" (
-    if "%1"=="torch" (
-        %PIP_CMD% install torch==2.3.1 --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-
-    ) else if "%1"=="torchvision" (
-        %PIP_CMD% install torchvision==0.18.1 --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-
-    ) else if "%1"=="torchaudio" (
-        %PIP_CMD% install torchaudio==2.3.1 --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121 --no-warn-script-location
-
-    ) else if "%1"=="fish-speech" (
-        %PIP_CMD% install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
-    )
-
-) else (
-    if "%1"=="torch" (
-        %PIP_CMD% install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
-
-    ) else if "%1"=="torchvision" (
-        %PIP_CMD% install torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
-
-    ) else if "%1"=="torchaudio" (
-        %PIP_CMD% install torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121 --no-warn-script-location
-
-    ) else if "%1"=="fish-speech" (
-        %PIP_CMD% install -e .
-    )
-)
-
-goto :EOF
 
 :download_and_install
 setlocal

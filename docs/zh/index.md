@@ -29,15 +29,26 @@
 
 Windows 专业用户可以考虑 WSL2 或 docker 来运行代码库。
 
+```bash
+# 创建一个 python 3.10 虚拟环境, 你也可以用 virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
+
+# 安装 pytorch
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# 安装 fish-speech
+pip3 install -e .
+
+# (开启编译加速) 安装 triton-windows
+pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
+```
+
 Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法（附带模型编译功能，即 `torch.compile`）：
 
 1. 解压项目压缩包。
 2. 点击 `install_env.bat` 安装环境。
-    - 可以通过编辑 `install_env.bat` 的 `USE_MIRROR` 项来决定是否使用镜像站下载。
-    - `USE_MIRROR=false` 使用原始站下载最新稳定版 `torch` 环境。`USE_MIRROR=true` 为从镜像站下载最新 `torch` 环境。默认为 `true`。
-    - 可以通过编辑 `install_env.bat` 的 `INSTALL_TYPE` 项来决定是否启用可编译环境下载。
-    - `INSTALL_TYPE=preview` 下载开发版编译环境。`INSTALL_TYPE=stable` 下载稳定版不带编译环境。
-3. 若第 2 步 `INSTALL_TYPE=preview` 则执行这一步（可跳过，此步为激活编译模型环境）
+3. 若需要开启编译加速则执行这一步:
     1. 使用如下链接下载 LLVM 编译器。
         - [LLVM-17.0.6（原站站点下载）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
         - [LLVM-17.0.6（镜像站点下载）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
@@ -49,7 +60,7 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
         - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
         - 安装好 Visual Studio Installer 之后，下载 Visual Studio Community 2022
         - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
-    4. 下载安装 [CUDA Toolkit 12](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
+    4. 下载安装 [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
 4. 双击 `start.bat` 打开训练推理 WebUI 管理界面. 如有需要，可照下列提示修改`API_FLAGS`.
 
 !!! info "可选"
@@ -158,6 +169,7 @@ apt install libsox-dev
 
 ## 更新日志
 
+- 2024/09/10: 更新了 Fish-Speech 到 1.4, 增加了数据集大小， quantizer n_groups 4 -> 8.
 - 2024/07/02: 更新了 Fish-Speech 到 1.2 版本，移除 VITS Decoder，同时极大幅度提升 zero-shot 能力.
 - 2024/05/10: 更新了 Fish-Speech 到 1.1 版本，引入了 VITS Decoder 来降低口胡和提高音色相似度.
 - 2024/04/22: 完成了 Fish-Speech 1.0 版本, 大幅修改了 VQGAN 和 LLAMA 模型.
