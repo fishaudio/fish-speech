@@ -25,7 +25,7 @@
 - GPU Memory: 4GB (for inference), 8GB (for fine-tuning)
 - System: Linux, Windows
 
-### Windows Setup
+## Windows Setup
 
 Professional Windows users may consider using WSL2 or Docker to run the codebase.
 
