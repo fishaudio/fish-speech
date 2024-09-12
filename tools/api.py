@@ -424,7 +424,7 @@ if __name__ == "__main__":
                 text="Hello world.",
                 references=[],
                 reference_id=None,
-                max_new_tokens=4096,
+                max_new_tokens=1024,
                 chunk_length=200,
                 top_p=0.7,
                 repetition_penalty=1.2,
