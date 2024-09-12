@@ -12,6 +12,7 @@ from tools.file import AUDIO_EXTENSIONS, list_files
 
 threshold = 10 ** (-50 / 20.0)
 
+
 def process(file):
     waveform, sample_rate = torchaudio.load(str(file), backend="sox")
     if waveform.size(0) > 1:
