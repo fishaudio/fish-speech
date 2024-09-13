@@ -109,6 +109,18 @@ pip3 install -e .[stable]
 apt install libsox-dev
 ```
 
+## MacOS Setup
+
+```bash
+# Create a python 3.10 virtual environment, you can also use virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
+# Install pytorch
+pip install torch torchvision torchaudio
+# Install fish-speech
+pip install -e .[stable]
+```
+
 ## Changelog
 
 - 2024/09/10: Updated Fish-Speech to 1.4 version, with an increase in dataset size and a change in the quantizer's n_groups from 4 to 8.
