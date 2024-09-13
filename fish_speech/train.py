@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Optional, Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import hydra
 import lightning as L
@@ -31,11 +31,13 @@ import fish_speech.utils as utils
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
+
 def validate_config(cfg: DictConfig):
     required_keys = ["data", "model", "trainer"]
     for key in required_keys:
         if key not in cfg:
             raise ValueError(f"Missing required configuration key: {key}")
+
 
 def instantiate_components(cfg: DictConfig) -> Dict[str, Any]:
     log.info(f"Instantiating datamodule of type {cfg.data._target_}")
@@ -51,7 +53,9 @@ def instantiate_components(cfg: DictConfig) -> Dict[str, Any]:
     logger: list[Logger] = utils.instantiate_loggers(cfg.get("logger"))
 
     log.info(f"Instantiating trainer of type {cfg.trainer._target_}")
-    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+    trainer: Trainer = hydra.utils.instantiate(
+        cfg.trainer, callbacks=callbacks, logger=logger
+    )
 
     return {
         "datamodule": datamodule,
@@ -60,6 +64,7 @@ def instantiate_components(cfg: DictConfig) -> Dict[str, Any]:
         "logger": logger,
         "trainer": trainer,
     }
+
 
 @utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -140,10 +145,14 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     return metric_dict, components
 
-@hydra.main(version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml")
+
+@hydra.main(
+    version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml"
+)
 def main(cfg: DictConfig) -> Optional[float]:
     # Train the model
     train(cfg)
+
 
 if __name__ == "__main__":
     main()
