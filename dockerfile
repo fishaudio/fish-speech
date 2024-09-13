@@ -1,4 +1,4 @@
-FROM python:3.10.14-bookworm
+FROM python:3.10-slim-bullseye
 
 # Install system dependencies
 ENV DEBIAN_FRONTEND=noninteractive
