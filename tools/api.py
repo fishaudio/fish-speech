@@ -92,7 +92,7 @@ def load_audio(reference_audio, sr):
         reference_audio = io.BytesIO(audio_data)
 
     waveform, original_sr = torchaudio.load(
-        reference_audio, backend="sox" if sys.platform == "linux" else "soundfile"
+        reference_audio, backend="ffmpeg" if sys.platform == "linux" else "soundfile"
     )
 
     if waveform.shape[0] > 1:
