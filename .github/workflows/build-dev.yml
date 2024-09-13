@@ -1,0 +1,56 @@
+name: Build Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Get Version
+        run: |
+          version=dev
+          full_version=${version}-$(date "+%Y%m%d")
+          echo "version=${version}" >> $GITHUB_ENV
+          echo "full_version=${full_version}" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
+          outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Debug Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile-debug
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ env.version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}-debug
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.full_version }}
+          outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,24 +1,43 @@
-FROM python:3.10-slim-bookworm
+FROM python:3.12-slim-bookworm AS stage-1
+ARG TARGETARCH
 
-# Install system dependencies
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y git curl build-essential ffmpeg libsm6 libxext6 libjpeg-dev \
-    zlib1g-dev aria2 zsh openssh-server sudo protobuf-compiler cmake libsox-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+ARG HUGGINGFACE_MODEL=fish-speech-1.4
+ARG HF_ENDPOINT=https://huggingface.co
 
-# Install oh-my-zsh so your terminal looks nice
-RUN sh -c "$(curl https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" "" --unattended
+WORKDIR /opt/fish-speech
 
-# Set zsh as default shell
-RUN chsh -s /usr/bin/zsh
-ENV SHELL=/usr/bin/zsh
+RUN set -ex \
+    && pip install huggingface_hub \
+    && HF_ENDPOINT=${HF_ENDPOINT} huggingface-cli download --resume-download fishaudio/${HUGGINGFACE_MODEL} --local-dir checkpoints/${HUGGINGFACE_MODEL}
 
-# Setup torchaudio
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+FROM python:3.12-slim-bookworm
+ARG TARGETARCH
 
-# Project Env
-WORKDIR /exp
+ARG DEPENDENCIES="  \
+    ca-certificates \
+    libsox-dev"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -ex \
+    && rm -f /etc/apt/apt.conf.d/docker-clean \
+    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache \
+    && apt-get update \
+    && apt-get -y install --no-install-recommends ${DEPENDENCIES} \
+    && echo "no" | dpkg-reconfigure dash
+
+WORKDIR /opt/fish-speech
+
 COPY . .
-RUN pip3 install -e .
 
-CMD /bin/zsh
+RUN --mount=type=cache,target=/root/.cache,sharing=locked \
+    set -ex \
+    && pip install -e .[stable]
+
+COPY --from=stage-1 /opt/fish-speech/checkpoints /opt/fish-speech/checkpoints
+
+ENV GRADIO_SERVER_NAME="0.0.0.0"
+
+EXPOSE 7860
+
+CMD ["./entrypoint.sh"]
