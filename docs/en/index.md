@@ -105,9 +105,64 @@ pip3 install torch torchvision torchaudio
 # Install fish-speech
 pip3 install -e .[stable]
 
-# (Ubuntu / Debian User) Install sox
-apt install libsox-dev
+# (Ubuntu / Debian User) Install sox + ffmpeg
+apt install libsox-dev ffmpeg
 ```
+
+## Docker Setup
+
+1. Install NVIDIA Container Toolkit:
+
+    To use GPU for model training and inference in Docker, you need to install NVIDIA Container Toolkit:
+
+    For Ubuntu users:
+
+    ```bash
+    # Add repository
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    # Install nvidia-container-toolkit
+    sudo apt-get update
+    sudo apt-get install -y nvidia-container-toolkit
+    # Restart Docker service
+    sudo systemctl restart docker
+    ```
+
+    For users of other Linux distributions, please refer to: [NVIDIA Container Toolkit Install-guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+2. Pull and run the fish-speech image
+
+    ```shell
+    # Pull the image
+    docker pull fishaudio/fish-speech:latest-dev
+    # Run the image
+    docker run -it \
+        --name fish-speech \
+        --gpus all \
+        -p 7860:7860 \
+        fishaudio/fish-speech:latest-dev \
+        zsh
+    # If you need to use a different port, please modify the -p parameter to YourPort:7860
+    ```
+
+3. Download model dependencies
+
+    Make sure you are in the terminal inside the docker container, then download the required `vqgan` and `llama` models from our huggingface repository.
+
+    ```bash
+    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+    ```
+
+4. Configure environment variables and access WebUI
+
+    In the terminal inside the docker container, enter `export GRADIO_SERVER_NAME="0.0.0.0"` to allow external access to the gradio service inside docker.
+    Then in the terminal inside the docker container, enter `python tools/webui.py` to start the WebUI service.
+
+    If you're using WSL or MacOS, visit [http://localhost:7860](http://localhost:7860) to open the WebUI interface.
+
+    If it's deployed on a server, replace localhost with your server's IP.
 
 ## Changelog
 

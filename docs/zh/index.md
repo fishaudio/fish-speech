@@ -100,8 +100,8 @@ pip3 install torch torchvision torchaudio
 # 安装 fish-speech
 pip3 install -e .[stable]
 
-# (Ubuntu / Debian 用户) 安装 sox
-apt install libsox-dev
+# (Ubuntu / Debian 用户) 安装 sox + ffmpeg
+apt install libsox-dev ffmpeg
 ```
 
 ## Docker 配置
@@ -133,13 +133,13 @@ apt install libsox-dev
 
     ```shell
     # 拉取镜像
-    docker pull fishaudio/fish-speech
+    docker pull fishaudio/fish-speech:latest-dev
     # 运行镜像
     docker run -it \
         --name fish-speech \
         --gpus all \
         -p 7860:7860 \
-        fishaudio/fish-speech \
+        fishaudio/fish-speech:latest-dev \
         zsh
     # 如果需要使用其他端口，请修改 -p 参数为 YourPort:7860
     ```

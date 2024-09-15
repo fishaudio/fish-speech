@@ -101,12 +101,68 @@ pip3 install torch torchvision torchaudio
 # fish-speechをインストールします。
 pip3 install -e .[stable]
 
-# (Ubuntu / Debianユーザー) soxをインストールします。
-apt install libsox-dev
+# (Ubuntu / Debianユーザー) sox + ffmpegをインストールします。
+apt install libsox-dev ffmpeg
 ```
+
+## Docker セットアップ
+
+1. NVIDIA Container Toolkit のインストール：
+
+    Docker で GPU を使用してモデルのトレーニングと推論を行うには、NVIDIA Container Toolkit をインストールする必要があります：
+
+    Ubuntu ユーザーの場合：
+
+    ```bash
+    # リポジトリの追加
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    # nvidia-container-toolkit のインストール
+    sudo apt-get update
+    sudo apt-get install -y nvidia-container-toolkit
+    # Docker サービスの再起動
+    sudo systemctl restart docker
+    ```
+
+    他の Linux ディストリビューションを使用している場合は、以下のインストールガイドを参照してください：[NVIDIA Container Toolkit Install-guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。
+
+2. fish-speech イメージのプルと実行
+
+    ```shell
+    # イメージのプル
+    docker pull fishaudio/fish-speech:latest-dev
+    # イメージの実行
+    docker run -it \
+        --name fish-speech \
+        --gpus all \
+        -p 7860:7860 \
+        fishaudio/fish-speech:latest-dev \
+        zsh
+    # 他のポートを使用する場合は、-p パラメータを YourPort:7860 に変更してください
+    ```
+
+3. モデルの依存関係のダウンロード
+
+    Docker コンテナ内のターミナルにいることを確認し、huggingface リポジトリから必要な `vqgan` と `llama` モデルをダウンロードします。
+
+    ```bash
+    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+    ```
+
+4. 環境変数の設定と WebUI へのアクセス
+
+    Docker コンテナ内のターミナルで、`export GRADIO_SERVER_NAME="0.0.0.0"` と入力して、外部から Docker 内の gradio サービスにアクセスできるようにします。
+    次に、Docker コンテナ内のターミナルで `python tools/webui.py` と入力して WebUI サービスを起動します。
+
+    WSL または MacOS の場合は、[http://localhost:7860](http://localhost:7860) にアクセスして WebUI インターフェースを開くことができます。
+
+    サーバーにデプロイしている場合は、localhost をサーバーの IP に置き換えてください。
 
 ## 変更履歴
 
+- 2024/09/10: Fish-Speech を Ver.1.4 に更新し、データセットのサイズを増加させ、quantizer n_groups を 4 から 8 に変更しました。
 - 2024/07/02: Fish-Speech を Ver.1.2 に更新し、VITS デコーダーを削除し、ゼロショット能力を大幅に強化しました。
 - 2024/05/10: Fish-Speech を Ver.1.1 に更新し、VITS デコーダーを実装して WER を減少させ、音色の類似性を向上させました。
 - 2024/04/22: Fish-Speech Ver.1.0 を完成させ、VQGAN および LLAMA モデルを大幅に修正しました。

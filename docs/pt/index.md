@@ -104,12 +104,67 @@ pip3 install torch torchvision torchaudio
 # Instale o fish-speech
 pip3 install -e .[stable]
 
-# Para os Usuário do Ubuntu / Debian: Instale o sox
-apt install libsox-dev
+# Para os Usuário do Ubuntu / Debian: Instale o sox + ffmpeg
+apt install libsox-dev ffmpeg
 ```
 
-## Histórico de Alterações
+## Configuração do Docker
 
+1. Instale o NVIDIA Container Toolkit:
+
+    Para usar a GPU com Docker para treinamento e inferência de modelos, você precisa instalar o NVIDIA Container Toolkit:
+
+    Para usuários Ubuntu:
+
+    ```bash
+    # Adicione o repositório remoto
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    # Instale o nvidia-container-toolkit
+    sudo apt-get update
+    sudo apt-get install -y nvidia-container-toolkit
+    # Reinicie o serviço Docker
+    sudo systemctl restart docker
+    ```
+
+    Para usuários de outras distribuições Linux, consulte o guia de instalação: [NVIDIA Container Toolkit Install-guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+2. Baixe e execute a imagem fish-speech
+
+    ```shell
+    # Baixe a imagem
+    docker pull fishaudio/fish-speech:latest-dev
+    # Execute a imagem
+    docker run -it \
+        --name fish-speech \
+        --gpus all \
+        -p 7860:7860 \
+        fishaudio/fish-speech:latest-dev \
+        zsh
+    # Se precisar usar outra porta, modifique o parâmetro -p para YourPort:7860
+    ```
+
+3. Baixe as dependências do modelo
+
+    Certifique-se de estar no terminal do contêiner Docker e, em seguida, baixe os modelos necessários `vqgan` e `llama` do nosso repositório HuggingFace.
+
+    ```bash
+    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+    ```
+
+4. Configure as variáveis de ambiente e acesse a WebUI
+
+    No terminal do contêiner Docker, digite `export GRADIO_SERVER_NAME="0.0.0.0"` para permitir o acesso externo ao serviço gradio dentro do Docker.
+    Em seguida, no terminal do contêiner Docker, digite `python tools/webui.py` para iniciar o serviço WebUI.
+
+    Se estiver usando WSL ou MacOS, acesse [http://localhost:7860](http://localhost:7860) para abrir a interface WebUI.
+
+    Se estiver implantando em um servidor, substitua localhost pelo IP do seu servidor.
+
+## Histórico de Alterações
+- 10/09/2024: Fish-Speech atualizado para a versão 1.4, aumentado o tamanho do conjunto de dados, quantizer n_groups 4 -> 8.
 - 02/07/2024: Fish-Speech atualizado para a versão 1.2, removido o Decodificador VITS e aprimorado consideravelmente a capacidade de zero-shot.
 - 10/05/2024: Fish-Speech atualizado para a versão 1.1, implementado o decodificador VITS para reduzir a WER e melhorar a similaridade de timbre.
 - 22/04/2024: Finalizada a versão 1.0 do Fish-Speech, modificados significativamente os modelos VQGAN e LLAMA.
