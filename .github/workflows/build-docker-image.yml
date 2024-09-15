@@ -63,12 +63,8 @@ jobs:
           cache-to: type=inline
 
       - name: Push README to Dockerhub
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_PASS: ${{ secrets.DOCKER_PAT }}
+        uses: peter-evans/dockerhub-description@v4
         with:
-          destination_container_repo: fishaudio/fish-speech
-          provider: dockerhub
-          short_description: 'Fish Speech official docker container'
-          readme_file: 'README.md'
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+          repository: fishaudio/fish-speech
