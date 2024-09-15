@@ -1,0 +1,85 @@
+name: Build Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest-16c64g
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "version=$(basename ${GITHUB_REF})" >> $GITHUB_ENV
+          else
+            version=dev
+            full_version=${version}-$(date "+%Y%m%d")
+            echo "version=${version}" >> $GITHUB_ENV
+            echo "full_version=${full_version}" >> $GITHUB_ENV
+          fi
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
+            ghcr.io/${{ github.repository_owner }}/fish-speech:latest
+            fishaudio/fish-speech:${{ env.version }}
+            fishaudio/fish-speech:latest
+          outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Debug Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile.dev
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            VERSION=${{ env.version }}
+            BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}-dev
+            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.full_version }}
+            ghcr.io/${{ github.repository_owner }}/fish-speech:latest-dev
+            fishaudio/fish-speech:${{ env.version }}-dev
+            fishaudio/fish-speech:${{ env.full_version }}
+            fishaudio/fish-speech:latest-dev
+          outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push README to Dockerhub
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PAT }}
+        with:
+          destination_container_repo: fishaudio/fish-speech
+          provider: dockerhub
+          short_description: 'Fish Speech official docker container'
+          readme_file: 'README.md'
