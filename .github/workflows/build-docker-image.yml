@@ -19,7 +19,7 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             version=$(basename ${GITHUB_REF})
           else
-            version=dev
+            version=nightly
           fi
 
           echo "version=${version}" >> $GITHUB_ENV
