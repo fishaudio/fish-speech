@@ -16,9 +16,6 @@
 <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
 <img alt="Docker" src="https://img.sh.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
 </a>
-<a target="_blank" href="https://github.com/fishaudio/fish-speech/actions/workflows/build-windows-package.yml">
-<img alt="Action" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>
-</a>
 </div>
 
 此代码库及模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节.

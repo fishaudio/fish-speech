@@ -17,9 +17,6 @@
 <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
 <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
 </a>
-<a target="_blank" href="https://github.com/fishaudio/fish-speech/actions/workflows/build-windows-package.yml">
-<img alt="Action" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>
-</a>
 </div>
 
 このコードベースとすべてのモデルは、CC-BY-NC-SA-4.0ライセンスの下でリリースされています。詳細については、[LICENSE](LICENSE)を参照してください。
