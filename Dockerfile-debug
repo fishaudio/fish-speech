@@ -1,6 +1,7 @@
-ARG VERSION
+ARG VERSION=dev
+ARG BASE_IMAGE=ghcr.io/fishaudio/fish-speech:${VERSION}
 
-FROM ghcr.io/fishaudio/fish-speech:${VERSION}
+FROM ${BASE_IMAGE}
 
 ARG TOOLS="               \
         git               \

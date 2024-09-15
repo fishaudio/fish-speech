@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-16c64g
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
@@ -38,7 +38,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and Push Debug Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile-debug
@@ -46,6 +46,7 @@ jobs:
           push: true
           build-args: |
             VERSION=${{ env.version }}
+            BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}-debug
           outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
