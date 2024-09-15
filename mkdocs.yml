@@ -103,7 +103,7 @@ extra:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/Es5qTB9BcN
     - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/r/lengyue233/fish-speech
+      link: https://hub.docker.com/r/fishaudio/fish-speech
     - icon: fontawesome/brands/qq
       link: http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093
   homepage: https://speech.fish.audio

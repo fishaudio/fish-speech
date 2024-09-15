@@ -13,8 +13,8 @@
 <a target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093">
 <img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
 </a>
-<a target="_blank" href="https://hub.docker.com/r/lengyue233/fish-speech">
-<img alt="Docker" src="https://img.sh.io/docker/pulls/lengyue233/fish-speech?style=flat-square&logo=docker"/>
+<a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
+<img alt="Docker" src="https://img.sh.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
 </a>
 <a target="_blank" href="https://github.com/fishaudio/fish-speech/actions/workflows/build-windows-package.yml">
 <img alt="Action" src="https://img.shields.io/github/actions/workflow/status/fishaudio/fish-speech/build-windows-package.yml?style=flat-square&label=Build%20Windows%20Package&logo=github"/>

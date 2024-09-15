@@ -17,20 +17,13 @@ jobs:
       - name: Get Version
         run: |
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            echo "version=$(basename ${GITHUB_REF})" >> $GITHUB_ENV
+            version=$(basename ${GITHUB_REF})
           else
             version=dev
-            echo "version=${version}" >> $GITHUB_ENV
           fi
 
-          echo "Current version: ${{ env.version }}"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          echo "version=${version}" >> $GITHUB_ENV
+          echo "Current version: ${version}"
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -46,15 +39,13 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
-            ghcr.io/${{ github.repository_owner }}/fish-speech:latest
             fishaudio/fish-speech:${{ env.version }}
             fishaudio/fish-speech:latest
           outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=fishaudio/fish-speech:latest
+          cache-to: type=inline
 
-      - name: Build and Push Debug Image
+      - name: Build and Push Dev Image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -63,15 +54,13 @@ jobs:
           push: true
           build-args: |
             VERSION=${{ env.version }}
-            BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}
+            BASE_IMAGE=fishaudio/fish-speech:${{ env.version }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/fish-speech:${{ env.version }}-dev
-            ghcr.io/${{ github.repository_owner }}/fish-speech:latest-dev
             fishaudio/fish-speech:${{ env.version }}-dev
             fishaudio/fish-speech:latest-dev
           outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=fishaudio/fish-speech:latest-dev
+          cache-to: type=inline
 
       - name: Push README to Dockerhub
         uses: christian-korneck/update-container-description-action@v1
