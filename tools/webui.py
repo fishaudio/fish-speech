@@ -324,17 +324,23 @@ def build_app():
                         enable_reference_audio = gr.Checkbox(
                             label=i18n("Enable Reference Audio"),
                         )
-                        
+
                         # Add dropdown for selecting example audio files
+<<<<<<< HEAD
                         if not os.path.exists("examples"):
                             os.makedirs("examples")
                         example_audio_files = [f for f in os.listdir("examples") if f.lower().endswith(('.wav', '.mp3'))]
+=======
+                        example_audio_files = [
+                            f for f in os.listdir("examples") if f.endswith(".wav")
+                        ]
+>>>>>>> 146d2a669a3c63f7df8f615ced3b8d686b19eb2c
                         example_audio_dropdown = gr.Dropdown(
                             label=i18n("Select Example Audio"),
                             choices=[""] + example_audio_files,
-                            value=""
+                            value="",
                         )
-                        
+
                         reference_audio = gr.Audio(
                             label=i18n("Reference Audio"),
                             type="filepath",
@@ -399,13 +405,13 @@ def build_app():
                 audio_path = os.path.join("examples", audio_file)
                 lab_file = os.path.splitext(audio_file)[0] + ".lab"
                 lab_path = os.path.join("examples", lab_file)
-                
+
                 if os.path.exists(lab_path):
                     with open(lab_path, "r", encoding="utf-8") as f:
                         lab_content = f.read().strip()
                 else:
                     lab_content = ""
-                
+
                 return audio_path, lab_content, True
             return None, "", False
 
@@ -413,7 +419,7 @@ def build_app():
         example_audio_dropdown.change(
             fn=select_example_audio,
             inputs=[example_audio_dropdown],
-            outputs=[reference_audio, reference_text, enable_reference_audio]
+            outputs=[reference_audio, reference_text, enable_reference_audio],
         )
 
         # # Submit
@@ -454,8 +460,11 @@ def build_app():
     return app
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 146d2a669a3c63f7df8f615ced3b8d686b19eb2c
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument(
