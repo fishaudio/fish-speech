@@ -326,7 +326,9 @@ def build_app():
                         )
                         
                         # Add dropdown for selecting example audio files
-                        example_audio_files = [f for f in os.listdir("examples") if f.endswith(".wav")]
+                        if not os.path.exists("examples"):
+                            os.makedirs("examples")
+                        example_audio_files = [f for f in os.listdir("examples") if f.lower().endswith(('.wav', '.mp3'))]
                         example_audio_dropdown = gr.Dropdown(
                             label=i18n("Select Example Audio"),
                             choices=[""] + example_audio_files,
@@ -450,6 +452,7 @@ def build_app():
             concurrency_limit=10,
         )
     return app
+
 
 
 
