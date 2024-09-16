@@ -324,6 +324,20 @@ def build_app():
                         enable_reference_audio = gr.Checkbox(
                             label=i18n("Enable Reference Audio"),
                         )
+
+                        # Add dropdown for selecting example audio files
+                        examples_dir = Path("examples")
+                        if not examples_dir.exists():
+                            examples_dir.mkdir()
+                        example_audio_files = [
+                            f.name for f in examples_dir.glob("*.wav")
+                        ] + [f.name for f in examples_dir.glob("*.mp3")]
+                        example_audio_dropdown = gr.Dropdown(
+                            label=i18n("Select Example Audio"),
+                            choices=[""] + example_audio_files,
+                            value="",
+                        )
+
                         reference_audio = gr.Audio(
                             label=i18n("Reference Audio"),
                             type="filepath",
@@ -381,6 +395,26 @@ def build_app():
 
         text.input(
             fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
+        )
+
+        def select_example_audio(audio_file):
+            if audio_file:
+                audio_path = examples_dir / audio_file
+                lab_file = audio_path.with_suffix(".lab")
+
+                if lab_file.exists():
+                    lab_content = lab_file.read_text(encoding="utf-8").strip()
+                else:
+                    lab_content = ""
+
+                return str(audio_path), lab_content, True
+            return None, "", False
+
+        # Connect the dropdown to update reference audio and text
+        example_audio_dropdown.change(
+            fn=select_example_audio,
+            inputs=[example_audio_dropdown],
+            outputs=[reference_audio, reference_text, enable_reference_audio],
         )
 
         # # Submit

@@ -118,5 +118,6 @@
   "new": "创建新的检查点",
   "Realtime Transform Text": "实时规范化文本",
   "Normalization Result Preview (Currently Only Chinese)": "规范化结果预览",
-  "Text Normalization": "文本规范化"
+  "Text Normalization": "文本规范化",
+  "Select Example Audio": "选择参考音频"
 }

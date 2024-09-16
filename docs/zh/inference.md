@@ -129,6 +129,9 @@ python -m tools.webui \
 ```
 
 !!! note
+    你可以提前将label文件和参考音频文件保存到主目录下的examples文件夹（需要自行创建），这样你可以直接在WebUI中调用它们。
+
+!!! note
     你可以使用 Gradio 环境变量, 如 `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` 来配置 WebUI.
 
 祝大家玩得开心!
