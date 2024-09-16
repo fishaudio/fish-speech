@@ -118,5 +118,6 @@
   "new": "nuevo",
   "Realtime Transform Text": "Transformación de Texto en Tiempo Real",
   "Normalization Result Preview (Currently Only Chinese)": "Vista Previa del Resultado de Normalización (Actualmente Solo Chino)",
-  "Text Normalization": "Normalización de Texto"
+  "Text Normalization": "Normalización de Texto",
+  "Select Example Audio": "Selecionar áudio de exemplo"
 }

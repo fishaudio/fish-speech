@@ -118,6 +118,6 @@
   "new": "新規",
   "Realtime Transform Text": "リアルタイム変換テキスト",
   "Normalization Result Preview (Currently Only Chinese)": "正規化結果プレビュー（現在は中国語のみ）",
-  "Text Normalization": "テキスト正規化"
-
+  "Text Normalization": "テキスト正規化",
+  "Select Example Audio": "サンプル音声を選択"
 }

@@ -148,6 +148,9 @@ python -m tools.webui \
 ```
 
 !!! note
+    Você pode salvar antecipadamente o arquivo de rótulos e o arquivo de áudio de referência na pasta examples do diretório principal (que você precisa criar), para que possa chamá-los diretamente na WebUI.
+    
+!!! note
     É possível usar variáveis de ambiente do Gradio, como `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME`, para configurar a WebUI.
 
 Divirta-se!

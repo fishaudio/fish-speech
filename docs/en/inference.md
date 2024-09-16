@@ -119,6 +119,9 @@ python -m tools.webui \
 ```
 
 !!! note
+    You can save the label file and reference audio file in advance to the examples folder in the main directory (which you need to create yourself), so that you can directly call them in the WebUI.
+
+!!! note
     You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
 
 Enjoy!

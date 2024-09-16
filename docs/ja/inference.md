@@ -152,6 +152,9 @@ python -m tools.webui \
 ```
 
 !!! note
+    ラベルファイルと参照音声ファイルをメインディレクトリの examples フォルダ（自分で作成する必要があります）に事前に保存しておくことで、WebUI で直接呼び出すことができます。
+
+!!! note
     Gradio 環境変数（`GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME`など）を使用して WebUI を構成できます。
 
 お楽しみください！
