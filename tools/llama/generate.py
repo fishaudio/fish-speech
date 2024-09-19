@@ -656,7 +656,9 @@ def main(
     )
     with torch.device(device):
         model.setup_caches(
-            max_batch_size=1, max_seq_len=model.config.max_seq_len, dtype=next(model.parameters()).dtype
+            max_batch_size=1,
+            max_seq_len=model.config.max_seq_len,
+            dtype=next(model.parameters()).dtype,
         )
     if torch.cuda.is_available():
         torch.cuda.synchronize()
