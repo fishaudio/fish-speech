@@ -286,7 +286,7 @@ def build_app():
                             label=i18n("Maximum tokens per batch, 0 means no limit"),
                             minimum=0,
                             maximum=2048,
-                            value=1024,  # 0 means no limit
+                            value=0,  # 0 means no limit
                             step=8,
                         )
 
@@ -505,7 +505,7 @@ if __name__ == "__main__":
             enable_reference_audio=False,
             reference_audio=None,
             reference_text="",
-            max_new_tokens=1024,
+            max_new_tokens=0,
             chunk_length=200,
             top_p=0.7,
             repetition_penalty=1.2,

@@ -220,7 +220,7 @@ def inference(req: ServeTTSRequest):
         compile=args.compile,
         iterative_prompt=req.chunk_length > 0,
         chunk_length=req.chunk_length,
-        max_length=2048,
+        max_length=4096,
         prompt_tokens=prompt_tokens,
         prompt_text=prompt_texts,
     )
@@ -424,7 +424,7 @@ if __name__ == "__main__":
                 text="Hello world.",
                 references=[],
                 reference_id=None,
-                max_new_tokens=1024,
+                max_new_tokens=0,
                 chunk_length=200,
                 top_p=0.7,
                 repetition_penalty=1.2,
