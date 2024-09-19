@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[English](README.md) | **中文简体** | [Português (Brasil)](README.pt-BR.md) | [日本語](README.ja.md)
+[English](README.md) | **简体中文** | [Português (Brasil)](README.pt-BR.md) | [日本語](README.ja.md)
 
 </div>
 
@@ -14,7 +14,7 @@
 <img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
 </a>
 <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
-<img alt="Docker" src="https://img.sh.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+<img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
 </a>
 </div>
 
