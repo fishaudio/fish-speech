@@ -1,8 +1,5 @@
-
 import io
-
 import queue
-
 import sys
 import traceback
 import wave
@@ -372,13 +369,17 @@ openapi = OpenAPI(
 
 
 class MsgPackRequest(HttpRequest):
-    async def data(self) -> Annotated[Any, ContentType("application/msgpack"), ContentType("application/json")]:
+    async def data(
+        self,
+    ) -> Annotated[
+        Any, ContentType("application/msgpack"), ContentType("application/json")
+    ]:
         if self.content_type == "application/msgpack":
             return ormsgpack.unpackb(await self.body)
 
         elif self.content_type == "application/json":
             return await self.json
-        
+
         raise HTTPException(
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
             headers={"Accept": "application/msgpack, application/json"},
