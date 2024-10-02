@@ -105,7 +105,7 @@ python -m tools.post_api \
 The above command synthesizes the desired `MP3` format audio based on the information from multiple reference audios and saves it as `generated.mp3` in the current directory.
 
 ## GUI Inference 
-[Download client](https://github.com/AnyaCoder/fish-speech-gui/releases/tag/v0.1.0)
+[Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)
 
 ## WebUI Inference
 

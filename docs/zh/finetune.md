@@ -23,6 +23,9 @@
 
 你需要将数据集转为以上格式, 并放到 `data` 下, 音频后缀可以为 `.mp3`, `.wav` 或 `.flac`, 标注文件后缀建议为 `.lab`.
 
+!!! info
+    标注文件 `.lab` 仅需包含音频的转写文本，无需遵循特殊格式要求。例如，如果 `hi.mp3` 中的内容是“你好，再见。”，那么 `hi.lab` 文件中只需包含一行文本：“你好，再见”。    
+
 !!! warning
     建议先对数据集进行响度匹配, 你可以使用 [fish-audio-preprocess](https://github.com/fishaudio/audio-preprocess) 来完成这一步骤. 
     ```bash
