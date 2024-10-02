@@ -114,6 +114,9 @@ python -m tools.post_api \
 
 上面的命令表示按照多个参考音频的信息，合成所需的`MP3`格式音频，并保存为当前目录的`generated.mp3`文件。
 
+还可以用`--reference_id`(仅能用一个)来代替`--reference_audio`和`--reference_text`, 前提是在项目根目录下创建`references/<your reference_id>`文件夹，
+里面放上任意对音频与标注文本。 目前支持的参考音频最多加起来总时长90s。
+
 ## GUI 推理 
 [下载客户端](https://github.com/AnyaCoder/fish-speech-gui/releases)
 

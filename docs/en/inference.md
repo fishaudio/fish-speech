@@ -104,6 +104,9 @@ python -m tools.post_api \
 
 The above command synthesizes the desired `MP3` format audio based on the information from multiple reference audios and saves it as `generated.mp3` in the current directory.
 
+You can also use `--reference_id` (only one can be used) instead of `--reference-audio` and `--reference_text`, provided that you create a `references/<your reference_id>` folder in the project root directory, which contains any audio and annotation text. 
+The currently supported reference audio has a maximum total duration of 90 seconds.
+
 ## GUI Inference 
 [Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)
 
