@@ -3,6 +3,7 @@ import ormsgpack
 
 from tools.commons import ServeReferenceAudio, ServeTTSRequest
 
+
 def audio_request():
     # priority: ref_id > references
     request = ServeTTSRequest(
@@ -35,18 +36,20 @@ def audio_request():
                 f.write(chunk)
 
 
-
 def asr_request():
 
     # Read the audio file
-    with open(r"D:\PythonProject\fish-speech\.cache\test_audios\prompts\2648200402409733590.wav", "rb") as audio_file:
+    with open(
+        r"D:\PythonProject\fish-speech\.cache\test_audios\prompts\2648200402409733590.wav",
+        "rb",
+    ) as audio_file:
         audio_data = audio_file.read()
 
     # Prepare the request data
     request_data = {
         "audio": audio_data,
         "language": "en",  # Optional: specify the language
-        "ignore_timestamps": False  # Optional: set to True to ignore precise timestamps
+        "ignore_timestamps": False,  # Optional: set to True to ignore precise timestamps
     }
 
     # Send the request
@@ -66,11 +69,10 @@ def asr_request():
     print(f"Transcribed text: {result['text']}")
     print(f"Audio duration: {result['duration']} seconds")
 
-    for segment in result['segments']:
+    for segment in result["segments"]:
         print(f"Segment: {segment['text']}")
         print(f"Start time: {segment['start']}, End time: {segment['end']}")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     asr_request()
