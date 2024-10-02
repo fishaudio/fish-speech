@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   fish-speech:
-    build: .
+    build:
+      context: .
+      dockerfile: dockerfile.dev
     container_name: fish-speech
     volumes:
       - ./:/exp
