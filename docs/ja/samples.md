@@ -1,5 +1,7 @@
 # サンプル
 
+v1.4デモは[こちら](https://speech.fish.audio/samples/)に更新されています
+
 v1.2のサンプルは[Bilibili](https://www.bilibili.com/video/BV1wz421B71D/)で利用可能です。
 
 以下のサンプルはv1.1モデルからのものです。
