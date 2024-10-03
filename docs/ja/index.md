@@ -25,68 +25,70 @@
 - GPU メモリ: 4GB（推論用）、8GB（ファインチューニング用）
 - システム: Linux、Windows
 
-## Windows セットアップ
+## Windowsセットアップ
 
-Window にて開発を行っている方へ: 本コードベースを実行するのに WSL2 または Docker を利用することができます。
+プロフェッショナルなWindowsユーザーは、WSL2またはDockerを使用してコードベースを実行することを検討してください。
 
-あまり詳しくない人は、Linux 環境なしでコードベースを実行するために以下の手順に従ってください。（モデルコンパイル機能`torch.compile`を利用できます。）：
+```bash
+# Python 3.10の仮想環境を作成（virtualenvも使用可能）
+conda create -n fish-speech python=3.10
+conda activate fish-speech
 
-<ol>
-   <li>プロジェクトの圧縮ファイルをダウンロードし、展開</li>
-   <li><code>install_env.bat</code>を開いて実行に必要な環境を整えます。
-      <ul>
-            <li><code>install_env.bat</code>の<code>USE_MIRROR</code>ミラーサイトを使用する場合、項目を編集してください。</li>
-            <li><code>USE_MIRROR=false</code>は、最新の安定版の<code>torch</code>をオリジナルサイトからダウンロードします。<code>USE_MIRROR=true</code>は、最新の<code>torch</code>をミラーサイトからダウンロードします。デフォルトは<code>true</code>です。</li>
-            <li><code>install_env.bat</code>の<code>INSTALL_TYPE</code>を編集して、コンパイル環境をダウンロードするかを設定できます。</li>
-            <li><code>INSTALL_TYPE=preview</code>は、コンパイル環境付きのプレビュー版をダウンロードします。<code>INSTALL_TYPE=stable</code>は、コンパイル環境なしの安定版をダウンロードします。</li>
-      </ul>
-   </li>
-   <li>ステップ2で<code>USE_MIRROR=preview</code>の場合、オプション、コンパイルモデル環境を有効にするたに以下のステップを実行してください。：
-      <ol>
-            <li>以下のリンクからLLVMコンパイラをダウンロードします：
-               <ul>
-                  <li><a href="https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（オリジナルサイト）</a></li>
-                  <li><a href="https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true">LLVM-17.0.6（ミラーサイト）</a></li>
-                  <li><code>LLVM-17.0.6-win64.exe</code>をダウンロードした後、ダブルクリックしてインストールし、適当な場所にインストールしてください。必ず<code>Add Path to Current User</code>をチェックして環境変数に追加することです。</li>
-                  <li>インストールが完了したことを確認してください。</li>
-               </ul>
-            </li>
-            <li>Microsoft Visual C++ 再頒布可能パッケージをダウンロードしてインストールし、dllの欠落問題を解決します。
-               <ul>
-                  <li><a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">MSVC++ 14.40.33810.0 ダウンロード</a></li>
-               </ul>
-            </li>
-            <li>Visual Studio Community Editionをダウンロードしてインストールし、MSVC++ビルドツールを取得し、LLVMのヘッダーファイル依存関係を解決します。
-               <ul>
-                  <li><a href="https://visualstudio.microsoft.com/zh-hans/downloads/">Visual Studio ダウンロード</a></li>
-                  <li>Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロードします。</li>
-                  <li>以下のスクリーンショットのように<code>Modify</code>ボタンをクリックし、<code>Desktop development with C++</code>オプションにチェックをつけてダウンロードします。</li>
-                  <p align="center">
-                     <img src="../assets/figs/VS_1.jpg" width="75%">
-                  </p>
-               </ul>
-            </li>
-            <li>インストール <a href="https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64">CUDA Toolkit 12</a></li>
-      </ol>
-   </li>
-   <li><code>start.bat</code>を実行し、Fish-Speechのトレーニング/推論設定WebUIを開いてください。。
-      <ul>
-            <li>（オプション）直接推論ページに行きたい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更してください：
-               <pre><code>--infer
-# --api
-# --listen ...
-...</code></pre>
-            </li>
-            <li>（オプション）APIサーバーを起動したい場合は、プロジェクトルートディレクトリの<code>API_FLAGS.txt</code>の最初の3行を次のように変更してください：
-               <pre><code># --infer
---api
---listen ...
-...</code></pre>
-            </li>
-      </ul>
-   </li>
-   <li>（オプション）<code>run_cmd.bat</code>をダブルクリックして、このプロジェクトの仮想環境を有効化できます。</li>
-</ol>
+# PyTorchをインストール
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# fish-speechをインストール
+pip3 install -e .
+
+# (アクセラレーションを有効にする) triton-windowsをインストール
+pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
+```
+
+非プロフェッショナルなWindowsユーザーは、Linux環境なしでプロジェクトを実行するための以下の基本的な方法を検討できます（モデルコンパイル機能、つまり`torch.compile`を使用可能）：
+
+1. プロジェクトパッケージを解凍する。
+2. `install_env.bat`をクリックして環境をインストールする。
+3. コンパイルアクセラレーションを有効にしたい場合は、次のステップに従ってください：
+    1. 以下のリンクからLLVMコンパイラをダウンロード：
+        - [LLVM-17.0.6（公式サイトのダウンロード）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - [LLVM-17.0.6（ミラーサイトのダウンロード）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
+        - `LLVM-17.0.6-win64.exe`をダウンロードした後、ダブルクリックしてインストールし、適切なインストール場所を選択し、最も重要なのは`Add Path to Current User`オプションを選択して環境変数を追加することです。
+        - インストールが完了したことを確認する。
+    2. 欠落している .dll の問題を解決するため、Microsoft Visual C++ Redistributable をダウンロードしてインストールする：
+        - [MSVC++ 14.40.33810.0 ダウンロード](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+    3. Visual Studio Community Editionをダウンロードして、MSVC++ビルドツールを取得し、LLVMのヘッダーファイルの依存関係を解決する：
+        - [Visual Studio ダウンロード](https://visualstudio.microsoft.com/ja/downloads/)
+        - Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロード。
+        - 下記のように、`Modify`ボタンをクリックし、`C++によるデスクトップ開発`オプションを選択してダウンロード。
+        - <img src="../assets/figs/VS_1.jpg"/>
+    4. [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)をダウンロードしてインストールする。
+4. `start.bat`をダブルクリックして、トレーニング推論WebUI管理インターフェースを開きます。必要に応じて、以下に示すように`API_FLAGS`を修正できます。
+
+
+!!! info "オプション"
+    推論WebUIを起動しますか？
+    プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
+    ```
+    --infer 
+    # --api 
+    # --listen ...
+    ...
+    ```
+
+!!! info "オプション"
+    APIサーバーを起動しますか？
+    プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
+    ``` 
+    # --infer
+    --api
+    --listen ...
+    ...
+    ```
+
+!!! info "オプション"
+    `run_cmd.bat` をダブルクリックして、このプロジェクトの conda/python コマンドライン環境に入ります。
+
+
 
 ## Linux セットアップ
 

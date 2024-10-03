@@ -1,5 +1,7 @@
 # Amostras
 
+A demonstração da versão 1.4 foi atualizada [aqui](https://speech.fish.audio/samples/)
+
 As amostras da v1.2 estão disponíveis em [Bilibili](https://www.bilibili.com/video/BV1wz421B71D/).
 
 As seguintes amostras são do modelo v1.1.
