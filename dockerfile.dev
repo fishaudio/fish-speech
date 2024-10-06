@@ -1,0 +1,33 @@
+ARG VERSION=dev
+ARG BASE_IMAGE=ghcr.io/fishaudio/fish-speech:${VERSION}
+
+FROM ${BASE_IMAGE}
+
+ARG TOOLS="               \
+        git               \
+        curl              \
+        build-essential   \
+        ffmpeg            \
+        libsm6            \
+        libxext6          \
+        libjpeg-dev       \
+        zlib1g-dev        \
+        aria2             \
+        zsh               \
+        openssh-server    \
+        sudo              \
+        protobuf-compiler \
+        cmake"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -ex \
+    && apt-get update \
+    && apt-get -y install --no-install-recommends ${TOOLS}
+
+# Install oh-my-zsh so your terminal looks nice
+RUN sh -c "$(curl https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" "" --unattended
+
+# Set zsh as default shell
+RUN chsh -s /usr/bin/zsh
+ENV SHELL=/usr/bin/zsh

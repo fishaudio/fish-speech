@@ -144,6 +144,7 @@ call :download_and_install "triton_windows-0.1.0-py3-none-any.whl" ^
 
 endlocal
 echo "Environment Check: Success."
+:end
 pause
 
 goto :EOF

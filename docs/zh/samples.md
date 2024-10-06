@@ -1,5 +1,7 @@
 # 例子
 
+v1.4 演示已更新至[此处](https://speech.fish.audio/samples/)。
+
 v1.2 的样本可以在 [Bilibili](https://www.bilibili.com/video/BV1wz421B71D/) 观看。
 
 以下样本来自 v1.1 版本的模型。
