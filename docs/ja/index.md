@@ -69,8 +69,8 @@ pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/tr
     推論WebUIを起動しますか？
     プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
     ```
-    --infer 
-    # --api 
+    --infer
+    # --api
     # --listen ...
     ...
     ```
@@ -78,7 +78,7 @@ pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/tr
 !!! info "オプション"
     APIサーバーを起動しますか？
     プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
-    ``` 
+    ```
     # --infer
     --api
     --listen ...
@@ -105,6 +105,24 @@ pip3 install -e .[stable]
 
 # (Ubuntu / Debianユーザー) sox + ffmpegをインストールします。
 apt install libsox-dev ffmpeg
+```
+
+## macos setup
+
+推論をMPS上で行う場合は、`--device mps`フラグを追加してください。
+推論速度の比較は[こちらのPR](https://github.com/fishaudio/fish-speech/pull/461#issuecomment-2284277772)を参考にしてください。
+
+!!! warning
+    AppleSiliconのデバイスでは、compileオプションに正式に対応していませんので、推論速度が向上する保証はありません。
+
+```bash
+# create a python 3.10 virtual environment, you can also use virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
+# install pytorch
+pip install torch torchvision torchaudio
+# install fish-speech
+pip install -e .[stable]
 ```
 
 ## Docker セットアップ

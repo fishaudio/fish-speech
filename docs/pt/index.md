@@ -67,8 +67,8 @@ Usuários não profissionais do Windows podem considerar os seguintes métodos b
     Você quer iniciar o WebUI de inferência?
     Edite o arquivo `API_FLAGS.txt` no diretório raiz do projeto e modifique as três primeiras linhas como segue:
     ```
-    --infer 
-    # --api 
+    --infer
+    # --api
     # --listen ...
     ...
     ```
@@ -76,8 +76,8 @@ Usuários não profissionais do Windows podem considerar os seguintes métodos b
 !!! info "Opcional"
     Você quer iniciar o servidor de API?
     Edite o arquivo `API_FLAGS.txt` no diretório raiz do projeto e modifique as três primeiras linhas como segue:
-    
-    ``` 
+
+    ```
     # --infer
     --api
     --listen ...
@@ -103,6 +103,24 @@ pip3 install -e .[stable]
 
 # Para os Usuário do Ubuntu / Debian: Instale o sox + ffmpeg
 apt install libsox-dev ffmpeg
+```
+
+## Configuração para macos
+
+Se você quiser realizar inferências no MPS, adicione a flag `--device mps`.
+Para uma comparação das velocidades de inferência, consulte [este PR](https://github.com/fishaudio/fish-speech/pull/461#issuecomment-2284277772).
+
+!!! aviso
+    A opção `compile` não é oficialmente suportada em dispositivos Apple Silicon, então não há garantia de que a velocidade de inferência irá melhorar.
+
+```bash
+# create a python 3.10 virtual environment, you can also use virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
+# install pytorch
+pip install torch torchvision torchaudio
+# install fish-speech
+pip install -e .[stable]
 ```
 
 ## Configuração do Docker

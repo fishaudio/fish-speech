@@ -104,6 +104,24 @@ pip3 install -e .[stable]
 apt install libsox-dev ffmpeg
 ```
 
+## macos 配置
+
+如果您想在 MPS 上进行推理，请添加 `--device mps` 标志。
+有关推理速度的比较，请参考 [此 PR](https://github.com/fishaudio/fish-speech/pull/461#issuecomment-2284277772)。
+
+!!! 警告
+    `compile` 选项在 Apple Silicon 设备上尚未正式支持，因此推理速度没有提升的保证。
+
+```bash
+# create a python 3.10 virtual environment, you can also use virtualenv
+conda create -n fish-speech python=3.10
+conda activate fish-speech
+# install pytorch
+pip install torch torchvision torchaudio
+# install fish-speech
+pip install -e .[stable]
+```
+
 ## Docker 配置
 
 1. 安装 NVIDIA Container Toolkit：
