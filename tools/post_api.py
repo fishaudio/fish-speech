@@ -33,7 +33,7 @@ def parse_args():
         "-id",
         type=str,
         default=None,
-        help="ID of the reference model o be used for the speech",
+        help="ID of the reference model to be used for the speech",
     )
     parser.add_argument(
         "--reference_audio",
