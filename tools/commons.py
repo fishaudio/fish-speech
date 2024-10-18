@@ -20,6 +20,7 @@ class ServeTTSRequest(BaseModel):
     # For example, if you want use https://fish.audio/m/7f92f8afb8ec43bf81429cc1c9199cb1/
     # Just pass 7f92f8afb8ec43bf81429cc1c9199cb1
     reference_id: str | None = None
+    use_memory_cache: Literal["on-demand", "never"] = "on-demand"
     # Normalize text for en & zh, this increase stability for numbers
     normalize: bool = True
     mp3_bitrate: Optional[int] = 64

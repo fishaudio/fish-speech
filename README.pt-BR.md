@@ -1,4 +1,3 @@
-
 <div align="center">
 <h1>Fish Speech</h1>
 
@@ -15,8 +14,9 @@
 <br>
 
 <div align="center">
-    <img src="https://counter.seku.su/cmoe?name=fish-speech&theme=asoul" /><br>
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
+
 <br>
 
 <div align="center">
@@ -34,6 +34,7 @@
 Este código-fonte e os modelos são publicados sob a licença CC-BY-NC-SA-4.0. Consulte [LICENSE](LICENSE) para mais detalhes.
 
 ---
+
 ## Funcionalidades
 
 1. **TTS Zero-shot & Few-shot**: Insira uma amostra vocal de 10 a 30 segundos para gerar saída de TTS de alta qualidade. **Para diretrizes detalhadas, veja [Melhores Práticas para Clonagem de Voz](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
@@ -52,12 +53,9 @@ Este código-fonte e os modelos são publicados sob a licença CC-BY-NC-SA-4.0. 
 
 8. **Fácil de Implantar**: Configura facilmente um servidor de inferência com suporte nativo para Linux, Windows e macOS, minimizando a perda de velocidade.
 
-   
-
 ## Isenção de Responsabilidade
 
 Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região.
-
 
 ## Demonstração Online
 

@@ -1,4 +1,3 @@
-
 <div align="center">
 <h1>Fish Speech</h1>
 
@@ -15,8 +14,9 @@
 <br>
 
 <div align="center">
-    <img src="https://counter.seku.su/cmoe?name=fish-speech&theme=asoul" /><br>
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
+
 <br>
 
 <div align="center">
@@ -30,13 +30,14 @@
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
     <br>
-    
+
 
 </div>
 
 此代码库及模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节.
 
 ---
+
 ## 特性
 
 1. **零样本 & 小样本 TTS**：输入 10 到 30 秒的声音样本即可生成高质量的 TTS 输出。**详见 [语音克隆最佳实践指南](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)。**
@@ -48,11 +49,9 @@
 7. **GUI 推理**：提供 PyQt6 图形界面，与 API 服务器无缝协作。支持 Linux、Windows 和 macOS。[查看 GUI](https://github.com/AnyaCoder/fish-speech-gui)。
 8. **易于部署**：轻松设置推理服务器，原生支持 Linux、Windows 和 macOS，最大程度减少速度损失。
 
-
 ## 免责声明
 
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
-
 
 ## 在线 DEMO
 

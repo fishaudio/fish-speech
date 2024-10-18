@@ -1,4 +1,3 @@
-
 <div align="center">
 <h1>Fish Speech</h1>
 
@@ -15,7 +14,7 @@
 <br>
 
 <div align="center">
-    <img src="https://counter.seku.su/cmoe?name=fish-speech&theme=asoul" /><br>
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
 <br>
 
@@ -31,27 +30,24 @@
     </a>
 </div>
 
-このコードベースとすべてのモデルは、CC-BY-NC-SA-4.0ライセンスの下でリリースされています。詳細については、[LICENSE](LICENSE)を参照してください。
+このコードベースとすべてのモデルは、CC-BY-NC-SA-4.0 ライセンスの下でリリースされています。詳細については、[LICENSE](LICENSE)を参照してください。
 
 ---
 
 ## 機能
 
-1. **ゼロショット & フューショット TTS**：10〜30秒の音声サンプルを入力して、高品質のTTS出力を生成します。**詳細は [音声クローンのベストプラクティス](https://docs.fish.audio/text-to-speech/voice-clone-best-practices) を参照してください。**
+1. **ゼロショット & フューショット TTS**：10〜30 秒の音声サンプルを入力して、高品質の TTS 出力を生成します。**詳細は [音声クローンのベストプラクティス](https://docs.fish.audio/text-to-speech/voice-clone-best-practices) を参照してください。**
 2. **多言語 & クロスリンガル対応**：多言語テキストを入力ボックスにコピーペーストするだけで、言語を気にする必要はありません。現在、英語、日本語、韓国語、中国語、フランス語、ドイツ語、アラビア語、スペイン語に対応しています。
-3. **音素依存なし**：このモデルは強力な汎化能力を持ち、TTSに音素を必要としません。あらゆる言語スクリプトに対応可能です。
-4. **高精度**：5分間の英語テキストに対し、CER（文字誤り率）とWER（単語誤り率）は約2%の精度を達成します。
-5. **高速**：fish-techアクセラレーションにより、Nvidia RTX 4060ラップトップではリアルタイムファクターが約1:5、Nvidia RTX 4090では約1:15です。
-6. **WebUI 推論**：使いやすいGradioベースのWebユーザーインターフェースを搭載し、Chrome、Firefox、Edgeなどのブラウザに対応しています。
-7. **GUI 推論**：PyQt6のグラフィカルインターフェースを提供し、APIサーバーとシームレスに連携します。Linux、Windows、macOSに対応しています。[GUIを見る](https://github.com/AnyaCoder/fish-speech-gui)。
-8. **デプロイしやすい**：Linux、Windows、macOSにネイティブ対応した推論サーバーを簡単にセットアップでき、速度の低下を最小限に抑えます。
-
-
+3. **音素依存なし**：このモデルは強力な汎化能力を持ち、TTS に音素を必要としません。あらゆる言語スクリプトに対応可能です。
+4. **高精度**：5 分間の英語テキストに対し、CER（文字誤り率）と WER（単語誤り率）は約 2%の精度を達成します。
+5. **高速**：fish-tech アクセラレーションにより、Nvidia RTX 4060 ラップトップではリアルタイムファクターが約 1:5、Nvidia RTX 4090 では約 1:15 です。
+6. **WebUI 推論**：使いやすい Gradio ベースの Web ユーザーインターフェースを搭載し、Chrome、Firefox、Edge などのブラウザに対応しています。
+7. **GUI 推論**：PyQt6 のグラフィカルインターフェースを提供し、API サーバーとシームレスに連携します。Linux、Windows、macOS に対応しています。[GUI を見る](https://github.com/AnyaCoder/fish-speech-gui)。
+8. **デプロイしやすい**：Linux、Windows、macOS にネイティブ対応した推論サーバーを簡単にセットアップでき、速度の低下を最小限に抑えます。
 
 ## 免責事項
 
 コードベースの違法な使用については一切責任を負いません。DMCA（デジタルミレニアム著作権法）およびその他の関連法については、地域の法律を参照してください。
-
 
 ## オンラインデモ
 
