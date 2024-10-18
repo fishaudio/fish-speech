@@ -23,7 +23,7 @@ dependencies = [
     "einops>=0.7.0",
     "librosa>=0.10.1",
     "rich>=13.5.3",
-    "gradio>=4.0.0",
+    "gradio<5.0.0",
     "wandb>=0.15.11",
     "grpcio>=1.58.0",
     "kui>=1.6.0",
@@ -37,6 +37,7 @@ dependencies = [
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
     "pydub",
+    "pyaudio",
     "faster_whisper",
     "modelscope==1.17.1",
     "funasr==1.1.5",
@@ -47,7 +48,7 @@ dependencies = [
 
 [project.optional-dependencies]
 stable = [
-    "torch>=2.3.1",
+    "torch<=2.4.1",
     "torchaudio",
 ]
 

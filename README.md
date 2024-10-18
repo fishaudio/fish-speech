@@ -1,4 +1,3 @@
-
 <div align="center">
 <h1>Fish Speech</h1>
 
@@ -15,8 +14,9 @@
 <br>
 
 <div align="center">
-    <img src="https://counter.seku.su/cmoe?name=fish-speech&theme=asoul" /><br>
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
+
 <br>
 
 <div align="center">
@@ -31,7 +31,7 @@
     </a>
 </div>
 
-This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details. 
+This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
 ---
 
@@ -54,6 +54,7 @@ This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please 
 8. **Deploy-Friendly:** Easily set up an inference server with native support for Linux, Windows and MacOS, minimizing speed loss.
 
 ## Disclaimer
+
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
 ## Online Demo
