@@ -16,6 +16,7 @@ ARG TARGETARCH
 ARG DEPENDENCIES="  \
     ca-certificates \
     libsox-dev \
+    build-essential \
     ffmpeg"
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
