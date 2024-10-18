@@ -1,7 +1,13 @@
+import os
+from argparse import ArgumentParser
+from pathlib import Path
+
 import httpx
 import ormsgpack
 
 from tools.commons import ServeReferenceAudio, ServeTTSRequest
+
+api_key = os.environ.get("FISH_API_KEY", "YOUR_API_KEY")
 
 
 def audio_request():
@@ -18,6 +24,8 @@ def audio_request():
         streaming=True,
     )
 
+    api_key = os.environ.get("FISH_API_KEY", "YOUR_API_KEY")
+
     with (
         httpx.Client() as client,
         open("hello.wav", "wb") as f,
@@ -27,7 +35,7 @@ def audio_request():
             "http://127.0.0.1:8080/v1/tts",
             content=ormsgpack.packb(request, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
             headers={
-                "authorization": "Bearer YOUR_API_KEY",
+                "authorization": f"Bearer {api_key}",
                 "content-type": "application/msgpack",
             },
             timeout=None,
@@ -36,11 +44,11 @@ def audio_request():
                 f.write(chunk)
 
 
-def asr_request():
+def asr_request(audio_path: Path):
 
     # Read the audio file
     with open(
-        r"D:\PythonProject\fish-speech\.cache\test_audios\prompts\2648200402409733590.wav",
+        str(audio_path),
         "rb",
     ) as audio_file:
         audio_data = audio_file.read()
@@ -57,7 +65,7 @@ def asr_request():
         response = client.post(
             "https://api.fish.audio/v1/asr",
             headers={
-                "Authorization": "Bearer 8eda4aeed2bc4aec9489b3efad003799",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/msgpack",
             },
             content=ormsgpack.packb(request_data),
@@ -74,5 +82,14 @@ def asr_request():
         print(f"Start time: {segment['start']}, End time: {segment['end']}")
 
 
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument("--audio_path", type=Path, default="audio/ref/trump.mp3")
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    asr_request()
+    args = parse_args()
+
+    asr_request(args.audio_path)

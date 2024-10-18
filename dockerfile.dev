@@ -17,6 +17,10 @@ ARG TOOLS="               \
         openssh-server    \
         sudo              \
         protobuf-compiler \
+        libasound-dev     \
+        portaudio19-dev   \
+        libportaudio2     \
+        libportaudiocpp0  \
         cmake"
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

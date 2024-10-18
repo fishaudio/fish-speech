@@ -18,6 +18,10 @@ ARG DEPENDENCIES="  \
     libsox-dev \
     build-essential \
     cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0 \
     ffmpeg"
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
