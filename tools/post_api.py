@@ -104,7 +104,7 @@ def parse_args():
     )
     parser.add_argument("--rate", type=int, default=44100, help="Sample rate for audio")
     parser.add_argument(
-        "--use-memory-cache",
+        "--use_memory_cache",
         type=str,
         default="never",
         help="Cache encoded references codes in memory",

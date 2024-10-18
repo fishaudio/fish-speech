@@ -35,7 +35,7 @@ conda create -n fish-speech python=3.10
 conda activate fish-speech
 
 # PyTorchをインストール
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu121
 
 # fish-speechをインストール
 pip3 install -e .
@@ -98,7 +98,7 @@ conda create -n fish-speech python=3.10
 conda activate fish-speech
 
 # pytorchをインストールします。
-pip3 install torch torchvision torchaudio
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
 # fish-speechをインストールします。
 pip3 install -e .[stable]
@@ -120,7 +120,7 @@ apt install libsox-dev ffmpeg
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 # install pytorch
-pip install torch torchvision torchaudio
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 # install fish-speech
 pip install -e .[stable]
 ```

@@ -35,7 +35,7 @@ conda create -n fish-speech python=3.10
 conda activate fish-speech
 
 # Instale o pytorch
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu121
 
 # Instale o fish-speech
 pip3 install -e .
@@ -96,7 +96,7 @@ conda create -n fish-speech python=3.10
 conda activate fish-speech
 
 # Instale o pytorch
-pip3 install torch torchvision torchaudio
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
 # Instale o fish-speech
 pip3 install -e .[stable]
@@ -118,7 +118,7 @@ Para uma comparação das velocidades de inferência, consulte [este PR](https:/
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 # install pytorch
-pip install torch torchvision torchaudio
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 # install fish-speech
 pip install -e .[stable]
 ```
