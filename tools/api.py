@@ -1,5 +1,5 @@
-import os
 import io
+import os
 import queue
 import sys
 import traceback
@@ -89,7 +89,8 @@ def load_audio(reference_audio, sr):
         reference_audio = io.BytesIO(audio_data)
 
     waveform, original_sr = torchaudio.load(
-        reference_audio, backend="soundfile" # not every linux release supports 'sox' or 'ffmpeg'
+        reference_audio,
+        backend="soundfile",  # not every linux release supports 'sox' or 'ffmpeg'
     )
 
     if waveform.shape[0] > 1:
@@ -176,9 +177,10 @@ def inference(req: ServeTTSRequest):
         ref_audios = list_files(
             ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
         )
-    
-        if req.use_memory_cache == "never" or \
-            (req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0):
+
+        if req.use_memory_cache == "never" or (
+            req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0
+        ):
             prompt_tokens = [
                 encode_reference(
                     decoder_model=decoder_model,
@@ -198,8 +200,9 @@ def inference(req: ServeTTSRequest):
         # Parse reference audio aka prompt
         refs = req.references
 
-        if req.use_memory_cache == "never" or \
-            (req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0):
+        if req.use_memory_cache == "never" or (
+            req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0
+        ):
             prompt_tokens = [
                 encode_reference(
                     decoder_model=decoder_model,
@@ -211,7 +214,7 @@ def inference(req: ServeTTSRequest):
             prompt_texts = [ref.text for ref in refs]
         else:
             logger.info("Use same references")
-            
+
     # LLAMA Inference
     request = dict(
         device=decoder_model.device,
@@ -410,8 +413,9 @@ app = Kui(
 
 # Each worker process created by Uvicorn has its own memory space,
 # meaning that models and variables are not shared between processes.
-# Therefore, any global variables (like `llama_queue` or `decoder_model`) 
+# Therefore, any global variables (like `llama_queue` or `decoder_model`)
 # will not be shared across workers.
+
 
 # Multi-threading for deep learning can cause issues, such as inconsistent
 # outputs if multiple threads access the same buffers simultaneously.
@@ -422,8 +426,8 @@ def initialize_app(app: Kui):
     global args, llama_queue, decoder_model, prompt_tokens, prompt_texts
 
     prompt_tokens, prompt_texts = [], []
-    
-    args = parse_args() # args same as ones in other processes
+
+    args = parse_args()  # args same as ones in other processes
     args.precision = torch.half if args.half else torch.bfloat16
 
     logger.info("Loading Llama model...")
@@ -444,7 +448,6 @@ def initialize_app(app: Kui):
 
     logger.info("VQ-GAN model loaded, warming up...")
 
-    
     # Dry run to ensure models work and avoid first-time latency
     list(
         inference(
@@ -469,6 +472,13 @@ def initialize_app(app: Kui):
 if __name__ == "__main__":
 
     import uvicorn
+
     args = parse_args()
     host, port = args.listen.split(":")
-    uvicorn.run("tools.api:app", host=host, port=int(port), workers=args.workers, log_level="info")
+    uvicorn.run(
+        "tools.api:app",
+        host=host,
+        port=int(port),
+        workers=args.workers,
+        log_level="info",
+    )
