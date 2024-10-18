@@ -1,13 +1,14 @@
 import os
+from argparse import ArgumentParser
+from pathlib import Path
+
 import httpx
 import ormsgpack
 
 from tools.commons import ServeReferenceAudio, ServeTTSRequest
-from argparse import ArgumentParser
-from pathlib import Path
-
 
 api_key = os.environ.get("FISH_API_KEY", "YOUR_API_KEY")
+
 
 def audio_request():
     # priority: ref_id > references
@@ -83,11 +84,7 @@ def asr_request(audio_path: Path):
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument(
-        "--audio_path",
-        type=Path,
-        default="audio/ref/trump.mp3"
-    )
+    parser.add_argument("--audio_path", type=Path, default="audio/ref/trump.mp3")
 
     return parser.parse_args()
 
