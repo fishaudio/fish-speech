@@ -103,7 +103,12 @@ def parse_args():
         "--channels", type=int, default=1, help="Number of audio channels"
     )
     parser.add_argument("--rate", type=int, default=44100, help="Sample rate for audio")
-    parser.add_argument("--use-memory-cache", type=str, default="never", help="Cache encoded references codes in memory")
+    parser.add_argument(
+        "--use-memory-cache",
+        type=str,
+        default="never",
+        help="Cache encoded references codes in memory",
+    )
 
     return parser.parse_args()
 
@@ -149,7 +154,7 @@ if __name__ == "__main__":
         "speaker": args.speaker,
         "emotion": args.emotion,
         "streaming": args.streaming,
-        "use_memory_cache": args.use_memory_cache
+        "use_memory_cache": args.use_memory_cache,
     }
 
     pydantic_data = ServeTTSRequest(**data)
