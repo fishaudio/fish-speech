@@ -37,6 +37,7 @@ dependencies = [
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
     "pydub",
+    "pyaudio",
     "faster_whisper",
     "modelscope==1.17.1",
     "funasr==1.1.5",

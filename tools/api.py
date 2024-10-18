@@ -465,8 +465,8 @@ def initialize_app(app: Kui):
             )
         )
     )
-
-    logger.info("Initialization completed successfully.")
+    
+    logger.info(f"Warming up done, starting server at http://{args.listen}")
 
 
 if __name__ == "__main__":
