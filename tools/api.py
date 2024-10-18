@@ -465,7 +465,7 @@ def initialize_app(app: Kui):
             )
         )
     )
-    
+
     logger.info(f"Warming up done, starting server at http://{args.listen}")
 
 
