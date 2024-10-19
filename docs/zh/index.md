@@ -89,6 +89,7 @@ Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法�
 
 ## Linux 配置
 
+有关详细信息，请参见 [pyproject.toml](../../pyproject.toml)。
 ```bash
 # 创建一个 python 3.10 虚拟环境, 你也可以用 virtualenv
 conda create -n fish-speech python=3.10
@@ -97,11 +98,19 @@ conda activate fish-speech
 # 安装 pytorch
 pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
-# 安装 fish-speech
-pip3 install -e .[stable]
-
 # (Ubuntu / Debian 用户) 安装 sox + ffmpeg
 apt install libsox-dev ffmpeg
+
+# (Ubuntu / Debian 用户) 安装 pyaudio
+apt install build-essential \
+    cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0
+    
+# 安装 fish-speech
+pip3 install -e .[stable]
 ```
 
 ## macos 配置

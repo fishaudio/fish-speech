@@ -90,6 +90,7 @@ Usuários não profissionais do Windows podem considerar os seguintes métodos b
 
 ## Configuração para Linux
 
+Para mais detalhes, consulte [pyproject.toml](../../pyproject.toml).
 ```bash
 # Crie um ambiente virtual python 3.10, você também pode usar virtualenv
 conda create -n fish-speech python=3.10
@@ -98,11 +99,19 @@ conda activate fish-speech
 # Instale o pytorch
 pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
-# Instale o fish-speech
-pip3 install -e .[stable]
-
 # Para os Usuário do Ubuntu / Debian: Instale o sox + ffmpeg
 apt install libsox-dev ffmpeg
+
+# Para os Usuário do Ubuntu / Debian: Instale o pyaudio
+apt install build-essential \
+    cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0
+    
+# Instale o fish-speech
+pip3 install -e .[stable]
 ```
 
 ## Configuração para macos
