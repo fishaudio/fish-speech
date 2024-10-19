@@ -1,26 +1,26 @@
 name: "🕷️ Bug report"
-description: Report errors or unexpected behavior
+description: |
+  Please follow this template carefully to ensure we can address your issue quickly.
+  Make sure to provide as much detail as possible, including logs and screenshots.
 labels:
   - bug
 body:
   - type: checkboxes
     attributes:
       label: Self Checks
-      description: "To make sure we get to you in time, please check the following :)"
+      description: "To ensure timely help, please confirm the following:"
       options:
-        - label: This is only for bug report, if you would like to ask a question, please head to [Discussions](https://github.com/fishaudio/fish-speech/discussions).
+        - label: This template is only for bug reports. For questions, please visit [Discussions](https://github.com/fishaudio/fish-speech/discussions).
           required: true
-        - label: I have thoroughly reviewed the project documentation, including the sections on installation, training, \
-            and inference, but I couldn't find any relevant information to solve my problem. \
-            [English](https://speech.fish.audio/)[中文](https://speech.fish.audio/zh/)[日本語](https://speech.fish.audio/ja/)[Portuguese (Brazil)](https://speech.fish.audio/pt/)
+        - label: I have thoroughly reviewed the project documentation (installation, training, inference) but couldn't find information to solve my problem. [English](https://speech.fish.audio/) [中文](https://speech.fish.audio/zh/) [日本語](https://speech.fish.audio/ja/) [Portuguese (Brazil)](https://speech.fish.audio/pt/)
           required: true
-        - label: I have searched for existing issues [search for existing issues](https://github.com/fishaudio/fish-speech/issues), including closed ones.
+        - label: I have searched for existing issues, including closed ones. [Search issues](https://github.com/fishaudio/fish-speech/issues)
           required: true
         - label: I confirm that I am using English to submit this report (我已阅读并同意 [Language Policy](https://github.com/fishaudio/fish-speech/issues/515)).
           required: true
         - label: "[FOR CHINESE USERS] 请务必使用英文提交 Issue，否则会被关闭。谢谢！:）"
           required: true
-        - label: "Please do not modify this template :) and fill in all the required fields."
+        - label: "Please do not modify this template and fill in all required fields."
           required: true
   - type: dropdown
     attributes:
@@ -34,21 +34,30 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Steps to reproduce
-      description: We highly suggest including screenshots and a bug report log. Please use the right markdown syntax for code blocks.
-      placeholder: Having detailed steps helps us reproduce the bug.
+      label: Environment Details
+      description: "Provide details such as OS, Python version, and any relevant software or dependencies."
+      placeholder: e.g., macOS 13.5, Python 3.10, torch==2.4.1, Gradio 4.44.0
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        Include detailed steps, screenshots, and logs. Use the correct markdown syntax for code blocks.
+      placeholder: |
+        1. Run the command `python -m tools.post_api -t "xxxxx"`
+        2. Observe the console output error: `ModuleNotFoundError: No module named 'pyaudio'` (with screenshots or logs will be better)
     validations:
       required: true
   - type: textarea
     attributes:
       label: ✔️ Expected Behavior
-      placeholder: What were you expecting?
+      placeholder: Describe what you expected to happen.
     validations:
       required: false
-
   - type: textarea
     attributes:
       label: ❌ Actual Behavior
-      placeholder: What happened instead?
+      placeholder: Describe what actually happened.
     validations:
       required: false
