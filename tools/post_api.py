@@ -109,7 +109,13 @@ def parse_args():
         default="never",
         help="Cache encoded references codes in memory",
     )
-
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="None means randomized inference, otherwise deterministic",
+    )
+    
     return parser.parse_args()
 
 
@@ -155,6 +161,7 @@ if __name__ == "__main__":
         "emotion": args.emotion,
         "streaming": args.streaming,
         "use_memory_cache": args.use_memory_cache,
+        "seed": args.seed,
     }
 
     pydantic_data = ServeTTSRequest(**data)
