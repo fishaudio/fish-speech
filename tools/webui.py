@@ -23,7 +23,7 @@ from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.api import decode_vq_tokens, encode_reference
-from tools.file import list_files, AUDIO_EXTENSIONS
+from tools.file import AUDIO_EXTENSIONS, list_files
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -250,6 +250,7 @@ def update_examples():
     example_audios = list_files(examples_dir, AUDIO_EXTENSIONS, recursive=True)
     return gr.Dropdown(choices=example_audios + [""])
 
+
 def build_app():
     with gr.Blocks(theme=gr.themes.Base()) as app:
         gr.Markdown(HEADER_MD)
@@ -296,7 +297,9 @@ def build_app():
                             )
 
                             max_new_tokens = gr.Slider(
-                                label=i18n("Maximum tokens per batch, 0 means no limit"),
+                                label=i18n(
+                                    "Maximum tokens per batch, 0 means no limit"
+                                ),
                                 minimum=0,
                                 maximum=2048,
                                 value=0,  # 0 means no limit
@@ -431,9 +434,7 @@ def build_app():
 
         # Connect the dropdown to update reference audio and text
         example_audio_dropdown.change(
-            fn=update_examples,
-            inputs=[],
-            outputs=[example_audio_dropdown]
+            fn=update_examples, inputs=[], outputs=[example_audio_dropdown]
         ).then(
             fn=select_example_audio,
             inputs=[example_audio_dropdown],

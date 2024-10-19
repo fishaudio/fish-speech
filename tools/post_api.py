@@ -115,7 +115,7 @@ def parse_args():
         default=None,
         help="None means randomized inference, otherwise deterministic",
     )
-    
+
     return parser.parse_args()
 
 

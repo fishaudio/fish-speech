@@ -1,10 +1,10 @@
+import random
 import warnings
 from importlib.util import find_spec
 from typing import Callable
-import random
-import torch
-import numpy as np
 
+import numpy as np
+import torch
 from omegaconf import DictConfig
 
 from .logger import RankedLogger
@@ -117,13 +117,12 @@ def get_metric_value(metric_dict: dict, metric_name: str) -> float:
     return metric_value
 
 
-
 def set_seed(seed: int):
     if seed < 0:
         seed = -seed
     if seed > (1 << 31):
-        seed = (1 << 31)
-        
+        seed = 1 << 31
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
