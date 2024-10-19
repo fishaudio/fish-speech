@@ -92,6 +92,7 @@ pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/tr
 
 ## Linux セットアップ
 
+詳細については、[pyproject.toml](../../pyproject.toml)  を参照してください。
 ```bash
 # python 3.10の仮想環境を作成します。virtualenvも使用できます。
 conda create -n fish-speech python=3.10
@@ -100,11 +101,20 @@ conda activate fish-speech
 # pytorchをインストールします。
 pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
+# (Ubuntu / Debianユーザー) sox + ffmpegをインストールします。
+apt install libsox-dev ffmpeg
+
+# (Ubuntu / Debianユーザー) pyaudio をインストールします。
+apt install build-essential \
+    cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0
+    
 # fish-speechをインストールします。
 pip3 install -e .[stable]
 
-# (Ubuntu / Debianユーザー) sox + ffmpegをインストールします。
-apt install libsox-dev ffmpeg
 ```
 
 ## macos setup

@@ -8,6 +8,9 @@ body:
       label: Self Checks
       description: "To make sure we get to you in time, please check the following :)"
       options:
+        - label: I have thoroughly reviewed the project documentation, including the sections on installation, training, and inference, but I couldn't find any relevant information that meets my needs. \
+            [English](https://speech.fish.audio/)[中文](https://speech.fish.audio/zh/)[日本語](https://speech.fish.audio/ja/)[Portuguese (Brazil)](https://speech.fish.audio/pt/)
+          required: true
         - label: I have searched for existing issues [search for existing issues]([https://github.com/langgenius/dify/issues](https://github.com/fishaudio/fish-speech/issues)), including closed ones.
           required: true
         - label: I confirm that I am using English to submit this report (我已阅读并同意 [Language Policy](https://github.com/fishaudio/fish-speech/issues/515)).

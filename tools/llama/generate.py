@@ -544,6 +544,8 @@ def generate_long(
             yield GenerateResponse(action="sample", codes=codes, text=texts[seg_idx])
             seg_idx += 1
 
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         # This indicates the end of the current sample
         yield GenerateResponse(action="next")
 
