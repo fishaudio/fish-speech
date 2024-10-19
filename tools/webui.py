@@ -298,7 +298,9 @@ def build_app():
                                 )
 
                                 max_new_tokens = gr.Slider(
-                                    label=i18n("Maximum tokens per batch, 0 means no limit"),
+                                    label=i18n(
+                                        "Maximum tokens per batch, 0 means no limit"
+                                    ),
                                     minimum=0,
                                     maximum=2048,
                                     value=0,  # 0 means no limit
@@ -322,7 +324,7 @@ def build_app():
                                     step=0.01,
                                 )
 
-                            with gr.Row():   
+                            with gr.Row():
                                 temperature = gr.Slider(
                                     label="Temperature",
                                     minimum=0.6,
