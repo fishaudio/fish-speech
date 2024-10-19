@@ -46,6 +46,13 @@ from tools.llama.generate import (
 )
 from tools.vqgan.inference import load_model as load_decoder_model
 
+backends = torchaudio.list_audio_backends()
+if "sox" in backends:
+    backend = "sox"
+elif "ffmpeg" in backends:
+    backend = "ffmpeg"
+else:
+    backend = "soundfile"
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
@@ -90,7 +97,7 @@ def load_audio(reference_audio, sr):
 
     waveform, original_sr = torchaudio.load(
         reference_audio,
-        backend="soundfile",  # not every linux release supports 'sox' or 'ffmpeg'
+        backend=backend
     )
 
     if waveform.shape[0] > 1:
