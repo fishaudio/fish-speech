@@ -23,7 +23,7 @@ dependencies = [
     "einops>=0.7.0",
     "librosa>=0.10.1",
     "rich>=13.5.3",
-    "gradio<5.0.0",
+    "gradio>5.0.0",
     "wandb>=0.15.11",
     "grpcio>=1.58.0",
     "kui>=1.6.0",

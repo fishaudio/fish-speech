@@ -794,7 +794,7 @@ with gr.Blocks(
                         value="VQGAN",
                     )
                 with gr.Row():
-                    with gr.Tabs():
+                    with gr.Column():
                         with gr.Tab(label=i18n("VQGAN Configuration")) as vqgan_page:
                             gr.HTML("You don't need to train this model!")
 
