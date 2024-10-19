@@ -24,6 +24,13 @@ OmegaConf.register_new_resolver("eval", eval)
 # This file is used to convert the audio files to text files using the Whisper model.
 # It's mainly used to generate the training data for the VQ model.
 
+backends = torchaudio.list_audio_backends()
+if "sox" in backends:
+    backend = "sox"
+elif "ffmpeg" in backends:
+    backend = "ffmpeg"
+else:
+    backend = "soundfile"
 
 RANK = int(os.environ.get("SLURM_PROCID", 0))
 WORLD_SIZE = int(os.environ.get("SLURM_NTASKS", 1))
@@ -81,7 +88,7 @@ def process_batch(files: list[Path], model) -> float:
     for file in files:
         try:
             wav, sr = torchaudio.load(
-                str(file), backend="sox" if sys.platform == "linux" else "soundfile"
+                str(file), backend=backend
             )  # Need to install libsox-dev
         except Exception as e:
             logger.error(f"Error reading {file}: {e}")

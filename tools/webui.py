@@ -21,8 +21,9 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
-from fish_speech.utils import autocast_exclude_mps
+from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.api import decode_vq_tokens, encode_reference
+from tools.file import AUDIO_EXTENSIONS, list_files
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -70,6 +71,7 @@ def inference(
     top_p,
     repetition_penalty,
     temperature,
+    seed="0",
     streaming=False,
 ):
     if args.max_gradio_length > 0 and len(text) > args.max_gradio_length:
@@ -80,6 +82,11 @@ def inference(
                 args.max_gradio_length
             ),
         )
+
+    seed = int(seed)
+    if seed != 0:
+        set_seed(seed)
+        logger.warning(f"set seed: {seed}")
 
     # Parse reference audio aka prompt
     prompt_tokens = encode_reference(
@@ -177,6 +184,7 @@ def inference_wrapper(
     top_p,
     repetition_penalty,
     temperature,
+    seed,
     batch_infer_num,
 ):
     audios = []
@@ -193,6 +201,7 @@ def inference_wrapper(
             top_p,
             repetition_penalty,
             temperature,
+            seed,
         )
 
         _, audio_data, error_message = next(result)
@@ -235,7 +244,11 @@ def normalize_text(user_input, use_normalization):
         return user_input
 
 
-asr_model = None
+def update_examples():
+    examples_dir = Path("references")
+    examples_dir.mkdir(parents=True, exist_ok=True)
+    example_audios = list_files(examples_dir, AUDIO_EXTENSIONS, recursive=True)
+    return gr.Dropdown(choices=example_audios + [""])
 
 
 def build_app():
@@ -273,90 +286,100 @@ def build_app():
                     )
 
                 with gr.Row():
-                    with gr.Tab(label=i18n("Advanced Config")):
-                        chunk_length = gr.Slider(
-                            label=i18n("Iterative Prompt Length, 0 means off"),
-                            minimum=50,
-                            maximum=300,
-                            value=200,
-                            step=8,
-                        )
+                    with gr.Column():
+                        with gr.Tab(label=i18n("Advanced Config")):
+                            with gr.Row():
+                                chunk_length = gr.Slider(
+                                    label=i18n("Iterative Prompt Length, 0 means off"),
+                                    minimum=50,
+                                    maximum=300,
+                                    value=200,
+                                    step=8,
+                                )
 
-                        max_new_tokens = gr.Slider(
-                            label=i18n("Maximum tokens per batch, 0 means no limit"),
-                            minimum=0,
-                            maximum=2048,
-                            value=0,  # 0 means no limit
-                            step=8,
-                        )
+                                max_new_tokens = gr.Slider(
+                                    label=i18n(
+                                        "Maximum tokens per batch, 0 means no limit"
+                                    ),
+                                    minimum=0,
+                                    maximum=2048,
+                                    value=0,  # 0 means no limit
+                                    step=8,
+                                )
 
-                        top_p = gr.Slider(
-                            label="Top-P",
-                            minimum=0.6,
-                            maximum=0.9,
-                            value=0.7,
-                            step=0.01,
-                        )
+                            with gr.Row():
+                                top_p = gr.Slider(
+                                    label="Top-P",
+                                    minimum=0.6,
+                                    maximum=0.9,
+                                    value=0.7,
+                                    step=0.01,
+                                )
 
-                        repetition_penalty = gr.Slider(
-                            label=i18n("Repetition Penalty"),
-                            minimum=1,
-                            maximum=1.5,
-                            value=1.2,
-                            step=0.01,
-                        )
+                                repetition_penalty = gr.Slider(
+                                    label=i18n("Repetition Penalty"),
+                                    minimum=1,
+                                    maximum=1.5,
+                                    value=1.2,
+                                    step=0.01,
+                                )
 
-                        temperature = gr.Slider(
-                            label="Temperature",
-                            minimum=0.6,
-                            maximum=0.9,
-                            value=0.7,
-                            step=0.01,
-                        )
+                            with gr.Row():
+                                temperature = gr.Slider(
+                                    label="Temperature",
+                                    minimum=0.6,
+                                    maximum=0.9,
+                                    value=0.7,
+                                    step=0.01,
+                                )
+                                seed = gr.Textbox(
+                                    label="Seed",
+                                    info="0 means randomized inference, otherwise deterministic",
+                                    placeholder="any 32-bit-integer",
+                                    value="0",
+                                )
 
-                    with gr.Tab(label=i18n("Reference Audio")):
-                        gr.Markdown(
-                            i18n(
-                                "5 to 10 seconds of reference audio, useful for specifying speaker."
-                            )
-                        )
+                        with gr.Tab(label=i18n("Reference Audio")):
+                            with gr.Row():
+                                gr.Markdown(
+                                    i18n(
+                                        "5 to 10 seconds of reference audio, useful for specifying speaker."
+                                    )
+                                )
+                            with gr.Row():
+                                enable_reference_audio = gr.Checkbox(
+                                    label=i18n("Enable Reference Audio"),
+                                )
 
-                        enable_reference_audio = gr.Checkbox(
-                            label=i18n("Enable Reference Audio"),
-                        )
-
-                        # Add dropdown for selecting example audio files
-                        examples_dir = Path("examples")
-                        if not examples_dir.exists():
-                            examples_dir.mkdir()
-                        example_audio_files = [
-                            f.name for f in examples_dir.glob("*.wav")
-                        ] + [f.name for f in examples_dir.glob("*.mp3")]
-                        example_audio_dropdown = gr.Dropdown(
-                            label=i18n("Select Example Audio"),
-                            choices=[""] + example_audio_files,
-                            value="",
-                        )
-
-                        reference_audio = gr.Audio(
-                            label=i18n("Reference Audio"),
-                            type="filepath",
-                        )
-                        with gr.Row():
-                            reference_text = gr.Textbox(
-                                label=i18n("Reference Text"),
-                                lines=1,
-                                placeholder="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
-                                value="",
-                            )
-                    with gr.Tab(label=i18n("Batch Inference")):
-                        batch_infer_num = gr.Slider(
-                            label="Batch infer nums",
-                            minimum=1,
-                            maximum=n_audios,
-                            step=1,
-                            value=1,
-                        )
+                            with gr.Row():
+                                example_audio_dropdown = gr.Dropdown(
+                                    label=i18n("Select Example Audio"),
+                                    choices=[""],
+                                    value="",
+                                    interactive=True,
+                                    allow_custom_value=True,
+                                )
+                            with gr.Row():
+                                reference_audio = gr.Audio(
+                                    label=i18n("Reference Audio"),
+                                    type="filepath",
+                                )
+                            with gr.Row():
+                                reference_text = gr.Textbox(
+                                    label=i18n("Reference Text"),
+                                    lines=1,
+                                    placeholder="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
+                                    value="",
+                                )
+                        with gr.Tab(label=i18n("Batch Inference")):
+                            with gr.Row():
+                                batch_infer_num = gr.Slider(
+                                    label="Batch infer nums",
+                                    minimum=1,
+                                    maximum=n_audios,
+                                    step=1,
+                                    value=1,
+                                )
 
             with gr.Column(scale=3):
                 for _ in range(n_audios):
@@ -397,10 +420,10 @@ def build_app():
             fn=normalize_text, inputs=[text, if_refine_text], outputs=[refined_text]
         )
 
-        def select_example_audio(audio_file):
-            if audio_file:
-                audio_path = examples_dir / audio_file
-                lab_file = audio_path.with_suffix(".lab")
+        def select_example_audio(audio_path):
+            audio_path = Path(audio_path)
+            if audio_path.is_file():
+                lab_file = Path(audio_path.with_suffix(".lab"))
 
                 if lab_file.exists():
                     lab_content = lab_file.read_text(encoding="utf-8").strip()
@@ -412,6 +435,8 @@ def build_app():
 
         # Connect the dropdown to update reference audio and text
         example_audio_dropdown.change(
+            fn=update_examples, inputs=[], outputs=[example_audio_dropdown]
+        ).then(
             fn=select_example_audio,
             inputs=[example_audio_dropdown],
             outputs=[reference_audio, reference_text, enable_reference_audio],
@@ -430,6 +455,7 @@ def build_app():
                 top_p,
                 repetition_penalty,
                 temperature,
+                seed,
                 batch_infer_num,
             ],
             [stream_audio, *global_audio_list, *global_error_list],
@@ -448,9 +474,10 @@ def build_app():
                 top_p,
                 repetition_penalty,
                 temperature,
+                seed,
             ],
             [stream_audio, global_audio_list[0], global_error_list[0]],
-            concurrency_limit=10,
+            concurrency_limit=1,
         )
     return app
 
