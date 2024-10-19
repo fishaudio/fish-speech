@@ -54,6 +54,7 @@ elif "ffmpeg" in backends:
 else:
     backend = "soundfile"
 
+
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
 
@@ -95,10 +96,7 @@ def load_audio(reference_audio, sr):
         audio_data = reference_audio
         reference_audio = io.BytesIO(audio_data)
 
-    waveform, original_sr = torchaudio.load(
-        reference_audio,
-        backend=backend
-    )
+    waveform, original_sr = torchaudio.load(reference_audio, backend=backend)
 
     if waveform.shape[0] > 1:
         waveform = torch.mean(waveform, dim=0, keepdim=True)

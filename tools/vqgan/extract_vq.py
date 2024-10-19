@@ -84,7 +84,7 @@ def process_batch(files: list[Path], model) -> float:
     audio_lengths = []
     new_files = []
     max_length = total_time = 0
-    
+
     for file in files:
         try:
             wav, sr = torchaudio.load(
