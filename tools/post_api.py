@@ -117,6 +117,12 @@ def parse_args():
         help="`None` means randomized inference, otherwise deterministic.\n"
             "It can't be used for fixing a timbre.",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="None means randomized inference, otherwise deterministic",
+    )
 
     return parser.parse_args()
 

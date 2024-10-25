@@ -25,6 +25,7 @@ OmegaConf.register_new_resolver("eval", eval)
 # It's mainly used to generate the training data for the VQ model.
 
 backends = torchaudio.list_audio_backends()
+
 if "ffmpeg" in backends:
     backend = "ffmpeg"
 else:
