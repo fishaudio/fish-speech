@@ -16,7 +16,7 @@ def parse_args():
 
     parser = argparse.ArgumentParser(
         description="Send a WAV file and text to a server and receive synthesized audio.",
-        formatter_class=argparse.RawTextHelpFormatter
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     parser.add_argument(
@@ -69,9 +69,17 @@ def parse_args():
     parser.add_argument(
         "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
     )
-    parser.add_argument("--mp3_bitrate", type=int, choices=[64, 128, 192], default=64, help="kHz")
+    parser.add_argument(
+        "--mp3_bitrate", type=int, choices=[64, 128, 192], default=64, help="kHz"
+    )
     parser.add_argument("--opus_bitrate", type=int, default=-1000)
-    parser.add_argument("--latency", type=str, default="normal", choices=["normal", "balanced"], help="Used in api.fish.audio/v1/tts")
+    parser.add_argument(
+        "--latency",
+        type=str,
+        default="normal",
+        choices=["normal", "balanced"],
+        help="Used in api.fish.audio/v1/tts",
+    )
     parser.add_argument(
         "--max_new_tokens",
         type=int,
@@ -107,15 +115,15 @@ def parse_args():
         default="never",
         choices=["on-demand", "never"],
         help="Cache encoded references codes in memory.\n"
-            "If `on-demand`, the server will use cached encodings\n "
-            "instead of encoding reference audio again.",
+        "If `on-demand`, the server will use cached encodings\n "
+        "instead of encoding reference audio again.",
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=None,
         help="`None` means randomized inference, otherwise deterministic.\n"
-            "It can't be used for fixing a timbre.",
+        "It can't be used for fixing a timbre.",
     )
     parser.add_argument(
         "--seed",
