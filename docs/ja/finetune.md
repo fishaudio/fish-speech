@@ -109,7 +109,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 !!! note
     Windowsユーザーの場合、`trainer.strategy.process_group_backend=gloo` を使用して `nccl` の問題を回避できます。
 
-トレーニングが完了したら、[推論](inference.md)セクションを参照し、`--speaker SPK1` を使用して音声を生成します。
+トレーニングが完了したら、[推論](inference.md)セクションを参照し、音声を生成します。
 
 !!! info
     デフォルトでは、モデルは話者の発話パターンのみを学習し、音色は学習しません。音色の安定性を確保するためにプロンプトを使用する必要があります。

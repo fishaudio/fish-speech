@@ -74,11 +74,11 @@ def parse_args():
     parser.add_argument(
         "--max_new_tokens",
         type=int,
-        default=1024,
+        default=0,
         help="Maximum new tokens to generate",
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=100, help="Chunk length for synthesis"
+        "--chunk_length", type=int, default=200, help="Chunk length for synthesis"
     )
     parser.add_argument(
         "--top_p", type=float, default=0.7, help="Top-p sampling for synthesis"
@@ -92,10 +92,7 @@ def parse_args():
     parser.add_argument(
         "--temperature", type=float, default=0.7, help="Temperature for sampling"
     )
-    parser.add_argument(
-        "--speaker", type=str, default=None, help="Speaker ID for voice synthesis"
-    )
-    parser.add_argument("--emotion", type=str, default=None, help="Speaker's Emotion")
+
     parser.add_argument(
         "--streaming", type=bool, default=False, help="Enable streaming response"
     )
@@ -157,8 +154,6 @@ if __name__ == "__main__":
         "top_p": args.top_p,
         "repetition_penalty": args.repetition_penalty,
         "temperature": args.temperature,
-        "speaker": args.speaker,
-        "emotion": args.emotion,
         "streaming": args.streaming,
         "use_memory_cache": args.use_memory_cache,
         "seed": args.seed,

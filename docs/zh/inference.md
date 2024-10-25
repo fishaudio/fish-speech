@@ -79,7 +79,7 @@ python -m tools.api \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
-如果你想要加速推理，可以加上`--compile`参数。
+> 如果你想要加速推理，可以加上`--compile`参数。
 
 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
 ```bash
@@ -130,6 +130,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> 如果你想要加速推理，可以加上`--compile`参数。
 
 !!! note
     你可以提前将label文件和参考音频文件保存到主目录下的 `references` 文件夹（需要自行创建），这样你可以直接在WebUI中调用它们。

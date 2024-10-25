@@ -74,7 +74,7 @@ python -m tools.api \
     --decoder-config-name firefly_gan_vq
 ```
 
-推論を高速化したい場合は、--compile パラメータを追加できます。
+> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
 
 その後、`http://127.0.0.1:8080/`で API を表示およびテストできます。
 
@@ -150,6 +150,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
 
 !!! note
     ラベルファイルと参照音声ファイルをメインディレクトリの `references` フォルダ（自分で作成する必要があります）に事前に保存しておくことで、WebUI で直接呼び出すことができます。

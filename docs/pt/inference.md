@@ -74,7 +74,7 @@ python -m tools.api \
     --decoder-config-name firefly_gan_vq
 ```
 
-Para acelerar a inferência, adicione o parâmetro `--compile`.
+> Para acelerar a inferência, adicione o parâmetro `--compile`.
 
 Depois disso, é possível visualizar e testar a API em http://127.0.0.1:8080/.
 
@@ -146,6 +146,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> Para acelerar a inferência, adicione o parâmetro `--compile`.
 
 !!! note
     Você pode salvar antecipadamente o arquivo de rótulos e o arquivo de áudio de referência na pasta `references` do diretório principal (que você precisa criar), para que possa chamá-los diretamente na WebUI.

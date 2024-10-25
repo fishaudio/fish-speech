@@ -119,7 +119,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 !!! note
     对于 Windows 用户, 你可以使用 `trainer.strategy.process_group_backend=gloo` 来避免 `nccl` 的问题.
 
-训练结束后, 你可以参考 [推理](inference.md) 部分, 并携带 `--speaker SPK1` 参数来测试你的模型.
+训练结束后, 你可以参考 [推理](inference.md) 部分来测试你的模型.
 
 !!! info
     默认配置下, 基本只会学到说话人的发音方式, 而不包含音色, 你依然需要使用 prompt 来保证音色的稳定性.  
