@@ -15,7 +15,8 @@ from tools.file import audio_to_bytes, read_ref_text
 def parse_args():
 
     parser = argparse.ArgumentParser(
-        description="Send a WAV file and text to a server and receive synthesized audio."
+        description="Send a WAV file and text to a server and receive synthesized audio.",
+        formatter_class=argparse.RawTextHelpFormatter
     )
 
     parser.add_argument(
@@ -33,7 +34,7 @@ def parse_args():
         "-id",
         type=str,
         default=None,
-        help="ID of the reference model to be used for the speech",
+        help="ID of the reference model to be used for the speech\n(Local: name of folder containing audios and files)",
     )
     parser.add_argument(
         "--reference_audio",
@@ -41,7 +42,7 @@ def parse_args():
         type=str,
         nargs="+",
         default=None,
-        help="Path to the WAV file",
+        help="Path to the audio file",
     )
     parser.add_argument(
         "--reference_text",
@@ -68,14 +69,14 @@ def parse_args():
     parser.add_argument(
         "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
     )
-    parser.add_argument("--mp3_bitrate", type=int, default=64)
+    parser.add_argument("--mp3_bitrate", type=int, choices=[64, 128, 192], default=64, help="kHz")
     parser.add_argument("--opus_bitrate", type=int, default=-1000)
-    parser.add_argument("--latency", type=str, default="normal", help="延迟选项")
+    parser.add_argument("--latency", type=str, default="normal", choices=["normal", "balanced"], help="Used in api.fish.audio/v1/tts")
     parser.add_argument(
         "--max_new_tokens",
         type=int,
         default=0,
-        help="Maximum new tokens to generate",
+        help="Maximum new tokens to generate. \n0 means no limit.",
     )
     parser.add_argument(
         "--chunk_length", type=int, default=200, help="Chunk length for synthesis"
@@ -104,13 +105,17 @@ def parse_args():
         "--use_memory_cache",
         type=str,
         default="never",
-        help="Cache encoded references codes in memory",
+        choices=["on-demand", "never"],
+        help="Cache encoded references codes in memory.\n"
+            "If `on-demand`, the server will use cached encodings\n "
+            "instead of encoding reference audio again.",
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=None,
-        help="None means randomized inference, otherwise deterministic",
+        help="`None` means randomized inference, otherwise deterministic.\n"
+            "It can't be used for fixing a timbre.",
     )
 
     return parser.parse_args()
