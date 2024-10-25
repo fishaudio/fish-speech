@@ -109,7 +109,7 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 !!! note
     For Windows users, you can use `trainer.strategy.process_group_backend=gloo` to avoid `nccl` issues.
 
-After training is complete, you can refer to the [inference](inference.md) section, and use `--speaker SPK1` to generate speech.
+After training is complete, you can refer to the [inference](inference.md) section to generate speech.
 
 !!! info
     By default, the model will only learn the speaker's speech patterns and not the timbre. You still need to use prompts to ensure timbre stability.

@@ -74,7 +74,7 @@ python -m tools.api \
     --decoder-config-name firefly_gan_vq
 ```
 
-推論を高速化したい場合は、--compile パラメータを追加できます。
+> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
 
 その後、`http://127.0.0.1:8080/`で API を表示およびテストできます。
 
@@ -90,55 +90,8 @@ python -m tools.post_api \
 
 上記のコマンドは、参照音声の情報に基づいて必要な音声を合成し、ストリーミング方式で返すことを示しています。
 
-`{SPEAKER}`と`{EMOTION}`に基づいて参照音声をランダムに選択する必要がある場合は、以下の手順に従って設定します：
-
-### 1. プロジェクトのルートディレクトリに`ref_data`フォルダを作成します。
-
-### 2. `ref_data`フォルダ内に次のような構造のディレクトリを作成します。
-
-```
-.
-├── SPEAKER1
-│    ├──EMOTION1
-│    │    ├── 21.15-26.44.lab
-│    │    ├── 21.15-26.44.wav
-│    │    ├── 27.51-29.98.lab
-│    │    ├── 27.51-29.98.wav
-│    │    ├── 30.1-32.71.lab
-│    │    └── 30.1-32.71.flac
-│    └──EMOTION2
-│         ├── 30.1-32.71.lab
-│         └── 30.1-32.71.mp3
-└── SPEAKER2
-    └─── EMOTION3
-          ├── 30.1-32.71.lab
-          └── 30.1-32.71.mp3
-
-```
-
-つまり、まず`ref_data`に`{SPEAKER}`フォルダを配置し、各スピーカーの下に`{EMOTION}`フォルダを配置し、各感情フォルダの下に任意の数の音声-テキストペアを配置します
-
-### 3. 仮想環境で以下のコマンドを入力します.
-
-```bash
-python tools/gen_ref.py
-
-```
-
-参照ディレクトリを生成します。
-
-### 4. API を呼び出します。
-
-```bash
-python -m tools.post_api \
-    --text "入力するテキスト" \
-    --speaker "${SPEAKER1}" \
-    --emotion "${EMOTION1}" \
-    --streaming True
-
-```
-
-上記の例はテスト目的のみです。
+!!! info
+    使用可能なパラメータの詳細については、コマンド` python -m tools.post_api -h `を使用してください
 
 ## WebUI 推論
 
@@ -150,6 +103,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
 
 !!! note
     ラベルファイルと参照音声ファイルをメインディレクトリの `references` フォルダ（自分で作成する必要があります）に事前に保存しておくことで、WebUI で直接呼び出すことができます。

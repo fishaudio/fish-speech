@@ -79,7 +79,7 @@ python -m tools.api \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
-如果你想要加速推理，可以加上`--compile`参数。
+> 如果你想要加速推理，可以加上`--compile`参数。
 
 推荐中国大陆用户运行以下命令来启动 HTTP 服务:
 ```bash
@@ -100,8 +100,7 @@ python -m tools.post_api \
 
 上面的命令表示按照参考音频的信息，合成所需的音频并流式返回.
 
-下面的示例展示了， 可以一次使用**多个** `参考音频路径` 和 `参考音频的文本内容`。在命令里用空格隔开即可。 
-
+下面的示例展示了， 可以一次使用**多个** `参考音频路径` 和 `参考音频的文本内容`。在命令里用空格隔开即可。
 ```bash
 python -m tools.post_api \
     --text "要输入的文本" \
@@ -117,6 +116,9 @@ python -m tools.post_api \
 还可以用`--reference_id`(仅能用一个)来代替`--reference_audio`和`--reference_text`, 前提是在项目根目录下创建`references/<your reference_id>`文件夹，
 里面放上任意对音频与标注文本。 目前支持的参考音频最多加起来总时长90s。
 
+!!! info
+    要了解有关可用参数的更多信息，可以使用命令`python -m tools.post_api -h`
+
 ## GUI 推理 
 [下载客户端](https://github.com/AnyaCoder/fish-speech-gui/releases)
 
@@ -130,6 +132,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> 如果你想要加速推理，可以加上`--compile`参数。
 
 !!! note
     你可以提前将label文件和参考音频文件保存到主目录下的 `references` 文件夹（需要自行创建），这样你可以直接在WebUI中调用它们。

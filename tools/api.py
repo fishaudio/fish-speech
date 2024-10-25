@@ -47,9 +47,8 @@ from tools.llama.generate import (
 from tools.vqgan.inference import load_model as load_decoder_model
 
 backends = torchaudio.list_audio_backends()
-if "sox" in backends:
-    backend = "sox"
-elif "ffmpeg" in backends:
+
+if "ffmpeg" in backends:
     backend = "ffmpeg"
 else:
     backend = "soundfile"

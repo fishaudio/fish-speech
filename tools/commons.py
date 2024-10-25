@@ -30,7 +30,6 @@ class ServeTTSRequest(BaseModel):
     latency: Literal["normal", "balanced"] = "normal"
     # not usually used below
     streaming: bool = False
-    emotion: Optional[str] = None
     max_new_tokens: int = 1024
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2

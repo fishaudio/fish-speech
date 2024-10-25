@@ -74,7 +74,7 @@ python -m tools.api \
     --decoder-config-name firefly_gan_vq
 ```
 
-If you want to speed up inference, you can add the --compile parameter.
+> If you want to speed up inference, you can add the `--compile` parameter.
 
 After that, you can view and test the API at http://127.0.0.1:8080/.
 
@@ -107,6 +107,10 @@ The above command synthesizes the desired `MP3` format audio based on the inform
 You can also use `--reference_id` (only one can be used) instead of `--reference-audio` and `--reference_text`, provided that you create a `references/<your reference_id>` folder in the project root directory, which contains any audio and annotation text. 
 The currently supported reference audio has a maximum total duration of 90 seconds.
 
+
+!!! info 
+    To learn more about available parameters, you can use the command `python -m tools.post_api -h`
+
 ## GUI Inference 
 [Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)
 
@@ -120,6 +124,7 @@ python -m tools.webui \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
+> If you want to speed up inference, you can add the `--compile` parameter.
 
 !!! note
     You can save the label file and reference audio file in advance to the `references` folder in the main directory (which you need to create yourself), so that you can directly call them in the WebUI.
