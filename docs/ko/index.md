@@ -35,7 +35,7 @@ conda create -n fish-speech python=3.10
 conda activate fish-speech
 
 # pytorch 설치
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu121
 
 # fish-speech 설치
 pip3 install -e .
@@ -94,22 +94,31 @@ pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/tr
 
 ## Linux 설정
 
+[pyproject.toml](../../pyproject.toml)에서 자세한 내용을 확인하세요.
 ```bash
 # 파이썬 3.10 가상 환경 생성, virtualenv도 사용할 수 있습니다.
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 
+# (Ubuntu / Debian 사용자) sox + ffmpeg 설치
+apt install libsox-dev ffmpeg 
+
+# (Ubuntu / Debian 사용자) pyaudio 설치
+apt install build-essential \
+    cmake \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0
+
 # pytorch 설치
-pip3 install torch torchvision torchaudio
+pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
 # fish-speech 설치
 pip3 install -e .[stable]
-
-# (Ubuntu / Debian 사용자) sox + ffmpeg 설치
-apt install libsox-dev ffmpeg
 ```
 
-## macOS 설정
+## macos 설정
 
 MPS에서 추론을 수행하려면 `--device mps` 플래그를 추가하세요.
 추론 속도 비교는 [이 PR](https://github.com/fishaudio/fish-speech/pull/461#issuecomment-2284277772)을 참조하십시오.
@@ -122,7 +131,7 @@ MPS에서 추론을 수행하려면 `--device mps` 플래그를 추가하세요.
 conda create -n fish-speech python=3.10
 conda activate fish-speech
 # pytorch 설치
-pip install torch torchvision torchaudio
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 # fish-speech 설치
 pip install -e .[stable]
 ```
