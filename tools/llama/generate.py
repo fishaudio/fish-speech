@@ -91,14 +91,15 @@ def decode_one_token_ar(
     x: torch.Tensor,
     input_pos: torch.Tensor,
     previous_tokens: torch.Tensor = None,
+    semantic_id: int = 0,
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
 
     sampling_kwargs_main = sampling_kwargs.copy()
-    sampling_kwargs_main["temperature"] = 0.1
-    sampling_kwargs_main["top_p"] = 0.1
-    sampling_kwargs_main["repetition_penalty"] = 1.0
+    # sampling_kwargs_main["temperature"] = 0.1
+    # sampling_kwargs_main["top_p"] = 0.1
+    # sampling_kwargs_main["repetition_penalty"] = 1.0
 
     codebooks = [
         sample(
@@ -130,7 +131,12 @@ def decode_one_token_ar(
         x = model.fast_embeddings(a)
         codebooks.append(a)
 
-    return torch.stack(codebooks, dim=0)
+    codebooks = torch.stack(codebooks, dim=0)
+    codebooks[1:, :] = torch.masked_fill(
+        codebooks[1:, :], codebooks[:1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
+    )
+
+    return codebooks
 
 
 def decode_one_token_naive(
@@ -176,6 +182,7 @@ def decode_n_tokens(
     num_new_tokens: int,
     im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
+    semantic_id: int = 0,
     **sampling_kwargs,
 ):
     previous_tokens = torch.zeros(
@@ -204,6 +211,7 @@ def decode_n_tokens(
                 x=cur_token,
                 input_pos=input_pos,
                 previous_tokens=window,
+                semantic_id=semantic_id,
                 **sampling_kwargs,
             )
 
@@ -236,6 +244,7 @@ def generate(
 
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
+    semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
 
     if max_new_tokens:
         if T + max_new_tokens > model.config.max_seq_len:
@@ -266,7 +275,11 @@ def generate(
     )
 
     next_token = prefill_decode(
-        model, prompt.view(1, codebook_dim, -1), input_pos, **sampling_kwargs
+        model,
+        prompt.view(1, codebook_dim, -1),
+        input_pos,
+        semantic_id=semantic_id,
+        **sampling_kwargs,
     )
     seq[:, T : T + 1] = next_token
 
@@ -278,6 +291,7 @@ def generate(
         max_new_tokens - 1,
         im_end_id=im_end_id,
         decode_one_token=decode_one_token,
+        semantic_id=semantic_id,
         **sampling_kwargs,
     )
     # x = torch.cat(generated_tokens, dim=1)
@@ -295,7 +309,7 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    string = f"<|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n"
+    string = f"<|im_start|>user\nSpeak: {string}<|im_end|><|im_start|>assistant\n"
 
     new_tokens = tokenizer.encode(
         string,
