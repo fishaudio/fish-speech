@@ -146,7 +146,9 @@ def inference(
         segments.append(fake_audios)
 
         if streaming:
-            yield (fake_audios * 32768).astype(np.int16).tobytes(), None, None
+            wav_header = wav_chunk_header()
+            audio_data = (fake_audios * 32768).astype(np.int16).tobytes()
+            yield wav_header + audio_data, None, None
 
     if len(segments) == 0:
         return (
