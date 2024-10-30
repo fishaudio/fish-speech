@@ -14,7 +14,7 @@
 <br>
 
 <div align="center">
-    <img src="https://counter.seku.su/cmoe?name=fish-speech&theme=asoul" /><br>
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
 <br>
 
@@ -53,6 +53,7 @@
 8. **배포 친화적:** Linux, Windows, macOS에서 네이티브로 지원되는 추론 서버를 쉽게 설정할 수 있어 속도 손실을 최소화합니다.
 
 ## 면책 조항
+
 이 코드베이스의 불법적 사용에 대해 어떠한 책임도 지지 않습니다. DMCA 및 관련 법률에 대한 로컬 법률을 참조하십시오.
 
 ## 온라인 데모
