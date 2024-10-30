@@ -126,7 +126,7 @@ python -m tools.webui \
 > 추론 속도를 높이고 싶다면 `--compile` 매개변수를 추가할 수 있습니다.
 
 !!! note
-    라벨 파일과 참고 음성 파일을 미리 메인 디렉토리의 `examples` 폴더에 저장해 두면, WebUI에서 바로 호출할 수 있습니다. (`examples` 폴더는 직접 생성해야 합니다.)
+    라벨 파일과 참고 음성 파일을 미리 메인 디렉토리의 `references` 폴더에 저장해 두면, WebUI에서 바로 호출할 수 있습니다. (해당 폴더는 직접 생성해야 합니다.)
 
 !!! note
     WebUI를 구성하기 위해 `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME`과 같은 Gradio 환경 변수를 사용할 수 있습니다.
