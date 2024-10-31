@@ -542,7 +542,7 @@ def execute_request(
 
 
 @routes.http.post("/v1/chat")
-def api_invoke_chat(req: ServeRequest):
+def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
     """
     Invoke model and generate audio
     """
@@ -896,7 +896,7 @@ def initialize_app(app: Kui):
     logger.info("VQ-GAN model loaded, warming up...")
 
     vad_model = load_silero_vad()
-    
+
     logger.info("VAD model loaded, warming up...")
 
     if args.mode == "tts":
