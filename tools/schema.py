@@ -8,7 +8,7 @@ from pydantic import AfterValidator, BaseModel, confloat, conint, conlist
 from pydantic.functional_validators import SkipValidation
 from fish_speech.conversation import Message, TextPart, VQPart
 
-GLOBAL_NUM_SAMPLES = int(os.getenv("GLOBAL_NUM_SAMPLES", 3))
+GLOBAL_NUM_SAMPLES = int(os.getenv("GLOBAL_NUM_SAMPLES", 1))
 
 class ServeVQPart(BaseModel):
     type: Literal["vq"] = "vq"

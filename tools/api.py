@@ -580,7 +580,7 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
             return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
 
     return StreamResponse(
-        iterator=wrapped_generator(), 
+        iterable=wrapped_generator(), 
         content_type="text/event-stream"
     )
 
