@@ -896,24 +896,27 @@ def initialize_app(app: Kui):
     logger.info("VQ-GAN model loaded, warming up...")
 
     vad_model = load_silero_vad()
+    
+    logger.info("VAD model loaded, warming up...")
 
-    # Dry run to ensure models work and avoid first-time latency
-    list(
-        inference(
-            ServeTTSRequest(
-                text="Hello world.",
-                references=[],
-                reference_id=None,
-                max_new_tokens=0,
-                chunk_length=200,
-                top_p=0.7,
-                repetition_penalty=1.2,
-                temperature=0.7,
-                emotion=None,
-                format="wav",
+    if args.mode == "tts":
+        # Dry run to ensure models work and avoid first-time latency
+        list(
+            inference(
+                ServeTTSRequest(
+                    text="Hello world.",
+                    references=[],
+                    reference_id=None,
+                    max_new_tokens=0,
+                    chunk_length=200,
+                    top_p=0.7,
+                    repetition_penalty=1.2,
+                    temperature=0.7,
+                    emotion=None,
+                    format="wav",
+                )
             )
         )
-    )
 
     logger.info(f"Warming up done, starting server at http://{args.listen}")
 
