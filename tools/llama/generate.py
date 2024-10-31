@@ -18,7 +18,8 @@ from tqdm import tqdm
 
 from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
 from fish_speech.text import clean_text, split_text
-
+from fish_speech.models.text2semantic.llama import BaseModelArgs
+from transformers import AutoTokenizer
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
 torch._inductor.config.triton.unique_kernel_names = True
@@ -617,6 +618,53 @@ def launch_thread_safe_queue(
     init_event.wait()
 
     return input_queue
+
+
+def launch_thread_safe_queue_agent(
+    checkpoint_path,
+    device,
+    precision,
+    compile: bool = False,
+):
+    input_queue = queue.Queue()
+    init_event = threading.Event()
+
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
+    config = BaseModelArgs.from_pretrained(checkpoint_path)
+
+    def worker():
+        model, decode_one_token = load_model(
+            checkpoint_path, device, precision, compile=compile
+        )
+        init_event.set()
+
+        while True:
+            item: GenerateRequest | None = input_queue.get()
+            if item is None:
+                break
+
+            kwargs = item.request
+            response_queue = item.response_queue
+
+            try:
+                for token in generate(
+                    model=model,
+                    decode_one_token=decode_one_token,
+                    **kwargs,
+                ):
+                    response_queue.put(token)
+
+                response_queue.put("stop")
+            except Exception as e:
+                import traceback
+
+                logger.exception(f"Error in worker: {traceback.format_exc()}")
+                response_queue.put("error")
+
+    threading.Thread(target=worker, daemon=True).start()
+    init_event.wait()
+
+    return input_queue, tokenizer, config
 
 
 @click.command()
