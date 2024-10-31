@@ -778,6 +778,10 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["agent", "tts"], default="tts")
     parser.add_argument(
+        "--load-asr-model",
+        action="store_true"
+    )
+    parser.add_argument(
         "--llama-checkpoint-path",
         type=str,
         default="checkpoints/fish-speech-1.4",
@@ -865,8 +869,9 @@ def initialize_app(app: Kui):
     args = parse_args()  # args same as ones in other processes
     args.precision = torch.half if args.half else torch.bfloat16
 
-    logger.info(f"Loading ASR model...")
-    asr_model = load_asr_model(device=args.device)
+    if args.load_asr_model:
+        logger.info(f"Loading ASR model...")
+        asr_model = load_asr_model(device=args.device)
 
     logger.info("Loading Llama model...")
 

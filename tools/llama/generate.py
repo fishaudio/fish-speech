@@ -552,12 +552,6 @@ def generate_agent(
         max_new_tokens = T_new - T
 
     device, dtype = prompt.device, prompt.dtype
-    with torch.device(device):
-        model.setup_caches(
-            max_batch_size=num_samples,
-            max_seq_len=model.config.max_seq_len,
-            dtype=next(model.parameters()).dtype,
-        )
 
     codebook_dim = 1 + model.config.num_codebooks
     input_pos = torch.arange(0, T, device=device)
@@ -655,7 +649,7 @@ def encode_tokens(
     return prompt
 
 
-def load_model(checkpoint_path, device, precision, compile=False, agent=False):
+def load_model(checkpoint_path, device, precision, compile=False, is_agent=False):
     model: Union[NaiveTransformer, DualARTransformer] = BaseTransformer.from_pretrained(
         checkpoint_path, load_weights=True
     )
@@ -664,10 +658,10 @@ def load_model(checkpoint_path, device, precision, compile=False, agent=False):
     logger.info(f"Restored model from checkpoint")
 
     if isinstance(model, DualARTransformer):
-        decode_one_token = decode_one_token_ar_agent if agent else decode_one_token_ar
+        decode_one_token = decode_one_token_ar_agent if is_agent else decode_one_token_ar
         logger.info("Using DualARTransformer")
     else:
-        decode_one_token = decode_one_token_naive_agent if agent else decode_one_token_naive
+        decode_one_token = decode_one_token_naive_agent if is_agent else decode_one_token_naive
         logger.info("Using NaiveTransformer")
 
     if compile:
@@ -923,10 +917,17 @@ def launch_thread_safe_queue_agent(
 
     def worker():
         model, decode_one_token = load_model(
-            checkpoint_path, device, precision, compile=compile, agent=True
+            checkpoint_path, device, precision, compile=compile, is_agent=True
         )
-        init_event.set()
 
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=1,
+                max_seq_len=model.config.max_seq_len,
+                dtype=next(model.parameters()).dtype,
+            )
+        init_event.set()
+        
         while True:
             item: GenerateRequest | None = input_queue.get()
             if item is None:
