@@ -923,7 +923,7 @@ def launch_thread_safe_queue_agent(
 
     def worker():
         model, decode_one_token = load_model(
-            checkpoint_path, device, precision, compile=compile
+            checkpoint_path, device, precision, compile=compile, agent=True
         )
         init_event.set()
 
