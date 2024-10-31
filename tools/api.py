@@ -250,7 +250,7 @@ def cached_vqgan_batch_encode(model, audios: list[bytes]):
     return batch_encode(model, audios)
 
 @routes.http.post("/v1/vqgan/encode")
-def api_vqgan_encode(payload: ServeVQGANEncodeRequest):
+def api_vqgan_encode(payload: Annotated[ServeVQGANEncodeRequest, Body(exclusive=True)]):
 
     start_time = time.time()
     tokens = cached_vqgan_batch_encode(decoder_model, payload.audios)
@@ -292,7 +292,7 @@ def vqgan_decode(model, features):
 
 
 @routes.http.post("/v1/vqgan/decode")
-def api_vqgan_decode(payload: ServeVQGANDecodeRequest):
+def api_vqgan_decode(payload: Annotated[ServeVQGANDecodeRequest, Body(exclusive=True)]):
     tokens = [torch.tensor(token, dtype=torch.int) for token in payload.tokens]
     start_time = time.time()
     audios = vqgan_decode(decoder_model, tokens)
@@ -352,7 +352,7 @@ def batch_asr(model, audios, sr, language="auto"):
 
 
 @routes.http.post("/v1/asr")
-def api_invoke_asr(payload: ServeASRRequest):
+def api_invoke_asr(payload: Annotated[ServeASRRequest, Body(exclusive=True)]):
     start_time = time.time()
     audios = [np.frombuffer(audio, dtype=np.float16) for audio in payload.audios]
     audios = [torch.from_numpy(audio).float() for audio in audios]
