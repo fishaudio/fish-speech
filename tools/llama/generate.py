@@ -75,6 +75,44 @@ def logits_to_probs(
     return probs
 
 
+def multinomial_sample_one_no_sync_agent(
+    probs_sort,
+):  # Does multinomial sampling without a cuda synchronization
+    q = torch.empty_like(probs_sort).exponential_(1)
+    return torch.argmax(probs_sort / q, dim=-1, keepdim=True).to(dtype=torch.int)
+
+
+def logits_to_probs_agent(
+    logits,
+    previous_tokens: Optional[torch.Tensor] = None,
+    temperature: torch.Tensor = 1.0,
+    top_p: torch.Tensor = 1.0,
+    repetition_penalty: torch.Tensor = 1.0,
+) -> torch.Tensor:
+    # Apply repetition penalty
+    if previous_tokens is not None:
+        previous_tokens = previous_tokens.long()
+        score = torch.gather(logits, dim=-1, index=previous_tokens)
+        score = torch.where(
+            score < 0, score * repetition_penalty, score / repetition_penalty
+        )
+        logits.scatter_(dim=-1, index=previous_tokens, src=score)
+
+    # Apply top-p sampling
+    sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+    cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
+    sorted_indices_to_remove = cum_probs > top_p
+    sorted_indices_to_remove[..., 0] = False  # keep at least one option
+    indices_to_remove = sorted_indices_to_remove.scatter(
+        dim=-1, index=sorted_indices, src=sorted_indices_to_remove
+    )
+    logits = logits.masked_fill(indices_to_remove, -float("Inf"))
+
+    logits = logits / max(temperature, 1e-5)
+
+    probs = torch.nn.functional.softmax(logits, dim=-1)
+    return probs
+
 def sample(
     logits,
     previous_tokens: Optional[torch.Tensor] = None,
@@ -91,10 +129,10 @@ def sample_agent(
     previous_tokens: Optional[torch.Tensor] = None,
     **sampling_kwargs,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    probs = logits_to_probs(
+    probs = logits_to_probs_agent(
         logits=logits[:, -1], previous_tokens=previous_tokens, **sampling_kwargs
     )
-    idx_next = multinomial_sample_one_no_sync(probs)
+    idx_next = multinomial_sample_one_no_sync_agent(probs)
     return idx_next, probs
 
 def decode_one_token_ar_agent(
