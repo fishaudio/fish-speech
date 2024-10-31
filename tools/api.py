@@ -249,7 +249,7 @@ def batch_encode(model, audios: list[bytes | torch.Tensor]):
 def cached_vqgan_batch_encode(model, audios: list[bytes]):
     return batch_encode(model, audios)
 
-@routes.post("/v1/vqgan/encode")
+@routes.http.post("/v1/vqgan/encode")
 def api_vqgan_encode(payload: ServeVQGANEncodeRequest):
 
     start_time = time.time()
@@ -291,7 +291,7 @@ def vqgan_decode(model, features):
     return [audio[..., :length].numpy() for audio, length in zip(audios, audio_lengths)]
 
 
-@routes.post("/v1/vqgan/decode")
+@routes.http.post("/v1/vqgan/decode")
 def api_vqgan_decode(payload: ServeVQGANDecodeRequest):
     tokens = [torch.tensor(token, dtype=torch.int) for token in payload.tokens]
     start_time = time.time()
@@ -351,7 +351,7 @@ def batch_asr(model, audios, sr, language="auto"):
     return results
 
 
-@routes.post("/v1/asr")
+@routes.http.post("/v1/asr")
 def api_invoke_asr(payload: ServeASRRequest):
     start_time = time.time()
     audios = [np.frombuffer(audio, dtype=np.float16) for audio in payload.audios]
@@ -541,7 +541,7 @@ def execute_request(
 
 
 
-@routes.post("/v1/chat")
+@routes.http.post("/v1/chat")
 def api_invoke_chat(req: ServeRequest):
     """
     Invoke model and generate audio
