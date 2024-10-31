@@ -134,7 +134,7 @@ class FishE2EAgent:
             streaming=True,
             num_samples=1,
         )
-        print(request.model_dump_json())
+
         # Step 3: Stream LLM response and decode audio
         buffer = b""
         vq_codes = []
