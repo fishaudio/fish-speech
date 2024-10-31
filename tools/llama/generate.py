@@ -86,6 +86,117 @@ def sample(
     idx_next = multinomial_sample_one_no_sync(probs)
     return idx_next, probs
 
+def sample_agent(
+    logits,
+    previous_tokens: Optional[torch.Tensor] = None,
+    **sampling_kwargs,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    probs = logits_to_probs(
+        logits=logits[:, -1], previous_tokens=previous_tokens, **sampling_kwargs
+    )
+    idx_next = multinomial_sample_one_no_sync(probs)
+    return idx_next, probs
+
+def decode_one_token_ar_agent(
+    model: DualARTransformer,
+    x: torch.Tensor,
+    input_pos: torch.Tensor,
+    previous_tokens: torch.Tensor = None,
+    semantic_id: int = 32003,
+    **sampling_kwargs,
+) -> torch.Tensor:
+    # print(x, input_pos)
+    x = model.forward_generate(x, input_pos)
+    logits = x.logits  # [:, -1:]
+    hidden_states = x.hidden_states  # [:, -1:]
+
+    sampling_kwargs_main = sampling_kwargs.copy()
+    sampling_kwargs_main["temperature"] = 0.1
+    sampling_kwargs_main["top_p"] = 0.1
+    sampling_kwargs_main["repetition_penalty"] = 1.0
+
+    codebooks = [
+        sample_agent(
+            logits,
+            previous_tokens=None,  # Disable repetition penalty for the token codebook
+            **sampling_kwargs_main,
+        )[0]
+    ]
+
+    # Cleanup the cache
+    for layer in model.fast_layers:
+        layer.attention.kv_cache.k_cache.fill_(0)
+        layer.attention.kv_cache.v_cache.fill_(0)
+
+    for codebook_idx in range(model.config.num_codebooks):
+        input_pos = torch.tensor(
+            [codebook_idx], device=hidden_states.device, dtype=torch.long
+        )
+        logits = model.forward_generate_fast(hidden_states, input_pos)
+        a = sample_agent(
+            logits,
+            previous_tokens=(
+                previous_tokens[:, codebook_idx + 1]
+                if previous_tokens is not None
+                else None
+            ),
+            **sampling_kwargs,
+        )[0]
+        hidden_states = model.fast_embeddings(a)
+        codebooks.append(a)
+
+    codebooks = torch.stack(codebooks, dim=1)
+    codebooks[:, 1:, :] = torch.masked_fill(
+        codebooks[:, 1:, :], codebooks[:, :1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
+    )
+
+    # for i in range(codebooks.size(1) - 1):
+    #     codebooks[:, i + 1, :] = torch.masked_fill(
+    #         codebooks[:, i + 1, :],
+    #         codebooks[:, :1, :] != semantic_id,
+    #         CODEBOOK_PAD_TOKEN_ID + i * 1024,
+    #     )
+
+    # print(codebooks)
+
+    return codebooks
+
+
+def decode_one_token_naive_agent(
+    model: NaiveTransformer,
+    x: torch.Tensor,
+    input_pos: torch.Tensor,
+    previous_tokens: torch.Tensor = None,
+    semantic_id: int = 32003,
+    **sampling_kwargs,
+) -> torch.Tensor:
+    x = model.forward_generate(x, input_pos)
+
+    codebooks = [
+        sample(
+            x.token_logits,
+            previous_tokens=None,  # Disable repetition penalty for the token codebook
+            **sampling_kwargs,
+        )[0]
+    ]
+
+    for i in range(model.config.num_codebooks):
+        codebooks.append(
+            sample_agent(
+                x.codebook_logits[:, :, i],
+                previous_tokens=(
+                    previous_tokens[:, i + 1] if previous_tokens is not None else None
+                ),
+                **sampling_kwargs,
+            )[0]
+        )
+
+    codebooks = torch.stack(codebooks, dim=1)
+    codebooks[:, 1:, :] = torch.masked_fill(
+        codebooks[:, 1:, :], codebooks[:, :1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
+    )
+
+    return codebooks
 
 def decode_one_token_ar(
     model: DualARTransformer,
@@ -308,7 +419,7 @@ def decode_n_tokens_agent(
     num_new_tokens: int,
     im_end_id: int = 4,
     semantic_id: int = 32003,
-    decode_one_token=decode_one_token_naive,
+    decode_one_token=decode_one_token_naive_agent,
     early_stop_threshold: float = 0.6,
     **sampling_kwargs,
 ):
@@ -374,7 +485,7 @@ def generate_agent(
     max_new_tokens: int,
     im_end_id: int = 4,
     semantic_id: int = 32003,
-    decode_one_token=decode_one_token_naive,
+    decode_one_token=decode_one_token_naive_agent,
     num_samples: int = 1,
     early_stop_threshold: float = 0.6,
     **sampling_kwargs,
@@ -415,9 +526,9 @@ def generate_agent(
 
     # Use non-accelerated version for now, to avoid compilation overhead
     prefill_decode = (
-        decode_one_token_naive
+        decode_one_token_naive_agent
         if isinstance(model, NaiveTransformer)
-        else decode_one_token_ar
+        else decode_one_token_ar_agent
     )
     next_token = prefill_decode(
         model,
@@ -785,7 +896,7 @@ def launch_thread_safe_queue_agent(
 
             kwargs = item.request
             response_queue = item.response_queue
-            print("kwargs: ", kwargs)
+
             try:
                 for token in generate_agent(
                     model=model,

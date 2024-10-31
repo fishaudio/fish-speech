@@ -865,8 +865,8 @@ def initialize_app(app: Kui):
     args = parse_args()  # args same as ones in other processes
     args.precision = torch.half if args.half else torch.bfloat16
 
-    logger.info(f"Loading ASR model...")
-    asr_model = load_asr_model(device=args.device)
+    # logger.info(f"Loading ASR model...")
+    # asr_model = load_asr_model(device=args.device)
 
     logger.info("Loading Llama model...")
 
