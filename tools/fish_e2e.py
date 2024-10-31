@@ -107,7 +107,7 @@ class FishE2EAgent:
             }
         else:
             if chat_ctx["added_sysaudio"] == False:
-                chat_ctx["added_sysaudio"] == True
+                chat_ctx["added_sysaudio"] = True
                 chat_ctx["messages"][0].parts.append(ServeVQPart(codes=sys_codes))
 
         prev_messages = chat_ctx["messages"].copy()
