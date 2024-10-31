@@ -4,7 +4,7 @@ import numpy as np
 from .schema import ServeMessage, ServeTextPart, ServeVQPart
 
 from .fish_e2e import FishE2EAgent, FishE2EEventType
-
+import re
 
 class ChatState:
     def __init__(self):
@@ -49,7 +49,7 @@ def clear_fn():
     return [], ChatState(), None, None, None
 
 
-async def process_audio_input(audio_input, state: ChatState, text_input: str):
+async def process_audio_input(sys_audio_input, audio_input, state: ChatState, text_input: str):
     if audio_input is None and not text_input:
         raise gr.Error("No input provided")
 
@@ -61,6 +61,14 @@ async def process_audio_input(audio_input, state: ChatState, text_input: str):
     elif text_input:
         sr = 44100
         audio_data = None
+    else:
+        raise gr.Error("Invalid audio format")
+    
+    if isinstance(sys_audio_input, tuple):
+        sr, sys_audio_data = sys_audio_input
+    elif text_input:
+        sr = 44100
+        sys_audio_data = None
     else:
         raise gr.Error("Invalid audio format")
 
@@ -78,7 +86,8 @@ async def process_audio_input(audio_input, state: ChatState, text_input: str):
 
     result_audio = b""
     async for event in agent.stream(
-        audio_data, sr, 1, chat_ctx={"messages": state.conversation}
+        sys_audio_data, audio_data, sr, 1, 
+        chat_ctx={"messages": state.conversation, "added_sysaudio": False}
     ):
         if event.type == FishE2EEventType.USER_CODES:
             append_to_chat_ctx(ServeVQPart(codes=event.vq_codes), role="user")
@@ -100,8 +109,8 @@ async def process_audio_input(audio_input, state: ChatState, text_input: str):
     yield state.get_history(), (44100, np_audio), None, None
 
 
-async def process_text_input(state: ChatState, text_input: str):
-    async for event in process_audio_input(None, state, text_input):
+async def process_text_input(sys_audio_input, state: ChatState, text_input: str):
+    async for event in process_audio_input(sys_audio_input, None, state, text_input):
         yield event
 
 
@@ -122,10 +131,13 @@ def create_demo():
 
             # Right column (30%) for controls
             with gr.Column(scale=3):
+                sys_audio_input = gr.Audio(
+                    sources=["upload"], type="numpy", label="Give a timbre for your assistant"
+                )
                 audio_input = gr.Audio(
                     sources=["microphone"], type="numpy", label="Speak your message"
                 )
-
+                
                 text_input = gr.Textbox(label="Or type your message", type="text")
 
                 output_audio = gr.Audio(label="Assistant's Voice", type="numpy")
@@ -136,21 +148,21 @@ def create_demo():
         # Event handlers
         audio_input.stop_recording(
             process_audio_input,
-            inputs=[audio_input, state, text_input],
+            inputs=[sys_audio_input, audio_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )
 
         send_button.click(
             process_text_input,
-            inputs=[state, text_input],
+            inputs=[sys_audio_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )
 
         text_input.submit(
             process_text_input,
-            inputs=[state, text_input],
+            inputs=[sys_audio_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )

@@ -57,53 +57,67 @@ class FishE2EAgent:
         self.vqgan_url = "http://localhost:8080"
         self.client = httpx.AsyncClient(timeout=None)
 
+    async def get_codes(self, audio_data, sample_rate):
+        audio_buffer = io.BytesIO()
+        sf.write(audio_buffer, audio_data, sample_rate, format="WAV")
+        audio_buffer.seek(0)
+        # Step 1: Encode audio using VQGAN
+        encode_request = ServeVQGANEncodeRequest(audios=[audio_buffer.read()])
+        encode_request_bytes = ormsgpack.packb(
+            encode_request, option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+        )
+        encode_response = await self.client.post(
+            f"{self.vqgan_url}/v1/vqgan/encode",
+            data=encode_request_bytes,
+            headers={"Content-Type": "application/msgpack"},
+        )
+        encode_response_data = ormsgpack.unpackb(encode_response.content)
+        codes = encode_response_data["tokens"][0]
+        return codes
+
     async def stream(
         self,
-        audio_data: np.ndarray | None,
+        system_audio_data: np.ndarray | None,
+        user_audio_data: np.ndarray | None,
         sample_rate: int,
         num_channels: int,
         chat_ctx: ChatContext | None = None,
     ) -> AsyncGenerator[bytes, None]:
-        if audio_data is not None:
-            audio_buffer = io.BytesIO()
-            sf.write(audio_buffer, audio_data, sample_rate, format="WAV")
-            audio_buffer.seek(0)
-            # Step 1: Encode audio using VQGAN
-            encode_request = ServeVQGANEncodeRequest(audios=[audio_buffer.read()])
-            encode_request_bytes = ormsgpack.packb(
-                encode_request, option=ormsgpack.OPT_SERIALIZE_PYDANTIC
-            )
-            encode_response = await self.client.post(
-                f"{self.vqgan_url}/v1/vqgan/encode",
-                data=encode_request_bytes,
-                headers={"Content-Type": "application/msgpack"},
-            )
-            encode_response_data = ormsgpack.unpackb(encode_response.content)
-            codes = encode_response_data["tokens"][0]
-
+        
+        if system_audio_data is not None:
+           sys_codes = await self.get_codes(system_audio_data, sample_rate)
+        if user_audio_data is not None:
+           user_codes = await self.get_codes(user_audio_data, sample_rate)
         # Step 2: Prepare LLM request
         if chat_ctx is None:
+            sys_parts = [
+                ServeTextPart(
+                    text='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nAnswer: [你的回答]\n"。'
+                ),
+            ]
+            if system_audio_data is not None:
+                sys_parts.append(ServeVQPart(codes=sys_codes))
             chat_ctx = {
                 "messages": [
                     ServeMessage(
                         role="system",
-                        parts=[
-                            ServeTextPart(
-                                text='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nAnswer: [你的回答]\n"。'
-                            ),
-                        ],
+                        parts=sys_parts,
                     ),
                 ],
             }
+        else:
+            if chat_ctx["added_sysaudio"] == False:
+                chat_ctx["added_sysaudio"] == True
+                chat_ctx["messages"][0].parts.append(ServeVQPart(codes=sys_codes))
 
         prev_messages = chat_ctx["messages"].copy()
-        if audio_data is not None:
+        if user_audio_data is not None:
             yield FishE2EEvent(
                 type=FishE2EEventType.USER_CODES,
-                vq_codes=codes,
+                vq_codes=user_codes,
             )
         else:
-            codes = None
+            user_codes = None
 
         request = ServeRequest(
             messages=prev_messages
@@ -111,16 +125,16 @@ class FishE2EAgent:
                 [
                     ServeMessage(
                         role="user",
-                        parts=[ServeVQPart(codes=codes)],
+                        parts=[ServeVQPart(codes=user_codes)],
                     )
                 ]
-                if codes
+                if user_codes
                 else []
             ),
             streaming=True,
             num_samples=1,
         )
-
+        print(request.model_dump_json())
         # Step 3: Stream LLM response and decode audio
         buffer = b""
         vq_codes = []
