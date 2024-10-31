@@ -655,7 +655,7 @@ def encode_tokens(
     return prompt
 
 
-def load_model(checkpoint_path, device, precision, compile=False):
+def load_model(checkpoint_path, device, precision, compile=False, agent=False):
     model: Union[NaiveTransformer, DualARTransformer] = BaseTransformer.from_pretrained(
         checkpoint_path, load_weights=True
     )
@@ -664,10 +664,10 @@ def load_model(checkpoint_path, device, precision, compile=False):
     logger.info(f"Restored model from checkpoint")
 
     if isinstance(model, DualARTransformer):
-        decode_one_token = decode_one_token_ar
+        decode_one_token = decode_one_token_ar_agent if agent else decode_one_token_ar
         logger.info("Using DualARTransformer")
     else:
-        decode_one_token = decode_one_token_naive
+        decode_one_token = decode_one_token_naive_agent if agent else decode_one_token_naive
         logger.info("Using NaiveTransformer")
 
     if compile:
