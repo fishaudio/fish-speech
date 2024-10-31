@@ -34,7 +34,7 @@ from fish_speech.models.text2semantic.llama import (
     DualARTransformer,
     NaiveTransformer,
 )
-
+from torch.nn.attention import sdpa_kernel, SDPBackend
 
 def multinomial_sample_one_no_sync(
     probs_sort,
@@ -301,6 +301,146 @@ def generate(
 
     return seq
 
+def decode_n_tokens_agent(
+    model: NaiveTransformer,
+    cur_token: torch.Tensor,
+    input_pos: torch.Tensor,
+    num_new_tokens: int,
+    im_end_id: int = 4,
+    semantic_id: int = 32003,
+    decode_one_token=decode_one_token_naive,
+    early_stop_threshold: float = 0.6,
+    **sampling_kwargs,
+):
+    batch_size = cur_token.size(0)
+    previous_tokens = torch.zeros(
+        (batch_size, model.config.num_codebooks + 1, model.config.max_seq_len),
+        dtype=torch.int,
+        device=cur_token.device,
+    )
+    finished = torch.zeros(batch_size, dtype=torch.bool, device=cur_token.device)
+    finished = finished | (cur_token[:, 0, -1] == im_end_id)
+    start_time = time.time()
+
+    for i in range(num_new_tokens):
+        # We need to get windowed repeat penalty
+        win_size = 16
+        if i < win_size:
+            window = previous_tokens[:, :, :win_size]
+        else:
+            window = previous_tokens[:, :, i - win_size : i]
+
+        with sdpa_kernel(
+            SDPBackend.MATH
+        ):  # Actually better for Inductor to codegen attention here
+            next_token = decode_one_token(
+                model=model,
+                x=cur_token,
+                input_pos=input_pos,
+                previous_tokens=window,
+                semantic_id=semantic_id,
+                **sampling_kwargs,
+            )
+
+        input_pos += 1
+        cur_token = next_token.view(batch_size, model.config.num_codebooks + 1, -1)
+        previous_tokens[:, :, i : i + 1] = next_token.view(
+            batch_size, model.config.num_codebooks + 1, -1
+        )
+
+        yield cur_token.cpu()
+
+        finished = finished | (cur_token[:, 0, -1] == im_end_id)
+        if finished.all() or (
+            0 < early_stop_threshold < 1
+            and finished.sum() >= round(batch_size * early_stop_threshold)
+        ):
+            break
+
+    total_time = time.time() - start_time
+    generated_tokens = i + 1
+    tokens_per_second = (generated_tokens / total_time) * batch_size
+    logger.info(
+        f"Decoded {generated_tokens} x {batch_size} tokens in {total_time:.2f}s ({tokens_per_second:.2f} tokens/s)"
+    )
+
+
+@torch.no_grad()
+@torch.inference_mode()
+def generate_agent(
+    *,
+    model: BaseTransformer,
+    prompt: torch.Tensor,
+    max_new_tokens: int,
+    im_end_id: int = 4,
+    semantic_id: int = 32003,
+    decode_one_token=decode_one_token_naive,
+    num_samples: int = 1,
+    early_stop_threshold: float = 0.6,
+    **sampling_kwargs,
+):
+    """
+    Takes a conditioning sequence (prompt) as input and continues to generate as many tokens as requested.
+    """
+
+    # create an empty tensor of the expected final shape and fill in the current tokens
+    T = prompt.size(1)
+    prompt = prompt[None].repeat(num_samples, 1, 1)
+
+    if T >= model.config.max_seq_len:
+        raise ValueError(
+            f"Input sequence length {T} exceeds max_seq_len {model.config.max_seq_len}"
+        )
+
+    if max_new_tokens:
+        if T + max_new_tokens > model.config.max_seq_len:
+            max_new_tokens = model.config.max_seq_len - T
+            logger.info(f"Truncating max_new_tokens to {max_new_tokens}")
+
+        T_new = T + max_new_tokens
+    else:
+        T_new = model.config.max_seq_len
+        max_new_tokens = T_new - T
+
+    device, dtype = prompt.device, prompt.dtype
+    with torch.device(device):
+        model.setup_caches(
+            max_batch_size=num_samples,
+            max_seq_len=model.config.max_seq_len,
+            dtype=next(model.parameters()).dtype,
+        )
+
+    codebook_dim = 1 + model.config.num_codebooks
+    input_pos = torch.arange(0, T, device=device)
+
+    # Use non-accelerated version for now, to avoid compilation overhead
+    prefill_decode = (
+        decode_one_token_naive
+        if isinstance(model, NaiveTransformer)
+        else decode_one_token_ar
+    )
+    next_token = prefill_decode(
+        model,
+        prompt,
+        input_pos,
+        semantic_id=semantic_id,
+        **sampling_kwargs,
+    ).view(num_samples, codebook_dim, -1)
+    yield next_token.cpu()
+
+    input_pos = torch.tensor([T], device=device, dtype=torch.int)
+
+    yield from decode_n_tokens_agent(
+        model,
+        next_token,
+        input_pos,
+        max_new_tokens - 1,
+        im_end_id=im_end_id,
+        semantic_id=semantic_id,
+        decode_one_token=decode_one_token,
+        early_stop_threshold=early_stop_threshold,
+        **sampling_kwargs,
+    )
 
 def encode_tokens(
     tokenizer,
@@ -645,9 +785,9 @@ def launch_thread_safe_queue_agent(
 
             kwargs = item.request
             response_queue = item.response_queue
-
+            print("kwargs: ", kwargs)
             try:
-                for token in generate(
+                for token in generate_agent(
                     model=model,
                     decode_one_token=decode_one_token,
                     **kwargs,
