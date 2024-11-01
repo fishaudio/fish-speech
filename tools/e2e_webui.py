@@ -128,15 +128,26 @@ def create_demo():
         state = gr.State(ChatState())
 
         with gr.Row():
-            # Left column (70%) for chatbot
+            # Left column (70%) for chatbot and notes
             with gr.Column(scale=7):
                 chatbot = gr.Chatbot(
                     [],
                     elem_id="chatbot",
                     bubble_full_width=False,
-                    height=600,
+                    height=600,  
                     type="messages",
                 )
+                
+                notes = gr.Markdown("""
+                # Fish Agent
+                1. 此Demo为Fish Audio自研端到端语言模型Fish Agent 3B版本.
+                2. 你可以在我们的官方仓库找到代码以及权重，但是相关内容全部基于 CC BY-NC-SA 4.0 许可证发布.
+                3. Demo为早期灰度测试版本，推理速度尚待优化.
+                # 特色
+                1. 该模型自动集成ASR与TTS部分，不需要外挂其它模型，即真正的端到端，而非三段式(ASR+LLM+TTS).
+                2. 模型可以使用reference audio控制说话音色.
+                3. 可以生成具有较强情感与韵律的音频.
+                """)
 
             # Right column (30%) for controls
             with gr.Column(scale=3):
@@ -194,4 +205,4 @@ def create_demo():
 
 if __name__ == "__main__":
     demo = create_demo()
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
+    demo.launch(server_name="127.0.0.1", server_port=7860, share=True)
