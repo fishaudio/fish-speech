@@ -1,5 +1,21 @@
 # How To Start?
 
+### Download Model
+
+You can get the model by:
+
+```bash
+git clone https://huggingface.co/fishaudio/fish-agent-v0.1-3b
+```
+
+Rename it to ``fish-agent-3b-pretrain`` and put them in the checkpoints folder.
+
+You also need the VQGAN weight in the fish-speech-1.4 repo.
+
+So there will be 2 folder in the checkpoints.
+
+The ``checkpoints/fish-speech-1.4`` and ``checkpoints/fish-agent-3b-pretrain``
+
 ### Environment Prepare
 
 If you haven't install the environment of Fish-speech, please use:
