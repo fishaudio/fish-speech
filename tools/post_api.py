@@ -8,8 +8,8 @@ import requests
 from pydub import AudioSegment
 from pydub.playback import play
 
-from tools.commons import ServeReferenceAudio, ServeTTSRequest
 from tools.file import audio_to_bytes, read_ref_text
+from tools.schema import ServeReferenceAudio, ServeTTSRequest
 
 
 def parse_args():
@@ -124,12 +124,6 @@ def parse_args():
         default=None,
         help="`None` means randomized inference, otherwise deterministic.\n"
         "It can't be used for fixing a timbre.",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="None means randomized inference, otherwise deterministic",
     )
 
     return parser.parse_args()
