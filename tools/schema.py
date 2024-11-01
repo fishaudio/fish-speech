@@ -1,14 +1,16 @@
-from typing import Annotated, Literal, Optional
 import os
-import torch
-from dataclasses import dataclass
 import queue
-from pydantic import BaseModel, Field, conint
-from pydantic import AfterValidator, BaseModel, confloat, conint, conlist
+from dataclasses import dataclass
+from typing import Annotated, Literal, Optional
+
+import torch
+from pydantic import AfterValidator, BaseModel, Field, confloat, conint, conlist
 from pydantic.functional_validators import SkipValidation
+
 from fish_speech.conversation import Message, TextPart, VQPart
 
 GLOBAL_NUM_SAMPLES = int(os.getenv("GLOBAL_NUM_SAMPLES", 1))
+
 
 class ServeVQPart(BaseModel):
     type: Literal["vq"] = "vq"
@@ -30,6 +32,7 @@ class ASRPackRequest:
     audio: torch.Tensor
     result_queue: queue.Queue
     language: str
+
 
 class ServeASRRequest(BaseModel):
     # The audio should be an uncompressed PCM float16 audio
@@ -78,6 +81,7 @@ class ServeMessage(BaseModel):
 
         return new_message
 
+
 class ServeRequest(BaseModel):
     messages: Annotated[list[ServeMessage], conlist(ServeMessage, min_length=1)]
     max_new_tokens: int = 1024
@@ -87,6 +91,7 @@ class ServeRequest(BaseModel):
     streaming: bool = False
     num_samples: int = 1
     early_stop_threshold: float = 1.0
+
 
 class ServeVQGANEncodeRequest(BaseModel):
     # The audio here should be in wav, mp3, etc
@@ -104,6 +109,7 @@ class ServeVQGANDecodeRequest(BaseModel):
 class ServeVQGANDecodeResponse(BaseModel):
     # The audio here should be in PCM float16 format
     audios: list[bytes]
+
 
 class ServeReferenceAudio(BaseModel):
     audio: bytes
@@ -139,7 +145,8 @@ class ServeReferenceAudio(BaseModel):
 
     def __repr__(self) -> str:
         return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
-        
+
+
 class ServeChatRequestV1(BaseModel):
     model: str = "llama3-8b"
     messages: list[ServeForwardMessage] = []

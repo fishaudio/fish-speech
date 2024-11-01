@@ -1,27 +1,27 @@
 import base64
+import io
 import json
 import os
+import struct
 from dataclasses import dataclass
 from enum import Enum
 from typing import AsyncGenerator
 
 import httpx
 import numpy as np
+import ormsgpack
+import soundfile as sf
 from livekit import rtc
 from livekit.agents.llm.chat_context import ChatContext
-import ormsgpack
-import struct
+
 from .schema import (
     ServeMessage,
     ServeRequest,
     ServeTextPart,
-    ServeVQGANEncodeRequest,
     ServeVQGANDecodeRequest,
+    ServeVQGANEncodeRequest,
     ServeVQPart,
-
 )
-import io
-import soundfile as sf
 
 
 class FishE2EEventType(Enum):
@@ -83,7 +83,7 @@ class FishE2EAgent:
         num_channels: int,
         chat_ctx: ChatContext | None = None,
     ) -> AsyncGenerator[bytes, None]:
-        
+
         if system_audio_data is not None:
             sys_codes = await self.get_codes(system_audio_data, sample_rate)
         else:

@@ -15,11 +15,12 @@ import torch._dynamo.config
 import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
-from fish_speech.text import clean_text, split_text
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-from transformers import AutoTokenizer
+from fish_speech.text import clean_text, split_text
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
 torch._inductor.config.triton.unique_kernel_names = True
@@ -29,12 +30,14 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
     torch._inductor.config.fx_graph_cache = True
 
 
+from torch.nn.attention import SDPBackend, sdpa_kernel
+
 from fish_speech.models.text2semantic.llama import (
     BaseTransformer,
     DualARTransformer,
     NaiveTransformer,
 )
-from torch.nn.attention import sdpa_kernel, SDPBackend
+
 
 def multinomial_sample_one_no_sync(
     probs_sort,
@@ -113,6 +116,7 @@ def logits_to_probs_agent(
     probs = torch.nn.functional.softmax(logits, dim=-1)
     return probs
 
+
 def sample(
     logits,
     previous_tokens: Optional[torch.Tensor] = None,
@@ -124,6 +128,7 @@ def sample(
     idx_next = multinomial_sample_one_no_sync(probs)
     return idx_next, probs
 
+
 def sample_agent(
     logits,
     previous_tokens: Optional[torch.Tensor] = None,
@@ -134,6 +139,7 @@ def sample_agent(
     )
     idx_next = multinomial_sample_one_no_sync_agent(probs)
     return idx_next, probs
+
 
 def decode_one_token_ar_agent(
     model: DualARTransformer,
@@ -235,6 +241,7 @@ def decode_one_token_naive_agent(
     )
 
     return codebooks
+
 
 def decode_one_token_ar(
     model: DualARTransformer,
@@ -450,6 +457,7 @@ def generate(
 
     return seq
 
+
 def decode_n_tokens_agent(
     model: NaiveTransformer,
     cur_token: torch.Tensor,
@@ -585,6 +593,7 @@ def generate_agent(
         **sampling_kwargs,
     )
 
+
 def encode_tokens(
     tokenizer,
     string,
@@ -658,10 +667,14 @@ def load_model(checkpoint_path, device, precision, compile=False, is_agent=False
     logger.info(f"Restored model from checkpoint")
 
     if isinstance(model, DualARTransformer):
-        decode_one_token = decode_one_token_ar_agent if is_agent else decode_one_token_ar
+        decode_one_token = (
+            decode_one_token_ar_agent if is_agent else decode_one_token_ar
+        )
         logger.info("Using DualARTransformer")
     else:
-        decode_one_token = decode_one_token_naive_agent if is_agent else decode_one_token_naive
+        decode_one_token = (
+            decode_one_token_naive_agent if is_agent else decode_one_token_naive
+        )
         logger.info("Using NaiveTransformer")
 
     if compile:
@@ -927,7 +940,7 @@ def launch_thread_safe_queue_agent(
                 dtype=next(model.parameters()).dtype,
             )
         init_event.set()
-        
+
         while True:
             item: GenerateRequest | None = input_queue.get()
             if item is None:

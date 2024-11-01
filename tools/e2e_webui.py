@@ -1,15 +1,15 @@
+import re
+
 import gradio as gr
 import numpy as np
 
+from .fish_e2e import FishE2EAgent, FishE2EEventType
 from .schema import ServeMessage, ServeTextPart, ServeVQPart
 
-from .fish_e2e import FishE2EAgent, FishE2EEventType
-import re
 
 class ChatState:
     def __init__(self):
-        self.conversation = [
-        ]
+        self.conversation = []
         self.added_systext = False
         self.added_sysaudio = False
 
@@ -43,7 +43,9 @@ def clear_fn():
     return [], ChatState(), None, None, None
 
 
-async def process_audio_input(sys_audio_input, sys_text_input, audio_input, state: ChatState, text_input: str):
+async def process_audio_input(
+    sys_audio_input, sys_text_input, audio_input, state: ChatState, text_input: str
+):
     if audio_input is None and not text_input:
         raise gr.Error("No input provided")
 
@@ -83,8 +85,14 @@ async def process_audio_input(sys_audio_input, sys_text_input, audio_input, stat
 
     result_audio = b""
     async for event in agent.stream(
-        sys_audio_data, audio_data, sr, 1, 
-        chat_ctx={"messages": state.conversation, "added_sysaudio": state.added_sysaudio}
+        sys_audio_data,
+        audio_data,
+        sr,
+        1,
+        chat_ctx={
+            "messages": state.conversation,
+            "added_sysaudio": state.added_sysaudio,
+        },
     ):
         if event.type == FishE2EEventType.USER_CODES:
             append_to_chat_ctx(ServeVQPart(codes=event.vq_codes), role="user")
@@ -106,8 +114,12 @@ async def process_audio_input(sys_audio_input, sys_text_input, audio_input, stat
     yield state.get_history(), (44100, np_audio), None, None
 
 
-async def process_text_input(sys_audio_input, sys_text_input, state: ChatState, text_input: str):
-    async for event in process_audio_input(sys_audio_input, sys_text_input, None, state, text_input):
+async def process_text_input(
+    sys_audio_input, sys_text_input, state: ChatState, text_input: str
+):
+    async for event in process_audio_input(
+        sys_audio_input, sys_text_input, None, state, text_input
+    ):
         yield event
 
 
@@ -125,21 +137,23 @@ def create_demo():
                     height=600,
                     type="messages",
                 )
-                
+
             # Right column (30%) for controls
             with gr.Column(scale=3):
                 sys_audio_input = gr.Audio(
-                    sources=["upload"], type="numpy", label="Give a timbre for your assistant"
+                    sources=["upload"],
+                    type="numpy",
+                    label="Give a timbre for your assistant",
                 )
                 sys_text_input = gr.Textbox(
                     label="What is your assistant's role?",
                     value='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nResponse: [你的回答]\n"。',
-                    type="text"
+                    type="text",
                 )
                 audio_input = gr.Audio(
                     sources=["microphone"], type="numpy", label="Speak your message"
                 )
-                
+
                 text_input = gr.Textbox(label="Or type your message", type="text")
 
                 output_audio = gr.Audio(label="Assistant's Voice", type="numpy")

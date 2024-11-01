@@ -35,7 +35,9 @@ class FishTokenizerFast(PreTrainedTokenizerFast):
         self.codebook_size = kwargs.pop("codebook_size", 1024)
         self.num_codebooks = kwargs.pop("num_codebooks", 8)
 
+
 AutoTokenizer.register(FishTokenizerConfig, fast_tokenizer_class=FishTokenizerFast)
+
 
 @dataclass(kw_only=True)
 class BasePart:

@@ -1,6 +1,7 @@
 import io
 import os
 import queue
+import re
 import time
 import traceback
 import wave
@@ -8,7 +9,7 @@ from argparse import ArgumentParser
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, Any
-import re
+
 import librosa
 import numpy as np
 import ormsgpack
@@ -27,41 +28,28 @@ from kui.asgi import (
     Kui,
     OpenAPI,
     StreamResponse,
-    request
+    request,
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
 from transformers import AutoTokenizer
+
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
-from silero_vad import load_silero_vad, get_speech_timestamps
+import struct
+from threading import Lock
+
+import httpx
+from cachetools import LRUCache, cached
+from funasr import AutoModel
+from silero_vad import get_speech_timestamps, load_silero_vad
+
+from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
+from fish_speech.models.text2semantic.llama import BaseModelArgs
+
 # from fish_speech.models.vqgan.lit_module import VQGAN
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
-from fish_speech.models.text2semantic.llama import BaseModelArgs
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
-from fish_speech.conversation import SEMANTIC_TOKEN, IM_END_TOKEN
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.schema import (
-    ServeRequest,
-    ServeTTSRequest, 
-    ServeVQGANDecodeRequest, 
-    ServeVQGANDecodeResponse, 
-    ServeVQGANEncodeRequest, 
-    ServeVQGANEncodeResponse,
-    ASRPackRequest,
-    ServeForwardMessage,
-    ServeASRRequest,
-    ServeASRResponse,
-    ServeASRSegment,
-    ServeTimedASRResponse,
-    ServeTextPart,
-    ServeVQPart,
-    ServeAudioPart,
-    ServeMessage,
-    ServeStreamResponse,
-    ServeStreamDelta,
-    ServeResponse,
-    GLOBAL_NUM_SAMPLES
-)
 from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
@@ -70,12 +58,30 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
 )
+from tools.schema import (
+    GLOBAL_NUM_SAMPLES,
+    ASRPackRequest,
+    ServeASRRequest,
+    ServeASRResponse,
+    ServeASRSegment,
+    ServeAudioPart,
+    ServeForwardMessage,
+    ServeMessage,
+    ServeRequest,
+    ServeResponse,
+    ServeStreamDelta,
+    ServeStreamResponse,
+    ServeTextPart,
+    ServeTimedASRResponse,
+    ServeTTSRequest,
+    ServeVQGANDecodeRequest,
+    ServeVQGANDecodeResponse,
+    ServeVQGANEncodeRequest,
+    ServeVQGANEncodeResponse,
+    ServeVQPart,
+)
 from tools.vqgan.inference import load_model as load_decoder_model
-from cachetools import cached, LRUCache
-import httpx
-import struct
-from threading import Lock
-from funasr import AutoModel
+
 global_lock = Lock()
 
 # Whether to disable keepalive (which is helpful if the server is in the same cluster)
@@ -206,7 +212,6 @@ def get_content_type(audio_format):
         return "application/octet-stream"
 
 
-
 @torch.no_grad()
 @torch.autocast(device_type="cuda", dtype=torch.half)
 def batch_encode(model, audios: list[bytes | torch.Tensor]):
@@ -249,6 +254,7 @@ def batch_encode(model, audios: list[bytes | torch.Tensor]):
 def cached_vqgan_batch_encode(model, audios: list[bytes]):
     return batch_encode(model, audios)
 
+
 @routes.http.post("/v1/vqgan/encode")
 def api_vqgan_encode(payload: Annotated[ServeVQGANEncodeRequest, Body(exclusive=True)]):
 
@@ -258,10 +264,10 @@ def api_vqgan_encode(payload: Annotated[ServeVQGANEncodeRequest, Body(exclusive=
 
     return ormsgpack.packb(
         ServeVQGANEncodeResponse(tokens=[i.tolist() for i in tokens]),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
     )
-       
-    
+
+
 @torch.no_grad()
 @torch.autocast(device_type="cuda", dtype=torch.half)
 def vqgan_decode(model, features):
@@ -299,8 +305,7 @@ def api_vqgan_decode(payload: Annotated[ServeVQGANDecodeRequest, Body(exclusive=
     logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
     audios = [audio.astype(np.float16).tobytes() for audio in audios]
     return ormsgpack.packb(
-        ServeVQGANDecodeResponse(audios=audios), 
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+        ServeVQGANDecodeResponse(audios=audios), option=ormsgpack.OPT_SERIALIZE_PYDANTIC
     )
 
 
@@ -365,16 +370,21 @@ def api_invoke_asr(payload: Annotated[ServeASRRequest, Body(exclusive=True)]):
     )
     logger.info(f"[EXEC] ASR time: {(time.time() - start_time) * 1000:.2f}ms")
 
-    return ormsgpack.packb(ServeASRResponse(transcriptions=transcriptions), option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
+    return ormsgpack.packb(
+        ServeASRResponse(transcriptions=transcriptions),
+        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+    )
 
-from fish_speech.conversation import Message, Conversation
+
+from fish_speech.conversation import Conversation, Message
+
 
 def execute_request(
     input_queue: queue.Queue,
     tokenizer: AutoTokenizer,
     config: BaseModelArgs,
     request: ServeRequest,
-    device: str ="cuda:0",
+    device: str = "cuda:0",
 ):
     semantic_id, im_end_id = tokenizer.convert_tokens_to_ids(
         [SEMANTIC_TOKEN, IM_END_TOKEN]
@@ -540,13 +550,14 @@ def execute_request(
     )
 
 
-
 @routes.http.post("/v1/chat")
-def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
+def api_invoke_chat(
+    req: Annotated[ServeRequest, Body(exclusive=True)],
+):
     """
     Invoke model and generate audio
     """
-    
+
     # This makes torch compile happy
     assert (
         req.num_samples == GLOBAL_NUM_SAMPLES
@@ -556,9 +567,7 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
     json_mode = "application/json" in content_type
 
     async def wrapped_generator():
-        generator = execute_request(
-            llama_queue, tokenizer, config, req, args.device
-        )
+        generator = execute_request(llama_queue, tokenizer, config, req, args.device)
 
         for i in generator:
             if json_mode:
@@ -570,9 +579,7 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
 
     # Naive mode
     if req.streaming is False:
-        result = next(
-            execute_request(llama_queue, tokenizer, config, req, args.device)
-        )
+        result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
 
         if json_mode:
             return JSONResponse(result.model_dump())
@@ -580,8 +587,7 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)],):
             return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
 
     return StreamResponse(
-        iterable=wrapped_generator(), 
-        content_type="text/event-stream"
+        iterable=wrapped_generator(), content_type="text/event-stream"
     )
 
 
@@ -777,10 +783,7 @@ async def api_health():
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["agent", "tts"], default="tts")
-    parser.add_argument(
-        "--load-asr-model",
-        action="store_true"
-    )
+    parser.add_argument("--load-asr-model", action="store_true")
     parser.add_argument(
         "--llama-checkpoint-path",
         type=str,
@@ -861,8 +864,7 @@ def load_asr_model(*, device="cuda", hub="ms"):
 @app.on_startup
 def initialize_app(app: Kui):
 
-    global args, llama_queue, tokenizer, config, \
-        decoder_model, vad_model, asr_model, prompt_tokens, prompt_texts
+    global args, llama_queue, tokenizer, config, decoder_model, vad_model, asr_model, prompt_tokens, prompt_texts
 
     prompt_tokens, prompt_texts = [], []
 
