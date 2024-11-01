@@ -80,7 +80,7 @@ class ServeMessage(BaseModel):
 
 class ServeRequest(BaseModel):
     messages: Annotated[list[ServeMessage], conlist(ServeMessage, min_length=1)]
-    max_new_tokens: int = 600
+    max_new_tokens: int = 1024
     top_p: float = 0.7
     repetition_penalty: float = 1.2
     temperature: float = 0.7

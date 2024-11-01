@@ -9,15 +9,9 @@ import re
 class ChatState:
     def __init__(self):
         self.conversation = [
-            ServeMessage(
-                role="system",
-                parts=[
-                    ServeTextPart(
-                        text='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nResponse: [你的回答]\n"。'
-                    ),
-                ],
-            ),
         ]
+        self.added_systext = False
+        self.added_sysaudio = False
 
     def get_history(self):
         results = []
@@ -49,7 +43,7 @@ def clear_fn():
     return [], ChatState(), None, None, None
 
 
-async def process_audio_input(sys_audio_input, audio_input, state: ChatState, text_input: str):
+async def process_audio_input(sys_audio_input, sys_text_input, audio_input, state: ChatState, text_input: str):
     if audio_input is None and not text_input:
         raise gr.Error("No input provided")
 
@@ -63,7 +57,7 @@ async def process_audio_input(sys_audio_input, audio_input, state: ChatState, te
         audio_data = None
     else:
         raise gr.Error("Invalid audio format")
-    
+
     if isinstance(sys_audio_input, tuple):
         sr, sys_audio_data = sys_audio_input
     elif text_input:
@@ -80,6 +74,9 @@ async def process_audio_input(sys_audio_input, audio_input, state: ChatState, te
         else:
             state.conversation[-1].parts.append(part)
 
+    if state.added_systext is False and sys_text_input:
+        state.added_systext = True
+        append_to_chat_ctx(ServeTextPart(text=sys_text_input), role="system")
     if text_input:
         append_to_chat_ctx(ServeTextPart(text=text_input), role="user")
         audio_data = None
@@ -87,7 +84,7 @@ async def process_audio_input(sys_audio_input, audio_input, state: ChatState, te
     result_audio = b""
     async for event in agent.stream(
         sys_audio_data, audio_data, sr, 1, 
-        chat_ctx={"messages": state.conversation, "added_sysaudio": False}
+        chat_ctx={"messages": state.conversation, "added_sysaudio": state.added_sysaudio}
     ):
         if event.type == FishE2EEventType.USER_CODES:
             append_to_chat_ctx(ServeVQPart(codes=event.vq_codes), role="user")
@@ -109,8 +106,8 @@ async def process_audio_input(sys_audio_input, audio_input, state: ChatState, te
     yield state.get_history(), (44100, np_audio), None, None
 
 
-async def process_text_input(sys_audio_input, state: ChatState, text_input: str):
-    async for event in process_audio_input(sys_audio_input, None, state, text_input):
+async def process_text_input(sys_audio_input, sys_text_input, state: ChatState, text_input: str):
+    async for event in process_audio_input(sys_audio_input, sys_text_input, None, state, text_input):
         yield event
 
 
@@ -128,11 +125,16 @@ def create_demo():
                     height=600,
                     type="messages",
                 )
-
+                
             # Right column (30%) for controls
             with gr.Column(scale=3):
                 sys_audio_input = gr.Audio(
                     sources=["upload"], type="numpy", label="Give a timbre for your assistant"
+                )
+                sys_text_input = gr.Textbox(
+                    label="What is your assistant's role?",
+                    value='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nResponse: [你的回答]\n"。',
+                    type="text"
                 )
                 audio_input = gr.Audio(
                     sources=["microphone"], type="numpy", label="Speak your message"
@@ -148,21 +150,21 @@ def create_demo():
         # Event handlers
         audio_input.stop_recording(
             process_audio_input,
-            inputs=[sys_audio_input, audio_input, state, text_input],
+            inputs=[sys_audio_input, sys_text_input, audio_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )
 
         send_button.click(
             process_text_input,
-            inputs=[sys_audio_input, state, text_input],
+            inputs=[sys_audio_input, sys_text_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )
 
         text_input.submit(
             process_text_input,
-            inputs=[sys_audio_input, state, text_input],
+            inputs=[sys_audio_input, sys_text_input, state, text_input],
             outputs=[chatbot, output_audio, audio_input, text_input],
             show_progress=True,
         )

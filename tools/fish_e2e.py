@@ -85,9 +85,11 @@ class FishE2EAgent:
     ) -> AsyncGenerator[bytes, None]:
         
         if system_audio_data is not None:
-           sys_codes = await self.get_codes(system_audio_data, sample_rate)
+            sys_codes = await self.get_codes(system_audio_data, sample_rate)
+        else:
+            sys_codes = None
         if user_audio_data is not None:
-           user_codes = await self.get_codes(user_audio_data, sample_rate)
+            user_codes = await self.get_codes(user_audio_data, sample_rate)
         # Step 2: Prepare LLM request
         if chat_ctx is None:
             sys_parts = [
@@ -106,7 +108,7 @@ class FishE2EAgent:
                 ],
             }
         else:
-            if chat_ctx["added_sysaudio"] == False:
+            if chat_ctx["added_sysaudio"] is False and sys_codes:
                 chat_ctx["added_sysaudio"] = True
                 chat_ctx["messages"][0].parts.append(ServeVQPart(codes=sys_codes))
 
