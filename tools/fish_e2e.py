@@ -11,8 +11,6 @@ import httpx
 import numpy as np
 import ormsgpack
 import soundfile as sf
-from livekit import rtc
-from livekit.agents.llm.chat_context import ChatContext
 
 from .schema import (
     ServeMessage,
@@ -36,7 +34,7 @@ class FishE2EEventType(Enum):
 @dataclass
 class FishE2EEvent:
     type: FishE2EEventType
-    frame: rtc.AudioFrame = None
+    frame: np.ndarray = None
     text: str = None
     vq_codes: list[list[int]] = None
 
@@ -81,7 +79,7 @@ class FishE2EAgent:
         user_audio_data: np.ndarray | None,
         sample_rate: int,
         num_channels: int,
-        chat_ctx: ChatContext | None = None,
+        chat_ctx: dict | None = None,
     ) -> AsyncGenerator[bytes, None]:
 
         if system_audio_data is not None:

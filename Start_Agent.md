@@ -8,13 +8,13 @@ You can get the model by:
 git clone https://huggingface.co/fishaudio/fish-agent-v0.1-3b
 ```
 
-Rename it to ``fish-agent-3b-pretrain`` and put them in the checkpoints folder.
+Put them in the 'checkpoints' folder.
 
 You also need the VQGAN weight in the fish-speech-1.4 repo.
 
 So there will be 2 folder in the checkpoints.
 
-The ``checkpoints/fish-speech-1.4`` and ``checkpoints/fish-agent-3b-pretrain``
+The ``checkpoints/fish-speech-1.4`` and ``checkpoints/fish-agent-v0.1-3b``
 
 ### Environment Prepare
 
@@ -24,18 +24,12 @@ If you haven't install the environment of Fish-speech, please use:
 pip install -e .[stable]
 ```
 
-Then use:
-
-```bash
-pip install livekit livekit-agents
-```
-
 ### Launch The Agent Demo.
 
 Please use the command below under the main folder:
 
 ```bash
-python -m tools.api --llama-checkpoint-path checkpoints/fish-agent-3b-pretrain/ --mode agent --compile
+python -m tools.api --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
 ```
 
 The ``--compile`` args only support Python < 3.12 , which will greatly speed up the token generation.
