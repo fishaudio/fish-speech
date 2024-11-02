@@ -5,7 +5,7 @@
 You can get the model by:
 
 ```bash
-git clone https://huggingface.co/fishaudio/fish-agent-v0.1-3b
+huggingface-cli download fishaudio/fish-agent-v0.1-3b --local-dir checkpoints/fish-agent-v0.1-3b
 ```
 
 Put them in the 'checkpoints' folder.
