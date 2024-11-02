@@ -1,10 +1,9 @@
 import base64
+import ctypes
 import io
 import json
 import os
 import struct
-import ctypes
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import AsyncGenerator, Union
@@ -13,6 +12,7 @@ import httpx
 import numpy as np
 import ormsgpack
 import soundfile as sf
+
 from .schema import (
     ServeMessage,
     ServeRequest,
@@ -22,11 +22,16 @@ from .schema import (
     ServeVQPart,
 )
 
+
 class CustomAudioFrame:
     def __init__(self, data, sample_rate, num_channels, samples_per_channel):
-        if len(data) < num_channels * samples_per_channel * ctypes.sizeof(ctypes.c_int16):
-            raise ValueError("data length must be >= num_channels * samples_per_channel * sizeof(int16)")
-        
+        if len(data) < num_channels * samples_per_channel * ctypes.sizeof(
+            ctypes.c_int16
+        ):
+            raise ValueError(
+                "data length must be >= num_channels * samples_per_channel * sizeof(int16)"
+            )
+
         self._data = bytearray(data)
         self._sample_rate = sample_rate
         self._num_channels = num_channels
@@ -59,6 +64,7 @@ class CustomAudioFrame:
             f"samples_per_channel={self.samples_per_channel}, "
             f"duration={self.duration:.3f})"
         )
+
 
 class FishE2EEventType(Enum):
     SPEECH_SEGMENT = 1
