@@ -35,7 +35,7 @@ This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please 
 
 ---
 ## Fish Agent
-We are very excited to annoce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](fish.audio/demo/live) for instant English chat and English and Chinese chat locally by following the [docs](speech.fish.audio/start_agent/).
+We are very excited to annoce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](https://fish.audio/demo/live) for instant English chat and English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
 
 You should mention that the content is released under a **CC BY-NC-SA 4.0 licence**. And the demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
 
@@ -63,7 +63,7 @@ You should mention that the content is released under a **CC BY-NC-SA 4.0 licenc
 
 2. **Timbre Control:** Can use reference audio to control the speech timbre. 
 
-3. **Emotional:**The model can generate speech with strong emotion.
+3. **Emotional:** The model can generate speech with strong emotion.
 
 ## Disclaimer
 
@@ -72,6 +72,8 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Online Demo
 
 [Fish Audio](https://fish.audio)
+
+[Fish Agent](https://fish.audio/demo/live)
 
 ## Quick Start for Local Inference
 
