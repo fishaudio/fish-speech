@@ -602,7 +602,7 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    string = f"<|im_start|>user\nSpeak: {string}<|im_end|><|im_start|>assistant\n"
+    string = f"<|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n"
 
     new_tokens = tokenizer.encode(
         string,
