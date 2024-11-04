@@ -138,16 +138,28 @@ def create_demo():
                     type="messages",
                 )
 
+                # notes = gr.Markdown(
+                #     """
+                # # Fish Agent
+                # 1. 此Demo为Fish Audio自研端到端语言模型Fish Agent 3B版本.
+                # 2. 你可以在我们的官方仓库找到代码以及权重，但是相关内容全部基于 CC BY-NC-SA 4.0 许可证发布.
+                # 3. Demo为早期灰度测试版本，推理速度尚待优化.
+                # # 特色
+                # 1. 该模型自动集成ASR与TTS部分，不需要外挂其它模型，即真正的端到端，而非三段式(ASR+LLM+TTS).
+                # 2. 模型可以使用reference audio控制说话音色.
+                # 3. 可以生成具有较强情感与韵律的音频.
+                # """
+                # )
                 notes = gr.Markdown(
-                    """
-                # Fish Agent
-                1. 此Demo为Fish Audio自研端到端语言模型Fish Agent 3B版本.
-                2. 你可以在我们的官方仓库找到代码以及权重，但是相关内容全部基于 CC BY-NC-SA 4.0 许可证发布.
-                3. Demo为早期灰度测试版本，推理速度尚待优化.
-                # 特色
-                1. 该模型自动集成ASR与TTS部分，不需要外挂其它模型，即真正的端到端，而非三段式(ASR+LLM+TTS).
-                2. 模型可以使用reference audio控制说话音色.
-                3. 可以生成具有较强情感与韵律的音频.
+                """
+                    # Fish Agent
+                    1. This demo is Fish Audio's self-researh end-to-end language model, Fish Agent version 3B.
+                    2. You can find the code and weights in our official repo in [gitub](https://github.com/fishaudio/fish-speech) and [hugging face](https://huggingface.co/fishaudio/fish-agent-v0.1-3b), but the content is released under a CC BY-NC-SA 4.0 licence.
+                    3. The demo is an early alpha test version, the inference speed needs to be optimised.
+                    # Features
+                    1. The model automatically integrates ASR and TTS parts, no need to plug-in other models, i.e., true end-to-end, not three-stage (ASR+LLM+TTS).
+                    2. The model can use reference audio to control the speech timbre. 
+                    3. The model can generate speech with strong emotion.
                 """
                 )
 
@@ -160,7 +172,7 @@ def create_demo():
                 )
                 sys_text_input = gr.Textbox(
                     label="What is your assistant's role?",
-                    value='您是由 Fish Audio 设计的语音助手，提供端到端的语音交互，实现无缝用户体验。首先转录用户的语音，然后使用以下格式回答："Question: [用户语音]\n\nResponse: [你的回答]\n"。',
+                    value="You are a voice assistant created by Fish Audio, offering end-to-end voice interaction for a seamless user experience. You are required to first transcribe the user's speech, then answer it in the following format: 'Question: [USER_SPEECH]\n\nAnswer: [YOUR_RESPONSE]\n'. You are required to use the following voice in this conversation.",
                     type="text",
                 )
                 audio_input = gr.Audio(

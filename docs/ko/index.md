@@ -1,4 +1,4 @@
-# Introduction
+# 소개
 
 <div>
 <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
