@@ -80,7 +80,6 @@ async def process_audio_input(
         sr = 44100
         sys_audio_data = None
 
-
     def append_to_chat_ctx(
         part: ServeTextPart | ServeVQPart, role: str = "assistant"
     ) -> None:
