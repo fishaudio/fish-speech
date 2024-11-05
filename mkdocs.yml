@@ -86,7 +86,7 @@ plugins:
             - 介绍: zh/index.md
             - 微调: zh/finetune.md
             - 推理: zh/inference.md
-            # 启动Agent: zh/启动Agent.md
+            - 启动Agent: zh/启动Agent.md
             - 例子: zh/samples.md
         - locale: ja
           name: 日本語

@@ -31,15 +31,13 @@ pip install cachetools
 !!! note
     Please use the Python version below 3.12 for compile.
 
-If you don't have, please use:
+If you don't have, please use the below commands to build yout environment:
 
 ```bash
 sudo apt-get install portaudio19-dev
 
 pip install -e .[stable]
 ```
-
-to biuld your environment.
 
 ## Launch The Agent Demo.
 
@@ -72,10 +70,8 @@ Have a good time!
 
 ## Performance
 
-Under our test, a 4060 laptop just barely runs, but is very stretched, which is only about 8tokens/s. The 4090 is around 95tokens/s under compile, which is what we recommend.
+Under our test, a 4060 laptop just barely runs, but is very stretched, which is only about 8 tokens/s. The 4090 is around 95 tokens/s under compile, which is what we recommend.
 
 # About Agent
 
-This model is currently undergoing testing. We welcome suggestions and assistance in improving it.
-
-We are considering refining the tutorial and incorporating it into the main documentation after the testing phase is complete.
+The demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
