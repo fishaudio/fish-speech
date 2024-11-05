@@ -12,6 +12,7 @@ copyright: Copyright &copy; 2023-2024 by Fish Audio
 
 theme:
   name: material
+  favicon: assets/figs/logo-circle.png
   language: en
   features:
     - content.action.edit
@@ -54,6 +55,13 @@ theme:
       font:
         code: Roboto Mono
 
+nav:
+  - Introduction: index.md
+  - Finetune: finetune.md
+  - Inference: inference.md
+  - Start Agent: start_agent.md
+  - Samples: samples.md
+
 # Plugins
 plugins:
   - search:
@@ -63,6 +71,7 @@ plugins:
         - zh
         - ja
         - pt
+        - ko
   - i18n:
       docs_structure: folder
       languages:
@@ -73,12 +82,36 @@ plugins:
         - locale: zh
           name: 简体中文
           build: true
+          nav:
+            - 介绍: zh/index.md
+            - 微调: zh/finetune.md
+            - 推理: zh/inference.md
+            - 启动Agent: zh/启动Agent.md
+            - 例子: zh/samples.md
         - locale: ja
           name: 日本語
           build: true
+          nav:
+            - Fish Speech の紹介: ja/index.md
+            - 微調整: ja/finetune.md
+            - 推論: ja/inference.md
+            - サンプル: ja/samples.md
         - locale: pt
           name: Português (Brasil)
           build: true
+          nav:
+            - Introdução: pt/index.md
+            - Ajuste Fino: pt/finetune.md
+            - Inferência: pt/inference.md
+            - Amostras: pt/samples.md
+        - locale: ko
+          name: 한국어
+          build: true
+          nav:
+            - 소개: ko/index.md
+            - 파인튜닝: ko/finetune.md
+            - 추론: ko/inference.md
+            - 샘플: ko/samples.md
 
 markdown_extensions:
   - pymdownx.highlight:

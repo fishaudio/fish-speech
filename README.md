@@ -34,8 +34,13 @@
 This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
 ---
+## Fish Agent
+We are very excited to annoce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](https://fish.audio/demo/live) for instant English chat and English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
+
+You should mention that the content is released under a **CC BY-NC-SA 4.0 licence**. And the demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
 
 ## Features
+### Fish Speech
 
 1. **Zero-shot & Few-shot TTS:** Input a 10 to 30-second vocal sample to generate high-quality TTS output. **For detailed guidelines, see [Voice Cloning Best Practices](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
 
@@ -53,6 +58,13 @@ This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please 
 
 8. **Deploy-Friendly:** Easily set up an inference server with native support for Linux, Windows and MacOS, minimizing speed loss.
 
+### Fish Agent
+1. **Completely End to End:** Automatically integrates ASR and TTS parts, no need to plug-in other models, i.e., true end-to-end, not three-stage (ASR+LLM+TTS).
+
+2. **Timbre Control:** Can use reference audio to control the speech timbre. 
+
+3. **Emotional:** The model can generate speech with strong emotion.
+
 ## Disclaimer
 
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
@@ -60,6 +72,8 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Online Demo
 
 [Fish Audio](https://fish.audio)
+
+[Fish Agent](https://fish.audio/demo/live)
 
 ## Quick Start for Local Inference
 
