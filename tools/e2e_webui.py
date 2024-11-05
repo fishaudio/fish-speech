@@ -80,6 +80,7 @@ async def process_audio_input(
         sr = 44100
         sys_audio_data = None
 
+
     def append_to_chat_ctx(
         part: ServeTextPart | ServeVQPart, role: str = "assistant"
     ) -> None:
@@ -109,9 +110,7 @@ async def process_audio_input(
         if event.type == FishE2EEventType.USER_CODES:
             append_to_chat_ctx(ServeVQPart(codes=event.vq_codes), role="user")
         elif event.type == FishE2EEventType.SPEECH_SEGMENT:
-            result_audio += event.frame.data
             append_to_chat_ctx(ServeVQPart(codes=event.vq_codes))
-
             yield state.get_history(), wav_chunk_header() + event.frame.data, None, None
         elif event.type == FishE2EEventType.TEXT_SEGMENT:
             append_to_chat_ctx(ServeTextPart(text=event.text))
