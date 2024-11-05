@@ -69,7 +69,7 @@ python -m tools.e2e_webui
 ## Gradio Webui
 
 <p align="center">
-   <img src="../assets/figs/agent_gradio.png" width="75%">
+   <img src="../../assets/figs/agent_gradio.png" width="75%">
 </p>
 
 玩得开心！

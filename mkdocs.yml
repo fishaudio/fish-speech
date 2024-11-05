@@ -95,6 +95,7 @@ plugins:
             - Fish Speech の紹介: ja/index.md
             - 微調整: ja/finetune.md
             - 推論: ja/inference.md
+            - スタートエージェント: ja/start_agent.md
             - サンプル: ja/samples.md
         - locale: pt
           name: Português (Brasil)
@@ -103,6 +104,7 @@ plugins:
             - Introdução: pt/index.md
             - Ajuste Fino: pt/finetune.md
             - Inferência: pt/inference.md
+            - Agente inicial: pt/start_agent.md
             - Amostras: pt/samples.md
         - locale: ko
           name: 한국어
