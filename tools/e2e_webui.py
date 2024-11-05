@@ -114,6 +114,7 @@ async def process_audio_input(
             yield state.get_history(), wav_chunk_header() + event.frame.data, None, None
         elif event.type == FishE2EEventType.TEXT_SEGMENT:
             append_to_chat_ctx(ServeTextPart(text=event.text))
+            yield state.get_history(), None, None, None
 
     yield state.get_history(), None, None, None
 
