@@ -65,8 +65,7 @@ async def process_audio_input(
     elif text_input:
         sr = 44100
         sys_audio_data = None
-    else:
-        raise gr.Error("Invalid audio format")
+
 
     def append_to_chat_ctx(
         part: ServeTextPart | ServeVQPart, role: str = "assistant"
