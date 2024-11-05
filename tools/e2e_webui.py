@@ -1,12 +1,13 @@
+import io
 import re
+import wave
 
 import gradio as gr
 import numpy as np
 
 from .fish_e2e import FishE2EAgent, FishE2EEventType
 from .schema import ServeMessage, ServeTextPart, ServeVQPart
-import io
-import wave
+
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
@@ -185,11 +186,11 @@ def create_demo():
                 text_input = gr.Textbox(label="Or type your message", type="text")
 
                 output_audio = gr.Audio(
-                                label="Assistant's Voice",
-                                streaming=True,
-                                autoplay=True,
-                                interactive=False,
-                            )
+                    label="Assistant's Voice",
+                    streaming=True,
+                    autoplay=True,
+                    interactive=False,
+                )
 
                 send_button = gr.Button("Send", variant="primary")
                 clear_button = gr.Button("Clear")
