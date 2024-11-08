@@ -32,7 +32,7 @@ dependencies = [
     "loralib>=0.1.2",
     "natsort>=8.4.0",
     "pyrootutils>=1.0.4",
-    "vector_quantize_pytorch>=1.14.24",
+    "vector_quantize_pytorch==1.14.24",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
