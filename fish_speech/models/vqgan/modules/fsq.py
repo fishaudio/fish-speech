@@ -99,7 +99,7 @@ class DownsampleFiniteScalarQuantize(nn.Module):
         if diff > 0:
             result.z = F.pad(result.z, (left, right))
         elif diff < 0:
-            result.z = result.z[..., left:-right]
+            result.z = result.z[..., -left:right]
 
         return result
 
