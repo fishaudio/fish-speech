@@ -50,6 +50,7 @@ dependencies = [
 stable = [
     "torch<=2.4.1",
     "torchaudio",
+    "cachetools",
 ]
 
 [build-system]
