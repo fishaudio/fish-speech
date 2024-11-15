@@ -1,19 +1,19 @@
-import os
-import torch
-import random
-import numpy as np
-import time
 import gc
+import os
+import random
+import time
 from typing import Any, Dict, Optional, Tuple
 
 import hydra
 import lightning as L
+import numpy as np
+import pyrootutils
+import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.strategies import DDPStrategy
 from omegaconf import DictConfig, OmegaConf
 
-import pyrootutils
 import fish_speech.utils as utils
 
 # Set environment variables
@@ -34,6 +34,7 @@ OmegaConf.register_new_resolver("eval", eval)
 
 log = utils.RankedLogger(__name__, rank_zero_only=True)
 
+
 def set_seed(seed: int):
     """Set the seed for reproducibility across various modules."""
     random.seed(seed)
@@ -42,8 +43,11 @@ def set_seed(seed: int):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # For multi-GPU setups
     torch.backends.cudnn.deterministic = True  # Ensures deterministic behavior
-    torch.backends.cudnn.benchmark = False  # May impact performance, but improves reproducibility
+    torch.backends.cudnn.benchmark = (
+        False  # May impact performance, but improves reproducibility
+    )
     log.info(f"Random seed set to {seed}")
+
 
 def instantiate_callbacks(callbacks_cfg):
     """Helper function to instantiate callbacks from the configuration."""
@@ -52,6 +56,7 @@ def instantiate_callbacks(callbacks_cfg):
         callback = hydra.utils.instantiate(callback_cfg)
         callbacks.append(callback)
     return callbacks
+
 
 def instantiate_components(cfg: DictConfig) -> Dict[str, Any]:
     log.info(f"Instantiating datamodule of type {cfg.data._target_}")
@@ -79,27 +84,36 @@ def instantiate_components(cfg: DictConfig) -> Dict[str, Any]:
         "trainer": trainer,
     }
 
+
 def log_training_start(model):
     """Log the start of training and the number of trainable parameters."""
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     log.info(f"Starting training with {num_params} trainable parameters.")
 
+
 def log_training_end(start_time):
     """Log the end of training and the total time spent."""
     elapsed_time = time.time() - start_time
-    log.info(f"Training completed in {elapsed_time // 60} minutes and {elapsed_time % 60} seconds.")
+    log.info(
+        f"Training completed in {elapsed_time // 60} minutes and {elapsed_time % 60} seconds."
+    )
+
 
 def cleanup():
     """Clear cache and reset random state for memory management."""
     torch.cuda.empty_cache()
     gc.collect()
 
-def export_model(model, export_path='model.pt'):
+
+def export_model(model, export_path="model.pt"):
     """Export the model to TorchScript format."""
     model.eval()
-    traced_model = torch.jit.trace(model, torch.randn(1, 3, 224, 224))  # Example input size
+    traced_model = torch.jit.trace(
+        model, torch.randn(1, 3, 224, 224)
+    )  # Example input size
     traced_model.save(export_path)
     log.info(f"Model exported to {export_path}")
+
 
 @utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -168,9 +182,13 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     # Handle testing process
     if cfg.get("test"):
         log.info("Starting testing phase...")
-        ckpt_path = cfg.get("test_ckpt_path", trainer.checkpoint_callback.best_model_path)
+        ckpt_path = cfg.get(
+            "test_ckpt_path", trainer.checkpoint_callback.best_model_path
+        )
         if not ckpt_path:
-            log.warning("No checkpoint provided for testing. Using current model weights...")
+            log.warning(
+                "No checkpoint provided for testing. Using current model weights..."
+            )
             ckpt_path = None  # Use current model weights
 
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
@@ -191,10 +209,14 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     return metric_dict, components
 
-@hydra.main(version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml")
+
+@hydra.main(
+    version_base="1.3", config_path="./configs", config_name="llama_pretrain.yaml"
+)
 def main(cfg: DictConfig) -> Optional[float]:
     # Train the model
     train(cfg)
+
 
 if __name__ == "__main__":
     main()
