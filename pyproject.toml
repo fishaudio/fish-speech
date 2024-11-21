@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy<=1.26.4",
-    "transformers>=4.35.2",
+    "transformers>=4.45.2",
     "datasets==2.18.0",
     "lightning>=2.1.0",
     "hydra-core>=1.3.2",
@@ -32,7 +32,7 @@ dependencies = [
     "loralib>=0.1.2",
     "natsort>=8.4.0",
     "pyrootutils>=1.0.4",
-    "vector_quantize_pytorch>=1.14.24",
+    "vector_quantize_pytorch==1.14.24",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
@@ -50,6 +50,7 @@ dependencies = [
 stable = [
     "torch<=2.4.1",
     "torchaudio",
+    "cachetools",
 ]
 
 [build-system]
