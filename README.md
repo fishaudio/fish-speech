@@ -106,6 +106,19 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
+## Tech Report (V1.4)
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis}, 
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156}, 
+}
+```
+
 ## Sponsor
 
 <div>
