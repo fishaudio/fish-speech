@@ -32,7 +32,7 @@ from kui.asgi import (
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
-from transformers import AutoTokenizer
+from fish_speech.tokenizer import FishTokenizer, IM_END_TOKEN
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 import struct
@@ -43,7 +43,7 @@ from cachetools import LRUCache, cached
 from funasr import AutoModel
 from silero_vad import get_speech_timestamps, load_silero_vad
 
-from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
+# from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
 from fish_speech.models.text2semantic.llama import BaseModelArgs
 
 # from fish_speech.models.vqgan.lit_module import VQGAN
@@ -381,14 +381,13 @@ from fish_speech.conversation import Conversation, Message
 
 def execute_request(
     input_queue: queue.Queue,
-    tokenizer: AutoTokenizer,
+    tokenizer: FishTokenizer,
     config: BaseModelArgs,
     request: ServeRequest,
     device: str = "cuda:0",
 ):
-    semantic_id, im_end_id = tokenizer.convert_tokens_to_ids(
-        [SEMANTIC_TOKEN, IM_END_TOKEN]
-    )
+
+    im_end_id = tokenizer.get_token_id(IM_END_TOKEN)
     messages = []
     for message in request.messages:
         messages.append(message.to_conversation_message())
@@ -397,7 +396,13 @@ def execute_request(
     # assert messages[-1].role == "user", "The last message must be from the user"
 
     if messages[-1].role == "user":
-        messages.append(Message(role="assistant", parts=[], add_im_end=False))
+        messages.append(
+            Message(role="assistant", parts=[], add_im_end=False, modality="voice")
+        )
+    elif messages[-1].role == "raw":
+        messages[-1].add_im_start = False
+        messages[-1].add_im_end = False
+        messages[-1].modality = "voice"
     else:
         assert (
             messages[-1].role == "assistant"
@@ -422,7 +427,6 @@ def execute_request(
         "prompt": prompt,
         "max_new_tokens": request.max_new_tokens,
         "im_end_id": im_end_id,
-        "semantic_id": semantic_id,
         "temperature": request.temperature,
         "top_p": request.top_p,
         "repetition_penalty": request.repetition_penalty,
@@ -478,10 +482,13 @@ def execute_request(
                     )
                 continue
 
-            if tokens[0] == semantic_id and request.streaming:
+            is_semantic = (
+                tokenizer.semantic_begin_id <= tokens[0] <= tokenizer.semantic_end_id
+            )
+            if is_semantic and request.streaming:
                 yield from send_reset_buffer(sample_id)
                 # Streaming vq
-                _tokens = tokens[1:].clone() - 1
+                _tokens = tokens[1:].clone()
 
                 if config.share_codebook_embeddings is False:
                     for i in range(len(_tokens)):
@@ -494,13 +501,13 @@ def execute_request(
                 continue
 
             # Not streaming vq
-            if tokens[0] == semantic_id:
+            if is_semantic:
                 yield from send_reset_buffer(sample_id)
                 # None streaming vq
                 if len(parts[sample_id]) == 0 or not isinstance(
                     parts[sample_id][-1], ServeVQPart
                 ):
-                    _tokens = tokens[1:].clone() - 1
+                    _tokens = tokens[1:].clone()
 
                     if config.share_codebook_embeddings is False:
                         for i in range(len(_tokens)):
@@ -509,14 +516,14 @@ def execute_request(
                     parts[sample_id].append(ServeVQPart(codes=_tokens.tolist()))
                 else:
                     for codebook_id, value in enumerate(tokens[1:, :]):
-                        val = value.item() - 1
+                        val = value.item()
                         if config.share_codebook_embeddings is False:
                             val -= config.codebook_size * codebook_id
 
                         parts[sample_id][-1].codes[codebook_id].append(val)
                 continue
 
-            if tokens[0] != semantic_id:
+            if not is_semantic:
                 # Stream text decode is not supported now
                 decode_buffer[sample_id].append(tokens[0, 0])
 
@@ -548,7 +555,6 @@ def execute_request(
         finish_reason=response,
         stats=stats,
     )
-
 
 @routes.http.post("/v1/chat")
 def api_invoke_chat(
@@ -585,6 +591,42 @@ def api_invoke_chat(
             return JSONResponse(result.model_dump())
         else:
             return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
+
+    return StreamResponse(
+        iterable=wrapped_generator(), content_type="text/event-stream"
+    )
+
+
+def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
+    generator = execute_request(llama_queue, tokenizer, config, req, device)
+    for i in generator:
+        if json_mode:
+            yield i.model_dump_json().encode("utf-8")
+        else:
+            yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
+
+
+@routes.http.post("/v1/chat")
+def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
+    """
+    Invoke model and generate audio
+    """
+    assert req.num_samples == GLOBAL_NUM_SAMPLES, f"num_samples must be {GLOBAL_NUM_SAMPLES}"
+    
+    content_type = request.headers.get("Content-Type", "application/json")
+    json_mode = "application/json" in content_type
+
+    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
+    if req.streaming is False:
+        result = next(response)
+        return result
+    
+    async def wrapped_generator():
+        for body in response:
+            if json_mode:
+                yield b"data: " + body + b"\n\n"
+            else:
+                yield struct.pack("I", len(body)) + body
 
     return StreamResponse(
         iterable=wrapped_generator(), content_type="text/event-stream"
@@ -776,7 +818,30 @@ async def api_health():
     """
     Health check
     """
-
+    for num_samples in [GLOBAL_NUM_SAMPLES, 1]:
+        test_request = ServeRequest(
+            messages=[
+                ServeMessage(
+                    role="raw",
+                    parts=[
+                        ServeTextPart(text="Speak out the provided text."),
+                    ],
+                ),
+            ],
+            streaming=True,
+            num_samples=num_samples,
+        )
+        for value in execute_request(
+            llama_queue, tokenizer, config, test_request, args.device
+        ):
+            if (
+                isinstance(value, (ServeStreamResponse, ServeResponse))
+                and value.finish_reason == "error"
+            ):
+                raise HTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    detail="Model is not loaded correctly",
+                )
     return JSONResponse({"status": "ok"})
 
 
