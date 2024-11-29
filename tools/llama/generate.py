@@ -369,6 +369,10 @@ def decode_n_tokens(
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
+        output_folder = 'output_tokens'
+        os.makedirs(output_folder, exist_ok=True)
+        with open(os.path.join(output_folder, f'tokens.txt'), 'a') as f:
+            f.write(model.tokenizer.decode(cur_token))
         previous_tokens[:, i : i + 1] = next_token.view(
             model.config.num_codebooks + 1, -1
         )
@@ -598,7 +602,8 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    string = f"<|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n"
+    system_message = "Speak out the provided text."
+    string = f"<|im_start|>system\n{system_message}<|im_end|><|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n<voice>"
 
     new_tokens = tokenizer.encode(
         string,
