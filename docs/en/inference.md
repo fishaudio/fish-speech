@@ -15,7 +15,7 @@ Inference support command line, HTTP API and web UI.
 Download the required `vqgan` and `llama` models from our Hugging Face repository.
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 ### 1. Generate prompt from voice:
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 You should get a `fake.npy` file.
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4" \
+    --checkpoint-path "checkpoints/fish-speech-1.5" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ This command will create a `codes_N` file in the working directory, where N is a
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## HTTP API Inference
@@ -69,8 +69,8 @@ We provide a HTTP API for inference. You can use the following command to start 
 ```bash
 python -m tools.api \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
@@ -120,8 +120,8 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 > If you want to speed up inference, you can add the `--compile` parameter.

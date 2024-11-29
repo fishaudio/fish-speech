@@ -175,7 +175,7 @@ pip install -e .[stable]
     Certifique-se de estar no terminal do contêiner Docker e, em seguida, baixe os modelos necessários `vqgan` e `llama` do nosso repositório HuggingFace.
 
     ```bash
-    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+    huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
     ```
 
 4. Configure as variáveis de ambiente e acesse a WebUI

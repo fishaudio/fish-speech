@@ -15,11 +15,10 @@ import torch._dynamo.config
 import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
-from transformers import AutoTokenizer
 
-from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
+from fish_speech.conversation import Conversation, Message
+from fish_speech.tokenizer import IM_END_TOKEN, MODALITY_VOICE_TOKEN, FishTokenizer
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-from fish_speech.models.text2semantic.tokenizer import FishTokenizer
 from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -146,24 +145,29 @@ def decode_one_token_ar_agent(
     model: DualARTransformer,
     x: torch.Tensor,
     input_pos: torch.Tensor,
-    semantic_ids: list,
     previous_tokens: torch.Tensor = None,
     **sampling_kwargs,
 ) -> torch.Tensor:
     # print(x, input_pos)
-    x = model.forward_generate(x, input_pos)
+    x = model.forward_generate(
+        x,
+        input_pos,
+        vq_masks=None,
+    )
     logits = x.logits  # [:, -1:]
     hidden_states = x.hidden_states  # [:, -1:]
 
     sampling_kwargs_main = sampling_kwargs.copy()
-    sampling_kwargs_main["temperature"] = 0.1
-    sampling_kwargs_main["top_p"] = 0.1
-    sampling_kwargs_main["repetition_penalty"] = 1.0
+    # sampling_kwargs_main["temperature"] = 0.1
+    # sampling_kwargs_main["top_p"] = 0.1
+    # sampling_kwargs_main["repetition_penalty"] = 1.0
 
     codebooks = [
         sample_agent(
             logits,
-            previous_tokens=None,  # Disable repetition penalty for the token codebook
+            previous_tokens=(
+                previous_tokens[:, 0] if previous_tokens is not None else None
+            ),  # Disable repetition penalty for the token codebook
             **sampling_kwargs_main,
         )[0]
     ]
@@ -173,7 +177,14 @@ def decode_one_token_ar_agent(
         layer.attention.kv_cache.k_cache.fill_(0)
         layer.attention.kv_cache.v_cache.fill_(0)
 
-    for codebook_idx in range(model.config.num_codebooks):
+    input_pos = torch.tensor([0], device=hidden_states.device, dtype=torch.long)
+    model.forward_generate_fast(hidden_states, input_pos)
+    a = codebooks[0] - model.tokenizer.semantic_begin_id
+    a[a < 0] = 0
+    hidden_states = model.fast_embeddings(a)
+    codebooks.append(a)
+
+    for codebook_idx in range(1, model.config.num_codebooks):
         input_pos = torch.tensor(
             [codebook_idx], device=hidden_states.device, dtype=torch.long
         )
@@ -191,10 +202,20 @@ def decode_one_token_ar_agent(
         codebooks.append(a)
 
     codebooks = torch.stack(codebooks, dim=1)
-    semantic_ids_tensor = torch.tensor(semantic_ids, device=codebooks.device)
-    codebooks[:, 1:, :] = torch.masked_fill(
-        codebooks[:, 1:, :], ~torch.isin(codebooks[:, :1, :], semantic_ids_tensor), CODEBOOK_PAD_TOKEN_ID
-    )
+
+    # codebooks = torch.stack(codebooks, dim=1)
+    # codebooks[:, 1:, :] = torch.masked_fill(
+    #     codebooks[:, 1:, :], codebooks[:, :1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
+    # )
+
+    # for i in range(codebooks.size(1) - 1):
+    #     codebooks[:, i + 1, :] = torch.masked_fill(
+    #         codebooks[:, i + 1, :],
+    #         codebooks[:, :1, :] != semantic_id,
+    #         CODEBOOK_PAD_TOKEN_ID + i * 1024,
+    #     )
+
+    # print(codebooks)
 
     return codebooks
 
@@ -203,8 +224,8 @@ def decode_one_token_naive_agent(
     model: NaiveTransformer,
     x: torch.Tensor,
     input_pos: torch.Tensor,
-    semantic_ids: list,
     previous_tokens: torch.Tensor = None,
+    semantic_id: int = 32003,
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
@@ -229,9 +250,8 @@ def decode_one_token_naive_agent(
         )
 
     codebooks = torch.stack(codebooks, dim=1)
-    semantic_ids_tensor = torch.tensor(semantic_ids, device=codebooks.device)
     codebooks[:, 1:, :] = torch.masked_fill(
-        codebooks[:, 1:, :], ~torch.isin(codebooks[:, :1, :], semantic_ids_tensor), CODEBOOK_PAD_TOKEN_ID
+        codebooks[:, 1:, :], codebooks[:, :1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
     )
 
     return codebooks
@@ -241,8 +261,8 @@ def decode_one_token_ar(
     model: DualARTransformer,
     x: torch.Tensor,
     input_pos: torch.Tensor,
-    semantic_ids: list,
     previous_tokens: torch.Tensor = None,
+    semantic_id: int = 0,
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
@@ -283,9 +303,8 @@ def decode_one_token_ar(
         codebooks.append(a)
 
     codebooks = torch.stack(codebooks, dim=0)
-    semantic_ids_tensor = torch.tensor(semantic_ids, device=codebooks.device)
     codebooks[1:, :] = torch.masked_fill(
-        codebooks[1:, :], ~torch.isin(codebooks[:1, :], semantic_ids_tensor), CODEBOOK_PAD_TOKEN_ID
+        codebooks[1:, :], codebooks[:1, :] != semantic_id, CODEBOOK_PAD_TOKEN_ID
     )
 
     return codebooks
@@ -332,9 +351,9 @@ def decode_n_tokens(
     cur_token: torch.Tensor,
     input_pos: torch.Tensor,
     num_new_tokens: int,
-    semantic_ids: list,
     im_end_id: int = 4,
     decode_one_token=decode_one_token_naive,
+    semantic_id: int = 0,
     **sampling_kwargs,
 ):
     previous_tokens = torch.zeros(
@@ -363,16 +382,12 @@ def decode_n_tokens(
                 x=cur_token,
                 input_pos=input_pos,
                 previous_tokens=window,
-                semantic_ids=semantic_ids,
+                semantic_id=semantic_id,
                 **sampling_kwargs,
             )
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
-        output_folder = 'output_tokens'
-        os.makedirs(output_folder, exist_ok=True)
-        with open(os.path.join(output_folder, f'tokens.txt'), 'a') as f:
-            f.write(model.tokenizer.decode(cur_token))
         previous_tokens[:, i : i + 1] = next_token.view(
             model.config.num_codebooks + 1, -1
         )
@@ -400,8 +415,7 @@ def generate(
 
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
-    # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
-    semantic_ids = [model.tokenizer.get_token_id(f"<|semantic:{i}|>") for i in range(1024)]
+    semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
 
     if max_new_tokens:
         if T + max_new_tokens > model.config.max_seq_len:
@@ -435,7 +449,7 @@ def generate(
         model,
         prompt.view(1, codebook_dim, -1),
         input_pos,
-        semantic_ids=semantic_ids,
+        semantic_id=semantic_id,
         **sampling_kwargs,
     )
     seq[:, T : T + 1] = next_token
@@ -448,7 +462,7 @@ def generate(
         max_new_tokens - 1,
         im_end_id=im_end_id,
         decode_one_token=decode_one_token,
-        semantic_ids=semantic_ids,
+        semantic_id=semantic_id,
         **sampling_kwargs,
     )
     # x = torch.cat(generated_tokens, dim=1)
@@ -463,9 +477,8 @@ def decode_n_tokens_agent(
     cur_token: torch.Tensor,
     input_pos: torch.Tensor,
     num_new_tokens: int,
-    semantic_ids: list,
     im_end_id: int = 4,
-    decode_one_token=decode_one_token_naive_agent,
+    decode_one_token=decode_one_token_ar_agent,
     early_stop_threshold: float = 0.6,
     **sampling_kwargs,
 ):
@@ -495,7 +508,6 @@ def decode_n_tokens_agent(
                 x=cur_token,
                 input_pos=input_pos,
                 previous_tokens=window,
-                semantic_ids=semantic_ids,
                 **sampling_kwargs,
             )
 
@@ -529,9 +541,8 @@ def generate_agent(
     model: BaseTransformer,
     prompt: torch.Tensor,
     max_new_tokens: int,
-    semantic_ids: list,
     im_end_id: int = 4,
-    decode_one_token=decode_one_token_naive_agent,
+    decode_one_token=decode_one_token_ar_agent,
     num_samples: int = 1,
     early_stop_threshold: float = 0.6,
     **sampling_kwargs,
@@ -565,16 +576,10 @@ def generate_agent(
     input_pos = torch.arange(0, T, device=device)
 
     # Use non-accelerated version for now, to avoid compilation overhead
-    prefill_decode = (
-        decode_one_token_naive_agent
-        if isinstance(model, NaiveTransformer)
-        else decode_one_token_ar_agent
-    )
-    next_token = prefill_decode(
+    next_token = decode_one_token_ar_agent(
         model,
         prompt,
         input_pos,
-        semantic_ids=semantic_ids,
         **sampling_kwargs,
     ).view(num_samples, codebook_dim, -1)
     yield next_token.cpu()
@@ -587,7 +592,6 @@ def generate_agent(
         input_pos,
         max_new_tokens - 1,
         im_end_id=im_end_id,
-        semantic_ids=semantic_ids,
         decode_one_token=decode_one_token,
         early_stop_threshold=early_stop_threshold,
         **sampling_kwargs,
@@ -602,12 +606,14 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    system_message = "Speak out the provided text."
-    string = f"<|im_start|>system\n{system_message}<|im_end|><|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n<voice>"
+    system_prompt = "Speak out the provided text."
+    string = f"<|im_start|>system\n{system_prompt}<|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n<voice>"
 
     new_tokens = tokenizer.encode(
         string,
-        allowed_special=False,
+        add_special_tokens=False,
+        max_length=10**6,
+        truncation=False,
     )
     tokens = torch.tensor([new_tokens], dtype=torch.int, device=device)
 
@@ -644,8 +650,8 @@ def encode_tokens(
     )
 
     # Since 1.0, we use <|semantic|>
-    s0_token_id = tokenizer.get_token_id("<|semantic:0|>")
-    end_token_id = tokenizer.get_token_id("<|im_end|>")
+    s0_token_id = tokenizer.convert_tokens_to_ids("<|semantic|>")
+    end_token_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
     main_token_ids = (
         torch.ones((1, data.size(1)), dtype=torch.int, device=device) * s0_token_id
     )
@@ -697,7 +703,7 @@ class GenerateResponse:
 
 def generate_long(
     *,
-    model,
+    model: DualARTransformer,
     device: str | torch.device,
     decode_one_token: callable,
     text: str,
@@ -728,7 +734,7 @@ def generate_long(
 
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     tokenizer = model.tokenizer
-    im_end_id = tokenizer.get_token_id("<|im_end|>")
+    im_end_id = tokenizer.get_token_id(IM_END_TOKEN)
 
     encoded = []
     texts = split_text(text, chunk_length) if iterative_prompt else [text]
@@ -842,7 +848,7 @@ def generate_long(
 
             # Put the generated tokens
             # since there is <im_end> and <eos> tokens, we remove last 2 tokens
-            codes = y[1:, prompt_length+1:-1].clone()
+            codes = y[1:, prompt_length:-1].clone()
             codes = codes - 1
             assert (codes >= 0).all(), f"Negative code found"
 
