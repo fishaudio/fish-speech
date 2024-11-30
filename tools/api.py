@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import queue
 import re
@@ -556,45 +557,45 @@ def execute_request(
         stats=stats,
     )
 
-@routes.http.post("/v1/chat")
-def api_invoke_chat(
-    req: Annotated[ServeRequest, Body(exclusive=True)],
-):
-    """
-    Invoke model and generate audio
-    """
+# @routes.http.post("/v1/chat")
+# def api_invoke_chat(
+#     req: Annotated[ServeRequest, Body(exclusive=True)],
+# ):
+#     """
+#     Invoke model and generate audio
+#     """
 
-    # This makes torch compile happy
-    assert (
-        req.num_samples == GLOBAL_NUM_SAMPLES
-    ), f"num_samples must be {GLOBAL_NUM_SAMPLES}"
+#     # This makes torch compile happy
+#     assert (
+#         req.num_samples == GLOBAL_NUM_SAMPLES
+#     ), f"num_samples must be {GLOBAL_NUM_SAMPLES}"
 
-    content_type = request.headers.get("Content-Type", "application/json")
-    json_mode = "application/json" in content_type
+#     content_type = request.headers.get("Content-Type", "application/json")
+#     json_mode = "application/json" in content_type
 
-    async def wrapped_generator():
-        generator = execute_request(llama_queue, tokenizer, config, req, args.device)
+#     async def wrapped_generator():
+#         generator = execute_request(llama_queue, tokenizer, config, req, args.device)
 
-        for i in generator:
-            if json_mode:
-                body = i.model_dump_json().encode("utf-8")
-                yield b"data: " + body + b"\n\n"
-            else:
-                body = ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
-                yield struct.pack("I", len(body)) + body
+#         for i in generator:
+#             if json_mode:
+#                 body = i.model_dump_json().encode("utf-8")
+#                 yield b"data: " + body + b"\n\n"
+#             else:
+#                 body = ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
+#                 yield struct.pack("I", len(body)) + body
 
-    # Naive mode
-    if req.streaming is False:
-        result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
+#     # Naive mode
+#     if req.streaming is False:
+#         result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
 
-        if json_mode:
-            return JSONResponse(result.model_dump())
-        else:
-            return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
+#         if json_mode:
+#             return JSONResponse(result.model_dump())
+#         else:
+#             return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
 
-    return StreamResponse(
-        iterable=wrapped_generator(), content_type="text/event-stream"
-    )
+#     return StreamResponse(
+#         iterable=wrapped_generator(), content_type="text/event-stream"
+#     )
 
 
 def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
@@ -631,6 +632,35 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
     return StreamResponse(
         iterable=wrapped_generator(), content_type="text/event-stream"
     )
+
+@routes.http.post("/v2/tts")
+def api_invoke_model_v2(
+    req: Annotated[ServeRequest, Body(exclusive=True)],
+):
+    try:
+        response_bytes = api_invoke_chat(req)
+        response = json.loads(response_bytes)
+        codes = torch.tensor(response["messages"][0]["parts"][0]["codes"]).to(decoder_model.device)
+        print(codes)
+        
+        wavs = decode_vq_tokens(decoder_model=decoder_model, codes=codes)
+        wavs = wavs.detach().cpu().numpy() if torch.is_tensor(wavs) else wavs
+        
+        sf.write(
+            'fake.wav',
+            wavs,
+            decoder_model.spec_transform.sample_rate,
+            format="wav"
+        )
+        
+        return ormsgpack.packb(
+            ServeVQGANDecodeResponse(audios=[wav.tobytes() for wav in wavs]),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        )
+        
+    except Exception as e:
+        print(f"Error in TTS processing: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @torch.inference_mode()

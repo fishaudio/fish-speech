@@ -33,3 +33,4 @@ asr-label*
 /test.ipynb
 /tools/llama/generate_remain.py
 /audio
+/message.json
