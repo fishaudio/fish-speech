@@ -20,7 +20,7 @@ from transformers import AutoTokenizer
 from fish_speech.utils import RankedLogger
 
 from .lora import LoraConfig, setup_lora
-from .tokenizer import FishTokenizer, SEMANTIC_TOKENS
+from .tokenizer import SEMANTIC_TOKENS, FishTokenizer
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
@@ -62,6 +62,7 @@ class BaseModelArgs:
     # Dummy vars
     is_reward_model: bool = False
     share_codebook_embeddings: bool = True
+    scale_codebook_embeddings: bool = False
 
     def __post_init__(self):
         if self.n_local_heads == -1:
@@ -171,7 +172,9 @@ class BaseTransformer(nn.Module):
         self.config = config
         self.tokenizer = tokenizer
 
-        self.semantic_token_ids = [tokenizer.get_token_id(SEMANTIC_TOKEN) for SEMANTIC_TOKEN in SEMANTIC_TOKENS]
+        self.semantic_token_ids = [
+            tokenizer.get_token_id(SEMANTIC_TOKEN) for SEMANTIC_TOKEN in SEMANTIC_TOKENS
+        ]
 
         # Slow transformer
         self.embeddings = nn.Embedding(
@@ -246,7 +249,9 @@ class BaseTransformer(nn.Module):
         vocab_embeds = [self.embeddings(x[:, 0])]
         for i in range(self.config.num_codebooks):
             emb = self.codebook_embeddings(x[:, i + 1] + i * self.config.codebook_size)
-            semantic_token_ids_tensor = torch.tensor(self.semantic_token_ids, device=x.device)
+            semantic_token_ids_tensor = torch.tensor(
+                self.semantic_token_ids, device=x.device
+            )
             emb[~torch.isin(x[:, 0], semantic_token_ids_tensor)] = 0
 
         x = torch.stack(vocab_embeds, dim=3)
@@ -292,7 +297,7 @@ class BaseTransformer(nn.Module):
             logits=token_logits,
             hidden_states=x,
         )
-    
+
     def forward_generate(
         self,
         inp: Tensor,
@@ -333,9 +338,7 @@ class BaseTransformer(nn.Module):
         else:
             max_seq_len = self.max_seq_len
 
-        mask = self.causal_mask[
-            None, None, input_pos, : max_seq_len
-        ]  # (B, N, Q, K)
+        mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
 
         for layer in self.layers:
@@ -685,7 +688,8 @@ class DualARTransformer(BaseTransformer):
         return codebook_logits
 
     def forward_generate(
-        self, x: Tensor, 
+        self,
+        x: Tensor,
         input_pos: Optional[Tensor] = None,
         vq_masks: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
