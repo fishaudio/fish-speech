@@ -614,26 +614,15 @@ def encode_tokens(
 ):
     string = clean_text(string)
     
-    messages = [
-        Message(
-            role="system",
-            parts=[TextPart(text="Speak out the provided text.")],
-            cal_loss=False,
-            add_im_end=False,
-        ),
+    messages = []
+    messages.append(
         Message(
             role="user",
             parts=[TextPart(text=string)],
             cal_loss=False,
-        ),
-        Message(
-            role="assistant",
-            parts=[TextPart(text="<|voice|>")],
-            cal_loss=False,
-            add_im_end=False,
         )
-    ]
-    
+    )
+
     if prompt_tokens is not None:
         if prompt_tokens.ndim == 3:
             assert prompt_tokens.shape[0] == 1, "3D prompt tokens should have shape (1, num_codebooks, seq_len)"
@@ -651,10 +640,25 @@ def encode_tokens(
             codes=prompt_tokens.to(device)
         )
         
-        messages[1].parts.append(vq_part)
+        messages.append(
+            Message(
+                role="assistant",
+                parts=[TextPart(text="<|voice|>"), vq_part],
+                cal_loss=False,
+            )
+        )
+    else:
+        messages.append(
+            Message(
+                role="assistant",
+                parts=[TextPart(text="<|voice|>")],
+                cal_loss=False,
+                add_im_end=False,
+            )
+        )
 
-    print(f"message{messages}")
     conversation = Conversation(messages=messages)
+    # conversation.visualize(tokenizer)
     encoded = conversation.encode_for_inference(
         tokenizer=tokenizer,
         num_codebooks=num_codebooks,
@@ -738,7 +742,18 @@ def generate_long(
 
     encoded = []
     texts = split_text(text, chunk_length) if iterative_prompt else [text]
-    encoded_prompts = []
+    encoded_prompts = [
+        Conversation(messages=[
+            Message(
+                role="system",
+                parts=[TextPart(text="Speak out the provided text.")],
+                cal_loss=False,
+            )
+        ]).encode_for_inference(
+            tokenizer=tokenizer,
+            num_codebooks=model.config.num_codebooks,
+        ).to(device)
+    ]
 
     if use_prompt:
         for idx, (t, c) in enumerate(zip(prompt_text, prompt_tokens)):
@@ -846,11 +861,11 @@ def generate_long(
                 )
 
             # Put the generated tokens
-            # since there is <im_end> and <eos> tokens, we remove last 2 tokens
-            codes = y[1:, prompt_length + 1 : -1].clone()
+            # since there is <im_end>, we remove last token
+            codes = y[1:, prompt_length + 1 :].clone()
             assert (codes >= 0).all(), f"Negative code found"
 
-            decoded = y[:, prompt_length:-1].clone()
+            decoded = y[:, prompt_length:].clone()
             # But for global encoding, we should keep the <im_end> token
 
             global_encoded.append(decoded)
