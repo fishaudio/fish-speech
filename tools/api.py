@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import queue
 import re
@@ -32,7 +33,6 @@ from kui.asgi import (
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
-from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 import struct
@@ -43,7 +43,8 @@ from cachetools import LRUCache, cached
 from funasr import AutoModel
 from silero_vad import get_speech_timestamps, load_silero_vad
 
-from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
+# from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
+from fish_speech.tokenizer import FishTokenizer, IM_END_TOKEN
 from fish_speech.models.text2semantic.llama import BaseModelArgs
 
 # from fish_speech.models.vqgan.lit_module import VQGAN
@@ -381,14 +382,13 @@ from fish_speech.conversation import Conversation, Message
 
 def execute_request(
     input_queue: queue.Queue,
-    tokenizer: AutoTokenizer,
+    tokenizer: FishTokenizer,
     config: BaseModelArgs,
     request: ServeRequest,
     device: str = "cuda:0",
 ):
-    semantic_id, im_end_id = tokenizer.convert_tokens_to_ids(
-        [SEMANTIC_TOKEN, IM_END_TOKEN]
-    )
+
+    im_end_id = tokenizer.get_token_id(IM_END_TOKEN)
     messages = []
     for message in request.messages:
         messages.append(message.to_conversation_message())
@@ -397,7 +397,13 @@ def execute_request(
     # assert messages[-1].role == "user", "The last message must be from the user"
 
     if messages[-1].role == "user":
-        messages.append(Message(role="assistant", parts=[], add_im_end=False))
+        messages.append(
+            Message(role="assistant", parts=[], add_im_end=False, modality="voice")
+        )
+    elif messages[-1].role == "raw":
+        messages[-1].add_im_start = False
+        messages[-1].add_im_end = False
+        messages[-1].modality = "voice"
     else:
         assert (
             messages[-1].role == "assistant"
@@ -405,6 +411,8 @@ def execute_request(
         messages[-1].add_im_end = False
 
     conv = Conversation(messages=messages)
+
+    conv.visualize(tokenizer)
     prompt = conv.encode_for_inference(
         tokenizer=tokenizer, num_codebooks=config.num_codebooks
     ).to(device)
@@ -422,7 +430,6 @@ def execute_request(
         "prompt": prompt,
         "max_new_tokens": request.max_new_tokens,
         "im_end_id": im_end_id,
-        "semantic_id": semantic_id,
         "temperature": request.temperature,
         "top_p": request.top_p,
         "repetition_penalty": request.repetition_penalty,
@@ -478,10 +485,13 @@ def execute_request(
                     )
                 continue
 
-            if tokens[0] == semantic_id and request.streaming:
+            is_semantic = (
+                tokenizer.semantic_begin_id <= tokens[0] <= tokenizer.semantic_end_id
+            )
+            if is_semantic and request.streaming:
                 yield from send_reset_buffer(sample_id)
                 # Streaming vq
-                _tokens = tokens[1:].clone() - 1
+                _tokens = tokens[1:].clone()
 
                 if config.share_codebook_embeddings is False:
                     for i in range(len(_tokens)):
@@ -494,13 +504,13 @@ def execute_request(
                 continue
 
             # Not streaming vq
-            if tokens[0] == semantic_id:
+            if is_semantic:
                 yield from send_reset_buffer(sample_id)
                 # None streaming vq
                 if len(parts[sample_id]) == 0 or not isinstance(
                     parts[sample_id][-1], ServeVQPart
                 ):
-                    _tokens = tokens[1:].clone() - 1
+                    _tokens = tokens[1:].clone()
 
                     if config.share_codebook_embeddings is False:
                         for i in range(len(_tokens)):
@@ -509,14 +519,14 @@ def execute_request(
                     parts[sample_id].append(ServeVQPart(codes=_tokens.tolist()))
                 else:
                     for codebook_id, value in enumerate(tokens[1:, :]):
-                        val = value.item() - 1
+                        val = value.item()
                         if config.share_codebook_embeddings is False:
                             val -= config.codebook_size * codebook_id
 
                         parts[sample_id][-1].codes[codebook_id].append(val)
                 continue
 
-            if tokens[0] != semantic_id:
+            if not is_semantic:
                 # Stream text decode is not supported now
                 decode_buffer[sample_id].append(tokens[0, 0])
 
@@ -550,46 +560,122 @@ def execute_request(
     )
 
 
+
+def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
+    generator = execute_request(llama_queue, tokenizer, config, req, device)
+    for i in generator:
+        if json_mode:
+            yield i.model_dump_json().encode("utf-8")
+        else:
+            yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
+
+
 @routes.http.post("/v1/chat")
-def api_invoke_chat(
-    req: Annotated[ServeRequest, Body(exclusive=True)],
-):
+def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
     """
     Invoke model and generate audio
     """
-
-    # This makes torch compile happy
-    assert (
-        req.num_samples == GLOBAL_NUM_SAMPLES
-    ), f"num_samples must be {GLOBAL_NUM_SAMPLES}"
-
+    assert req.num_samples == GLOBAL_NUM_SAMPLES, f"num_samples must be {GLOBAL_NUM_SAMPLES}"
+    
     content_type = request.headers.get("Content-Type", "application/json")
     json_mode = "application/json" in content_type
 
+    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
+    if req.streaming is False:
+        result = next(response)
+        return result
+    
     async def wrapped_generator():
-        generator = execute_request(llama_queue, tokenizer, config, req, args.device)
-
-        for i in generator:
+        for body in response:
             if json_mode:
-                body = i.model_dump_json().encode("utf-8")
                 yield b"data: " + body + b"\n\n"
             else:
-                body = ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
                 yield struct.pack("I", len(body)) + body
-
-    # Naive mode
-    if req.streaming is False:
-        result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
-
-        if json_mode:
-            return JSONResponse(result.model_dump())
-        else:
-            return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
 
     return StreamResponse(
         iterable=wrapped_generator(), content_type="text/event-stream"
     )
 
+async def async_wav_generator(stream):
+    for i in stream:
+        yield i
+    
+@routes.http.post("/v2/tts")
+def api_invoke_model_v2(
+    req: Annotated[ServeRequest, Body(exclusive=True)],
+):  
+    content_type = request.headers.get("Content-Type", "application/json")
+    json_mode = "application/json" in content_type
+    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
+
+    if req.streaming is False:
+        result = next(response)
+        if json_mode:
+            json_data = json.loads(result)
+            codes = torch.tensor(json_data["messages"][0]["parts"][0]["codes"]).to(decoder_model.device)
+        else:
+            data: ServeResponse = ormsgpack.unpackb(result)
+            assert data.messages[0].role == "assistant"
+            codes = torch.tensor(data.messages[0].parts[0].codes).to(decoder_model.device)
+
+        with autocast_exclude_mps(
+            device_type=decoder_model.device.type, dtype=args.precision
+        ):
+            wavs = decode_vq_tokens(decoder_model=decoder_model, codes=codes)
+        wavs = wavs.float().detach().cpu().numpy()
+        
+        buffer = io.BytesIO()
+        sf.write(
+            buffer,
+            wavs,
+            decoder_model.spec_transform.sample_rate,
+            format=req.format,
+        )
+        return StreamResponse(
+            iterable=buffer_to_async_generator(buffer.getvalue()),
+            headers={
+                "Content-Disposition": f"attachment; filename=audio.{req.format}",
+            },
+            content_type=get_content_type(req.format),
+        )
+
+
+    if req.streaming is True:
+
+        def wav_generator():
+            yield wav_chunk_header()
+            for chunk in response:
+                if json_mode:
+                    json_chunk = json.loads(chunk)
+                    if json_chunk["delta"] is None:
+                        continue
+                    part = json_chunk["delta"].get("part", None)
+                    if part is None or part["type"] != "vq":
+                        continue
+                    codes_chunk = torch.tensor(part["codes"]).to(decoder_model.device)
+                else:
+                    data_chunk: ServeStreamResponse = ormsgpack.unpackb(chunk)
+                    if data_chunk.delta is None:
+                        continue
+                    part = data_chunk.delta.part
+                    if part is None or part.type != "vq":
+                        continue
+                    codes_chunk = torch.tensor(part.codes).to(decoder_model.device)
+                    
+                with autocast_exclude_mps(
+                    device_type=decoder_model.device.type, dtype=args.precision
+                ):
+                    wav_chunk = decode_vq_tokens(decoder_model=decoder_model, codes=codes_chunk)
+                wav_chunk = (wav_chunk.float().detach().cpu().numpy() * 32767).astype(np.int16).tobytes()
+                yield wav_chunk
+
+        return StreamResponse(
+            iterable=async_wav_generator(wav_generator()),
+            headers={
+                "Content-Disposition": f"attachment; filename=audio.{req.format}",
+            },
+            content_type=get_content_type(req.format),
+        )
 
 @torch.inference_mode()
 def inference(req: ServeTTSRequest):
@@ -776,7 +862,30 @@ async def api_health():
     """
     Health check
     """
-
+    for num_samples in [GLOBAL_NUM_SAMPLES, 1]:
+        test_request = ServeRequest(
+            messages=[
+                ServeMessage(
+                    role="raw",
+                    parts=[
+                        ServeTextPart(text="Speak out the provided text."),
+                    ],
+                ),
+            ],
+            streaming=True,
+            num_samples=num_samples,
+        )
+        for value in execute_request(
+            llama_queue, tokenizer, config, test_request, args.device
+        ):
+            if (
+                isinstance(value, (ServeStreamResponse, ServeResponse))
+                and value.finish_reason == "error"
+            ):
+                raise HTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    detail="Model is not loaded correctly",
+                )
     return JSONResponse({"status": "ok"})
 
 
@@ -871,11 +980,6 @@ def initialize_app(app: Kui):
     args = parse_args()  # args same as ones in other processes
     args.precision = torch.half if args.half else torch.bfloat16
 
-    # Check if CUDA is available
-    if not torch.cuda.is_available():
-        logger.info("CUDA is not available, running on CPU.")
-        args.device = "cpu"
-
     if args.load_asr_model:
         logger.info(f"Loading ASR model...")
         asr_model = load_asr_model(device=args.device)
@@ -922,7 +1026,7 @@ def initialize_app(app: Kui):
                     max_new_tokens=0,
                     chunk_length=200,
                     top_p=0.7,
-                    repetition_penalty=1.2,
+                    repetition_penalty=1.5,
                     temperature=0.7,
                     emotion=None,
                     format="wav",

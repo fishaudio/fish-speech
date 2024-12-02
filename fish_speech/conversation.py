@@ -178,7 +178,7 @@ class Conversation:
         tokenizer: FishTokenizer,
         num_codebooks: int,
     ) -> EncodedMessage:
-        # self.visualize(tokenizer)
+        self.visualize(tokenizer)
 
         encoded = self.encode(tokenizer, add_shift=False)
         tokens = encoded.tokens

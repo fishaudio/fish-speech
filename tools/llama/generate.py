@@ -615,11 +615,12 @@ def encode_tokens(
     string = clean_text(string)
     
     messages = [
-        # Message(
-        #     role="system",
-        #     parts=[TextPart(text="Speak out the provided text.")],
-        #     cal_loss=False,
-        # ),
+        Message(
+            role="system",
+            parts=[TextPart(text="Speak out the provided text.")],
+            cal_loss=False,
+            add_im_end=False,
+        ),
         Message(
             role="user",
             parts=[TextPart(text=string)],
@@ -629,6 +630,7 @@ def encode_tokens(
             role="assistant",
             parts=[TextPart(text="<|voice|>")],
             cal_loss=False,
+            add_im_end=False,
         )
     ]
     
@@ -649,8 +651,9 @@ def encode_tokens(
             codes=prompt_tokens.to(device)
         )
         
-        messages[-1].parts.append(vq_part)
+        messages[1].parts.append(vq_part)
 
+    print(f"message{messages}")
     conversation = Conversation(messages=messages)
     encoded = conversation.encode_for_inference(
         tokenizer=tokenizer,
