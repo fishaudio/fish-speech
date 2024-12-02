@@ -27,10 +27,6 @@ EOS_TOKEN = "<|end_of_text|>"
 PAD_TOKEN = "<|pad|>"
 IM_START_TOKEN = "<|im_start|>"
 IM_END_TOKEN = "<|im_end|>"
-PHONEME_START_TOKEN = "<|phoneme_start|>"
-PHONEME_END_TOKEN = "<|phoneme_end|>"
-TOOL_CALL_START_TOKEN = "<|tool_call_start|>"
-TOOL_CALL_END_TOKEN = "<|tool_call_end|>"
 
 MODALITY_TEXT_TOKEN = "<|text|>"
 MODALITY_VOICE_TOKEN = "<|voice|>"
@@ -51,10 +47,6 @@ ALL_SPECIAL_TOKENS = [
     PAD_TOKEN,
     IM_START_TOKEN,
     IM_END_TOKEN,
-    PHONEME_START_TOKEN,
-    PHONEME_END_TOKEN,
-    TOOL_CALL_START_TOKEN,
-    TOOL_CALL_END_TOKEN,
     MODALITY_TEXT_TOKEN,
     MODALITY_VOICE_TOKEN,
     MODALITY_INTERLEAVE_TOKEN,
