@@ -20,7 +20,7 @@ from transformers import AutoTokenizer
 from fish_speech.utils import RankedLogger
 
 from .lora import LoraConfig, setup_lora
-from .tokenizer import SEMANTIC_TOKENS, FishTokenizer
+from ...tokenizer import SEMANTIC_TOKENS, FishTokenizer
 
 log = RankedLogger(__name__, rank_zero_only=True)
 

@@ -17,9 +17,9 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from fish_speech.conversation import CODEBOOK_PAD_TOKEN_ID
+from fish_speech.conversation import VQPart, TextPart, Message, Conversation
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-from fish_speech.models.text2semantic.tokenizer import IM_END_TOKEN, FishTokenizer
+from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 from fish_speech.text import clean_text, split_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -303,7 +303,7 @@ def decode_one_token_ar(
     #     codebooks[1:, :], ~torch.isin(codebooks[:1, :], semantic_ids_tensor), CODEBOOK_PAD_TOKEN_ID
     # )
 
-    print(codebooks)
+    # print(codebooks)
     return codebooks
 
 
@@ -410,7 +410,6 @@ def generate(
 
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
-    print(prompt)
     # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
     semantic_ids = [
         model.tokenizer.get_token_id(f"<|semantic:{i}|>") for i in range(1024)
@@ -614,58 +613,51 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    string = f"<|im_start|>system\nSpeak out the provided text.<|im_end|><|im_start|>user\n{string}<|im_end|><|im_start|>assistant\n<|voice|>"
-
-    new_tokens = tokenizer.encode(
-        string,
-        allowed_special=True,
-    )
-    tokens = torch.tensor([new_tokens], dtype=torch.int, device=device)
-
-    # Codebooks
-    zeros = (
-        torch.ones((num_codebooks, tokens.size(1)), dtype=torch.int, device=device)
-        * CODEBOOK_PAD_TOKEN_ID
-    )
-    prompt = torch.cat((tokens, zeros), dim=0)
-
-    if prompt_tokens is None:
-        return prompt
-
-    # Get prompt tokens
-    if prompt_tokens.ndim == 3:
-        assert (
-            prompt_tokens.shape[0] == 1
-        ), f"3 dim prompt tokens should have shape (1, num_codebooks, seq_len)"
-        prompt_tokens = prompt_tokens[0]
-
-    assert prompt_tokens.ndim == 2
-    data = prompt_tokens + 1
-
-    if prompt_tokens.shape[0] > num_codebooks:
-        logger.warning(
-            f"Prompt tokens shape {prompt_tokens.shape} is larger than num_codebooks {num_codebooks}, getting first {num_codebooks} codebooks"
+    
+    messages = [
+        # Message(
+        #     role="system",
+        #     parts=[TextPart(text="Speak out the provided text.")],
+        #     cal_loss=False,
+        # ),
+        Message(
+            role="user",
+            parts=[TextPart(text=string)],
+            cal_loss=False,
+        ),
+        Message(
+            role="assistant",
+            parts=[TextPart(text="<|voice|>")],
+            cal_loss=False,
         )
-        data = data[:num_codebooks]
+    ]
+    
+    if prompt_tokens is not None:
+        if prompt_tokens.ndim == 3:
+            assert prompt_tokens.shape[0] == 1, "3D prompt tokens should have shape (1, num_codebooks, seq_len)"
+            prompt_tokens = prompt_tokens[0]
+        
+        assert prompt_tokens.ndim == 2, "Prompt tokens should be 2D tensor"
+        
+        if prompt_tokens.shape[0] > num_codebooks:
+            logger.warning(
+                f"Prompt tokens shape {prompt_tokens.shape} is larger than num_codebooks {num_codebooks}, getting first {num_codebooks} codebooks"
+            )
+            prompt_tokens = prompt_tokens[:num_codebooks]
+        
+        vq_part = VQPart(
+            codes=prompt_tokens.to(device)
+        )
+        
+        messages[-1].parts.append(vq_part)
 
-    # Add pad token for each codebook
-    data = torch.cat(
-        (data, torch.zeros((data.size(0), 1), dtype=torch.int, device=device)),
-        dim=1,
+    conversation = Conversation(messages=messages)
+    encoded = conversation.encode_for_inference(
+        tokenizer=tokenizer,
+        num_codebooks=num_codebooks,
     )
-
-    # Since 1.0, we use <|semantic|>
-    s0_token_id = tokenizer.get_token_id("<|semantic:0|>")
-    end_token_id = tokenizer.get_token_id("<|im_end|>")
-    main_token_ids = (
-        torch.ones((1, data.size(1)), dtype=torch.int, device=device) * s0_token_id
-    )
-    main_token_ids[0, -1] = end_token_id
-
-    data = torch.cat((main_token_ids, data), dim=0)
-    prompt = torch.cat((prompt, data), dim=1)
-
-    return prompt
+    
+    return encoded.to(device)
 
 
 def load_model(checkpoint_path, device, precision, compile=False, is_agent=False):
