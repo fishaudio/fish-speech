@@ -14,6 +14,7 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
+from transformers import AutoTokenizer
 
 
 from fish_speech.tokenizer import FishTokenizer, SEMANTIC_TOKENS
@@ -47,14 +48,6 @@ class BaseModelArgs:
     dropout: float = 0.0
     tie_word_embeddings: bool = True
     attention_qkv_bias: bool = False
-    is_reward_model: bool = False
-
-    # This will reuse same embedding in sub-AR for all codebooks, therefore leads to performance drop
-    # Therefore leads to performance drop
-    share_codebook_embeddings: bool = True
-
-    # This adds a MLP after codebook embeddings, which may brings it to different distribution
-    use_codebook_mlp: bool = False
 
     # Codebook configs
     codebook_size: int = 160
@@ -266,6 +259,12 @@ class BaseTransformer(nn.Module):
 
         return x
 
+    def forward(
+        self,
+        inp: Tensor,
+        key_padding_mask: Optional[Tensor] = None,
+    ) -> BaseTransformerForwardResult:
+        seq_len = inp.size(2)
 
         # Here we want to merge the embeddings of the codebooks
         x = self.embed(inp)
@@ -303,28 +302,28 @@ class BaseTransformer(nn.Module):
         self,
         inp: Tensor,
         input_pos: Optional[Tensor] = None,
-        vq_masks: Optional[Tensor] = None,
+        vq_masks: Optional[Tensor] = None,  # this is not used in fact
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
         # This is used for generation, optimized for torch compile
         # assert (
         #     self.max_seq_len != -1 and self.max_batch_size != -1
         # ), "Please call setup_caches before forward_generate"
+
         embeds = []
-        
         for i in range(self.config.num_codebooks):
             if self.config.share_codebook_embeddings:
                 _tokens = inp[:, i + 1] + i * self.config.codebook_size
             else:
                 _tokens = inp[:, i + 1]
 
-        emb = self.codebook_embeddings(_tokens)
-        embeds.append(emb)
+            emb = self.codebook_embeddings(_tokens)
+            embeds.append(emb)
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-        if self.config.use_codebook_mlp:
-            vq_embeds_sum = vq_embeds_sum / self.config.num_codebooks
-            vq_embeds_sum = self.codebook_mlp(vq_embeds_sum)
+        # if self.config.use_codebook_mlp:
+        #     vq_embeds_sum = vq_embeds_sum / self.config.num_codebooks
+        #     vq_embeds_sum = self.codebook_mlp(vq_embeds_sum)
 
         vq_masks = (inp[:, 0] >= self.tokenizer.semantic_begin_id) & (
             inp[:, 0] <= self.tokenizer.semantic_end_id
@@ -344,17 +343,21 @@ class BaseTransformer(nn.Module):
 
         for layer in self.layers:
             x = layer(x, freqs_cis, mask, input_pos=input_pos)
+
         # If prefill, we only calculate the logits of last token
         if x.size(1) > 1 and not return_all:
             x = x[:, -1:]
+
         # We got slow_out here
         slow_out = self.norm(x)
+
         if self.config.is_reward_model:
             token_logits = self.score_output(slow_out)
         elif self.config.tie_word_embeddings:
             token_logits = F.linear(slow_out, self.embeddings.weight)
         else:
             token_logits = self.output(slow_out)
+
         return BaseTransformerForwardResult(
             logits=token_logits,
             hidden_states=x,
@@ -396,7 +399,8 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        tokenizer = FishTokenizer.from_pretrained(str(path))
+        tokenizer_path = str(path) + "/tokenizer.tiktoken"
+        tokenizer = FishTokenizer(tokenizer_path)
         log.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
 
@@ -406,7 +410,6 @@ class BaseTransformer(nn.Module):
 
         if load_weights is False:
             log.info("Randomly initialized model")
-            return model
         else:
 
             if "int8" in str(Path(path)):
@@ -577,8 +580,6 @@ class DualARTransformer(BaseTransformer):
     def setup_caches(
         self, max_batch_size: int, max_seq_len: int, dtype: torch.dtype = torch.bfloat16
     ):
-        if self.max_seq_len >= max_seq_len and self.max_batch_size >= max_batch_size:
-            return
         super().setup_caches(max_batch_size, max_seq_len, dtype)
 
         head_dim = self.config.fast_dim // self.config.fast_n_head
