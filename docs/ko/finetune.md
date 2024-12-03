@@ -38,7 +38,7 @@
 VQGAN 가중치를 다운로드했는지 확인하세요. 다운로드하지 않았다면 아래 명령어를 실행하세요:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 이후 시맨틱 토큰을 추출하기 위해 아래 명령어를 실행하세요:
@@ -47,7 +47,7 @@ huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-
 python tools/vqgan/extract_vq.py data \
     --num-workers 1 --batch-size 16 \
     --config-name "firefly_gan_vq" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 !!! note
@@ -91,7 +91,7 @@ python tools/llama/build_dataset.py \
 마찬가지로, `LLAMA` 가중치를 다운로드했는지 확인하세요. 다운로드하지 않았다면 아래 명령어를 실행하세요:
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 마지막으로, 아래 명령어를 실행하여 파인튜닝을 시작할 수 있습니다:
@@ -119,9 +119,9 @@ python fish_speech/train.py --config-name text2semantic_finetune \
 ```bash
 python tools/llama/merge_lora.py \
 	--lora-config r_8_alpha_16 \
-	--base-weight checkpoints/fish-speech-1.4 \
+	--base-weight checkpoints/fish-speech-1.5 \
 	--lora-weight results/$project/checkpoints/step_000000010.ckpt \
-	--output checkpoints/fish-speech-1.4-yth-lora/
+	--output checkpoints/fish-speech-1.5-yth-lora/
 ```
 
 !!! note

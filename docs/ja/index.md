@@ -178,7 +178,7 @@ pip install -e .[stable]
     Docker コンテナ内のターミナルにいることを確認し、huggingface リポジトリから必要な `vqgan` と `llama` モデルをダウンロードします。
 
     ```bash
-    huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+    huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
     ```
 
 4. 環境変数の設定と WebUI へのアクセス

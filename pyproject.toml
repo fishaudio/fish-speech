@@ -44,6 +44,8 @@ dependencies = [
     "opencc-python-reimplemented==0.1.7",
     "silero-vad",
     "ormsgpack",
+    "tiktoken>=0.8.0",
+    "pydantic==2.9.2",
 ]
 
 [project.optional-dependencies]
