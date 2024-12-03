@@ -29,6 +29,9 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
 This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
@@ -61,7 +64,7 @@ You should mention that the content is released under a **CC BY-NC-SA 4.0 licenc
 ### Fish Agent
 1. **Completely End to End:** Automatically integrates ASR and TTS parts, no need to plug-in other models, i.e., true end-to-end, not three-stage (ASR+LLM+TTS).
 
-2. **Timbre Control:** Can use reference audio to control the speech timbre. 
+2. **Timbre Control:** Can use reference audio to control the speech timbre.
 
 3. **Emotional:** The model can generate speech with strong emotion.
 
@@ -109,13 +112,13 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Tech Report (V1.4)
 ```bibtex
 @misc{fish-speech-v1.4,
-      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis}, 
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
       author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
       year={2024},
       eprint={2411.01156},
       archivePrefix={arXiv},
       primaryClass={cs.SD},
-      url={https://arxiv.org/abs/2411.01156}, 
+      url={https://arxiv.org/abs/2411.01156},
 }
 ```
 
