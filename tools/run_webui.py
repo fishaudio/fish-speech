@@ -190,56 +190,6 @@ global_audio_list = []
 global_error_list = []
 
 
-def inference_wrapper(
-    text,
-    enable_reference_audio,
-    reference_audio,
-    reference_text,
-    max_new_tokens,
-    chunk_length,
-    top_p,
-    repetition_penalty,
-    temperature,
-    seed,
-    batch_infer_num,
-):
-    audios = []
-    errors = []
-
-    for _ in range(batch_infer_num):
-        result = inference(
-            text,
-            enable_reference_audio,
-            reference_audio,
-            reference_text,
-            max_new_tokens,
-            chunk_length,
-            top_p,
-            repetition_penalty,
-            temperature,
-            seed,
-        )
-
-        _, audio_data, error_message = next(result)
-
-        audios.append(
-            gr.Audio(value=audio_data if audio_data else None, visible=True),
-        )
-        errors.append(
-            gr.HTML(value=error_message if error_message else None, visible=True),
-        )
-
-    for _ in range(batch_infer_num, n_audios):
-        audios.append(
-            gr.Audio(value=None, visible=False),
-        )
-        errors.append(
-            gr.HTML(value=None, visible=False),
-        )
-
-    return None, *audios, *errors
-
-
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):
     buffer = io.BytesIO()
 
@@ -537,7 +487,6 @@ if __name__ == "__main__":
                 top_p=0.7,
                 repetition_penalty=1.5,
                 temperature=0.7,
-                emotion=None,
                 format="wav",
             )
         )
