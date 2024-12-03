@@ -1,18 +1,19 @@
 import os
-import torch
-import pyrootutils
-from pathlib import Path
-from loguru import logger
 from argparse import ArgumentParser
+from pathlib import Path
+
+import pyrootutils
+import torch
+from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from tools.schema import ServeTTSRequest
-from tools.webui.web_app import build_app
-from tools.webui.inference_engine import inference
 from tools.llama.generate import launch_thread_safe_queue
+from tools.schema import ServeTTSRequest
 from tools.vqgan.inference import load_model as load_decoder_model
+from tools.webui.inference_engine import inference
 from tools.webui.inference_engine.utils import get_inference_wrapper
+from tools.webui.web_app import build_app
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -22,13 +23,13 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument(
         "--llama-checkpoint-path",
-        type = Path,
-        default ="checkpoints/fish-speech-1.5",
+        type=Path,
+        default="checkpoints/fish-speech-1.5",
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
-        type = Path,
-        default = "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
+        type=Path,
+        default="checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
     )
     parser.add_argument("--decoder-config-name", type=str, default="firefly_gan_vq")
     parser.add_argument("--device", type=str, default="cuda")
@@ -51,17 +52,17 @@ if __name__ == "__main__":
 
     logger.info("Loading Llama model...")
     llama_queue = launch_thread_safe_queue(
-        checkpoint_path = args.llama_checkpoint_path,
-        device = args.device,
-        precision = args.precision,
-        compile = args.compile,
+        checkpoint_path=args.llama_checkpoint_path,
+        device=args.device,
+        precision=args.precision,
+        compile=args.compile,
     )
 
     logger.info("Llama model loaded, loading VQ-GAN model...")
     decoder_model = load_decoder_model(
-        config_name = args.decoder_config_name,
-        checkpoint_path = args.decoder_checkpoint_path,
-        device = args.device,
+        config_name=args.decoder_config_name,
+        checkpoint_path=args.decoder_checkpoint_path,
+        device=args.device,
     )
 
     logger.info("Decoder model loaded, warming up...")
@@ -70,19 +71,19 @@ if __name__ == "__main__":
     list(
         inference(
             ServeTTSRequest(
-                text = "Hello world.",
-                references = [],
-                reference_id = None,
-                max_new_tokens = 0,
-                chunk_length = 200,
-                top_p = 0.7,
-                repetition_penalty = 1.5,
-                temperature = 0.7,
-                format = "wav",
-                decoder_model = decoder_model,
-                llama_queue = llama_queue,
-                compile = args.compile,
-                precision = args.precision,
+                text="Hello world.",
+                references=[],
+                reference_id=None,
+                max_new_tokens=0,
+                chunk_length=200,
+                top_p=0.7,
+                repetition_penalty=1.5,
+                temperature=0.7,
+                format="wav",
+                decoder_model=decoder_model,
+                llama_queue=llama_queue,
+                compile=args.compile,
+                precision=args.precision,
             )
         )
     )
@@ -91,10 +92,10 @@ if __name__ == "__main__":
 
     # Get the inference function with the immutable arguments
     inference_fct = get_inference_wrapper(
-        llama_queue = llama_queue,
-        decoder_model = decoder_model,
-        compile = args.compile,
-        precision = args.precision,
+        llama_queue=llama_queue,
+        decoder_model=decoder_model,
+        compile=args.compile,
+        precision=args.precision,
     )
 
     app = build_app(inference_fct, args.theme)

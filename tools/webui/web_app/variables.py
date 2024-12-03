@@ -1,6 +1,5 @@
 from fish_speech.i18n import i18n
 
-
 HEADER_MD = f"""# Fish Speech
 
 {i18n("A text-to-speech model based on VQ-GAN and Llama developed by [Fish Audio](https://fish.audio).")}  

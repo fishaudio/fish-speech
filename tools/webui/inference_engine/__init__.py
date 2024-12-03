@@ -1,30 +1,28 @@
 import gc
 import queue
-import torch
-import numpy as np
 from pathlib import Path
-from typing import Generator, Union, Tuple
+from typing import Generator, Tuple, Union
 
+import numpy as np
+import torch
 from loguru import logger
 
 from fish_speech.i18n import i18n
-from tools.schema import ServeTTSRequest
-from tools.webui import build_html_error_message
-from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
-from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
+from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.api import decode_vq_tokens, encode_reference, list_files, read_ref_text
-
+from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,
 )
+from tools.schema import ServeTTSRequest
+from tools.webui import build_html_error_message
 
 
 @torch.inference_mode()
 def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
-
     """
     Main inference function for the web UI:
     - Loads the reference audio and text.
@@ -49,9 +47,9 @@ def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
         ):
             prompt_tokens = [
                 encode_reference(
-                    decoder_model = req.decoder_model,
-                    reference_audio = audio_to_bytes(str(ref_audio)),
-                    enable_reference_audio = True,
+                    decoder_model=req.decoder_model,
+                    reference_audio=audio_to_bytes(str(ref_audio)),
+                    enable_reference_audio=True,
                 )
                 for ref_audio in ref_audios
             ]
@@ -73,9 +71,9 @@ def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
         ):
             prompt_tokens = [
                 encode_reference(
-                    decoder_model = req.decoder_model,
-                    reference_audio = ref.audio,
-                    enable_reference_audio = True,
+                    decoder_model=req.decoder_model,
+                    reference_audio=ref.audio,
+                    enable_reference_audio=True,
                 )
                 for ref in refs
             ]
@@ -91,30 +89,30 @@ def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
 
     # Request for LLAMA model
     request = dict(
-        device = req.decoder_model.device,
-        max_new_tokens = req.max_new_tokens,
-        text = (
+        device=req.decoder_model.device,
+        max_new_tokens=req.max_new_tokens,
+        text=(
             req.text
             if not req.normalize
             else ChnNormedText(raw_text=req.text).normalize()
         ),
-        top_p = req.top_p,
-        repetition_penalty = req.repetition_penalty,
-        temperature = req.temperature,
-        compile = req.compile,
-        iterative_prompt = req.chunk_length > 0,
-        chunk_length = req.chunk_length,
-        max_length = 4096,
-        prompt_tokens = prompt_tokens,
-        prompt_text = prompt_texts,
+        top_p=req.top_p,
+        repetition_penalty=req.repetition_penalty,
+        temperature=req.temperature,
+        compile=req.compile,
+        iterative_prompt=req.chunk_length > 0,
+        chunk_length=req.chunk_length,
+        max_length=4096,
+        prompt_tokens=prompt_tokens,
+        prompt_text=prompt_texts,
     )
 
     # Get the symbolic tokens from the LLAMA model
     response_queue = queue.Queue()
     req.llama_queue.put(
         GenerateRequest(
-            request = request,
-            response_queue = response_queue,
+            request=request,
+            response_queue=response_queue,
         )
     )
 
@@ -123,12 +121,18 @@ def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
     while True:
         wrapped_result: WrappedGenerateResponse = response_queue.get()
         if wrapped_result.status == "error":
-            error_message = wrapped_result.response if isinstance(wrapped_result.response, Exception) else Exception("Unknown error")
+            error_message = (
+                wrapped_result.response
+                if isinstance(wrapped_result.response, Exception)
+                else Exception("Unknown error")
+            )
             yield None, None, build_html_error_message(error_message)
             break
 
         if not isinstance(wrapped_result.response, GenerateResponse):
-            raise TypeError("Expected GenerateResponse, got {type(wrapped_result.response).__name__}")
+            raise TypeError(
+                "Expected GenerateResponse, got {type(wrapped_result.response).__name__}"
+            )
         result: GenerateResponse = wrapped_result.response
         if result.action == "next":
             break
@@ -139,8 +143,8 @@ def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
         ):
             # Decode the symbolic tokens to audio
             fake_audios = decode_vq_tokens(
-                decoder_model = req.decoder_model,
-                codes = result.codes,
+                decoder_model=req.decoder_model,
+                codes=result.codes,
             )
 
         # Convert the audio to numpy
