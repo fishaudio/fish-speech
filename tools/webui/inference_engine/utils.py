@@ -11,7 +11,8 @@ from tools.schema import (
 )
 
 
-def normalize_text(user_input, use_normalization):
+def normalize_text(user_input : str, use_normalization : bool) -> str:
+    """Normalize user input text if needed."""
     if use_normalization:
         return ChnNormedText(raw_text=user_input).normalize()
     else:
@@ -36,6 +37,11 @@ def inference_wrapper(
     compile,
     precision,
 ):
+    """
+    Wrapper for the inference function.
+    Used in the Gradio interface.
+    """
+
     references = []
     if reference_audio:
         with open(reference_audio, "rb") as audio_file:
@@ -45,21 +51,21 @@ def inference_wrapper(
         ]
 
     req = ServeTTSRequest(
-        text=text,
-        normalize=normalize,
-        reference_id=reference_id if reference_id else None,
-        references=references,
-        max_new_tokens=max_new_tokens,
-        chunk_length=chunk_length,
-        top_p=top_p,
-        repetition_penalty=repetition_penalty,
-        temperature=temperature,
-        seed=int(seed) if seed else None,
-        use_memory_cache=use_memory_cache,
-        decoder_model=decoder_model,
-        llama_queue=llama_queue,
-        compile=compile,
-        precision=precision,
+        text = text,
+        normalize = normalize,
+        reference_id = reference_id if reference_id else None,
+        references = references,
+        max_new_tokens = max_new_tokens,
+        chunk_length = chunk_length,
+        top_p = top_p,
+        repetition_penalty = repetition_penalty,
+        temperature = temperature,
+        seed = int(seed) if seed else None,
+        use_memory_cache = use_memory_cache,
+        decoder_model = decoder_model,
+        llama_queue = llama_queue,
+        compile = compile,
+        precision = precision,
     )
 
     for result in inference(req):
@@ -77,11 +83,15 @@ def get_inference_wrapper(
         compile,
         precision,
 ) -> Callable:
+    
+    """
+    Get the inference function with the immutable arguments.
+    """
 
     return partial(
         inference_wrapper,
-        llama_queue=llama_queue,
-        decoder_model=decoder_model,
-        compile=compile,
-        precision=precision,
+        llama_queue = llama_queue,
+        decoder_model = decoder_model,
+        compile = compile,
+        precision = precision,
     )

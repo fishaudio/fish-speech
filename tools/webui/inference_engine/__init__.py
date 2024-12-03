@@ -3,6 +3,7 @@ import queue
 import torch
 import numpy as np
 from pathlib import Path
+from typing import Generator, Union, Tuple
 
 from loguru import logger
 
@@ -22,25 +23,35 @@ from tools.llama.generate import (
 
 
 @torch.inference_mode()
-def inference(req: ServeTTSRequest):
+def inference(req: ServeTTSRequest) -> Union[Generator, Tuple]:
+
+    """
+    Main inference function for the web UI:
+    - Loads the reference audio and text.
+    - Calls the LLAMA model for inference.
+    - Decodes the VQ tokens to audio.
+    - Returns the audio to the web UI.
+    """
 
     idstr: str | None = req.reference_id
     prompt_tokens, prompt_texts = [], []
     if idstr is not None:
+        # If reference_id is provided, load the reference audio and text
         ref_folder = Path("references") / idstr
         ref_folder.mkdir(parents=True, exist_ok=True)
         ref_audios = list_files(
             ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
         )
 
+        # If requested, store the encoded references in memory
         if req.use_memory_cache == "never" or (
             req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0
         ):
             prompt_tokens = [
                 encode_reference(
-                    decoder_model=req.decoder_model,
-                    reference_audio=audio_to_bytes(str(ref_audio)),
-                    enable_reference_audio=True,
+                    decoder_model = req.decoder_model,
+                    reference_audio = audio_to_bytes(str(ref_audio)),
+                    enable_reference_audio = True,
                 )
                 for ref_audio in ref_audios
             ]
@@ -49,8 +60,10 @@ def inference(req: ServeTTSRequest):
                 for ref_audio in ref_audios
             ]
         else:
+            # Reuse already encoded references
             logger.info("Use same references")
 
+    # Same logic but for uploaded references
     else:
         # Parse reference audio aka prompt
         refs = req.references
@@ -60,45 +73,48 @@ def inference(req: ServeTTSRequest):
         ):
             prompt_tokens = [
                 encode_reference(
-                    decoder_model=req.decoder_model,
-                    reference_audio=ref.audio,
-                    enable_reference_audio=True,
+                    decoder_model = req.decoder_model,
+                    reference_audio = ref.audio,
+                    enable_reference_audio = True,
                 )
                 for ref in refs
             ]
             prompt_texts = [ref.text for ref in refs]
         else:
+            # Reuse already encoded references
             logger.info("Use same references")
 
+    # Set the random seed if provided
     if req.seed is not None:
         set_seed(req.seed)
         logger.warning(f"set seed: {req.seed}")
 
-    # LLAMA Inference
+    # Request for LLAMA model
     request = dict(
-        device=req.decoder_model.device,
-        max_new_tokens=req.max_new_tokens,
-        text=(
+        device = req.decoder_model.device,
+        max_new_tokens = req.max_new_tokens,
+        text = (
             req.text
             if not req.normalize
             else ChnNormedText(raw_text=req.text).normalize()
         ),
-        top_p=req.top_p,
-        repetition_penalty=req.repetition_penalty,
-        temperature=req.temperature,
-        compile=req.compile,
-        iterative_prompt=req.chunk_length > 0,
-        chunk_length=req.chunk_length,
-        max_length=4096,
-        prompt_tokens=prompt_tokens,
-        prompt_text=prompt_texts,
+        top_p = req.top_p,
+        repetition_penalty = req.repetition_penalty,
+        temperature = req.temperature,
+        compile = req.compile,
+        iterative_prompt = req.chunk_length > 0,
+        chunk_length = req.chunk_length,
+        max_length = 4096,
+        prompt_tokens = prompt_tokens,
+        prompt_text = prompt_texts,
     )
 
+    # Get the symbolic tokens from the LLAMA model
     response_queue = queue.Queue()
     req.llama_queue.put(
         GenerateRequest(
-            request=request,
-            response_queue=response_queue,
+            request = request,
+            response_queue = response_queue,
         )
     )
 
@@ -107,7 +123,8 @@ def inference(req: ServeTTSRequest):
     while True:
         wrapped_result: WrappedGenerateResponse = response_queue.get()
         if wrapped_result.status == "error":
-            yield None, None, build_html_error_message(wrapped_result.response)
+            error_message = wrapped_result.response if isinstance(wrapped_result.response, Exception) else Exception("Unknown error")
+            yield None, None, build_html_error_message(error_message)
             break
 
         if not isinstance(wrapped_result.response, GenerateResponse):
@@ -116,17 +133,21 @@ def inference(req: ServeTTSRequest):
         if result.action == "next":
             break
 
+        # Don't use autocast on MPS devices
         with autocast_exclude_mps(
             device_type=req.decoder_model.device.type, dtype=req.precision
         ):
+            # Decode the symbolic tokens to audio
             fake_audios = decode_vq_tokens(
-                decoder_model=req.decoder_model,
-                codes=result.codes,
+                decoder_model = req.decoder_model,
+                codes = result.codes,
             )
 
+        # Convert the audio to numpy
         fake_audios = fake_audios.float().cpu().numpy()
         segments.append(fake_audios)
 
+    # Edge case: no audio generated
     if len(segments) == 0:
         return (
             None,
@@ -140,6 +161,7 @@ def inference(req: ServeTTSRequest):
     audio = np.concatenate(segments, axis=0)
     yield None, (req.decoder_model.spec_transform.sample_rate, audio), None
 
+    # Clean up the memory
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         gc.collect()
