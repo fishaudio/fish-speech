@@ -559,172 +559,47 @@ def execute_request(
         stats=stats,
     )
 
-# @routes.http.post("/v1/chat")
-# def api_invoke_chat(
-#     req: Annotated[ServeRequest, Body(exclusive=True)],
-# ):
-#     """
-#     Invoke model and generate audio
-#     """
-
-#     # This makes torch compile happy
-#     assert (
-#         req.num_samples == GLOBAL_NUM_SAMPLES
-#     ), f"num_samples must be {GLOBAL_NUM_SAMPLES}"
-
-#     content_type = request.headers.get("Content-Type", "application/json")
-#     json_mode = "application/json" in content_type
-
-#     async def wrapped_generator():
-#         generator = execute_request(llama_queue, tokenizer, config, req, args.device)
-
-#         for i in generator:
-#             if json_mode:
-#                 body = i.model_dump_json().encode("utf-8")
-#                 yield b"data: " + body + b"\n\n"
-#             else:
-#                 body = ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
-#                 yield struct.pack("I", len(body)) + body
-
-#     # Naive mode
-#     if req.streaming is False:
-#         result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
-
-#         if json_mode:
-#             return JSONResponse(result.model_dump())
-#         else:
-#             return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
-
-#     return StreamResponse(
-#         iterable=wrapped_generator(), content_type="text/event-stream"
-#     )
-
-
-def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
-    generator = execute_request(llama_queue, tokenizer, config, req, device)
-    for i in generator:
-        if json_mode:
-            yield i.model_dump_json().encode("utf-8")
-        else:
-            yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
-
-
-
-def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
-    generator = execute_request(llama_queue, tokenizer, config, req, device)
-    for i in generator:
-        if json_mode:
-            yield i.model_dump_json().encode("utf-8")
-        else:
-            yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
-
 
 @routes.http.post("/v1/chat")
-def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
+def api_invoke_chat(
+    req: Annotated[ServeRequest, Body(exclusive=True)],
+):
     """
     Invoke model and generate audio
     """
-    assert req.num_samples == GLOBAL_NUM_SAMPLES, f"num_samples must be {GLOBAL_NUM_SAMPLES}"
-    
+
+    # This makes torch compile happy
+    assert (
+        req.num_samples == GLOBAL_NUM_SAMPLES
+    ), f"num_samples must be {GLOBAL_NUM_SAMPLES}"
+
     content_type = request.headers.get("Content-Type", "application/json")
     json_mode = "application/json" in content_type
 
-    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
-    if req.streaming is False:
-        result = next(response)
-        return result
-    
     async def wrapped_generator():
-        for body in response:
+        generator = execute_request(llama_queue, tokenizer, config, req, args.device)
+
+        for i in generator:
             if json_mode:
+                body = i.model_dump_json().encode("utf-8")
                 yield b"data: " + body + b"\n\n"
             else:
+                body = ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
                 yield struct.pack("I", len(body)) + body
+
+    # Naive mode
+    if req.streaming is False:
+        result = next(execute_request(llama_queue, tokenizer, config, req, args.device))
+
+        if json_mode:
+            return JSONResponse(result.model_dump())
+        else:
+            return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
 
     return StreamResponse(
         iterable=wrapped_generator(), content_type="text/event-stream"
     )
 
-async def async_wav_generator(stream):
-    for i in stream:
-        yield i
-    
-@routes.http.post("/v2/tts")
-def api_invoke_model_v2(
-    req: Annotated[ServeRequest, Body(exclusive=True)],
-):  
-    content_type = request.headers.get("Content-Type", "application/json")
-    json_mode = "application/json" in content_type
-    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
-
-    if req.streaming is False:
-        result = next(response)
-        if json_mode:
-            json_data = json.loads(result)
-            codes = torch.tensor(json_data["messages"][0]["parts"][0]["codes"]).to(decoder_model.device)
-        else:
-            data: ServeResponse = ormsgpack.unpackb(result)
-            assert data.messages[0].role == "assistant"
-            codes = torch.tensor(data.messages[0].parts[0].codes).to(decoder_model.device)
-
-        with autocast_exclude_mps(
-            device_type=decoder_model.device.type, dtype=args.precision
-        ):
-            wavs = decode_vq_tokens(decoder_model=decoder_model, codes=codes)
-        wavs = wavs.float().detach().cpu().numpy()
-        
-        buffer = io.BytesIO()
-        sf.write(
-            buffer,
-            wavs,
-            decoder_model.spec_transform.sample_rate,
-            format=req.format,
-        )
-        return StreamResponse(
-            iterable=buffer_to_async_generator(buffer.getvalue()),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
-
-
-    if req.streaming is True:
-
-        def wav_generator():
-            yield wav_chunk_header()
-            for chunk in response:
-                if json_mode:
-                    json_chunk = json.loads(chunk)
-                    if json_chunk["delta"] is None:
-                        continue
-                    part = json_chunk["delta"].get("part", None)
-                    if part is None or part["type"] != "vq":
-                        continue
-                    codes_chunk = torch.tensor(part["codes"]).to(decoder_model.device)
-                else:
-                    data_chunk: ServeStreamResponse = ormsgpack.unpackb(chunk)
-                    if data_chunk.delta is None:
-                        continue
-                    part = data_chunk.delta.part
-                    if part is None or part.type != "vq":
-                        continue
-                    codes_chunk = torch.tensor(part.codes).to(decoder_model.device)
-                    
-                with autocast_exclude_mps(
-                    device_type=decoder_model.device.type, dtype=args.precision
-                ):
-                    wav_chunk = decode_vq_tokens(decoder_model=decoder_model, codes=codes_chunk)
-                wav_chunk = (wav_chunk.float().detach().cpu().numpy() * 32767).astype(np.int16).tobytes()
-                yield wav_chunk
-
-        return StreamResponse(
-            iterable=async_wav_generator(wav_generator()),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
 
 @torch.inference_mode()
 def inference(req: ServeTTSRequest):

@@ -20,6 +20,6 @@ repos:
       - id: check-yaml
       - id: check-json
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: ["--fix=lf"]
       - id: check-added-large-files
-        args: ['--maxkb=5000']
+        args: ["--maxkb=5000"]
