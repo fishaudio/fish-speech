@@ -3,11 +3,19 @@ from functools import partial
 
 from fish_speech.i18n import i18n
 from tools.webui.inference_engine import inference
+from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 
 from tools.schema import (
     ServeReferenceAudio,
     ServeTTSRequest,
 )
+
+
+def normalize_text(user_input, use_normalization):
+    if use_normalization:
+        return ChnNormedText(raw_text=user_input).normalize()
+    else:
+        return user_input
 
 
 def inference_wrapper(
