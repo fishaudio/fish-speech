@@ -64,7 +64,7 @@ class ServeASRResponse(BaseModel):
 
 
 class ServeMessage(BaseModel):
-    role: Literal["system", "assistant", "user", "raw"]
+    role: Literal["system", "assistant", "user"]
     parts: list[ServeVQPart | ServeTextPart]
 
     def to_conversation_message(self):
@@ -159,6 +159,10 @@ class ServeChatRequestV1(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
+    decoder_model: torch.nn.Module
+    llama_queue: queue.Queue
+    compile : bool
+    precision: torch.dtype
     chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
     # Audio format
     format: Literal["wav", "pcm", "mp3"] = "wav"
@@ -182,3 +186,7 @@ class ServeTTSRequest(BaseModel):
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.2
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.7
+
+    class Config:
+        # Allow arbitrary types for pytorch related types
+        arbitrary_types_allowed = True

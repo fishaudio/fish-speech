@@ -41,7 +41,7 @@ from threading import Lock
 import httpx
 from cachetools import LRUCache, cached
 from funasr import AutoModel
-from silero_vad import get_speech_timestamps, load_silero_vad
+from silero_vad import load_silero_vad
 
 from fish_speech.models.text2semantic.llama import BaseModelArgs
 
@@ -62,19 +62,14 @@ from tools.llama.generate import (
 )
 from tools.schema import (
     GLOBAL_NUM_SAMPLES,
-    ASRPackRequest,
     ServeASRRequest,
     ServeASRResponse,
-    ServeASRSegment,
-    ServeAudioPart,
-    ServeForwardMessage,
     ServeMessage,
     ServeRequest,
     ServeResponse,
     ServeStreamDelta,
     ServeStreamResponse,
     ServeTextPart,
-    ServeTimedASRResponse,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
@@ -927,7 +922,6 @@ def initialize_app(app: Kui):
                     top_p=0.7,
                     repetition_penalty=1.5,
                     temperature=0.7,
-                    emotion=None,
                     format="wav",
                 )
             )

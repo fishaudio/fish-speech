@@ -1,38 +1,29 @@
-import gc
-import html
+
 import io
 import os
-import queue
+
 import wave
 from argparse import ArgumentParser
 from pathlib import Path
 
 import gradio as gr
-import librosa
-import numpy as np
+
+
 import pyrootutils
 import torch
 from loguru import logger
+from typing import Callable
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-
 from fish_speech.i18n import i18n
-from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
-from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.api import decode_vq_tokens, encode_reference
-from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
-from tools.llama.generate import (
-    GenerateRequest,
-    GenerateResponse,
-    WrappedGenerateResponse,
-    launch_thread_safe_queue,
-)
-from tools.schema import (
-    ServeReferenceAudio,
-    ServeTTSRequest,
-)
+from tools.schema import ServeTTSRequest
+from tools.webui.inference_engine import inference
+from tools.file import AUDIO_EXTENSIONS, list_files
+from tools.llama.generate import launch_thread_safe_queue
 from tools.vqgan.inference import load_model as load_decoder_model
+from tools.webui.inference_engine.utils import get_inference_wrapper
+from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -51,137 +42,6 @@ HEADER_MD = f"""# Fish Speech
 
 TEXTBOX_PLACEHOLDER = i18n("Put your text here.")
 SPACE_IMPORTED = False
-
-
-def build_html_error_message(error):
-    return f"""
-    <div style="color: red; 
-    font-weight: bold;">
-        {html.escape(str(error))}
-    </div>
-    """
-
-
-@torch.inference_mode()
-def inference(req: ServeTTSRequest):
-
-    idstr: str | None = req.reference_id
-    prompt_tokens, prompt_texts = [], []
-    if idstr is not None:
-        ref_folder = Path("references") / idstr
-        ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(
-            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
-        )
-
-        if req.use_memory_cache == "never" or (
-            req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0
-        ):
-            prompt_tokens = [
-                encode_reference(
-                    decoder_model=decoder_model,
-                    reference_audio=audio_to_bytes(str(ref_audio)),
-                    enable_reference_audio=True,
-                )
-                for ref_audio in ref_audios
-            ]
-            prompt_texts = [
-                read_ref_text(str(ref_audio.with_suffix(".lab")))
-                for ref_audio in ref_audios
-            ]
-        else:
-            logger.info("Use same references")
-
-    else:
-        # Parse reference audio aka prompt
-        refs = req.references
-
-        if req.use_memory_cache == "never" or (
-            req.use_memory_cache == "on-demand" and len(prompt_tokens) == 0
-        ):
-            prompt_tokens = [
-                encode_reference(
-                    decoder_model=decoder_model,
-                    reference_audio=ref.audio,
-                    enable_reference_audio=True,
-                )
-                for ref in refs
-            ]
-            prompt_texts = [ref.text for ref in refs]
-        else:
-            logger.info("Use same references")
-
-    if req.seed is not None:
-        set_seed(req.seed)
-        logger.warning(f"set seed: {req.seed}")
-
-    # LLAMA Inference
-    request = dict(
-        device=decoder_model.device,
-        max_new_tokens=req.max_new_tokens,
-        text=(
-            req.text
-            if not req.normalize
-            else ChnNormedText(raw_text=req.text).normalize()
-        ),
-        top_p=req.top_p,
-        repetition_penalty=req.repetition_penalty,
-        temperature=req.temperature,
-        compile=args.compile,
-        iterative_prompt=req.chunk_length > 0,
-        chunk_length=req.chunk_length,
-        max_length=4096,
-        prompt_tokens=prompt_tokens,
-        prompt_text=prompt_texts,
-    )
-
-    response_queue = queue.Queue()
-    llama_queue.put(
-        GenerateRequest(
-            request=request,
-            response_queue=response_queue,
-        )
-    )
-
-    segments = []
-
-    while True:
-        result: WrappedGenerateResponse = response_queue.get()
-        if result.status == "error":
-            yield None, None, build_html_error_message(result.response)
-            break
-
-        result: GenerateResponse = result.response
-        if result.action == "next":
-            break
-
-        with autocast_exclude_mps(
-            device_type=decoder_model.device.type, dtype=args.precision
-        ):
-            fake_audios = decode_vq_tokens(
-                decoder_model=decoder_model,
-                codes=result.codes,
-            )
-
-        fake_audios = fake_audios.float().cpu().numpy()
-        segments.append(fake_audios)
-
-    if len(segments) == 0:
-        return (
-            None,
-            None,
-            build_html_error_message(
-                i18n("No audio generated, please check the input text.")
-            ),
-        )
-
-    # No matter streaming or not, we need to return the final audio
-    audio = np.concatenate(segments, axis=0)
-    yield None, (decoder_model.spec_transform.sample_rate, audio), None
-
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        gc.collect()
 
 
 n_audios = 4
@@ -214,10 +74,10 @@ def update_examples():
     examples_dir = Path("references")
     examples_dir.mkdir(parents=True, exist_ok=True)
     example_audios = list_files(examples_dir, AUDIO_EXTENSIONS, recursive=True)
-    return gr.Dropdown(choices=example_audios + [""])
+    return gr.Dropdown(choices=[str(audio) for audio in example_audios] + [""])
 
 
-def build_app():
+def build_app(inference_fct : Callable):
     with gr.Blocks(theme=gr.themes.Base()) as app:
         gr.Markdown(HEADER_MD)
 
@@ -358,54 +218,9 @@ def build_app():
 
         text.input(fn=normalize_text, inputs=[text, normalize], outputs=[refined_text])
 
-        def inference_wrapper(
-            text,
-            normalize,
-            reference_id,
-            reference_audio,
-            reference_text,
-            max_new_tokens,
-            chunk_length,
-            top_p,
-            repetition_penalty,
-            temperature,
-            seed,
-            use_memory_cache,
-        ):
-            references = []
-            if reference_audio:
-                # 将文件路径转换为字节
-                with open(reference_audio, "rb") as audio_file:
-                    audio_bytes = audio_file.read()
-                references = [
-                    ServeReferenceAudio(audio=audio_bytes, text=reference_text)
-                ]
-
-            req = ServeTTSRequest(
-                text=text,
-                normalize=normalize,
-                reference_id=reference_id if reference_id else None,
-                references=references,
-                max_new_tokens=max_new_tokens,
-                chunk_length=chunk_length,
-                top_p=top_p,
-                repetition_penalty=repetition_penalty,
-                temperature=temperature,
-                seed=int(seed) if seed else None,
-                use_memory_cache=use_memory_cache,
-            )
-
-            for result in inference(req):
-                if result[2]:  # Error message
-                    return None, result[2]
-                elif result[1]:  # Audio data
-                    return result[1], None
-
-            return None, i18n("No audio generated")
-
         # Submit
         generate.click(
-            inference_wrapper,
+            inference_fct,
             [
                 refined_text,
                 normalize,
@@ -488,11 +303,22 @@ if __name__ == "__main__":
                 repetition_penalty=1.5,
                 temperature=0.7,
                 format="wav",
+                decoder_model=decoder_model,
+                llama_queue=llama_queue,
+                compile=args.compile,
+                precision=args.precision,
             )
         )
     )
 
     logger.info("Warming up done, launching the web UI...")
 
-    app = build_app()
+    inference_fct = get_inference_wrapper(
+        llama_queue=llama_queue,
+        decoder_model=decoder_model,
+        compile=args.compile,
+        precision=args.precision,
+    )
+
+    app = build_app(inference_fct)
     app.launch(show_api=True)
