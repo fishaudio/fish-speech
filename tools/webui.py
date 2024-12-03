@@ -30,7 +30,6 @@ from tools.llama.generate import (
     WrappedGenerateResponse,
     launch_thread_safe_queue,
 )
-from tools.vqgan.inference import load_model as load_decoder_model
 from tools.schema import (
     GLOBAL_NUM_SAMPLES,
     ASRPackRequest,
@@ -40,6 +39,7 @@ from tools.schema import (
     ServeAudioPart,
     ServeForwardMessage,
     ServeMessage,
+    ServeReferenceAudio,
     ServeRequest,
     ServeResponse,
     ServeStreamDelta,
@@ -52,8 +52,8 @@ from tools.schema import (
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
     ServeVQPart,
-    ServeReferenceAudio
 )
+from tools.vqgan.inference import load_model as load_decoder_model
 
 # Make einx happy
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
@@ -204,6 +204,7 @@ def inference(req: ServeTTSRequest):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         gc.collect()
+
 
 n_audios = 4
 
@@ -427,9 +428,7 @@ def build_app():
                             value="\U0001F3A7 " + i18n("Generate"), variant="primary"
                         )
 
-        text.input(
-            fn=normalize_text, inputs=[text, normalize], outputs=[refined_text]
-        )
+        text.input(fn=normalize_text, inputs=[text, normalize], outputs=[refined_text])
 
         def inference_wrapper(
             text,
@@ -448,7 +447,7 @@ def build_app():
             references = []
             if reference_audio:
                 # 将文件路径转换为字节
-                with open(reference_audio, 'rb') as audio_file:
+                with open(reference_audio, "rb") as audio_file:
                     audio_bytes = audio_file.read()
                 references = [
                     ServeReferenceAudio(audio=audio_bytes, text=reference_text)
@@ -467,13 +466,13 @@ def build_app():
                 seed=int(seed) if seed else None,
                 use_memory_cache=use_memory_cache,
             )
-            
+
             for result in inference(req):
                 if result[2]:  # Error message
                     return None, result[2]
                 elif result[1]:  # Audio data
                     return result[1], None
-            
+
             return None, i18n("No audio generated")
 
         # Submit
@@ -498,6 +497,7 @@ def build_app():
         )
 
     return app
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -549,20 +549,20 @@ if __name__ == "__main__":
 
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     list(
-            inference(
-                ServeTTSRequest(
-                    text="Hello world.",
-                    references=[],
-                    reference_id=None,
-                    max_new_tokens=0,
-                    chunk_length=200,
-                    top_p=0.7,
-                    repetition_penalty=1.5,
-                    temperature=0.7,
-                    emotion=None,
-                    format="wav",
-                )
+        inference(
+            ServeTTSRequest(
+                text="Hello world.",
+                references=[],
+                reference_id=None,
+                max_new_tokens=0,
+                chunk_length=200,
+                top_p=0.7,
+                repetition_penalty=1.5,
+                temperature=0.7,
+                emotion=None,
+                format="wav",
             )
+        )
     )
 
     logger.info("Warming up done, launching the web UI...")
