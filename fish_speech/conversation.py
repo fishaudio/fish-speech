@@ -257,7 +257,7 @@ if __name__ == "__main__":
         cal_loss=True,
     )
     conversation = Conversation([message0, message1])
-    tokenizer = FishTokenizer.from_pretrained("checkpoints/Qwen2-1.5B-Instruct")
+    tokenizer = AutoTokenizer.from_pretrained("checkpoints/Qwen2-1.5B-Instruct")
     conversation.visualize(tokenizer)
 
     encoded = conversation.encode(tokenizer)
