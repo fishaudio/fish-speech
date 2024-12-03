@@ -605,8 +605,6 @@ def api_invoke_chat(
 @torch.inference_mode()
 def inference(req: ServeTTSRequest):
 
-    global prompt_tokens, prompt_texts
-
     idstr: str | None = req.reference_id
     if idstr is not None:
         ref_folder = Path("references") / idstr
