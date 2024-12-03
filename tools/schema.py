@@ -71,7 +71,7 @@ class ServeMessage(BaseModel):
         new_message = Message(role=self.role, parts=[])
         if self.role == "assistant":
             new_message.modality = "voice"
-            
+
         for part in self.parts:
             if isinstance(part, ServeTextPart):
                 new_message.parts.append(TextPart(text=part.text))

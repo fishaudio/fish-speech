@@ -7,6 +7,7 @@ from .tokenizer import MODALITY_TOKENS, FishTokenizer
 
 CODEBOOK_PAD_TOKEN_ID = 0
 
+
 @dataclass(kw_only=True)
 class BasePart:
     pass
@@ -190,7 +191,7 @@ class Conversation:
             return values
 
         vq_parts = encoded.vq_parts
-        vq_parts = [part.to(values.device) for part in vq_parts] 
+        vq_parts = [part.to(values.device) for part in vq_parts]
         vq_parts = torch.cat(vq_parts, dim=1)
         values[0, encoded.vq_mask_tokens] = vq_parts[0] + tokenizer.semantic_begin_id
         values[1:, encoded.vq_mask_tokens] = vq_parts

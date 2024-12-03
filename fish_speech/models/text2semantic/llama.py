@@ -16,8 +16,7 @@ from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
 from transformers import AutoTokenizer
 
-
-from fish_speech.tokenizer import FishTokenizer, SEMANTIC_TOKENS
+from fish_speech.tokenizer import SEMANTIC_TOKENS, FishTokenizer
 from fish_speech.utils import RankedLogger
 
 from .lora import LoraConfig, setup_lora
@@ -166,7 +165,10 @@ class BaseTransformerForwardResult:
 
 class BaseTransformer(nn.Module):
     def __init__(
-        self, config: BaseModelArgs, tokenizer: FishTokenizer | AutoTokenizer, init_weights: bool = True
+        self,
+        config: BaseModelArgs,
+        tokenizer: FishTokenizer | AutoTokenizer,
+        init_weights: bool = True,
     ) -> None:
         super().__init__()
         self.config = config
@@ -380,7 +382,7 @@ class BaseTransformer(nn.Module):
         max_length: int | None = None,
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
-        is_agent: bool = False
+        is_agent: bool = False,
     ) -> "BaseTransformer":
         config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:

@@ -15,12 +15,18 @@ import torch._dynamo.config
 import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
-
 from transformers import AutoTokenizer
-from fish_speech.conversation import VQPart, TextPart, Message, Conversation, CODEBOOK_PAD_TOKEN_ID
+
+from fish_speech.conversation import (
+    CODEBOOK_PAD_TOKEN_ID,
+    Conversation,
+    Message,
+    TextPart,
+    VQPart,
+)
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 from fish_speech.text import clean_text, split_text
+from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -613,7 +619,7 @@ def encode_tokens(
     num_codebooks=4,
 ):
     string = clean_text(string)
-    
+
     messages = []
     messages.append(
         Message(
@@ -625,21 +631,21 @@ def encode_tokens(
 
     if prompt_tokens is not None:
         if prompt_tokens.ndim == 3:
-            assert prompt_tokens.shape[0] == 1, "3D prompt tokens should have shape (1, num_codebooks, seq_len)"
+            assert (
+                prompt_tokens.shape[0] == 1
+            ), "3D prompt tokens should have shape (1, num_codebooks, seq_len)"
             prompt_tokens = prompt_tokens[0]
-        
+
         assert prompt_tokens.ndim == 2, "Prompt tokens should be 2D tensor"
-        
+
         if prompt_tokens.shape[0] > num_codebooks:
             logger.warning(
                 f"Prompt tokens shape {prompt_tokens.shape} is larger than num_codebooks {num_codebooks}, getting first {num_codebooks} codebooks"
             )
             prompt_tokens = prompt_tokens[:num_codebooks]
-        
-        vq_part = VQPart(
-            codes=prompt_tokens.to(device)
-        )
-        
+
+        vq_part = VQPart(codes=prompt_tokens.to(device))
+
         messages.append(
             Message(
                 role="assistant",
@@ -663,7 +669,7 @@ def encode_tokens(
         tokenizer=tokenizer,
         num_codebooks=num_codebooks,
     )
-    
+
     return encoded.to(device)
 
 
@@ -743,16 +749,20 @@ def generate_long(
     encoded = []
     texts = split_text(text, chunk_length) if iterative_prompt else [text]
     encoded_prompts = [
-        Conversation(messages=[
-            Message(
-                role="system",
-                parts=[TextPart(text="Speak out the provided text.")],
-                cal_loss=False,
-            )
-        ]).encode_for_inference(
+        Conversation(
+            messages=[
+                Message(
+                    role="system",
+                    parts=[TextPart(text="Speak out the provided text.")],
+                    cal_loss=False,
+                )
+            ]
+        )
+        .encode_for_inference(
             tokenizer=tokenizer,
             num_codebooks=model.config.num_codebooks,
-        ).to(device)
+        )
+        .to(device)
     ]
 
     if use_prompt:
