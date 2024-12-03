@@ -30,7 +30,3 @@ asr-label*
 /example
 /faster_whisper
 /.gradio
-/test.ipynb
-/tools/llama/generate_remain.py
-/audio
-/message.json
