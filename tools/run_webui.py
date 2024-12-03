@@ -5,7 +5,6 @@ import os
 import queue
 import wave
 from argparse import ArgumentParser
-from functools import partial
 from pathlib import Path
 
 import gradio as gr
@@ -14,7 +13,6 @@ import numpy as np
 import pyrootutils
 import torch
 from loguru import logger
-from transformers import AutoTokenizer
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -31,27 +29,8 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
 )
 from tools.schema import (
-    GLOBAL_NUM_SAMPLES,
-    ASRPackRequest,
-    ServeASRRequest,
-    ServeASRResponse,
-    ServeASRSegment,
-    ServeAudioPart,
-    ServeForwardMessage,
-    ServeMessage,
     ServeReferenceAudio,
-    ServeRequest,
-    ServeResponse,
-    ServeStreamDelta,
-    ServeStreamResponse,
-    ServeTextPart,
-    ServeTimedASRResponse,
     ServeTTSRequest,
-    ServeVQGANDecodeRequest,
-    ServeVQGANDecodeResponse,
-    ServeVQGANEncodeRequest,
-    ServeVQGANEncodeResponse,
-    ServeVQPart,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
 
