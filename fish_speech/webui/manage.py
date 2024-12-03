@@ -176,7 +176,7 @@ def change_infer(
         p_infer = subprocess.Popen(
             [
                 PYTHON,
-                "tools/webui.py",
+                "tools/run_webui.py",
                 "--decoder-checkpoint-path",
                 infer_decoder_model,
                 "--decoder-config-name",

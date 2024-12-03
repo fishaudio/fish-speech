@@ -188,7 +188,7 @@ pip install -e .[stable]
 4. 配置环境变量，访问 WebUI
 
     在 docker 容器内的终端，输入 `export GRADIO_SERVER_NAME="0.0.0.0"` ，从而让外部可以访问 docker 内的 gradio 服务。
-    接着在 docker 容器内的终端，输入 `python tools/webui.py` 即可开启 WebUI 服务。
+    接着在 docker 容器内的终端，输入 `python tools/run_webui.py` 即可开启 WebUI 服务。
 
     如果是 WSL 或者是 MacOS ，访问 [http://localhost:7860](http://localhost:7860) 即可打开 WebUI 界面。
 

@@ -185,7 +185,7 @@ pip install -e .[stable]
 4. Configure environment variables and access WebUI
 
     In the terminal inside the docker container, enter `export GRADIO_SERVER_NAME="0.0.0.0"` to allow external access to the gradio service inside docker.
-    Then in the terminal inside the docker container, enter `python tools/webui.py` to start the WebUI service.
+    Then in the terminal inside the docker container, enter `python tools/run_webui.py` to start the WebUI service.
 
     If you're using WSL or MacOS, visit [http://localhost:7860](http://localhost:7860) to open the WebUI interface.
 
