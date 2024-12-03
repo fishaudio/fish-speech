@@ -16,11 +16,10 @@ from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
 
 
-from fish_speech.tokenizer import FishTokenizer
+from fish_speech.tokenizer import FishTokenizer, SEMANTIC_TOKENS
 from fish_speech.utils import RankedLogger
 
 from .lora import LoraConfig, setup_lora
-from ...tokenizer import SEMANTIC_TOKENS, FishTokenizer
 
 log = RankedLogger(__name__, rank_zero_only=True)
 

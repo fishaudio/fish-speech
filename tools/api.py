@@ -786,30 +786,6 @@ async def api_health():
     """
     Health check
     """
-    for num_samples in [GLOBAL_NUM_SAMPLES, 1]:
-        test_request = ServeRequest(
-            messages=[
-                ServeMessage(
-                    role="raw",
-                    parts=[
-                        ServeTextPart(text="Speak out the provided text."),
-                    ],
-                ),
-            ],
-            streaming=True,
-            num_samples=num_samples,
-        )
-        for value in execute_request(
-            llama_queue, tokenizer, config, test_request, args.device
-        ):
-            if (
-                isinstance(value, (ServeStreamResponse, ServeResponse))
-                and value.finish_reason == "error"
-            ):
-                raise HTTPException(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    detail="Model is not loaded correctly",
-                )
     return JSONResponse({"status": "ok"})
 
 
