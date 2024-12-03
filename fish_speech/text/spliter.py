@@ -2,16 +2,10 @@ import re
 import string
 
 from fish_speech.text.clean import clean_text
-from fish_speech.tokenizer import PHONEME_END_TOKEN, PHONEME_START_TOKEN
+
 
 def utf_8_len(text: str):
-    count_phoneme_start = text.count(PHONEME_START_TOKEN)
-    count_phoneme_end = text.count(PHONEME_END_TOKEN)
-    return (
-        len(text.encode("utf-8"))
-        - count_phoneme_start * (len(PHONEME_START_TOKEN) - 1)
-        - count_phoneme_end * (len(PHONEME_END_TOKEN) - 1)
-    )
+    return len(text.encode("utf-8"))
 
 
 def break_text(texts, length, splits: set):
