@@ -23,7 +23,7 @@ from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.api import decode_vq_tokens, encode_reference
-from tools.file import AUDIO_EXTENSIONS, list_files, audio_to_bytes, read_ref_text
+from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
