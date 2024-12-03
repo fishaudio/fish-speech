@@ -20,6 +20,7 @@ from fish_speech.tokenizer import FishTokenizer
 from fish_speech.utils import RankedLogger
 
 from .lora import LoraConfig, setup_lora
+from ...tokenizer import SEMANTIC_TOKENS, FishTokenizer
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
@@ -65,6 +66,11 @@ class BaseModelArgs:
 
     # Initialize the model
     initializer_range: float = 0.02
+
+    # Dummy vars
+    is_reward_model: bool = False
+    share_codebook_embeddings: bool = True
+    scale_codebook_embeddings: bool = False
 
     def __post_init__(self):
         if self.n_local_heads == -1:
@@ -174,6 +180,10 @@ class BaseTransformer(nn.Module):
         self.config = config
         self.tokenizer = tokenizer
 
+        self.semantic_token_ids = [
+            tokenizer.get_token_id(SEMANTIC_TOKEN) for SEMANTIC_TOKEN in SEMANTIC_TOKENS
+        ]
+
         # Slow transformer
         self.embeddings = nn.Embedding(
             config.vocab_size,
@@ -247,14 +257,48 @@ class BaseTransformer(nn.Module):
         vocab_embeds = [self.embeddings(x[:, 0])]
         for i in range(self.config.num_codebooks):
             emb = self.codebook_embeddings(x[:, i + 1] + i * self.config.codebook_size)
-            emb[x[:, 0] != self.semantic_token_id] = 0
-            vocab_embeds.append(emb)
+            semantic_token_ids_tensor = torch.tensor(
+                self.semantic_token_ids, device=x.device
+            )
+            emb[~torch.isin(x[:, 0], semantic_token_ids_tensor)] = 0
 
         x = torch.stack(vocab_embeds, dim=3)
         x = x.sum(dim=3)
 
         return x
 
+
+        # Here we want to merge the embeddings of the codebooks
+        x = self.embed(inp)
+
+        freqs_cis = self.freqs_cis[:seq_len]
+
+        # Not that the causal mask here follows the definition of scaled_dot_product_attention
+        # That is, FALSE means masked out
+        # To maintain consistency, key_padding_mask use TRUE to mask out
+        mask = None
+        if key_padding_mask is not None:
+            mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
+            mask = mask & key_padding_mask[:, None, None, :].logical_not()
+
+        for layer in self.layers:
+            if self.config.use_gradient_checkpointing and self.training:
+                x = checkpoint(layer, x, freqs_cis, mask, use_reentrant=True)
+            else:
+                x = layer(x, freqs_cis, mask)
+
+        # We got slow_out here
+        slow_out = self.norm(x)
+
+        if self.config.tie_word_embeddings:
+            token_logits = F.linear(slow_out, self.embeddings.weight)
+        else:
+            token_logits = self.output(slow_out)
+
+        return BaseTransformerForwardResult(
+            logits=token_logits,
+            hidden_states=x,
+        )
 
     def forward_generate(
         self,
@@ -296,9 +340,7 @@ class BaseTransformer(nn.Module):
         else:
             max_seq_len = self.max_seq_len
 
-        mask = self.causal_mask[
-            None, None, input_pos, : max_seq_len
-        ]  # (B, N, Q, K)
+        mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
 
         for layer in self.layers:

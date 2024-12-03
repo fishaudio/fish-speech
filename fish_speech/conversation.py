@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 import torch
-from fish_speech.tokenizer import MODALITY_TOKENS, FishTokenizer
 
-CODEBOOK_PAD_TOKEN_ID = 0
+from .tokenizer import MODALITY_TOKENS, FishTokenizer
+
 
 @dataclass(kw_only=True)
 class BasePart:
@@ -82,7 +82,6 @@ class Message:
                 raise ValueError(f"Unsupported part type: {type(part)}")
 
             all_tokens.append(tokens)
-
             if isinstance(part, VQPart):
                 vq_masks.append(torch.ones_like(tokens, dtype=torch.bool))
             else:
@@ -95,7 +94,6 @@ class Message:
 
         tokens = torch.cat(all_tokens, dim=0)
         labels = torch.cat(all_labels, dim=0)
-
         vq_masks = torch.cat(vq_masks, dim=0)
 
         assert tokens.shape == labels.shape == vq_masks.shape
@@ -133,7 +131,6 @@ class Conversation:
         vq_mask_labels = []
         vq_require_losses = []
         ignore_loss_token_ids = [tokenizer.get_token_id(i) for i in ignore_loss_tokens]
-
 
         for message in self.messages:
             encoded = message.encode(
@@ -181,6 +178,8 @@ class Conversation:
         tokenizer: FishTokenizer,
         num_codebooks: int,
     ) -> EncodedMessage:
+        self.visualize(tokenizer)
+
         encoded = self.encode(tokenizer, add_shift=False)
         tokens = encoded.tokens
         values = torch.zeros((num_codebooks + 1, len(tokens)), dtype=torch.int)
@@ -189,11 +188,12 @@ class Conversation:
         if encoded.vq_parts is None or len(encoded.vq_parts) == 0:
             return values
 
-
         vq_parts = encoded.vq_parts
+        vq_parts = [part.to(values.device) for part in vq_parts] 
         vq_parts = torch.cat(vq_parts, dim=1)
         values[0, encoded.vq_mask_tokens] = vq_parts[0] + tokenizer.semantic_begin_id
         values[1:, encoded.vq_mask_tokens] = vq_parts
+
         return values
 
     def visualize(
@@ -228,10 +228,8 @@ class Conversation:
             green_idx += 1
 
         for tok, lab in zip(encoded.tokens, encoded.labels):
-            val = tokenizer.decode(tok, skip_special_tokens=False)
-            if val == "\n":
-                val = "\\n\n"
             val = tokenizer.decode([tok])
+
             if lab == -100:
                 print_in_green(val)
             else:

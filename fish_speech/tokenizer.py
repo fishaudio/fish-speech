@@ -27,10 +27,6 @@ EOS_TOKEN = "<|end_of_text|>"
 PAD_TOKEN = "<|pad|>"
 IM_START_TOKEN = "<|im_start|>"
 IM_END_TOKEN = "<|im_end|>"
-PHONEME_START_TOKEN = "<|phoneme_start|>"
-PHONEME_END_TOKEN = "<|phoneme_end|>"
-TOOL_CALL_START_TOKEN = "<|tool_call_start|>"
-TOOL_CALL_END_TOKEN = "<|tool_call_end|>"
 
 MODALITY_TEXT_TOKEN = "<|text|>"
 MODALITY_VOICE_TOKEN = "<|voice|>"
@@ -40,6 +36,10 @@ MODALITY_TOKENS = {
     "voice": MODALITY_VOICE_TOKEN,
     "interleave": MODALITY_INTERLEAVE_TOKEN,
 }
+
+PLACEHOLDER_TOKEN = [""] * 4
+for i in range(4):
+    PLACEHOLDER_TOKEN[i] = f"<|placeholder:{i}|>"
 
 SEMANTIC_TOKEN_TEMPLATE = "<|semantic:{i}|>"
 SEMANTIC_TOKENS = [SEMANTIC_TOKEN_TEMPLATE.format(i=i) for i in range(1024)]
@@ -51,10 +51,10 @@ ALL_SPECIAL_TOKENS = [
     PAD_TOKEN,
     IM_START_TOKEN,
     IM_END_TOKEN,
-    PHONEME_START_TOKEN,
-    PHONEME_END_TOKEN,
-    TOOL_CALL_START_TOKEN,
-    TOOL_CALL_END_TOKEN,
+    PLACEHOLDER_TOKEN[0],
+    PLACEHOLDER_TOKEN[1],
+    PLACEHOLDER_TOKEN[2],
+    PLACEHOLDER_TOKEN[3],
     MODALITY_TEXT_TOKEN,
     MODALITY_VOICE_TOKEN,
     MODALITY_INTERLEAVE_TOKEN,

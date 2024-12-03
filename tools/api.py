@@ -33,7 +33,6 @@ from kui.asgi import (
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
-from fish_speech.tokenizer import FishTokenizer, IM_END_TOKEN
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 import struct
@@ -45,6 +44,7 @@ from funasr import AutoModel
 from silero_vad import get_speech_timestamps, load_silero_vad
 
 # from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
+from fish_speech.tokenizer import FishTokenizer, IM_END_TOKEN
 from fish_speech.models.text2semantic.llama import BaseModelArgs
 
 # from fish_speech.models.vqgan.lit_module import VQGAN
@@ -411,6 +411,8 @@ def execute_request(
         messages[-1].add_im_end = False
 
     conv = Conversation(messages=messages)
+
+    conv.visualize(tokenizer)
     prompt = conv.encode_for_inference(
         tokenizer=tokenizer, num_codebooks=config.num_codebooks
     ).to(device)
@@ -607,6 +609,16 @@ def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
             yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
 
 
+
+def chat_request(req, llama_queue, tokenizer, config, device, json_mode):
+    generator = execute_request(llama_queue, tokenizer, config, req, device)
+    for i in generator:
+        if json_mode:
+            yield i.model_dump_json().encode("utf-8")
+        else:
+            yield ormsgpack.packb(i, option=ormsgpack.OPT_SERIALIZE_PYDANTIC) 
+
+
 @routes.http.post("/v1/chat")
 def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
     """
@@ -633,35 +645,86 @@ def api_invoke_chat(req: Annotated[ServeRequest, Body(exclusive=True)]):
         iterable=wrapped_generator(), content_type="text/event-stream"
     )
 
+async def async_wav_generator(stream):
+    for i in stream:
+        yield i
+    
 @routes.http.post("/v2/tts")
 def api_invoke_model_v2(
     req: Annotated[ServeRequest, Body(exclusive=True)],
-):
-    try:
-        response_bytes = api_invoke_chat(req)
-        response = json.loads(response_bytes)
-        codes = torch.tensor(response["messages"][0]["parts"][0]["codes"]).to(decoder_model.device)
-        print(codes)
+):  
+    content_type = request.headers.get("Content-Type", "application/json")
+    json_mode = "application/json" in content_type
+    response = chat_request(req, llama_queue, tokenizer, config, args.device, json_mode)
+
+    if req.streaming is False:
+        result = next(response)
+        if json_mode:
+            json_data = json.loads(result)
+            codes = torch.tensor(json_data["messages"][0]["parts"][0]["codes"]).to(decoder_model.device)
+        else:
+            data: ServeResponse = ormsgpack.unpackb(result)
+            assert data.messages[0].role == "assistant"
+            codes = torch.tensor(data.messages[0].parts[0].codes).to(decoder_model.device)
+
+        with autocast_exclude_mps(
+            device_type=decoder_model.device.type, dtype=args.precision
+        ):
+            wavs = decode_vq_tokens(decoder_model=decoder_model, codes=codes)
+        wavs = wavs.float().detach().cpu().numpy()
         
-        wavs = decode_vq_tokens(decoder_model=decoder_model, codes=codes)
-        wavs = wavs.detach().cpu().numpy() if torch.is_tensor(wavs) else wavs
-        
+        buffer = io.BytesIO()
         sf.write(
-            'fake.wav',
+            buffer,
             wavs,
             decoder_model.spec_transform.sample_rate,
-            format="wav"
+            format=req.format,
         )
-        
-        return ormsgpack.packb(
-            ServeVQGANDecodeResponse(audios=[wav.tobytes() for wav in wavs]),
-            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        return StreamResponse(
+            iterable=buffer_to_async_generator(buffer.getvalue()),
+            headers={
+                "Content-Disposition": f"attachment; filename=audio.{req.format}",
+            },
+            content_type=get_content_type(req.format),
         )
-        
-    except Exception as e:
-        print(f"Error in TTS processing: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
+
+    if req.streaming is True:
+
+        def wav_generator():
+            yield wav_chunk_header()
+            for chunk in response:
+                if json_mode:
+                    json_chunk = json.loads(chunk)
+                    if json_chunk["delta"] is None:
+                        continue
+                    part = json_chunk["delta"].get("part", None)
+                    if part is None or part["type"] != "vq":
+                        continue
+                    codes_chunk = torch.tensor(part["codes"]).to(decoder_model.device)
+                else:
+                    data_chunk: ServeStreamResponse = ormsgpack.unpackb(chunk)
+                    if data_chunk.delta is None:
+                        continue
+                    part = data_chunk.delta.part
+                    if part is None or part.type != "vq":
+                        continue
+                    codes_chunk = torch.tensor(part.codes).to(decoder_model.device)
+                    
+                with autocast_exclude_mps(
+                    device_type=decoder_model.device.type, dtype=args.precision
+                ):
+                    wav_chunk = decode_vq_tokens(decoder_model=decoder_model, codes=codes_chunk)
+                wav_chunk = (wav_chunk.float().detach().cpu().numpy() * 32767).astype(np.int16).tobytes()
+                yield wav_chunk
+
+        return StreamResponse(
+            iterable=async_wav_generator(wav_generator()),
+            headers={
+                "Content-Disposition": f"attachment; filename=audio.{req.format}",
+            },
+            content_type=get_content_type(req.format),
+        )
 
 @torch.inference_mode()
 def inference(req: ServeTTSRequest):
@@ -1012,7 +1075,7 @@ def initialize_app(app: Kui):
                     max_new_tokens=0,
                     chunk_length=200,
                     top_p=0.7,
-                    repetition_penalty=1.2,
+                    repetition_penalty=1.5,
                     temperature=0.7,
                     emotion=None,
                     format="wav",
