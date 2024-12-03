@@ -412,7 +412,7 @@ def execute_request(
 
     conv = Conversation(messages=messages)
 
-    conv.visualize(tokenizer)
+    # conv.visualize(tokenizer) 
     prompt = conv.encode_for_inference(
         tokenizer=tokenizer, num_codebooks=config.num_codebooks
     ).to(device)

@@ -166,12 +166,11 @@ class BaseTransformerForwardResult:
 
 class BaseTransformer(nn.Module):
     def __init__(
-        self, config: BaseModelArgs, tokenizer: FishTokenizer, init_weights: bool = True
+        self, config: BaseModelArgs, tokenizer: FishTokenizer | AutoTokenizer, init_weights: bool = True
     ) -> None:
         super().__init__()
         self.config = config
         self.tokenizer = tokenizer
-
         self.semantic_token_ids = [
             tokenizer.get_token_id(SEMANTIC_TOKEN) for SEMANTIC_TOKEN in SEMANTIC_TOKENS
         ]
@@ -381,6 +380,7 @@ class BaseTransformer(nn.Module):
         max_length: int | None = None,
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
+        is_agent: bool = False
     ) -> "BaseTransformer":
         config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:
@@ -399,8 +399,12 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        tokenizer_path = str(path) + "/tokenizer.tiktoken"
-        tokenizer = FishTokenizer(tokenizer_path)
+        if is_agent:
+            tokenizer = AutoTokenizer.from_pretrained(str(path))
+        else:
+            tokenizer_path = str(path) + "/tokenizer.tiktoken"
+            tokenizer = FishTokenizer(tokenizer_path)
+
         log.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
 

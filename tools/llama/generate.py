@@ -16,7 +16,8 @@ import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
 
-from fish_speech.conversation import VQPart, TextPart, Message, Conversation
+from transformers import AutoTokenizer
+from fish_speech.conversation import VQPart, TextPart, Message, Conversation, CODEBOOK_PAD_TOKEN_ID
 from fish_speech.models.text2semantic.llama import BaseModelArgs
 from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 from fish_speech.text import clean_text, split_text
@@ -668,7 +669,7 @@ def encode_tokens(
 
 def load_model(checkpoint_path, device, precision, compile=False, is_agent=False):
     model: Union[NaiveTransformer, DualARTransformer] = BaseTransformer.from_pretrained(
-        checkpoint_path, load_weights=True
+        checkpoint_path, load_weights=True, is_agent=is_agent
     )
 
     model = model.to(device=device, dtype=precision)
@@ -942,7 +943,7 @@ def launch_thread_safe_queue_agent(
     input_queue = queue.Queue()
     init_event = threading.Event()
 
-    tokenizer = FishTokenizer.from_pretrained(checkpoint_path)
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
     config = BaseModelArgs.from_pretrained(checkpoint_path)
 
     def worker():

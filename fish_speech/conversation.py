@@ -5,6 +5,7 @@ import torch
 
 from .tokenizer import MODALITY_TOKENS, FishTokenizer
 
+CODEBOOK_PAD_TOKEN_ID = 0
 
 @dataclass(kw_only=True)
 class BasePart:
@@ -178,7 +179,7 @@ class Conversation:
         tokenizer: FishTokenizer,
         num_codebooks: int,
     ) -> EncodedMessage:
-        self.visualize(tokenizer)
+        # self.visualize(tokenizer)
 
         encoded = self.encode(tokenizer, add_shift=False)
         tokens = encoded.tokens
@@ -257,7 +258,7 @@ if __name__ == "__main__":
         cal_loss=True,
     )
     conversation = Conversation([message0, message1])
-    tokenizer = AutoTokenizer.from_pretrained("checkpoints/Qwen2-1.5B-Instruct")
+    tokenizer = FishTokenizer.from_pretrained("checkpoints/Qwen2-1.5B-Instruct")
     conversation.visualize(tokenizer)
 
     encoded = conversation.encode(tokenizer)
