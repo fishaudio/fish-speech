@@ -45,7 +45,7 @@ body:
       description: |
         Include detailed steps, screenshots, and logs. Use the correct markdown syntax for code blocks.
       placeholder: |
-        1. Run the command `python -m tools.post_api -t "xxxxx"`
+        1. Run the command `python -m tools.api_client -t "xxxxx"`
         2. Observe the console output error: `ModuleNotFoundError: No module named 'pyaudio'` (with screenshots or logs will be better)
     validations:
       required: true

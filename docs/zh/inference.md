@@ -88,10 +88,10 @@ HF_ENDPOINT=https://hf-mirror.com python -m ...(同上)
 
 随后, 你可以在 `http://127.0.0.1:8080/` 中查看并测试 API.
 
-下面是使用`tools/post_api.py`发送请求的示例。
+下面是使用`tools/api_client.py`发送请求的示例。
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "要输入的文本" \
     --reference_audio "参考音频路径" \
     --reference_text "参考音频的文本内容" \
@@ -102,7 +102,7 @@ python -m tools.post_api \
 
 下面的示例展示了， 可以一次使用**多个** `参考音频路径` 和 `参考音频的文本内容`。在命令里用空格隔开即可。
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "要输入的文本" \
     --reference_audio "参考音频路径1" "参考音频路径2" \
     --reference_text "参考音频的文本内容1" "参考音频的文本内容2"\
@@ -117,7 +117,7 @@ python -m tools.post_api \
 里面放上任意对音频与标注文本。 目前支持的参考音频最多加起来总时长90s。
 
 !!! info
-    要了解有关可用参数的更多信息，可以使用命令`python -m tools.post_api -h`
+    要了解有关可用参数的更多信息，可以使用命令`python -m tools.api_client -h`
 
 ## GUI 推理 
 [下载客户端](https://github.com/AnyaCoder/fish-speech-gui/releases)

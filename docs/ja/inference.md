@@ -78,10 +78,10 @@ python -m tools.api \
 
 その後、`http://127.0.0.1:8080/`で API を表示およびテストできます。
 
-以下は、`tools/post_api.py` を使用してリクエストを送信する例です。
+以下は、`tools/api_client.py` を使用してリクエストを送信する例です。
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "入力するテキスト" \
     --reference_audio "参照音声へのパス" \
     --reference_text "参照音声テキスト" \
@@ -91,7 +91,7 @@ python -m tools.post_api \
 上記のコマンドは、参照音声の情報に基づいて必要な音声を合成し、ストリーミング方式で返すことを示しています。
 
 !!! info
-    使用可能なパラメータの詳細については、コマンド` python -m tools.post_api -h `を使用してください
+    使用可能なパラメータの詳細については、コマンド` python -m tools.api_client -h `を使用してください
 
 ## WebUI 推論
 

@@ -78,10 +78,10 @@ python -m tools.api \
 
 After that, you can view and test the API at http://127.0.0.1:8080/.
 
-Below is an example of sending a request using `tools/post_api.py`.
+Below is an example of sending a request using `tools/api_client.py`.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Text to be input" \
     --reference_audio "Path to reference audio" \
     --reference_text "Text content of the reference audio" \
@@ -93,7 +93,7 @@ The above command indicates synthesizing the desired audio according to the refe
 The following example demonstrates that you can use **multiple** reference audio paths and reference audio texts at once. Separate them with spaces in the command.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Text to input" \
     --reference_audio "reference audio path1" "reference audio path2" \
     --reference_text "reference audio text1" "reference audio text2"\
@@ -109,7 +109,7 @@ The currently supported reference audio has a maximum total duration of 90 secon
 
 
 !!! info 
-    To learn more about available parameters, you can use the command `python -m tools.post_api -h`
+    To learn more about available parameters, you can use the command `python -m tools.api_client -h`
 
 ## GUI Inference 
 [Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)

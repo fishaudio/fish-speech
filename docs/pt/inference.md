@@ -78,10 +78,10 @@ python -m tools.api \
 
 Depois disso, é possível visualizar e testar a API em http://127.0.0.1:8080/.
 
-Abaixo está um exemplo de envio de uma solicitação usando `tools/post_api.py`.
+Abaixo está um exemplo de envio de uma solicitação usando `tools/api_client.py`.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Texto a ser inserido" \
     --reference_audio "Caminho para o áudio de referência" \
     --reference_text "Conteúdo de texto do áudio de referência" \
@@ -91,7 +91,7 @@ python -m tools.post_api \
 O comando acima indica a síntese do áudio desejada de acordo com as informações do áudio de referência e a retorna em modo de streaming.
 
 !!! info
-    Para aprender mais sobre parâmetros disponíveis, você pode usar o comando `python -m tools.post_api -h`
+    Para aprender mais sobre parâmetros disponíveis, você pode usar o comando `python -m tools.api_client -h`
 
 ## Inferência por WebUI
 
