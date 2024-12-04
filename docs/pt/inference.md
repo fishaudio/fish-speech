@@ -67,7 +67,7 @@ python tools/vqgan/inference.py \
 Fornecemos uma API HTTP para inferência. O seguinte comando pode ser usado para iniciar o servidor:
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \

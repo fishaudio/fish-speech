@@ -67,7 +67,7 @@ python tools/vqgan/inference.py \
 推論のための HTTP API を提供しています。次のコマンドを使用してサーバーを起動できます：
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
