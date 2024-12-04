@@ -937,7 +937,7 @@ if __name__ == "__main__":
     args = parse_args()
     host, port = args.listen.split(":")
     uvicorn.run(
-        "tools.api:app",
+        "tools.api_server:app",
         host=host,
         port=int(port),
         workers=args.workers,

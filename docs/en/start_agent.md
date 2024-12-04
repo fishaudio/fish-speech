@@ -44,7 +44,7 @@ pip install -e .[stable]
 To build fish-agent, please use the command below under the main folder:
 
 ```bash
-python -m tools.api --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
+python -m tools.api_server --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
 ```
 
 The `--compile` args only support Python < 3.12 , which will greatly speed up the token generation.
