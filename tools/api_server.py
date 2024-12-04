@@ -3,7 +3,6 @@ import os
 import queue
 import re
 import time
-import uvicorn
 import traceback
 import wave
 from argparse import ArgumentParser
@@ -18,6 +17,7 @@ import pyrootutils
 import soundfile as sf
 import torch
 import torchaudio
+import uvicorn
 from baize.datastructures import ContentType
 from kui.asgi import (
     Body,
