@@ -1,9 +1,9 @@
 import io
-import json
 import os
 import queue
 import re
 import time
+import uvicorn
 import traceback
 import wave
 from argparse import ArgumentParser
@@ -874,6 +874,11 @@ def initialize_app(app: Kui):
     args = parse_args()  # args same as ones in other processes
     args.precision = torch.half if args.half else torch.bfloat16
 
+    # Check if CUDA is available
+    if args.device == "cuda" and not torch.cuda.is_available():
+        logger.info("CUDA is not available, running on CPU.")
+        args.device = "cpu"
+
     if args.load_asr_model:
         logger.info(f"Loading ASR model...")
         asr_model = load_asr_model(device=args.device)
@@ -932,10 +937,9 @@ def initialize_app(app: Kui):
 
 if __name__ == "__main__":
 
-    import uvicorn
-
     args = parse_args()
     host, port = args.listen.split(":")
+
     uvicorn.run(
         "tools.api_server:app",
         host=host,
