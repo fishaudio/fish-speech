@@ -10,7 +10,12 @@ from loguru import logger
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.api_server import decode_vq_tokens, encode_reference, list_files, read_ref_text
+from tools.api_server import (
+    decode_vq_tokens,
+    encode_reference,
+    list_files,
+    read_ref_text,
+)
 from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
