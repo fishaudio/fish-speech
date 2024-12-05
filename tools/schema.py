@@ -159,10 +159,6 @@ class ServeChatRequestV1(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
-    decoder_model: torch.nn.Module
-    llama_queue: queue.Queue
-    compile: bool
-    precision: torch.dtype
     chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
     # Audio format
     format: Literal["wav", "pcm", "mp3"] = "wav"

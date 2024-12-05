@@ -1,10 +1,10 @@
+import html
 from functools import partial
-from typing import Callable
+from typing import Callable, Any
 
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from tools.schema import ServeReferenceAudio, ServeTTSRequest
-from tools.webui.inference_engine import inference
 
 
 def normalize_text(user_input: str, use_normalization: bool) -> str:
@@ -28,21 +28,17 @@ def inference_wrapper(
     temperature,
     seed,
     use_memory_cache,
-    decoder_model,
-    llama_queue,
-    compile,
-    precision,
+    engine,
 ):
     """
     Wrapper for the inference function.
     Used in the Gradio interface.
     """
 
-    references = []
     if reference_audio:
-        with open(reference_audio, "rb") as audio_file:
-            audio_bytes = audio_file.read()
-        references = [ServeReferenceAudio(audio=audio_bytes, text=reference_text)]
+        references = get_reference_audio(reference_audio, reference_text)
+    else:
+        references = []
 
     req = ServeTTSRequest(
         text=text,
@@ -56,13 +52,9 @@ def inference_wrapper(
         temperature=temperature,
         seed=int(seed) if seed else None,
         use_memory_cache=use_memory_cache,
-        decoder_model=decoder_model,
-        llama_queue=llama_queue,
-        compile=compile,
-        precision=precision,
     )
 
-    for result in inference(req):
+    for result in engine.inference(req):
         if result[2]:  # Error message
             return None, result[2]
         elif result[1]:  # Audio data
@@ -71,20 +63,35 @@ def inference_wrapper(
     return None, i18n("No audio generated")
 
 
-def get_inference_wrapper(
-    llama_queue,
-    decoder_model,
-    compile,
-    precision,
-) -> Callable:
+def get_reference_audio(reference_audio: str, reference_text: str) -> list:
+    """
+    Get the reference audio bytes.
+    """
+
+    with open(reference_audio, "rb") as audio_file:
+        audio_bytes = audio_file.read()
+
+    return [ServeReferenceAudio(audio=audio_bytes, text=reference_text)]
+
+
+def get_inference_wrapper(engine) -> Callable:
     """
     Get the inference function with the immutable arguments.
     """
 
     return partial(
         inference_wrapper,
-        llama_queue=llama_queue,
-        decoder_model=decoder_model,
-        compile=compile,
-        precision=precision,
+        engine=engine,
     )
+
+
+def build_html_error_message(error: Any) -> str:
+
+    error = error if isinstance(error, Exception) else Exception("Unknown error")
+
+    return f"""
+    <div style="color: red; 
+    font-weight: bold;">
+        {html.escape(str(error))}
+    </div>
+    """

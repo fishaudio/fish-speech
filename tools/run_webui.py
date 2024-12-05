@@ -11,7 +11,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from tools.llama.generate import launch_thread_safe_queue
 from tools.schema import ServeTTSRequest
 from tools.vqgan.inference import load_model as load_decoder_model
-from tools.webui.inference_engine import inference
+from tools.webui.inference_engine import InferenceEngine
 from tools.webui.inference_engine.utils import get_inference_wrapper
 from tools.webui.web_app import build_app
 
@@ -67,9 +67,17 @@ if __name__ == "__main__":
 
     logger.info("Decoder model loaded, warming up...")
 
+    # Create the inference engine
+    inference_engine = InferenceEngine(
+        llama_queue=llama_queue,
+        decoder_model=decoder_model,
+        compile=args.compile,
+        precision=args.precision,
+    )
+
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     list(
-        inference(
+        inference_engine.inference(
             ServeTTSRequest(
                 text="Hello world.",
                 references=[],
@@ -80,10 +88,6 @@ if __name__ == "__main__":
                 repetition_penalty=1.5,
                 temperature=0.7,
                 format="wav",
-                decoder_model=decoder_model,
-                llama_queue=llama_queue,
-                compile=args.compile,
-                precision=args.precision,
             )
         )
     )
@@ -91,12 +95,7 @@ if __name__ == "__main__":
     logger.info("Warming up done, launching the web UI...")
 
     # Get the inference function with the immutable arguments
-    inference_fct = get_inference_wrapper(
-        llama_queue=llama_queue,
-        decoder_model=decoder_model,
-        compile=args.compile,
-        precision=args.precision,
-    )
+    inference_fct = get_inference_wrapper(inference_engine)
 
     app = build_app(inference_fct, args.theme)
     app.launch(show_api=True)
