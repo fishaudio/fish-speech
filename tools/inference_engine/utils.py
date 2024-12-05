@@ -1,8 +1,9 @@
 import io
 import wave
-import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Tuple
+
+import numpy as np
 
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 

@@ -6,18 +6,18 @@ import numpy as np
 import torch
 from loguru import logger
 
+from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
+from tools.inference_engine.reference_loader import ReferenceLoader
+from tools.inference_engine.utils import InferenceResult, wav_chunk_header
+from tools.inference_engine.vq_manager import VQManager
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,
 )
 from tools.schema import ServeTTSRequest
-from tools.inference_engine.reference_loader import ReferenceLoader
-from tools.inference_engine.vq_manager import VQManager
-from tools.inference_engine.utils import InferenceResult, wav_chunk_header
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 
 
 class InferenceEngine(ReferenceLoader, VQManager):
@@ -38,9 +38,7 @@ class InferenceEngine(ReferenceLoader, VQManager):
         self.compile = compile
 
     @torch.inference_mode()
-    def inference(
-        self, req: ServeTTSRequest
-    ) -> Generator[InferenceResult, None, None]:
+    def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, None]:
         """
         Main inference function:
         - Loads the reference audio and text.
