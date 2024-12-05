@@ -172,10 +172,6 @@ class ServeTTSRequest(BaseModel):
     use_memory_cache: Literal["on", "off"] = "off"
     # Normalize text for en & zh, this increase stability for numbers
     normalize: bool = True
-    mp3_bitrate: Optional[int] = 64
-    opus_bitrate: Optional[int] = -1000
-    # Balance mode will reduce latency to 300ms, but may decrease stability
-    latency: Literal["normal", "balanced"] = "normal"
     # not usually used below
     streaming: bool = False
     max_new_tokens: int = 1024

@@ -187,7 +187,7 @@ class InferenceEngine(ReferenceLoader, VQManager):
             device_type=self.decoder_model.device.type, dtype=self.precision
         ):
             # Decode the symbolic tokens to audio
-            fake_audios = self.decode_vq_tokens(codes=result.codes)
+            segment = self.decode_vq_tokens(codes=result.codes)
 
         # Convert the audio to numpy
-        return fake_audios.float().cpu().numpy()
+        return segment.float().cpu().numpy()
