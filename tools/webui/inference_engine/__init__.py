@@ -39,7 +39,7 @@ class InferenceEngine(ReferenceLoader):
     @torch.inference_mode()
     def inference(
         self, req: ServeTTSRequest
-    ) -> Generator[InferenceResult, None, InferenceResult | None]:
+    ) -> Generator[InferenceResult, None, None]:
         """
         Main inference function:
         - Loads the reference audio and text.
@@ -83,7 +83,7 @@ class InferenceEngine(ReferenceLoader):
             # Get the response from the LLAMA model
             wrapped_result: WrappedGenerateResponse = response_queue.get()
             if wrapped_result.status == "error":
-                return InferenceResult(
+                yield InferenceResult(
                     code="error",
                     audio=None,
                     error=(
@@ -122,22 +122,21 @@ class InferenceEngine(ReferenceLoader):
 
         # Edge case: no audio generated
         if len(segments) == 0:
-            return InferenceResult(
+            yield InferenceResult(
                 code="error",
                 audio=None,
                 error=RuntimeError("No audio generated, please check the input text."),
             )
-
-        # If streaming, we don't need to return the final audio
-        if not req.streaming:
+        else:
+            # Streaming or not, return the final audio
             audio = np.concatenate(segments, axis=0)
-            return InferenceResult(
+            yield InferenceResult(
                 code="final",
                 audio=(sample_rate, audio),
                 error=None,
             )
-        else:
-            return None
+
+        return None
 
     def send_Llama_request(
         self, req: ServeTTSRequest, prompt_tokens: list, prompt_texts: list

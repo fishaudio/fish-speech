@@ -69,9 +69,9 @@ def inference_wrapper(
     for result in engine.inference(req):
         match result.code:
             case "final":
-                return result.audio
+                return result.audio, None
             case "error":
-                return build_html_error_message(i18n(result.error))
+                return None, build_html_error_message(i18n(result.error))
             case _:
                 pass
 
