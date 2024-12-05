@@ -9,7 +9,7 @@ from loguru import logger
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.api_server import decode_vq_tokens
+from tools.api_server import decode_vq_tokens   # WTF
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -17,7 +17,7 @@ from tools.llama.generate import (
 )
 from tools.schema import ServeTTSRequest
 from tools.webui.inference_engine.reference_loader import ReferenceLoader
-from tools.webui.inference_engine.utils import build_html_error_message
+from tools.webui.inference_engine.utils import build_html_error_message, wav_chunk_header
 
 
 class InferenceEngine(ReferenceLoader):
@@ -40,11 +40,10 @@ class InferenceEngine(ReferenceLoader):
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Union[Generator, Tuple]:
         """
-        Main inference function for the web UI:
+        Main inference function:
         - Loads the reference audio and text.
         - Calls the LLAMA model for inference.
         - Decodes the VQ tokens to audio.
-        - Returns the audio to the web UI.
         """
 
         ref_id: str | None = req.reference_id
@@ -66,6 +65,10 @@ class InferenceEngine(ReferenceLoader):
         # Get the symbolic tokens from the LLAMA model
         response_queue = self.send_Llama_request(req, prompt_tokens, prompt_texts)
 
+        # If streaming, send the header
+        if req.streaming:
+            yield wav_chunk_header()
+
         segments = []
 
         while True:
@@ -83,9 +86,18 @@ class InferenceEngine(ReferenceLoader):
 
             result: GenerateResponse = wrapped_result.response
             if result.action != "next":
-                segments.append(self.get_audio_segment(result))
+                segment = self.get_audio_segment(result)
+
+                if req.streaming:   # Used only by the API server
+                    yield (segment * 32768).astype(np.int16).tobytes()
+                else:
+                    segments.append(segment)
             else:
                 break
+        
+        # If streaming, we need to return the final audio
+        if req.streaming:
+            return
 
         # Edge case: no audio generated
         if len(segments) == 0:
