@@ -7,6 +7,7 @@ import torch
 from kui.asgi import HTTPException
 from loguru import logger
 
+from tools.inference_engine.utils import decode_vq_tokens, wav_chunk_header
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text

@@ -1,30 +1,9 @@
 import html
-import io
-import wave
-from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Optional, Tuple
-
-import numpy as np
+from typing import Any, Callable
 
 from fish_speech.i18n import i18n
-from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from tools.schema import ServeReferenceAudio, ServeTTSRequest
-
-
-@dataclass
-class InferenceResult:
-    code: str
-    audio: Optional[Tuple[int, np.ndarray]]
-    error: Optional[Exception]
-
-
-def normalize_text(user_input: str, use_normalization: bool) -> str:
-    """Normalize user input text if needed."""
-    if use_normalization:
-        return ChnNormedText(raw_text=user_input).normalize()
-    else:
-        return user_input
 
 
 def inference_wrapper(
@@ -89,17 +68,6 @@ def get_reference_audio(reference_audio: str, reference_text: str) -> list:
     return [ServeReferenceAudio(audio=audio_bytes, text=reference_text)]
 
 
-def get_inference_wrapper(engine) -> Callable:
-    """
-    Get the inference function with the immutable arguments.
-    """
-
-    return partial(
-        inference_wrapper,
-        engine=engine,
-    )
-
-
 def build_html_error_message(error: Any) -> str:
 
     error = error if isinstance(error, Exception) else Exception("Unknown error")
@@ -112,20 +80,12 @@ def build_html_error_message(error: Any) -> str:
     """
 
 
-def wav_chunk_header(
-    sample_rate: int = 44100, bit_depth: int = 16, channels: int = 1
-) -> np.ndarray:
-    buffer = io.BytesIO()
+def get_inference_wrapper(engine) -> Callable:
+    """
+    Get the inference function with the immutable arguments.
+    """
 
-    with wave.open(buffer, "wb") as wav_file:
-        wav_file.setnchannels(channels)
-        wav_file.setsampwidth(bit_depth // 8)
-        wav_file.setframerate(sample_rate)
-
-    wav_header_bytes = buffer.getvalue()
-    buffer.close()
-
-    # Convert to numpy array
-    wav_header = np.frombuffer(wav_header_bytes, dtype=np.uint8)
-
-    return wav_header
+    return partial(
+        inference_wrapper,
+        engine=engine,
+    )

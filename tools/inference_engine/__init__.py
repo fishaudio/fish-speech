@@ -8,23 +8,24 @@ from loguru import logger
 
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.api_server import decode_vq_tokens  # WTF
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,
 )
 from tools.schema import ServeTTSRequest
-from tools.webui.inference_engine.reference_loader import ReferenceLoader
-from tools.webui.inference_engine.utils import InferenceResult, wav_chunk_header
+from tools.inference_engine.reference_loader import ReferenceLoader
+from tools.inference_engine.vq_manager import VQManager
+from tools.inference_engine.utils import InferenceResult, wav_chunk_header
+from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 
 
-class InferenceEngine(ReferenceLoader):
+class InferenceEngine(ReferenceLoader, VQManager):
 
     def __init__(
         self,
         llama_queue: queue.Queue,
-        decoder_model: torch.nn.Module,
+        decoder_model: FireflyArchitecture,
         precision: torch.dtype,
         compile: bool,
     ) -> None:
@@ -188,10 +189,7 @@ class InferenceEngine(ReferenceLoader):
             device_type=self.decoder_model.device.type, dtype=self.precision
         ):
             # Decode the symbolic tokens to audio
-            fake_audios = decode_vq_tokens(
-                decoder_model=self.decoder_model,
-                codes=result.codes,
-            )
+            fake_audios = self.decode_vq_tokens(codes=result.codes)
 
         # Convert the audio to numpy
         return fake_audios.float().cpu().numpy()
