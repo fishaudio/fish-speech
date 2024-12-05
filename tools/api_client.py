@@ -150,7 +150,9 @@ if __name__ == "__main__":
     data = {
         "text": args.text,
         "references": [
-            ServeReferenceAudio(audio=ref_audio if ref_audio is not None else b'', text=ref_text)
+            ServeReferenceAudio(
+                audio=ref_audio if ref_audio is not None else b"", text=ref_text
+            )
             for ref_text, ref_audio in zip(ref_texts, byte_audios)
         ],
         "reference_id": idstr,

@@ -1,5 +1,6 @@
 from fish_speech.conversation import Conversation, Message
 
+
 def execute_request(
     input_queue: queue.Queue,
     tokenizer: FishTokenizer,
