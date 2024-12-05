@@ -1,6 +1,6 @@
 import html
 from functools import partial
-from typing import Callable, Any
+from typing import Any, Callable
 
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText

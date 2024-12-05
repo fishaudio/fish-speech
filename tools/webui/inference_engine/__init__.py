@@ -16,26 +16,26 @@ from tools.llama.generate import (
     WrappedGenerateResponse,
 )
 from tools.schema import ServeTTSRequest
-from tools.webui.inference_engine.utils import build_html_error_message
 from tools.webui.inference_engine.reference_loader import ReferenceLoader
+from tools.webui.inference_engine.utils import build_html_error_message
 
 
 class InferenceEngine(ReferenceLoader):
 
-    def __init__(self,
-                 llama_queue: queue.Queue,
-                 decoder_model: torch.nn.Module,
-                 precision: torch.dtype,
-                 compile: bool,
+    def __init__(
+        self,
+        llama_queue: queue.Queue,
+        decoder_model: torch.nn.Module,
+        precision: torch.dtype,
+        compile: bool,
     ) -> None:
-        
+
         super().__init__()
-        
+
         self.llama_queue = llama_queue
         self.decoder_model = decoder_model
         self.precision = precision
         self.compile = compile
-
 
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Union[Generator, Tuple]:
@@ -54,7 +54,9 @@ class InferenceEngine(ReferenceLoader):
             prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
 
         elif req.references:
-            prompt_tokens, prompt_texts = self.load_by_hash(req.references, req.use_memory_cache)
+            prompt_tokens, prompt_texts = self.load_by_hash(
+                req.references, req.use_memory_cache
+            )
 
         # Set the random seed if provided
         if req.seed is not None:
@@ -104,8 +106,9 @@ class InferenceEngine(ReferenceLoader):
             torch.cuda.empty_cache()
             gc.collect()
 
-    
-    def send_Llama_request(self, req: ServeTTSRequest, prompt_tokens: list, prompt_texts: list) -> queue.Queue:
+    def send_Llama_request(
+        self, req: ServeTTSRequest, prompt_tokens: list, prompt_texts: list
+    ) -> queue.Queue:
         """
         Send a request to the LLAMA model to generate the symbolic tokens.
         """
@@ -132,7 +135,7 @@ class InferenceEngine(ReferenceLoader):
 
         # Create a queue to get the response
         response_queue = queue.Queue()
-    
+
         # Send the request to the LLAMA model
         self.llama_queue.put(
             GenerateRequest(
@@ -142,7 +145,6 @@ class InferenceEngine(ReferenceLoader):
         )
 
         return response_queue
-
 
     def get_audio_segment(self, result: GenerateResponse) -> np.ndarray:
         """
