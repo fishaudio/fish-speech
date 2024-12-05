@@ -1,12 +1,11 @@
 import gc
 import queue
-from typing import Generator, Tuple, Union
+from typing import Generator
 
 import numpy as np
 import torch
 from loguru import logger
 
-from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.api_server import decode_vq_tokens   # WTF
@@ -17,7 +16,7 @@ from tools.llama.generate import (
 )
 from tools.schema import ServeTTSRequest
 from tools.webui.inference_engine.reference_loader import ReferenceLoader
-from tools.webui.inference_engine.utils import build_html_error_message, wav_chunk_header
+from tools.webui.inference_engine.utils import InferenceResult, wav_chunk_header
 
 
 class InferenceEngine(ReferenceLoader):
@@ -38,7 +37,7 @@ class InferenceEngine(ReferenceLoader):
         self.compile = compile
 
     @torch.inference_mode()
-    def inference(self, req: ServeTTSRequest) -> Union[Generator, Tuple]:
+    def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, InferenceResult | None]:
         """
         Main inference function:
         - Loads the reference audio and text.
@@ -65,9 +64,16 @@ class InferenceEngine(ReferenceLoader):
         # Get the symbolic tokens from the LLAMA model
         response_queue = self.send_Llama_request(req, prompt_tokens, prompt_texts)
 
+        # Get the sample rate from the decoder model
+        sample_rate = self.decoder_model.spec_transform.sample_rate
+
         # If streaming, send the header
         if req.streaming:
-            yield wav_chunk_header()
+            yield InferenceResult(
+                code="segment",
+                audio=(sample_rate, wav_chunk_header(sample_rate=sample_rate)),
+                error=None,
+            )
 
         segments = []
 
@@ -75,7 +81,11 @@ class InferenceEngine(ReferenceLoader):
             # Get the response from the LLAMA model
             wrapped_result: WrappedGenerateResponse = response_queue.get()
             if wrapped_result.status == "error":
-                yield None, None, build_html_error_message(wrapped_result.response)
+                return InferenceResult(
+                    code="error",
+                    audio=None,
+                    error=wrapped_result.response if isinstance(wrapped_result.response, Exception) else Exception("Unknown error"),
+                )
                 break
 
             # Check the response type
@@ -89,34 +99,39 @@ class InferenceEngine(ReferenceLoader):
                 segment = self.get_audio_segment(result)
 
                 if req.streaming:   # Used only by the API server
-                    yield (segment * 32768).astype(np.int16).tobytes()
+                    yield InferenceResult(
+                        code="segment",
+                        audio=(sample_rate, segment),
+                        error=None,
+                    )
                 else:
                     segments.append(segment)
             else:
                 break
-        
-        # If streaming, we need to return the final audio
-        if req.streaming:
-            return
-
-        # Edge case: no audio generated
-        if len(segments) == 0:
-            return (
-                None,
-                None,
-                build_html_error_message(
-                    i18n("No audio generated, please check the input text.")
-                ),
-            )
-
-        # No matter streaming or not, we need to return the final audio
-        audio = np.concatenate(segments, axis=0)
-        yield None, (self.decoder_model.spec_transform.sample_rate, audio), None
 
         # Clean up the memory
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             gc.collect()
+
+        # Edge case: no audio generated
+        if len(segments) == 0:
+            return InferenceResult(
+                code="error",
+                audio=None,
+                error=RuntimeError("No audio generated, please check the input text."),
+            )
+
+        # If streaming, we don't need to return the final audio
+        if not req.streaming:
+            audio = np.concatenate(segments, axis=0)
+            return InferenceResult(
+                code="final",
+                audio=(sample_rate, audio),
+                error=None,
+            )
+        else:
+            return None
 
     def send_Llama_request(
         self, req: ServeTTSRequest, prompt_tokens: list, prompt_texts: list

@@ -1,12 +1,22 @@
 import io
 import html
 import wave
+import numpy as np
 from functools import partial
 from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from tools.schema import ServeReferenceAudio, ServeTTSRequest
+
+
+@dataclass
+class InferenceResult:
+    code: str
+    audio: Optional[Tuple[int, np.ndarray]]
+    error: Optional[Exception]
 
 
 def normalize_text(user_input: str, use_normalization: bool) -> str:
@@ -57,10 +67,13 @@ def inference_wrapper(
     )
 
     for result in engine.inference(req):
-        if result[2]:  # Error message
-            return None, result[2]
-        elif result[1]:  # Audio data
-            return result[1], None
+        match result.code:
+            case "final":
+                return result.audio
+            case "error":
+                return build_html_error_message(i18n(result.error))
+            case _:
+                pass
 
     return None, i18n("No audio generated")
 
@@ -99,7 +112,7 @@ def build_html_error_message(error: Any) -> str:
     """
 
 
-def wav_chunk_header(sample_rate: int=44100, bit_depth: int=16, channels: int=1):
+def wav_chunk_header(sample_rate: int=44100, bit_depth: int=16, channels: int=1) -> np.ndarray:
     buffer = io.BytesIO()
 
     with wave.open(buffer, "wb") as wav_file:
@@ -109,4 +122,8 @@ def wav_chunk_header(sample_rate: int=44100, bit_depth: int=16, channels: int=1)
 
     wav_header_bytes = buffer.getvalue()
     buffer.close()
-    return wav_header_bytes
+
+    # Convert to numpy array
+    wav_header = np.frombuffer(wav_header_bytes, dtype=np.uint8)
+
+    return wav_header
