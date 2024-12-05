@@ -1,11 +1,11 @@
-import io
 import html
+import io
 import wave
-import numpy as np
-from functools import partial
-from typing import Any, Callable
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from functools import partial
+from typing import Any, Callable, Optional, Tuple
+
+import numpy as np
 
 from fish_speech.i18n import i18n
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
@@ -112,7 +112,9 @@ def build_html_error_message(error: Any) -> str:
     """
 
 
-def wav_chunk_header(sample_rate: int=44100, bit_depth: int=16, channels: int=1) -> np.ndarray:
+def wav_chunk_header(
+    sample_rate: int = 44100, bit_depth: int = 16, channels: int = 1
+) -> np.ndarray:
     buffer = io.BytesIO()
 
     with wave.open(buffer, "wb") as wav_file:

@@ -8,7 +8,7 @@ from loguru import logger
 
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from tools.api_server import decode_vq_tokens   # WTF
+from tools.api_server import decode_vq_tokens  # WTF
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
@@ -37,7 +37,9 @@ class InferenceEngine(ReferenceLoader):
         self.compile = compile
 
     @torch.inference_mode()
-    def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, InferenceResult | None]:
+    def inference(
+        self, req: ServeTTSRequest
+    ) -> Generator[InferenceResult, None, InferenceResult | None]:
         """
         Main inference function:
         - Loads the reference audio and text.
@@ -84,7 +86,11 @@ class InferenceEngine(ReferenceLoader):
                 return InferenceResult(
                     code="error",
                     audio=None,
-                    error=wrapped_result.response if isinstance(wrapped_result.response, Exception) else Exception("Unknown error"),
+                    error=(
+                        wrapped_result.response
+                        if isinstance(wrapped_result.response, Exception)
+                        else Exception("Unknown error")
+                    ),
                 )
                 break
 
@@ -98,7 +104,7 @@ class InferenceEngine(ReferenceLoader):
             if result.action != "next":
                 segment = self.get_audio_segment(result)
 
-                if req.streaming:   # Used only by the API server
+                if req.streaming:  # Used only by the API server
                     yield InferenceResult(
                         code="segment",
                         audio=(sample_rate, segment),

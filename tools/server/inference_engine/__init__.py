@@ -1,21 +1,21 @@
-import torch
 import queue
-import numpy as np
-from pathlib import Path
 from http import HTTPStatus
-from kui.asgi import HTTPException
+from pathlib import Path
 
+import numpy as np
+import torch
+from kui.asgi import HTTPException
 from loguru import logger
 
-from tools.schema import ServeTTSRequest
-from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
+from fish_speech.utils import autocast_exclude_mps, set_seed
 from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.llama.generate import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,
 )
+from tools.schema import ServeTTSRequest
 
 
 @torch.inference_mode()
