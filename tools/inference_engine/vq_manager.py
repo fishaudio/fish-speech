@@ -1,6 +1,6 @@
-import torch
 from typing import Callable
 
+import torch
 from loguru import logger
 
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
@@ -14,7 +14,9 @@ class VQManager:
         self.load_audio: Callable
 
     def decode_vq_tokens(self, codes):
-        feature_lengths = torch.tensor([codes.shape[1]], device=self.decoder_model.device)
+        feature_lengths = torch.tensor(
+            [codes.shape[1]], device=self.decoder_model.device
+        )
         logger.info(f"VQ features: {codes.shape}")
 
         if isinstance(self.decoder_model, FireflyArchitecture):
@@ -32,9 +34,9 @@ class VQManager:
                 reference_audio, self.decoder_model.spec_transform.sample_rate
             )
 
-            audios = torch.from_numpy(reference_audio_content).to(self.decoder_model.device)[
-                None, None, :
-            ]
+            audios = torch.from_numpy(reference_audio_content).to(
+                self.decoder_model.device
+            )[None, None, :]
             audio_lengths = torch.tensor(
                 [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long
             )

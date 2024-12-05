@@ -1,17 +1,15 @@
 import io
-import torchaudio
 from hashlib import sha256
 from pathlib import Path
-from typing import Literal, Tuple, Callable
+from typing import Callable, Literal, Tuple
 
 import torch
+import torchaudio
 from loguru import logger
 
-from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from tools.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
 from tools.schema import ServeReferenceAudio
-
-
 
 
 class ReferenceLoader:
@@ -36,9 +34,9 @@ class ReferenceLoader:
             self.backend = "soundfile"
 
     def load_by_id(
-            self,
-            id: str,
-            use_cache: Literal["on", "off"],
+        self,
+        id: str,
+        use_cache: Literal["on", "off"],
     ) -> Tuple:
 
         # Load the references audio and text by id
@@ -121,7 +119,9 @@ class ReferenceLoader:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
         if original_sr != sr:
-            resampler = torchaudio.transforms.Resample(orig_freq=original_sr, new_freq=sr)
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=original_sr, new_freq=sr
+            )
             waveform = resampler(waveform)
 
         audio = waveform.squeeze().numpy()
