@@ -2,7 +2,7 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI
+from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI, HttpRoute, Routes
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -29,6 +29,7 @@ class API(ExceptionHandler):
             ("/v1/asr", ASRView),
             ("/v1/tts", TTSView),
         ]
+        self.routes = Routes([HttpRoute(path, view) for path, view in self.routes])
 
         self.openapi = OpenAPI(
             {
@@ -48,7 +49,9 @@ class API(ExceptionHandler):
             cors_config={},
         )
 
+        # Add the state variables
         self.app.state.lock = Lock()
+        self.app.state.max_text_length = self.args.max_text_length
 
         # Associate the app with the model manager
         self.app.on_startup(self.initialize_app)
@@ -79,6 +82,7 @@ class API(ExceptionHandler):
 # Instead, it's better to use multiprocessing or independent models per thread.
 
 if __name__ == "__main__":
+
     api = API()
     host, port = api.args.listen.split(":")
 

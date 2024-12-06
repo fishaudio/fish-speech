@@ -6,7 +6,7 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
-from kui.asgi import HTTPException, HttpView, JSONResponse, StreamResponse
+from kui.asgi import HTTPException, HttpView, JSONResponse, StreamResponse, request
 from loguru import logger
 
 from tools.schema import (
@@ -25,15 +25,15 @@ from tools.server.api_utils import (
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
-from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
+from tools.server.model_utils import cached_vqgan_batch_encode, vqgan_decode, batch_asr
 
 
 class HealthView(HttpView):
     """
     Return the health status of the server.
     """
-
-    async def post(self, request):
+    @classmethod
+    async def post(cls):
         return JSONResponse({"status": "ok"})
 
 
@@ -41,8 +41,8 @@ class VQGANEncodeView(HttpView):
     """
     Encode the audio into symbolic tokens.
     """
-
-    async def post(self, request):
+    @classmethod
+    async def post(cls):
         # Decode the request
         payload = await request.data()
         req = ServeVQGANEncodeRequest(**payload)
@@ -69,8 +69,8 @@ class VQGANDecodeView(HttpView):
     """
     Decode the symbolic tokens into audio.
     """
-
-    async def post(self, request):
+    @classmethod
+    async def post(cls):
         # Decode the request
         payload = await request.data()
         req = ServeVQGANDecodeRequest(**payload)
@@ -99,8 +99,8 @@ class ASRView(HttpView):
     """
     Perform automatic speech recognition on the audio.
     """
-
-    async def post(self, request):
+    @classmethod
+    async def post(cls):
         # Decode the request
         payload = await request.data()
         req = ServeASRRequest(**payload)
@@ -134,8 +134,8 @@ class TTSView(HttpView):
     """
     Perform text-to-speech on the input text.
     """
-
-    async def post(self, request):
+    @classmethod
+    async def post(cls):
         # Decode the request
         payload = await request.data()
         req = ServeTTSRequest(**payload)

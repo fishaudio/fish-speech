@@ -108,11 +108,9 @@ def parse_args():
     parser.add_argument(
         "--use_memory_cache",
         type=str,
-        default="never",
-        choices=["on-demand", "never"],
-        help="Cache encoded references codes in memory.\n"
-        "If `on-demand`, the server will use cached encodings\n "
-        "instead of encoding reference audio again.",
+        default="off",
+        choices=["on", "off"],
+        help="Cache encoded references codes in memory.\n",
     )
     parser.add_argument(
         "--seed",

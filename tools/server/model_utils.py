@@ -14,8 +14,8 @@ HUGE_GAP_THRESHOLD = 4000
 
 @torch.no_grad()
 @torch.autocast(device_type="cuda", dtype=torch.half)
-def batch_encode(model, audios: list[bytes | torch.Tensor]):
-    audios = [
+def batch_encode(model, audios_list: list[bytes]):
+    audios: list[torch.Tensor] = [
         (
             torch.from_numpy(
                 librosa.load(io.BytesIO(audio), sr=model.spec_transform.sample_rate)[0]
@@ -23,20 +23,17 @@ def batch_encode(model, audios: list[bytes | torch.Tensor]):
             if isinstance(audio, bytes)
             else audio
         )
-        for audio in audios
+        for audio in audios_list
     ]
-
-    # if any(audio.shape[-1] > model.spec_transform.sample_rate * 120 for audio in audios):
-    #     raise ValueError("Single audio length is too long (>120s)")
-
-    max_length = max(audio.shape[-1] for audio in audios)
-    print(f"Encode max length: {max_length / model.spec_transform.sample_rate:.2f}s")
 
     lengths = torch.tensor([audio.shape[-1] for audio in audios], device=model.device)
     max_length = lengths.max().item()
+
+    print(f"Encode max length: {max_length / model.spec_transform.sample_rate:.2f}s")
+
     padded = torch.stack(
         [
-            torch.nn.functional.pad(audio, (0, max_length - audio.shape[-1]))
+            torch.nn.functional.pad(audio, (0, int(max_length - audio.shape[-1])))
             for audio in audios
         ]
     ).to(model.device)
