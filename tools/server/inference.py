@@ -6,7 +6,7 @@ from kui.asgi import HTTPException
 from tools.inference_engine import TTSInferenceEngine
 from tools.schema import ServeTTSRequest
 
-AMPLITUDE = 32768   # Needs an explaination
+AMPLITUDE = 32768  # Needs an explaination
 
 
 def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):

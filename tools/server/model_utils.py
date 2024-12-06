@@ -1,7 +1,8 @@
 import io
 import re
-import torch
+
 import librosa
+import torch
 import torchaudio
 from cachetools import LRUCache, cached
 
@@ -72,7 +73,8 @@ def vqgan_decode(model, features):
     audios, audio_lengths = [], []
     for i in range(0, padded.shape[0], MICRO_BATCH_SIZE):
         audio, audio_length = model.decode(
-            padded[i : i + MICRO_BATCH_SIZE], feature_lengths=lengths[i : i + MICRO_BATCH_SIZE]
+            padded[i : i + MICRO_BATCH_SIZE],
+            feature_lengths=lengths[i : i + MICRO_BATCH_SIZE],
         )
         audios.append(audio)
         audio_lengths.append(audio_length)

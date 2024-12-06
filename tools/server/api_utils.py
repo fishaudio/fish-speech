@@ -1,12 +1,13 @@
-import ormsgpack
-from http import HTTPStatus
-from typing import Any, Annotated
 from argparse import ArgumentParser
-from baize.datastructures import ContentType
-from kui.asgi import HttpRequest, HTTPException
+from http import HTTPStatus
+from typing import Annotated, Any
 
-from tools.schema import ServeTTSRequest
+import ormsgpack
+from baize.datastructures import ContentType
+from kui.asgi import HTTPException, HttpRequest
+
 from tools.inference_engine import TTSInferenceEngine
+from tools.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
 

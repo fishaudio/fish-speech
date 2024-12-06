@@ -1,28 +1,22 @@
-
-import uvicorn
-import pyrootutils
 from threading import Lock
-from kui.asgi import (
-    FactoryClass,
-    HTTPException,
-    Kui,
-    OpenAPI,
-)
 
+import pyrootutils
+import uvicorn
+from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from tools.server.views import (
-    HealthView,
-    VQGANEncodeView,
-    VQGANDecodeView,
-    ASRView,
-    TTSView,
-)
 from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
+from tools.server.views import (
+    ASRView,
+    HealthView,
+    TTSView,
+    VQGANDecodeView,
+    VQGANEncodeView,
+)
 
 
 class API(ExceptionHandler):

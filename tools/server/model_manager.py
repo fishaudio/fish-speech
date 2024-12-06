@@ -1,13 +1,15 @@
 import torch
 from funasr import AutoModel
-
 from loguru import logger
 
-from tools.schema import ServeTTSRequest
 from tools.inference_engine import TTSInferenceEngine
+from tools.llama.generate import (
+    launch_thread_safe_queue,
+    launch_thread_safe_queue_agent,
+)
+from tools.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 from tools.vqgan.inference import load_model as load_decoder_model
-from tools.llama.generate import launch_thread_safe_queue, launch_thread_safe_queue_agent
 
 ASR_MODEL_NAME = "iic/SenseVoiceSmall"
 
@@ -24,7 +26,7 @@ class ModelManager:
         decoder_checkpoint_path: str,
         decoder_config_name: str,
     ) -> None:
-        
+
         self.mode = mode
         self.device = device
         self.half = half
@@ -42,8 +44,12 @@ class ModelManager:
             self.load_asr_model(self.device)
 
         # Load the TTS models
-        self.load_llama_model(llama_checkpoint_path, self.device, self.precision, self.compile, self.mode)
-        self.load_decoder_model(decoder_config_name, decoder_checkpoint_path, self.device)
+        self.load_llama_model(
+            llama_checkpoint_path, self.device, self.precision, self.compile, self.mode
+        )
+        self.load_decoder_model(
+            decoder_config_name, decoder_checkpoint_path, self.device
+        )
         self.tts_inference_engine = TTSInferenceEngine(
             llama_queue=self.llama_queue,
             decoder_model=self.decoder_model,
@@ -63,8 +69,10 @@ class ModelManager:
             hub=hub,
         )
         logger.info("ASR model loaded.")
-    
-    def load_llama_model(self, checkpoint_path, device, precision, compile, mode) -> None:
+
+    def load_llama_model(
+        self, checkpoint_path, device, precision, compile, mode
+    ) -> None:
         if mode == "tts":
             self.llama_queue = launch_thread_safe_queue(
                 checkpoint_path=checkpoint_path,
@@ -73,11 +81,13 @@ class ModelManager:
                 compile=compile,
             )
         else:
-            self.llama_queue, self.tokenizer, self.config = launch_thread_safe_queue_agent(
-                checkpoint_path=checkpoint_path,
-                device=device,
-                precision=precision,
-                compile=compile,
+            self.llama_queue, self.tokenizer, self.config = (
+                launch_thread_safe_queue_agent(
+                    checkpoint_path=checkpoint_path,
+                    device=device,
+                    precision=precision,
+                    compile=compile,
+                )
             )
         logger.info("LLAMA model loaded.")
 
@@ -88,7 +98,7 @@ class ModelManager:
             device=device,
         )
         logger.info("Decoder model loaded.")
-    
+
     def warm_up(self, tts_inference_engine) -> None:
         request = ServeTTSRequest(
             text="Hello world.",

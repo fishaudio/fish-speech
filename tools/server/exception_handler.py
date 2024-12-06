@@ -1,6 +1,7 @@
-import asyncio      # Don't remove -> async keyword
+import asyncio  # Don't remove -> async keyword
 import traceback
 from http import HTTPStatus
+
 from kui.asgi import HTTPException, JSONResponse
 
 

@@ -1,23 +1,14 @@
 import io
 import time
-import torch
-import ormsgpack
-import numpy as np
-import soundfile as sf
 from http import HTTPStatus
-from kui.asgi import (
-    HTTPException,
-    HttpView,
-    JSONResponse,
-    StreamResponse,
-)
 
+import numpy as np
+import ormsgpack
+import soundfile as sf
+import torch
+from kui.asgi import HTTPException, HttpView, JSONResponse, StreamResponse
 from loguru import logger
 
-from tools.server.model_manager import ModelManager
-from tools.server.inference import inference_wrapper as inference
-from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
-from tools.server.api_utils import buffer_to_async_generator, get_content_type, inference_async
 from tools.schema import (
     ServeASRRequest,
     ServeASRResponse,
@@ -27,12 +18,21 @@ from tools.schema import (
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
 )
+from tools.server.api_utils import (
+    buffer_to_async_generator,
+    get_content_type,
+    inference_async,
+)
+from tools.server.inference import inference_wrapper as inference
+from tools.server.model_manager import ModelManager
+from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
 
 
 class HealthView(HttpView):
     """
     Return the health status of the server.
     """
+
     async def post(self, request):
         return JSONResponse({"status": "ok"})
 
@@ -41,6 +41,7 @@ class VQGANEncodeView(HttpView):
     """
     Encode the audio into symbolic tokens.
     """
+
     async def post(self, request):
         # Decode the request
         payload = await request.data()
@@ -53,7 +54,9 @@ class VQGANEncodeView(HttpView):
         # Encode the audio
         start_time = time.time()
         tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
-        logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
+        logger.info(
+            f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms"
+        )
 
         # Return the response
         return ormsgpack.packb(
@@ -66,11 +69,12 @@ class VQGANDecodeView(HttpView):
     """
     Decode the symbolic tokens into audio.
     """
+
     async def post(self, request):
         # Decode the request
         payload = await request.data()
         req = ServeVQGANDecodeRequest(**payload)
-        
+
         # Get the model from the app
         model_manager: ModelManager = request.app.state.model_manager
         decoder_model = model_manager.decoder_model
@@ -79,13 +83,15 @@ class VQGANDecodeView(HttpView):
         tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
         start_time = time.time()
         audios = vqgan_decode(decoder_model, tokens)
-        logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
+        logger.info(
+            f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms"
+        )
         audios = [audio.astype(np.float16).tobytes() for audio in audios]
 
         # Return the response
         return ormsgpack.packb(
             ServeVQGANDecodeResponse(audios=audios),
-            option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
         )
 
 
@@ -93,6 +99,7 @@ class ASRView(HttpView):
     """
     Perform automatic speech recognition on the audio.
     """
+
     async def post(self, request):
         # Decode the request
         payload = await request.data()
@@ -127,6 +134,7 @@ class TTSView(HttpView):
     """
     Perform text-to-speech on the input text.
     """
+
     async def post(self, request):
         # Decode the request
         payload = await request.data()
