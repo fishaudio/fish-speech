@@ -8,7 +8,7 @@ from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from tools.inference_engine import InferenceEngine
+from tools.inference_engine import TTSInferenceEngine
 from tools.llama.generate import launch_thread_safe_queue
 from tools.schema import ServeTTSRequest
 from tools.vqgan.inference import load_model as load_decoder_model
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         compile=args.compile,
     )
 
-    logger.info("Llama model loaded, loading VQ-GAN model...")
+    logger.info("Loading VQ-GAN model...")
     decoder_model = load_decoder_model(
         config_name=args.decoder_config_name,
         checkpoint_path=args.decoder_checkpoint_path,
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     logger.info("Decoder model loaded, warming up...")
 
     # Create the inference engine
-    inference_engine = InferenceEngine(
+    inference_engine = TTSInferenceEngine(
         llama_queue=llama_queue,
         decoder_model=decoder_model,
         compile=args.compile,

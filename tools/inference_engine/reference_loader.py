@@ -16,7 +16,7 @@ class ReferenceLoader:
 
     def __init__(self) -> None:
         """
-        Component of the InferenceEngine class.
+        Component of the TTSInferenceEngine class.
         Loads and manages the cache for the reference audio and text.
         """
         self.ref_by_id: dict = {}

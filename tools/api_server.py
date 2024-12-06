@@ -1,13 +1,10 @@
 import io
 import os
-import queue
 import re
 import time
 import traceback
-import wave
 from argparse import ArgumentParser
 from http import HTTPStatus
-from pathlib import Path
 from typing import Annotated, Any
 
 import librosa
@@ -29,13 +26,11 @@ from kui.asgi import (
     Kui,
     OpenAPI,
     StreamResponse,
-    request,
 )
 from kui.asgi.routing import MultimethodRoutes
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
-import struct
 from threading import Lock
 
 import httpx
@@ -43,15 +38,7 @@ from cachetools import LRUCache, cached
 from funasr import AutoModel
 from silero_vad import load_silero_vad
 
-from fish_speech.models.text2semantic.llama import BaseModelArgs
-
-# from fish_speech.models.vqgan.lit_module import VQGAN
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
-
-# from fish_speech.conversation import IM_END_TOKEN, SEMANTIC_TOKEN
-from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 from tools.llama.generate import (
-    GenerateRequest,
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
 )
@@ -59,20 +46,15 @@ from tools.schema import (
     GLOBAL_NUM_SAMPLES,
     ServeASRRequest,
     ServeASRResponse,
-    ServeMessage,
-    ServeRequest,
-    ServeResponse,
-    ServeStreamDelta,
-    ServeStreamResponse,
-    ServeTextPart,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
-    ServeVQPart,
 )
 from tools.vqgan.inference import load_model as load_decoder_model
+from tools.server.inference import inference_wrapper as inference
+from tools.inference_engine import TTSInferenceEngine
 
 global_lock = Lock()
 
@@ -168,20 +150,6 @@ def batch_encode(model, audios: list[bytes | torch.Tensor]):
 def cached_vqgan_batch_encode(model, audios: list[bytes]):
     return batch_encode(model, audios)
 
-
-@routes.http.post("/v1/vqgan/encode")
-def api_vqgan_encode(payload: Annotated[ServeVQGANEncodeRequest, Body(exclusive=True)]):
-
-    start_time = time.time()
-    tokens = cached_vqgan_batch_encode(decoder_model, payload.audios)
-    logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
-
-    return ormsgpack.packb(
-        ServeVQGANEncodeResponse(tokens=[i.tolist() for i in tokens]),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-    )
-
-
 @torch.no_grad()
 @torch.autocast(device_type="cuda", dtype=torch.half)
 def vqgan_decode(model, features):
@@ -209,19 +177,6 @@ def vqgan_decode(model, features):
     audios, audio_lengths = audios.cpu(), audio_lengths.cpu()
 
     return [audio[..., :length].numpy() for audio, length in zip(audios, audio_lengths)]
-
-
-@routes.http.post("/v1/vqgan/decode")
-def api_vqgan_decode(payload: Annotated[ServeVQGANDecodeRequest, Body(exclusive=True)]):
-    tokens = [torch.tensor(token, dtype=torch.int) for token in payload.tokens]
-    start_time = time.time()
-    audios = vqgan_decode(decoder_model, tokens)
-    logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
-    audios = [audio.astype(np.float16).tobytes() for audio in audios]
-    return ormsgpack.packb(
-        ServeVQGANDecodeResponse(audios=audios), option=ormsgpack.OPT_SERIALIZE_PYDANTIC
-    )
-
 
 @torch.no_grad()
 def batch_asr(model, audios, sr, language="auto"):
@@ -269,90 +224,13 @@ def batch_asr(model, audios, sr, language="auto"):
 
     return results
 
-
-@routes.http.post("/v1/asr")
-def api_invoke_asr(payload: Annotated[ServeASRRequest, Body(exclusive=True)]):
-    start_time = time.time()
-    audios = [np.frombuffer(audio, dtype=np.float16) for audio in payload.audios]
-    audios = [torch.from_numpy(audio).float() for audio in audios]
-
-    if any(audios.shape[-1] >= 30 * payload.sample_rate for audios in audios):
-        raise HTTPException(status_code=400, detail="Audio length is too long")
-
-    transcriptions = batch_asr(
-        asr_model, audios=audios, sr=payload.sample_rate, language=payload.language
-    )
-    logger.info(f"[EXEC] ASR time: {(time.time() - start_time) * 1000:.2f}ms")
-
-    return ormsgpack.packb(
-        ServeASRResponse(transcriptions=transcriptions),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-    )
-
-
-async def inference_async(req: ServeTTSRequest):
-    for chunk in inference(req):
-        yield chunk
-
+async def inference_async(req: ServeTTSRequest, engine: TTSInferenceEngine):
+    for chunk in inference(req, engine):
+        if isinstance(chunk, bytes):
+            yield chunk
 
 async def buffer_to_async_generator(buffer):
     yield buffer
-
-
-@routes.http.post("/v1/tts")
-async def api_invoke_model(
-    req: Annotated[ServeTTSRequest, Body(exclusive=True)],
-):
-    """
-    Invoke model and generate audio
-    """
-
-    if args.max_text_length > 0 and len(req.text) > args.max_text_length:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            content=f"Text is too long, max length is {args.max_text_length}",
-        )
-
-    if req.streaming and req.format != "wav":
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            content="Streaming only supports WAV format",
-        )
-
-    if req.streaming:
-        return StreamResponse(
-            iterable=inference_async(req),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
-    else:
-        fake_audios = next(inference(req))
-        buffer = io.BytesIO()
-        sf.write(
-            buffer,
-            fake_audios,
-            decoder_model.spec_transform.sample_rate,
-            format=req.format,
-        )
-
-        return StreamResponse(
-            iterable=buffer_to_async_generator(buffer.getvalue()),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
-
-
-@routes.http.post("/v1/health")
-async def api_health():
-    """
-    Health check
-    """
-    return JSONResponse({"status": "ok"})
-
 
 def parse_args():
     parser = ArgumentParser()
@@ -516,5 +394,214 @@ if __name__ == "__main__":
         host=host,
         port=int(port),
         workers=args.workers,
+        log_level="info",
+    )
+
+
+# Construction Area Ahead
+
+class HealthView(HttpView):
+    """
+    Return the health status of the server.
+    """
+    async def post(self, request):
+        return JSONResponse({"status": "ok"})
+
+
+class VQGANEncodeView(HttpView):
+    """
+    Encode the audio into symbolic tokens.
+    """
+    async def post(self, request):
+        # Decode the request
+        payload = await request.data()
+        req = ServeVQGANEncodeRequest(**payload)
+
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        decoder_model = model_manager.decoder_model
+
+        # Encode the audio
+        start_time = time.time()
+        tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
+        logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
+
+        # Return the response
+        return ormsgpack.packb(
+            ServeVQGANEncodeResponse(tokens=[i.tolist() for i in tokens]),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        )
+
+
+class VQGANDecodeView(HttpView):
+    """
+    Decode the symbolic tokens into audio.
+    """
+    async def post(self, request):
+        # Decode the request
+        payload = await request.data()
+        req = ServeVQGANDecodeRequest(**payload)
+        
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        decoder_model = model_manager.decoder_model
+
+        # Decode the audio
+        tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
+        start_time = time.time()
+        audios = vqgan_decode(decoder_model, tokens)
+        logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
+        audios = [audio.astype(np.float16).tobytes() for audio in audios]
+
+        # Return the response
+        return ormsgpack.packb(
+            ServeVQGANDecodeResponse(audios=audios),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC
+        )
+
+
+class ASRView(HttpView):
+    """
+    Perform automatic speech recognition on the audio.
+    """
+    async def post(self, request):
+        # Decode the request
+        payload = await request.data()
+        req = ServeASRRequest(**payload)
+
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        asr_model = model_manager.asr_model
+
+        # Perform ASR
+        start_time = time.time()
+        audios = [np.frombuffer(audio, dtype=np.float16) for audio in req.audios]
+        audios = [torch.from_numpy(audio).float() for audio in audios]
+
+        if any(audios.shape[-1] >= 30 * req.sample_rate for audios in audios):
+            raise HTTPException(status_code=400, content="Audio length is too long")
+
+        transcriptions = batch_asr(
+            asr_model, audios=audios, sr=req.sample_rate, language=req.language
+        )
+        logger.info(f"[EXEC] ASR time: {(time.time() - start_time) * 1000:.2f}ms")
+
+        # Return the response
+        return ormsgpack.packb(
+            ServeASRResponse(transcriptions=transcriptions),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        )
+
+
+class TTSView(HttpView):
+    """
+    Perform text-to-speech on the input text.
+    """
+    async def post(self, request):
+        # Decode the request
+        payload = await request.data()
+        req = ServeTTSRequest(**payload)
+
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        engine = model_manager.tts_inference_engine
+
+        # Check if the text is too long
+        if args.max_text_length > 0 and len(req.text) > args.max_text_length:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content=f"Text is too long, max length is {args.max_text_length}",
+            )
+
+        # Check if streaming is enabled
+        if req.streaming and req.format != "wav":
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content="Streaming only supports WAV format",
+            )
+
+        # Perform TTS
+        if req.streaming:
+            return StreamResponse(
+                iterable=inference_async(req, engine),
+                headers={
+                    "Content-Disposition": f"attachment; filename=audio.{req.format}",
+                },
+                content_type=get_content_type(req.format),
+            )
+        else:
+            fake_audios = next(inference(req, engine))
+            buffer = io.BytesIO()
+            sf.write(
+                buffer,
+                fake_audios,
+                decoder_model.spec_transform.sample_rate,
+                format=req.format,
+            )
+
+            return StreamResponse(
+                iterable=buffer_to_async_generator(buffer.getvalue()),
+                headers={
+                    "Content-Disposition": f"attachment; filename=audio.{req.format}",
+                },
+                content_type=get_content_type(req.format),
+            )
+
+class API(ExceptionHandler)
+    def __init__(self):
+        self.args = parse_args()
+        self.routes = [
+            ("/v1/health", HealthView),
+            ("/v1/vqgan/encode", VQGANEncodeView),
+            ("/v1/vqgan/decode", VQGANDecodeView),
+            ("/v1/asr", ASRView),
+            ("/v1/tts", TTSView),
+        ]
+
+        self.openapi = OpenAPI(
+            {
+                "title": "Fish Speech API",
+                "version": "1.5.0",
+            },
+        ).routes
+
+        # Initialize the app
+        self.app = Kui(
+            routes=self.routes + self.openapi[1:],  # Remove the default route
+            exception_handlers={
+                HTTPException: self.http_execption_handler,
+                Exception: self.other_exception_handler,
+            },
+            factory_class=FactoryClass(http=MsgPackRequest),
+            cors_config={},
+        )
+
+        # Associate the app with the model manager
+        self.app.on_startup(self.initialize_app)
+
+    async def initialize_app(self, app: Kui):
+        # Make the ModelManager available to the views
+        app.state.model_manager = ModelManager(
+            device=self.args.device,
+            half=self.args.half,
+            compile=self.args.compile,
+            asr_enabled=self.args.load_asr_model,
+            llama_checkpoint_path=self.args.llama_checkpoint_path,
+            decoder_checkpoint_path=self.args.decoder_checkpoint_path,
+            decoder_config_name=self.args.decoder_config_name,
+        )
+
+        logger.info(f"Warming up done, starting server at http://{self.args.listen}")
+
+
+if __name__ == "__main__":
+    api = API()
+    host, port = api.args.listen.split(":")
+
+    uvicorn.run(
+        api.app,
+        host=host,
+        port=int(port),
+        workers=api.args.workers,
         log_level="info",
     )

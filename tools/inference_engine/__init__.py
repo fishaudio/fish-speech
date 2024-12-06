@@ -20,7 +20,7 @@ from tools.llama.generate import (
 from tools.schema import ServeTTSRequest
 
 
-class InferenceEngine(ReferenceLoader, VQManager):
+class TTSInferenceEngine(ReferenceLoader, VQManager):
 
     def __init__(
         self,
@@ -71,7 +71,7 @@ class InferenceEngine(ReferenceLoader, VQManager):
         # If streaming, send the header
         if req.streaming:
             yield InferenceResult(
-                code="segment",
+                code="header",
                 audio=(sample_rate, wav_chunk_header(sample_rate=sample_rate)),
                 error=None,
             )

@@ -1,7 +1,7 @@
 import io
 import wave
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 
 @dataclass
 class InferenceResult:
-    code: str
+    code: Literal["header", "segment", "error", "final"]
     audio: Optional[Tuple[int, np.ndarray]]
     error: Optional[Exception]
 
