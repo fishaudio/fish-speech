@@ -2,7 +2,7 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI, HttpRoute, Routes
+from kui.asgi import FactoryClass, HTTPException, HttpRoute, Kui, OpenAPI, Routes
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)

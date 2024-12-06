@@ -25,13 +25,14 @@ from tools.server.api_utils import (
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
-from tools.server.model_utils import cached_vqgan_batch_encode, vqgan_decode, batch_asr
+from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
 
 
 class HealthView(HttpView):
     """
     Return the health status of the server.
     """
+
     @classmethod
     async def post(cls):
         return JSONResponse({"status": "ok"})
@@ -41,6 +42,7 @@ class VQGANEncodeView(HttpView):
     """
     Encode the audio into symbolic tokens.
     """
+
     @classmethod
     async def post(cls):
         # Decode the request
@@ -69,6 +71,7 @@ class VQGANDecodeView(HttpView):
     """
     Decode the symbolic tokens into audio.
     """
+
     @classmethod
     async def post(cls):
         # Decode the request
@@ -99,6 +102,7 @@ class ASRView(HttpView):
     """
     Perform automatic speech recognition on the audio.
     """
+
     @classmethod
     async def post(cls):
         # Decode the request
@@ -134,6 +138,7 @@ class TTSView(HttpView):
     """
     Perform text-to-speech on the input text.
     """
+
     @classmethod
     async def post(cls):
         # Decode the request
