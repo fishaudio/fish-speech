@@ -38,6 +38,7 @@ from cachetools import LRUCache, cached
 from funasr import AutoModel
 from silero_vad import load_silero_vad
 
+from tools.inference_engine import TTSInferenceEngine
 from tools.llama.generate import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
@@ -52,9 +53,8 @@ from tools.schema import (
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
 )
-from tools.vqgan.inference import load_model as load_decoder_model
 from tools.server.inference import inference_wrapper as inference
-from tools.inference_engine import TTSInferenceEngine
+from tools.vqgan.inference import load_model as load_decoder_model
 
 global_lock = Lock()
 

@@ -1,9 +1,10 @@
-import numpy as np
 from http import HTTPStatus
+
+import numpy as np
 from kui.asgi import HTTPException
 
-from tools.schema import ServeTTSRequest
 from tools.inference_engine import TTSInferenceEngine
+from tools.schema import ServeTTSRequest
 
 
 def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
@@ -31,8 +32,8 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
             case "final":
                 if isinstance(result.audio, tuple):
                     yield result.audio[1]
-                return None # Stop the generator
-    
+                return None  # Stop the generator
+
     raise HTTPException(
         HTTPStatus.INTERNAL_SERVER_ERROR,
         content="No audio generated, please check the input text.",
