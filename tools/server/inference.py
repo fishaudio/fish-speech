@@ -6,6 +6,8 @@ from kui.asgi import HTTPException
 from tools.inference_engine import TTSInferenceEngine
 from tools.schema import ServeTTSRequest
 
+AMPLITUDE = 32768   # Needs an explaination
+
 
 def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
     """
@@ -25,9 +27,8 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
                 )
 
             case "segment":
-                # Needs an explaination
                 if isinstance(result.audio, tuple):
-                    yield (result.audio[1] * 32768).astype(np.int16).tobytes()
+                    yield (result.audio[1] * AMPLITUDE).astype(np.int16).tobytes()
 
             case "final":
                 if isinstance(result.audio, tuple):
