@@ -70,10 +70,6 @@ def parse_args():
         "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
     )
     parser.add_argument(
-        "--mp3_bitrate", type=int, choices=[64, 128, 192], default=64, help="kHz"
-    )
-    parser.add_argument("--opus_bitrate", type=int, default=-1000)
-    parser.add_argument(
         "--latency",
         type=str,
         default="normal",
@@ -112,11 +108,9 @@ def parse_args():
     parser.add_argument(
         "--use_memory_cache",
         type=str,
-        default="never",
-        choices=["on-demand", "never"],
-        help="Cache encoded references codes in memory.\n"
-        "If `on-demand`, the server will use cached encodings\n "
-        "instead of encoding reference audio again.",
+        default="off",
+        choices=["on", "off"],
+        help="Cache encoded references codes in memory.\n",
     )
     parser.add_argument(
         "--seed",
@@ -154,14 +148,14 @@ if __name__ == "__main__":
     data = {
         "text": args.text,
         "references": [
-            ServeReferenceAudio(audio=ref_audio, text=ref_text)
+            ServeReferenceAudio(
+                audio=ref_audio if ref_audio is not None else b"", text=ref_text
+            )
             for ref_text, ref_audio in zip(ref_texts, byte_audios)
         ],
         "reference_id": idstr,
         "normalize": args.normalize,
         "format": args.format,
-        "mp3_bitrate": args.mp3_bitrate,
-        "opus_bitrate": args.opus_bitrate,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
         "top_p": args.top_p,

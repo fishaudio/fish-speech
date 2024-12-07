@@ -67,7 +67,7 @@ python tools/vqgan/inference.py \
 추론을 위한 HTTP API를 제공하고 있습니다. 아래의 명령어로 서버를 시작할 수 있습니다:
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
     --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
@@ -78,10 +78,10 @@ python -m tools.api \
 
 이후, http://127.0.0.1:8080/ 에서 API를 확인하고 테스트할 수 있습니다.
 
-아래는 `tools/post_api.py`를 사용하여 요청을 보내는 예시입니다.
+아래는 `tools/api_client.py`를 사용하여 요청을 보내는 예시입니다.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "입력할 텍스트" \
     --reference_audio "참고 음성 경로" \
     --reference_text "참고 음성의 텍스트 내용" \
@@ -93,7 +93,7 @@ python -m tools.post_api \
 다음 예시는 여러 개의 참고 음성 경로와 텍스트를 한꺼번에 사용할 수 있음을 보여줍니다. 명령에서 공백으로 구분하여 입력합니다.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "입력할 텍스트" \
     --reference_audio "참고 음성 경로1" "참고 음성 경로2" \
     --reference_text "참고 음성 텍스트1" "참고 음성 텍스트2"\
@@ -107,7 +107,7 @@ python -m tools.post_api \
 `--reference_audio`와 `--reference_text` 대신에 `--reference_id`(하나만 사용 가능)를 사용할 수 있습니다. 프로젝트 루트 디렉토리에 `references/<your reference_id>` 폴더를 만들어 해당 음성과 주석 텍스트를 넣어야 합니다. 참고 음성은 최대 90초까지 지원됩니다.
 
 !!! info 
-    제공되는 파라미터는 `python -m tools.post_api -h`를 사용하여 확인할 수 있습니다.
+    제공되는 파라미터는 `python -m tools.api_client -h`를 사용하여 확인할 수 있습니다.
 
 ## GUI 추론 
 [클라이언트 다운로드](https://github.com/AnyaCoder/fish-speech-gui/releases)
