@@ -16,6 +16,7 @@ from tools.server.views import (
     TTSView,
     VQGANDecodeView,
     VQGANEncodeView,
+    ChatView,
 )
 
 
@@ -28,6 +29,7 @@ class API(ExceptionHandler):
             ("/v1/vqgan/decode", VQGANDecodeView),
             ("/v1/asr", ASRView),
             ("/v1/tts", TTSView),
+            ("/v1/chat", ChatView),
         ]
         self.routes = Routes([HttpRoute(path, view) for path, view in self.routes])
 
@@ -51,6 +53,7 @@ class API(ExceptionHandler):
 
         # Add the state variables
         self.app.state.lock = Lock()
+        self.app.state.device = self.args.device
         self.app.state.max_text_length = self.args.max_text_length
 
         # Associate the app with the model manager

@@ -1,4 +1,3 @@
-import asyncio  # Don't remove -> async keyword
 import traceback
 from http import HTTPStatus
 

@@ -1,3 +1,4 @@
+import os
 import io
 import time
 from http import HTTPStatus
@@ -13,6 +14,7 @@ from tools.schema import (
     ServeASRRequest,
     ServeASRResponse,
     ServeTTSRequest,
+    ServeChatRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
@@ -23,9 +25,12 @@ from tools.server.api_utils import (
     get_content_type,
     inference_async,
 )
-from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
+from tools.server.agent import get_response_generator
+from tools.server.inference import inference_wrapper as inference
 from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
+
+MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
 
 class HealthView(HttpView):
@@ -191,3 +196,51 @@ class TTSView(HttpView):
                 },
                 content_type=get_content_type(req.format),
             )
+
+
+class ChatView(HttpView):
+    """
+    Perform chatbot inference on the input text.
+    """
+
+    @classmethod
+    async def post(cls):
+        # Decode the request
+        payload = await request.data()
+        req = ServeChatRequest(**payload)
+
+        # Check that the number of samples requested is correct
+        if req.num_samples < 1 or req.num_samples > MAX_NUM_SAMPLES:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content=f"Number of samples must be between 1 and {MAX_NUM_SAMPLES}",
+            )
+
+        # Get the type of content provided
+        content_type = request.headers.get("Content-Type", "application/json")
+        json_mode = "application/json" in content_type
+
+        # Get the models from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        llama_queue = model_manager.llama_queue
+        tokenizer = model_manager.tokenizer
+        config = model_manager.config
+
+        device = request.app.state.device
+
+        # Get the response generators
+        response_generator = get_response_generator(
+            llama_queue, tokenizer, config, req, device, json_mode
+        )
+
+        # Return the response in the correct format
+        if req.streaming is False:
+            result = response_generator()
+            if json_mode:
+                return JSONResponse(result.model_dump())
+            else:
+                return ormsgpack.packb(result, option=ormsgpack.OPT_SERIALIZE_PYDANTIC)
+
+        return StreamResponse(
+            iterable=response_generator(), content_type="text/event-stream"
+        )

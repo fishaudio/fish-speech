@@ -73,6 +73,7 @@ class ModelManager:
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
     ) -> None:
+
         if mode == "tts":
             self.llama_queue = launch_thread_safe_queue(
                 checkpoint_path=checkpoint_path,
@@ -80,7 +81,7 @@ class ModelManager:
                 precision=precision,
                 compile=compile,
             )
-        else:
+        elif mode == "agent":
             self.llama_queue, self.tokenizer, self.config = (
                 launch_thread_safe_queue_agent(
                     checkpoint_path=checkpoint_path,
@@ -89,6 +90,9 @@ class ModelManager:
                     compile=compile,
                 )
             )
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
         logger.info("LLAMA model loaded.")
 
     def load_decoder_model(self, config_name, checkpoint_path, device) -> None:

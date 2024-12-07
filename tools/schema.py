@@ -1,15 +1,13 @@
 import os
 import queue
 from dataclasses import dataclass
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 import torch
-from pydantic import AfterValidator, BaseModel, Field, confloat, conint, conlist
+from pydantic import BaseModel, Field, conint, conlist
 from pydantic.functional_validators import SkipValidation
 
 from fish_speech.conversation import Message, TextPart, VQPart
-
-GLOBAL_NUM_SAMPLES = int(os.getenv("GLOBAL_NUM_SAMPLES", 1))
 
 
 class ServeVQPart(BaseModel):
@@ -85,7 +83,7 @@ class ServeMessage(BaseModel):
         return new_message
 
 
-class ServeRequest(BaseModel):
+class ServeChatRequest(BaseModel):
     messages: Annotated[list[ServeMessage], conlist(ServeMessage, min_length=1)]
     max_new_tokens: int = 1024
     top_p: float = 0.7
@@ -143,18 +141,6 @@ class ServeReferenceAudio(BaseModel):
 
     def __repr__(self) -> str:
         return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
-
-
-class ServeChatRequestV1(BaseModel):
-    model: str = "llama3-8b"
-    messages: list[ServeForwardMessage] = []
-    audio: bytes | None = None
-    temperature: float = 1.0
-    top_p: float = 1.0
-    max_tokens: int = 256
-    voice: str = "jessica"
-    tts_audio_format: Literal["mp3", "pcm", "opus"] = "mp3"
-    tts_audio_bitrate: Literal[16, 24, 32, 48, 64, 96, 128, 192] = 128
 
 
 class ServeTTSRequest(BaseModel):
