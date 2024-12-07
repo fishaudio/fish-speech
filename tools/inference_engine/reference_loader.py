@@ -50,7 +50,7 @@ class ReferenceLoader:
             # If the references are not already loaded, encode them
             prompt_tokens = [
                 self.encode_reference(
-                    decoder_model=self.decoder_model,
+                    # decoder_model=self.decoder_model,
                     reference_audio=audio_to_bytes(str(ref_audio)),
                     enable_reference_audio=True,
                 )
