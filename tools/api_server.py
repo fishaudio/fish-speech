@@ -12,11 +12,11 @@ from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
 from tools.server.views import (
     ASRView,
+    ChatView,
     HealthView,
     TTSView,
     VQGANDecodeView,
     VQGANEncodeView,
-    ChatView,
 )
 
 

@@ -14,8 +14,8 @@ import ormsgpack
 import soundfile as sf
 
 from .schema import (
-    ServeMessage,
     ServeChatRequest,
+    ServeMessage,
     ServeTextPart,
     ServeVQGANDecodeRequest,
     ServeVQGANEncodeRequest,

@@ -1,6 +1,11 @@
 import time
 
-from tools.schema import ServeStreamDelta, ServeStreamResponse, ServeTextPart, ServeVQPart
+from tools.schema import (
+    ServeStreamDelta,
+    ServeStreamResponse,
+    ServeTextPart,
+    ServeVQPart,
+)
 
 
 def initialize_decode_buffers(num_samples):
@@ -43,7 +48,7 @@ def handle_semantic_tokens(tokens, config, sample_id, parts, request):
         responses.append(
             ServeStreamResponse(
                 sample_id=sample_id,
-                delta=ServeStreamDelta(part=ServeVQPart(codes=_tokens.tolist()))
+                delta=ServeStreamDelta(part=ServeVQPart(codes=_tokens.tolist())),
             )
         )
     else:
@@ -81,7 +86,9 @@ def process_response_tokens(
         if tokens[0] == im_end_id:
             finished[sample_id] = True
             # Send the remaining text buffer
-            responses.extend(send_reset_buffer(sample_id, decode_buffer, tokenizer, parts, request))
+            responses.extend(
+                send_reset_buffer(sample_id, decode_buffer, tokenizer, parts, request)
+            )
             if request.streaming:
                 responses.append(
                     ServeStreamResponse(
@@ -93,12 +100,18 @@ def process_response_tokens(
             continue
 
         # Check if the token is semantic
-        is_semantic = (tokenizer.semantic_begin_id <= tokens[0] <= tokenizer.semantic_end_id)
+        is_semantic = (
+            tokenizer.semantic_begin_id <= tokens[0] <= tokenizer.semantic_end_id
+        )
 
         if is_semantic:
             # Before the semantic tokens, send the remaining text buffer
-            responses.extend(send_reset_buffer(sample_id, decode_buffer, tokenizer, parts, request))
-            responses.extend(handle_semantic_tokens(tokens, config, sample_id, parts, request))
+            responses.extend(
+                send_reset_buffer(sample_id, decode_buffer, tokenizer, parts, request)
+            )
+            responses.extend(
+                handle_semantic_tokens(tokens, config, sample_id, parts, request)
+            )
         else:
             # Accumulate the text tokens (not implemented?)
             decode_buffer[sample_id].append(tokens[0, 0])

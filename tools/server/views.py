@@ -1,5 +1,5 @@
-import os
 import io
+import os
 import time
 from http import HTTPStatus
 
@@ -13,21 +13,21 @@ from loguru import logger
 from tools.schema import (
     ServeASRRequest,
     ServeASRResponse,
-    ServeTTSRequest,
     ServeChatRequest,
+    ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
 )
+from tools.server.agent import get_response_generator
 from tools.server.api_utils import (
     buffer_to_async_generator,
     get_content_type,
     inference_async,
 )
-from tools.server.model_manager import ModelManager
-from tools.server.agent import get_response_generator
 from tools.server.inference import inference_wrapper as inference
+from tools.server.model_manager import ModelManager
 from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))

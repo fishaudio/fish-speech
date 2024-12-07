@@ -1,8 +1,8 @@
 import queue
 
+from fish_speech.conversation import Conversation, Message
 from fish_speech.tokenizer import IM_END_TOKEN
 from tools.llama.generate import GenerateRequest
-from fish_speech.conversation import Conversation, Message
 
 
 def prepare_messages(request, tokenizer, config):
@@ -21,7 +21,9 @@ def prepare_messages(request, tokenizer, config):
     match last_role:
         case "user":
             # The last message is from the user, ask the assistant to respond with a new message
-            messages.append(Message(role="assistant", parts=[], add_im_end=False, modality="voice"))
+            messages.append(
+                Message(role="assistant", parts=[], add_im_end=False, modality="voice")
+            )
         case "raw":
             # The last message is raw text, ask the assistant to complete it
             messages[-1].add_im_start = False
@@ -33,10 +35,12 @@ def prepare_messages(request, tokenizer, config):
         case _:
             # We expect it to be assistant if not user or raw
             raise ValueError("The last message must be from the assistant, user or raw")
-            
+
     # Create a conversation object and encode it for inference
     conv = Conversation(messages=messages)
-    prompt = conv.encode_for_inference(tokenizer=tokenizer, num_codebooks=config.num_codebooks)
+    prompt = conv.encode_for_inference(
+        tokenizer=tokenizer, num_codebooks=config.num_codebooks
+    )
     im_end_id = tokenizer.get_token_id(IM_END_TOKEN)
 
     return prompt, im_end_id
