@@ -19,7 +19,7 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
         match result.code:
             case "header":
                 if isinstance(result.audio, tuple):
-                    yield result.audio[1]
+                    yield (result.audio[1] * AMPLITUDE).astype(np.int16).tobytes()
 
             case "error":
                 raise HTTPException(
