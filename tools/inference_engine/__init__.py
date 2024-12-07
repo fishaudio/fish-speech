@@ -109,8 +109,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                         audio=(sample_rate, segment),
                         error=None,
                     )
-                else:
-                    segments.append(segment)
+                segments.append(segment)
             else:
                 break
 

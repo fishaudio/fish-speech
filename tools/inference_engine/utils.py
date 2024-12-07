@@ -11,7 +11,7 @@ from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 @dataclass
 class InferenceResult:
     code: Literal["header", "segment", "error", "final"]
-    audio: Optional[Tuple[int, np.ndarray]]
+    audio: Optional[Tuple[int, np.ndarray | bytes]]
     error: Optional[Exception]
 
 
@@ -25,7 +25,7 @@ def normalize_text(user_input: str, use_normalization: bool) -> str:
 
 def wav_chunk_header(
     sample_rate: int = 44100, bit_depth: int = 16, channels: int = 1
-) -> np.ndarray:
+) -> bytes:
     buffer = io.BytesIO()
 
     with wave.open(buffer, "wb") as wav_file:
@@ -36,7 +36,4 @@ def wav_chunk_header(
     wav_header_bytes = buffer.getvalue()
     buffer.close()
 
-    # Convert to numpy array
-    wav_header = np.frombuffer(wav_header_bytes, dtype=np.uint8)
-
-    return wav_header
+    return wav_header_bytes
