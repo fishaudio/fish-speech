@@ -14,6 +14,7 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
     Wrapper for the inference function.
     Used in the API server.
     """
+    count = 0
     for result in engine.inference(req):
         match result.code:
             case "header":
@@ -27,15 +28,18 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
                 )
 
             case "segment":
+                count += 1
                 if isinstance(result.audio, tuple):
                     yield (result.audio[1] * AMPLITUDE).astype(np.int16).tobytes()
 
             case "final":
+                count += 1
                 if isinstance(result.audio, tuple):
                     yield result.audio[1]
                 return None  # Stop the generator
 
-    raise HTTPException(
-        HTTPStatus.INTERNAL_SERVER_ERROR,
-        content="No audio generated, please check the input text.",
-    )
+    if count == 0:
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+            content="No audio generated, please check the input text.",
+        )
