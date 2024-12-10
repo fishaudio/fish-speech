@@ -1,33 +1,8 @@
 import re
 
 SYMBOLS_MAPPING = {
-    "\n": "",
-    "…": ".",
-    "“": "'",
-    "”": "'",
     "‘": "'",
     "’": "'",
-    "【": "",
-    "】": "",
-    "[": "",
-    "]": "",
-    "（": "",
-    "）": "",
-    "(": "",
-    ")": "",
-    "・": "",
-    "·": "",
-    "「": "'",
-    "」": "'",
-    "《": "'",
-    "》": "'",
-    "—": "",
-    "～": "",
-    "~": "",
-    "：": ",",
-    "；": ",",
-    ";": ",",
-    ":": ",",
 }
 
 REPLACE_SYMBOL_REGEX = re.compile(
@@ -57,6 +32,6 @@ def clean_text(text):
     text = EMOJI_REGEX.sub(r"", text)
 
     # Remove continuous periods (...) and commas (,,,)
-    text = re.sub(r"[.,]{2,}", lambda m: m.group()[0], text)
+    text = re.sub(r"[,]{2,}", lambda m: m.group()[0], text)
 
     return text

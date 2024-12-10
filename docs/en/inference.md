@@ -15,7 +15,7 @@ Inference support command line, HTTP API and web UI.
 Download the required `vqgan` and `llama` models from our Hugging Face repository.
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 ### 1. Generate prompt from voice:
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 You should get a `fake.npy` file.
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4" \
+    --checkpoint-path "checkpoints/fish-speech-1.5" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ This command will create a `codes_N` file in the working directory, where N is a
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## HTTP API Inference
@@ -67,10 +67,10 @@ python tools/vqgan/inference.py \
 We provide a HTTP API for inference. You can use the following command to start the server:
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
@@ -78,10 +78,10 @@ python -m tools.api \
 
 After that, you can view and test the API at http://127.0.0.1:8080/.
 
-Below is an example of sending a request using `tools/post_api.py`.
+Below is an example of sending a request using `tools/api_client.py`.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Text to be input" \
     --reference_audio "Path to reference audio" \
     --reference_text "Text content of the reference audio" \
@@ -93,7 +93,7 @@ The above command indicates synthesizing the desired audio according to the refe
 The following example demonstrates that you can use **multiple** reference audio paths and reference audio texts at once. Separate them with spaces in the command.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Text to input" \
     --reference_audio "reference audio path1" "reference audio path2" \
     --reference_text "reference audio text1" "reference audio text2"\
@@ -109,7 +109,7 @@ The currently supported reference audio has a maximum total duration of 90 secon
 
 
 !!! info 
-    To learn more about available parameters, you can use the command `python -m tools.post_api -h`
+    To learn more about available parameters, you can use the command `python -m tools.api_client -h`
 
 ## GUI Inference 
 [Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)
@@ -120,8 +120,8 @@ You can start the WebUI using the following command:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 > If you want to speed up inference, you can add the `--compile` parameter.

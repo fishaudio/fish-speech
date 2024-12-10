@@ -7,4 +7,4 @@ if [ "${CUDA_ENABLED}" != "true" ]; then
     DEVICE="--device cpu"
 fi
 
-exec python tools/webui.py ${DEVICE}
+exec python tools/run_webui.py ${DEVICE}

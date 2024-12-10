@@ -47,7 +47,7 @@ pip install -e .[stable]
 fish-agentを構築するには、メインフォルダで以下のコマンドを使用してください:
 
 ```bash
-python -m tools.api --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
+python -m tools.api_server --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
 ```
 
 `--compile`引数はPython < 3.12でのみサポートされており、トークン生成を大幅に高速化します。

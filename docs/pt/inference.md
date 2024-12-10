@@ -15,7 +15,7 @@ Suporte para inferência por linha de comando, API HTTP e interface web (WebUI).
 Baixe os modelos `vqgan` e `llama` necessários do nosso repositório Hugging Face.
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 ### 1. Gerar prompt a partir da voz:
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 Você deverá obter um arquivo `fake.npy`.
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "O texto que você deseja converter" \
     --prompt-text "Seu texto de referência" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4" \
+    --checkpoint-path "checkpoints/fish-speech-1.5" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ Este comando criará um arquivo `codes_N` no diretório de trabalho, onde N é u
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## Inferência por API HTTP
@@ -67,9 +67,9 @@ python tools/vqgan/inference.py \
 Fornecemos uma API HTTP para inferência. O seguinte comando pode ser usado para iniciar o servidor:
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
@@ -78,10 +78,10 @@ python -m tools.api \
 
 Depois disso, é possível visualizar e testar a API em http://127.0.0.1:8080/.
 
-Abaixo está um exemplo de envio de uma solicitação usando `tools/post_api.py`.
+Abaixo está um exemplo de envio de uma solicitação usando `tools/api_client.py`.
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "Texto a ser inserido" \
     --reference_audio "Caminho para o áudio de referência" \
     --reference_text "Conteúdo de texto do áudio de referência" \
@@ -91,7 +91,7 @@ python -m tools.post_api \
 O comando acima indica a síntese do áudio desejada de acordo com as informações do áudio de referência e a retorna em modo de streaming.
 
 !!! info
-    Para aprender mais sobre parâmetros disponíveis, você pode usar o comando `python -m tools.post_api -h`
+    Para aprender mais sobre parâmetros disponíveis, você pode usar o comando `python -m tools.api_client -h`
 
 ## Inferência por WebUI
 
@@ -99,8 +99,8 @@ Para iniciar a WebUI de Inferência execute o seguinte comando:
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 > Para acelerar a inferência, adicione o parâmetro `--compile`.

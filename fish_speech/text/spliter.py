@@ -4,7 +4,7 @@ import string
 from fish_speech.text.clean import clean_text
 
 
-def utf_8_len(text):
+def utf_8_len(text: str):
     return len(text.encode("utf-8"))
 
 

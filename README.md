@@ -29,13 +29,16 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
 This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
 ---
 ## Fish Agent
-We are very excited to annoce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](https://fish.audio/demo/live) for instant English chat and English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
+We are very excited to announce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](https://fish.audio/demo/live) for instant English chat and English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
 
 You should mention that the content is released under a **CC BY-NC-SA 4.0 licence**. And the demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
 
@@ -61,7 +64,7 @@ You should mention that the content is released under a **CC BY-NC-SA 4.0 licenc
 ### Fish Agent
 1. **Completely End to End:** Automatically integrates ASR and TTS parts, no need to plug-in other models, i.e., true end-to-end, not three-stage (ASR+LLM+TTS).
 
-2. **Timbre Control:** Can use reference audio to control the speech timbre. 
+2. **Timbre Control:** Can use reference audio to control the speech timbre.
 
 3. **Emotional:** The model can generate speech with strong emotion.
 
@@ -109,13 +112,13 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 ## Tech Report (V1.4)
 ```bibtex
 @misc{fish-speech-v1.4,
-      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis}, 
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
       author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
       year={2024},
       eprint={2411.01156},
       archivePrefix={arXiv},
       primaryClass={cs.SD},
-      url={https://arxiv.org/abs/2411.01156}, 
+      url={https://arxiv.org/abs/2411.01156},
 }
 ```
 

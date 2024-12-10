@@ -49,7 +49,7 @@ pip install -e .[stable]
 你需要使用以下指令来构建 fish-agent
 
 ```bash
-python -m tools.api --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
+python -m tools.api_server --llama-checkpoint-path checkpoints/fish-agent-v0.1-3b/ --mode agent --compile
 ```
 
 `--compile`只能在小于 3.12 版本的 Python 使用，这个功能可以极大程度上提高生成速度。

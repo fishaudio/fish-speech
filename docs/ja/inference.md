@@ -15,7 +15,7 @@
 必要な`vqgan`および`llama`モデルを Hugging Face リポジトリからダウンロードします。
 
 ```bash
-huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-speech-1.4
+huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
 ### 1. 音声からプロンプトを生成する：
@@ -26,7 +26,7 @@ huggingface-cli download fishaudio/fish-speech-1.4 --local-dir checkpoints/fish-
 ```bash
 python tools/vqgan/inference.py \
     -i "paimon.wav" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 `fake.npy`ファイルが生成されるはずです。
@@ -38,7 +38,7 @@ python tools/llama/generate.py \
     --text "変換したいテキスト" \
     --prompt-text "参照テキスト" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4" \
+    --checkpoint-path "checkpoints/fish-speech-1.5" \
     --num-samples 2 \
     --compile
 ```
@@ -59,7 +59,7 @@ python tools/llama/generate.py \
 ```bash
 python tools/vqgan/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
 
 ## HTTP API 推論
@@ -67,10 +67,10 @@ python tools/vqgan/inference.py \
 推論のための HTTP API を提供しています。次のコマンドを使用してサーバーを起動できます：
 
 ```bash
-python -m tools.api \
+python -m tools.api_server \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 
@@ -78,10 +78,10 @@ python -m tools.api \
 
 その後、`http://127.0.0.1:8080/`で API を表示およびテストできます。
 
-以下は、`tools/post_api.py` を使用してリクエストを送信する例です。
+以下は、`tools/api_client.py` を使用してリクエストを送信する例です。
 
 ```bash
-python -m tools.post_api \
+python -m tools.api_client \
     --text "入力するテキスト" \
     --reference_audio "参照音声へのパス" \
     --reference_text "参照音声テキスト" \
@@ -91,7 +91,7 @@ python -m tools.post_api \
 上記のコマンドは、参照音声の情報に基づいて必要な音声を合成し、ストリーミング方式で返すことを示しています。
 
 !!! info
-    使用可能なパラメータの詳細については、コマンド` python -m tools.post_api -h `を使用してください
+    使用可能なパラメータの詳細については、コマンド` python -m tools.api_client -h `を使用してください
 
 ## WebUI 推論
 
@@ -99,8 +99,8 @@ python -m tools.post_api \
 
 ```bash
 python -m tools.webui \
-    --llama-checkpoint-path "checkpoints/fish-speech-1.4" \
-    --decoder-checkpoint-path "checkpoints/fish-speech-1.4/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
+    --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
+    --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
 ```
 > 推論を高速化したい場合は、`--compile` パラメータを追加できます。

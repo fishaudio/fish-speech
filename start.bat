@@ -82,7 +82,7 @@ if not "!flags!"=="" set "flags=!flags:~1!"
 echo Debug: flags = !flags!
 
 if "!mode!"=="api" (
-    %PYTHON_CMD% -m tools.api !flags!
+    %PYTHON_CMD% -m tools.api_server !flags!
 ) else if "!mode!"=="infer" (
     %PYTHON_CMD% -m tools.webui !flags!
 )
