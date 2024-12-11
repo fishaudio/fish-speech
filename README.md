@@ -34,7 +34,7 @@
     </a>
 </div>
 
-This codebase and all models are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
+This codebase is released under Apache License and all model weights are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
 ---
 ## Fish Agent
