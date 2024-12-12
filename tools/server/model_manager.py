@@ -34,13 +34,11 @@ class ModelManager:
 
         self.precision = torch.half if half else torch.bfloat16
 
-        # Check if MPS is available
+        # Check if MPS or CUDA is available
         if torch.backends.mps.is_available():
             self.device = "mps"
             logger.info("mps is available, running on mps.")
-
-        # Check if CUDA is available
-        if not torch.cuda.is_available():
+        elif not torch.cuda.is_available():
             self.device = "cpu"
             logger.info("CUDA is not available, running on CPU.")
 
