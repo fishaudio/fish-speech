@@ -215,7 +215,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         )
 
         codes = [x.values for x in semantics[0]]
-        codes_tensor = torch.tensor(codes)
+        codes_tensor = torch.tensor(codes).to(torch.int32)
         vqpart = VQPart(codes=codes_tensor)
 
         messages.append(
@@ -231,6 +231,11 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         encoded = conversation.encode(
             tokenizer=self.tokenizer
         )
+
+        # tokens = conversation.encode_for_inference(
+        #     tokenizer=self.tokenizer,
+        #     num_codebooks=self.num_codebooks,
+        # )
 
         # conversation.visualize(self.tokenizer)
 
@@ -264,16 +269,17 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
 
             all_encoded.append(encoded)
 
-            tokens, labels = encoded.tokens, encoded.labels
+            tokens = encoded.tokens
+            labels = encoded.labels
 
             all_tokens.append(tokens)
             all_labels.append(labels)
 
-        tokens = torch.cat(all_tokens, dim=1)
-        labels = torch.cat(all_labels, dim=1)
+        tokens = torch.cat(all_tokens, dim=0)
+        labels = torch.cat(all_labels, dim=0)
 
         # Verify that the length is correct
-        assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
+        assert tokens.size(0) == labels.size(0), f"{tokens.size(0)} != {labels.size(0)}"
 
         data = {"tokens": tokens, "labels": labels, "encoded": all_encoded}
 
