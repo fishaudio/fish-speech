@@ -1,12 +1,19 @@
 from threading import Lock
-from typing_extensions import Annotated
 
 import pyrootutils
 import uvicorn
-from kui.asgi import Depends
-from kui.asgi import FactoryClass, HTTPException, HttpRoute, Kui, OpenAPI, Routes
+from kui.asgi import (
+    Depends,
+    FactoryClass,
+    HTTPException,
+    HttpRoute,
+    Kui,
+    OpenAPI,
+    Routes,
+)
 from kui.security import bearer_auth
 from loguru import logger
+from typing_extensions import Annotated
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
