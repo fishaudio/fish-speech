@@ -4,7 +4,7 @@ defaults:
 
 project: text2semantic_finetune_dual_ar
 max_length: 4096
-pretrained_ckpt_path: checkpoints/fish-speech-1.4
+pretrained_ckpt_path: checkpoints/fish-speech-1.5
 
 # Lightning Trainer
 trainer:
@@ -18,8 +18,8 @@ trainer:
 
 # Dataset Configuration
 tokenizer:
-  _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: ${pretrained_ckpt_path}
+  _target_: fish_speech.tokenizer.FishTokenizer
+  model_path: ${pretrained_ckpt_path}/tokenizer.tiktoken
 
 # Dataset Configuration
 train_dataset:
