@@ -157,16 +157,6 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         Random(self.seed).shuffle(self.groups)
         self.group_weights = [len(i.sentences) for i in self.groups]
 
-    def tokenize_sentence(self, sentence: str):
-        sentence = clean_text(sentence)
-        tokens = self.tokenizer.encode(
-            f"{sentence}",
-            max_length=10**6,
-            add_special_tokens=False,
-            truncation=False,
-        )
-        return sentence, len(tokens)
-
     def sample_data(self):
         if self.groups is None:
             self.init_mock_data_server()
@@ -342,7 +332,7 @@ class TextDataCollator:
                 _tokens = F.pad(
                     _tokens,
                     (0, max_tokens_length - tokens_length),
-                    value=self.tokenizer.eos_token_id,
+                    value=self.tokenizer.get_token_id('<|end_of_text|>'),
                 )
                 _tokens[1:, tokens_length:] = CODEBOOK_PAD_TOKEN_ID
                 _labels = F.pad(
@@ -437,14 +427,13 @@ if __name__ == "__main__":
 
     ds = AutoTextSemanticInstructionDataset(
         ["data/protos"],
-        tokenizer=FishTokenizer.from_pretrained("fishaudio/fish-speech-1"),
+        tokenizer=FishTokenizer("checkpoints/fish-speech-1.5/tokenizer.tiktoken"),
         use_speaker=False,
         interactive_prob=1.0,
         skip_text_prob=0.5,
     )
 
     for i in ds:
-        print(ds.tokenizer.decode(i["tokens"][0], skip_special_tokens=False))
-        # i["labels"][0][i["labels"][0] == -100] = 0
-        # print(ds.tokenizer.decode(i["labels"][0], skip_special_tokens=False))
+        # Please uncomment line 235 to visualize the tokenized message
+        print(i)
         break
