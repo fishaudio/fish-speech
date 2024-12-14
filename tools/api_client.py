@@ -61,7 +61,7 @@ def parse_args():
     )
     parser.add_argument(
         "--play",
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         default=True,
         help="Whether to play audio after receiving data",
     )
