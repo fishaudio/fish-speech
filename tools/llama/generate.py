@@ -11,13 +11,13 @@ import click
 import hydra
 import numpy as np
 import torch
-import zluda
 import torch._dynamo.config
 import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+import zluda
 from fish_speech.conversation import (
     CODEBOOK_PAD_TOKEN_ID,
     Conversation,
@@ -1075,8 +1075,8 @@ def main(
         prompt_tokens = [torch.from_numpy(np.load(p)).to(device) for p in prompt_tokens]
 
     if text_file is not None:
-        with open(text_file, 'r') as f:
-            text=f.read()    
+        with open(text_file, "r") as f:
+            text = f.read()
 
     torch.manual_seed(seed)
 
