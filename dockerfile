@@ -1,7 +1,7 @@
 FROM python:3.12-slim-bookworm AS stage-1
 ARG TARGETARCH
 
-ARG HUGGINGFACE_MODEL=fish-speech-1.4
+ARG HUGGINGFACE_MODEL=fish-speech-1.5
 ARG HF_ENDPOINT=https://huggingface.co
 
 WORKDIR /opt/fish-speech
