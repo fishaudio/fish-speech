@@ -119,6 +119,12 @@ def parse_args():
         help="`None` means randomized inference, otherwise deterministic.\n"
         "It can't be used for fixing a timbre.",
     )
+    parser.add_argument(
+        "--api_key",
+        type=str,
+        default="YOUR_API_KEY",
+        help="API key for authentication",
+    )
 
     return parser.parse_args()
 
@@ -173,7 +179,7 @@ if __name__ == "__main__":
         data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
         stream=args.streaming,
         headers={
-            "authorization": "Bearer YOUR_API_KEY",
+            "authorization": f"Bearer {args.api_key}",
             "content-type": "application/msgpack",
         },
     )
