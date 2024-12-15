@@ -5,6 +5,7 @@ import hydra
 import numpy as np
 import soundfile as sf
 import torch
+import zluda
 import torchaudio
 from hydra import compose, initialize
 from hydra.utils import instantiate
