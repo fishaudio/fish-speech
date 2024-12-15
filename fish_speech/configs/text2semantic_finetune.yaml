@@ -15,6 +15,9 @@ trainer:
   precision: bf16-true
   limit_val_batches: 10
   val_check_interval: 100
+  strategy:
+    find_unused_parameters: true
+    static_graph: true 
 
 # Dataset Configuration
 tokenizer:
@@ -47,7 +50,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 4
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 

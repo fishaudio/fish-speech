@@ -200,6 +200,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
                 role="system",
                 parts=[TextPart(text="Speak out the provided text.")],
                 add_im_end=False,
+                cal_loss=True,
             )
         ]
 
@@ -211,35 +212,75 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             Message(
                 role="user",
                 parts=[TextPart(text=cated_sentences)],
+                cal_loss=True,
             )
         )
-
-        codes = [x.values for x in semantics[0]]
-        codes_tensor = torch.tensor(codes).to(torch.int32)
-        vqpart = VQPart(codes=codes_tensor)
 
         messages.append(
             Message(
                 role="assistant",
-                parts=[TextPart(text="<|voice|>"), vqpart],
-                cal_loss=True
+                parts=[TextPart(text="<|voice|>")],
+                cal_loss=True,
+                add_im_end=False
             )
         )
 
+        prompt_conversation = Conversation(messages=messages)
+        text_tokens = prompt_conversation.encode(
+            tokenizer=self.tokenizer
+        ).tokens
+        prompt_length = len(text_tokens)
+
+        vq_codes = [x.values for x in semantics[0]]
+        vq_codes_tensor = torch.tensor(vq_codes).to(torch.int32)
+        vqpart = VQPart(codes=vq_codes_tensor)
+        messages[-1].add_im_end = True
+        messages[-1].parts.append(vqpart)
+
         conversation = Conversation(messages=messages)
 
-        encoded = conversation.encode(
+        tokens = conversation.encode(
             tokenizer=self.tokenizer
+        ).tokens
+        
+        num_codebooks = (
+            len(semantics[0]
+                ) if self.num_codebooks is None else self.num_codebooks
         )
 
-        # tokens = conversation.encode_for_inference(
-        #     tokenizer=self.tokenizer,
-        #     num_codebooks=self.num_codebooks,
-        # )
+        # Codebook bos/padding: 0, eos: 1
+        codes = [[CODEBOOK_PAD_TOKEN_ID] *
+                 prompt_length for _ in range(num_codebooks)]
+        for segment in semantics:
+            for book_idx, book in zip(range(num_codebooks), segment):
+                for j in book.values:
+                    codes[book_idx].append(int(j) + 1)
 
-        # conversation.visualize(self.tokenizer)
+        for book in codes:
+            book.extend([CODEBOOK_PAD_TOKEN_ID] * 1)
 
-        return encoded
+        codes_tensor = torch.tensor(codes, dtype=torch.long)
+        tokens = torch.cat([tokens.unsqueeze(0), codes_tensor], dim=0)
+
+        labels = tokens.clone()
+
+        if skip_text:
+            # If text is not provided, the sentence is used for condition only, all labels are -100
+            torch.fill_(labels, -100)
+            return tokens, labels
+
+        # Mask out the <s> tokens for semantic, predict semantic tokens only
+        # Since we don't mask out the input tokens, the language modeling still works
+        labels[1:, :prompt_length] = -100
+
+        tokens = tokens[:, :-1]
+        labels = labels[:, 1:]
+
+        # Verify the padding is correct, and the last token is eos
+        assert (tokens[1:, :prompt_length] == CODEBOOK_PAD_TOKEN_ID).all()
+        assert (labels[1:, -1:] == CODEBOOK_PAD_TOKEN_ID).all()
+
+        return tokens, labels
 
     def augment(self):
         response = self.sample_data()
@@ -249,7 +290,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
 
         samples = list(response.samples)
         idx = 0
-        all_tokens, all_labels, all_encoded = [], [], []
+        all_tokens, all_labels = [], []
 
         # if isinstance(self.use_speaker, float):
         #     use_speaker = random.random() < self.use_speaker
@@ -260,28 +301,23 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             sentence = samples.pop(0)
             text = clean_text(random.choice(sentence.texts))
 
-            encoded = self.pack_sentences(
+            tokens, labels = self.pack_sentences(
                 sentences=[text],
                 semantics=[sentence.semantics],
                 # speaker=response.name if use_speaker else None,
                 skip_text=random.random() < self.skip_text_prob,
             )
 
-            all_encoded.append(encoded)
-
-            tokens = encoded.tokens
-            labels = encoded.labels
-
             all_tokens.append(tokens)
             all_labels.append(labels)
 
-        tokens = torch.cat(all_tokens, dim=0)
-        labels = torch.cat(all_labels, dim=0)
+        tokens = torch.cat(all_tokens, dim=1)
+        labels = torch.cat(all_labels, dim=1)
 
         # Verify that the length is correct
-        assert tokens.size(0) == labels.size(0), f"{tokens.size(0)} != {labels.size(0)}"
+        assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
 
-        data = {"tokens": tokens, "labels": labels, "encoded": all_encoded}
+        data = {"tokens": tokens, "labels": labels}
 
         return data
 
