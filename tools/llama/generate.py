@@ -1019,7 +1019,7 @@ def launch_thread_safe_queue_agent(
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/fish-speech-1.4",
+    default="checkpoints/fish-speech-1.5",
 )
 @click.option("--device", type=str, default="cuda")
 @click.option("--compile/--no-compile", default=False)
