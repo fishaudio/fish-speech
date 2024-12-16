@@ -7,7 +7,6 @@ from .tokenizer import MODALITY_TOKENS, FishTokenizer
 
 CODEBOOK_PAD_TOKEN_ID = 0
 
-
 @dataclass(kw_only=True)
 class BasePart:
     pass

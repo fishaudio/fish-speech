@@ -11,7 +11,7 @@ trainer:
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: "norm"
-  max_steps: 1000
+  max_steps: 10000
   precision: bf16-true
   limit_val_batches: 10
   val_check_interval: 100

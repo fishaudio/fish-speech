@@ -167,7 +167,7 @@ class BaseTransformer(nn.Module):
     def __init__(
         self,
         config: BaseModelArgs,
-        tokenizer: FishTokenizer | AutoTokenizer,
+        tokenizer: FishTokenizer,
         init_weights: bool = True,
     ) -> None:
         super().__init__()
@@ -401,11 +401,8 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        if is_agent:
-            tokenizer = AutoTokenizer.from_pretrained(str(path))
-        else:
-            tokenizer_path = str(path) + "/tokenizer.tiktoken"
-            tokenizer = FishTokenizer(tokenizer_path)
+        tokenizer_path = str(path) + "/tokenizer.tiktoken"
+        tokenizer = FishTokenizer(tokenizer_path)
 
         log.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
