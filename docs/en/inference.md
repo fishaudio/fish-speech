@@ -119,7 +119,7 @@ The currently supported reference audio has a maximum total duration of 90 secon
 You can start the WebUI using the following command:
 
 ```bash
-python -m tools.webui \
+python -m tools.run_webui \
     --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq
