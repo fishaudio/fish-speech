@@ -15,9 +15,9 @@ trainer:
   precision: bf16-true
   limit_val_batches: 10
   val_check_interval: 100
-  strategy:
-    find_unused_parameters: true
-    static_graph: true 
+  # strategy:
+  #   find_unused_parameters: true
+  #   static_graph: true 
 
 # Dataset Configuration
 tokenizer:

@@ -280,7 +280,7 @@ def decode_one_token_ar(
         layer.attention.kv_cache.v_cache.fill_(0)
 
     input_pos = torch.tensor([0], device=hidden_states.device, dtype=torch.long)
-    model.forward_generate_fast(hidden_states, input_pos)
+    # model.forward_generate_fast(hidden_states, input_pos)
     a = codebooks[0] - model.tokenizer.semantic_begin_id
     a[a < 0] = 0
     hidden_states = model.fast_embeddings(a)

@@ -199,8 +199,8 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             Message(
                 role="system",
                 parts=[TextPart(text="Speak out the provided text.")],
-                add_im_end=False,
-                cal_loss=False,
+                # add_im_end=False,
+                cal_loss=True,
             )
         ]
 
@@ -212,7 +212,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             Message(
                 role="user",
                 parts=[TextPart(text=cated_sentences)],
-                cal_loss=False,
+                cal_loss=True,
             )
         )
 
@@ -249,75 +249,9 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
 
         labels_raw = encoded.labels
         labels = torch.full((num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
-        labels[0] = labels_raw
+        labels[0, :] = labels_raw
         labels[1:, encoded.vq_mask_labels] = vq_parts
         labels[1:, -1:] = CODEBOOK_PAD_TOKEN_ID
-
-        # messages.append(
-        #     Message(
-        #         role="assistant",
-        #         parts=[TextPart(text="<|voice|>")],
-        #         cal_loss=True,
-        #         add_im_end=False
-        #     )
-        # )
-
-        # prompt_conversation = Conversation(messages=messages)
-        # text_tokens = prompt_conversation.encode(
-        #     tokenizer=self.tokenizer
-        # ).tokens
-        # text_tokens = torch.cat((text_tokens, torch.tensor(
-        #     [self.tokenizer.get_token_id('<|voice|>')])))
-        # prompt_length = len(text_tokens)
-
-        # vq_codes = [x.values for x in semantics[0]]
-        # vq_codes_tensor = torch.tensor(vq_codes).to(torch.int32)
-        # vqpart = VQPart(codes=vq_codes_tensor)
-        # messages[-1].add_im_end = True
-        # messages[-1].parts.append(vqpart)
-
-        # conversation = Conversation(messages=messages)
-        # # conversation.visualize(tokenizer=self.tokenizer)
-
-        # tokens = conversation.encode(
-        #     tokenizer=self.tokenizer
-        # ).tokens
-
-        # tokens = torch.cat((tokens, torch.tensor([self.tokenizer.get_token_id('<|im_end|>')])))
-        
-        # num_codebooks = (
-        #     len(semantics[0]
-        #         ) if self.num_codebooks is None else self.num_codebooks
-        # )
-
-        # # Codebook bos/padding: 0, eos: 1
-        # codes = [[CODEBOOK_PAD_TOKEN_ID] *
-        #          prompt_length for _ in range(num_codebooks)]
-        # for segment in semantics:
-        #     for book_idx, book in zip(range(num_codebooks), segment):
-        #         for j in book.values:
-        #             codes[book_idx].append(int(j) + 1)
-
-        # for book in codes:
-        #     book.extend([CODEBOOK_PAD_TOKEN_ID] * 1)
-
-        # codes_tensor = torch.tensor(codes, dtype=torch.long)
-        # # print(codes_tensor)
-        # tokens = torch.cat([tokens.unsqueeze(0), codes_tensor], dim=0)
-
-        # labels = tokens.clone()
-
-        # if skip_text:
-        #     # If text is not provided, the sentence is used for condition only, all labels are -100
-        #     torch.fill_(labels, 0)
-        #     return tokens, labels
-
-        # # Mask out the <s> tokens for semantic, predict semantic tokens only
-        # # Since we don't mask out the input tokens, the language modeling still works
-        # labels[1:, :prompt_length] = 0
-
-        # tokens = tokens[:, :-1]
-        # labels = labels[:, 1:]
 
         tokens = tokens.long()
         labels = labels.long()

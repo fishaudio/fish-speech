@@ -246,17 +246,22 @@ class BaseTransformer(nn.Module):
                 dtype=dtype,
             )
 
-    def embed(self, x: Tensor) -> Tensor:
-        vocab_embeds = [self.embeddings(x[:, 0])]
-        for i in range(self.config.num_codebooks):
-            emb = self.codebook_embeddings(x[:, i + 1] + i * self.config.codebook_size)
-            semantic_token_ids_tensor = torch.tensor(
-                self.semantic_token_ids, device=x.device
-            )
-            emb[~torch.isin(x[:, 0], semantic_token_ids_tensor)] = 0
+    def embed(self, inp: Tensor, share_codebook_embeddings= True) -> Tensor:
+        embeds = []
+        semantic_token_ids_tensor = torch.tensor(
+            self.semantic_token_ids, device=inp.device
+        )
 
-        x = torch.stack(vocab_embeds, dim=3)
-        x = x.sum(dim=3)
+        for i in range(self.config.num_codebooks):
+            if share_codebook_embeddings:
+                emb = self.codebook_embeddings(inp[:, i + 1] + i * self.config.codebook_size)
+            else:
+                emb = self.codebook_embeddings(inp[:, i + 1])
+            embeds.append(emb)
+
+        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
+        vq_embeds_sum[~torch.isin(inp[:, 0], semantic_token_ids_tensor)] = 0
+        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         return x
 
@@ -303,7 +308,6 @@ class BaseTransformer(nn.Module):
         self,
         inp: Tensor,
         input_pos: Optional[Tensor] = None,
-        vq_masks: Optional[Tensor] = None,  # this is not used in fact
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
         # This is used for generation, optimized for torch compile
@@ -311,27 +315,7 @@ class BaseTransformer(nn.Module):
         #     self.max_seq_len != -1 and self.max_batch_size != -1
         # ), "Please call setup_caches before forward_generate"
 
-        embeds = []
-        for i in range(self.config.num_codebooks):
-            if self.config.share_codebook_embeddings:
-                _tokens = inp[:, i + 1] + i * self.config.codebook_size
-            else:
-                _tokens = inp[:, i + 1]
-
-            emb = self.codebook_embeddings(_tokens)
-            embeds.append(emb)
-
-        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-        # if self.config.use_codebook_mlp:
-        #     vq_embeds_sum = vq_embeds_sum / self.config.num_codebooks
-        #     vq_embeds_sum = self.codebook_mlp(vq_embeds_sum)
-
-        vq_masks = (inp[:, 0] >= self.tokenizer.semantic_begin_id) & (
-            inp[:, 0] <= self.tokenizer.semantic_end_id
-        )
-
-        vq_embeds_sum[~vq_masks] = 0
-        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
+        x = self.embed(inp, share_codebook_embeddings=self.config.share_codebook_embeddings)
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
@@ -664,6 +648,25 @@ class DualARTransformer(BaseTransformer):
             s=s,
             n=self.config.num_codebooks,
         )
+
+        # x = x[vq_mask_labels][vq_require_losses]
+        # codebooks = vq_parts[..., :-1][vq_require_losses]
+
+        # x = self.fast_project_in(x)
+        # codebook_embeddings = self.fast_embeddings(codebooks)
+        # x = torch.cat([x[:, None], codebook_embeddings], dim=1)
+
+        # for layer in self.fast_layers:
+        #     if self.config.use_gradient_checkpointing and self.training:
+        #         x = checkpoint(
+        #             layer, x, self.fast_freqs_cis, None, None, use_reentrant=True
+        #         )
+        #     else:
+        #         x = layer(x, self.fast_freqs_cis, None, None)
+
+        # # unflatten the batch and num_codebooks
+        # fast_out = self.fast_norm(x)
+        # codebook_logits = None
 
         return TransformerForwardResult(
             token_logits=token_logits,
