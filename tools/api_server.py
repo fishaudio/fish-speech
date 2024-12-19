@@ -2,7 +2,9 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-from kui.asgi import FactoryClass, HTTPException, HttpRoute, Kui, OpenAPI, Routes
+from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI
+from kui.openapi.specification import Info
+from kui.cors import CORSConfig
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -11,33 +13,20 @@ from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
 from tools.server.views import (
-    ASRView,
-    ChatView,
-    HealthView,
-    TTSView,
-    VQGANDecodeView,
-    VQGANEncodeView,
+    routes
 )
 
 
 class API(ExceptionHandler):
     def __init__(self):
         self.args = parse_args()
-        self.routes = [
-            ("/v1/health", HealthView),
-            ("/v1/vqgan/encode", VQGANEncodeView),
-            ("/v1/vqgan/decode", VQGANDecodeView),
-            ("/v1/asr", ASRView),
-            ("/v1/tts", TTSView),
-            ("/v1/chat", ChatView),
-        ]
-        self.routes = Routes([HttpRoute(path, view) for path, view in self.routes])
+        self.routes = routes
 
         self.openapi = OpenAPI(
-            {
+            Info({
                 "title": "Fish Speech API",
                 "version": "1.5.0",
-            },
+            }),
         ).routes
 
         # Initialize the app
@@ -48,7 +37,7 @@ class API(ExceptionHandler):
                 Exception: self.other_exception_handler,
             },
             factory_class=FactoryClass(http=MsgPackRequest),
-            cors_config={},
+            cors_config=CORSConfig(),
         )
 
         # Add the state variables

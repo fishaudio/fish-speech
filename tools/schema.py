@@ -1,7 +1,8 @@
 import os
 import queue
 from dataclasses import dataclass
-from typing import Annotated, Literal
+from typing import Literal
+from typing_extensions import Annotated
 
 import torch
 from pydantic import BaseModel, Field, conint, conlist
