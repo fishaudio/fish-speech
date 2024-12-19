@@ -3,8 +3,8 @@ from threading import Lock
 import pyrootutils
 import uvicorn
 from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI
-from kui.openapi.specification import Info
 from kui.cors import CORSConfig
+from kui.openapi.specification import Info
 from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -12,9 +12,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
-from tools.server.views import (
-    routes
-)
+from tools.server.views import routes
 
 
 class API(ExceptionHandler):
@@ -23,10 +21,12 @@ class API(ExceptionHandler):
         self.routes = routes
 
         self.openapi = OpenAPI(
-            Info({
-                "title": "Fish Speech API",
-                "version": "1.5.0",
-            }),
+            Info(
+                {
+                    "title": "Fish Speech API",
+                    "version": "1.5.0",
+                }
+            ),
         ).routes
 
         # Initialize the app
