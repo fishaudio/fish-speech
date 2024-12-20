@@ -2,7 +2,6 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-
 from kui.asgi import (
     Depends,
     FactoryClass,
