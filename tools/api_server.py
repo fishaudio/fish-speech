@@ -2,10 +2,21 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-from kui.asgi import FactoryClass, HTTPException, Kui, OpenAPI
+
+from kui.asgi import (
+    Depends,
+    FactoryClass,
+    HTTPException,
+    HttpRoute,
+    Kui,
+    OpenAPI,
+    Routes,
+)
 from kui.cors import CORSConfig
 from kui.openapi.specification import Info
+from kui.security import bearer_auth
 from loguru import logger
+from typing_extensions import Annotated
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -19,6 +30,20 @@ class API(ExceptionHandler):
     def __init__(self):
         self.args = parse_args()
         self.routes = routes
+
+        def api_auth(endpoint):
+            async def verify(token: Annotated[str, Depends(bearer_auth)]):
+                if token != self.args.api_key:
+                    raise HTTPException(401, None, "Invalid token")
+                return await endpoint()
+
+            async def passthrough():
+                return await endpoint()
+
+            if self.args.api_key is not None:
+                return verify
+            else:
+                return passthrough
 
         self.openapi = OpenAPI(
             Info(
