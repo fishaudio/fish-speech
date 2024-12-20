@@ -282,8 +282,14 @@ class BaseTransformer(nn.Module):
         # To maintain consistency, key_padding_mask use TRUE to mask out
         mask = None
         if key_padding_mask is not None:
-            mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
-            mask = mask & key_padding_mask[:, None, None, :].logical_not()
+            causal = self.causal_mask[ :seq_len, :seq_len]  
+            causal = rearrange(causal, "q k -> 1 1 q k")
+
+            atten_mask = rearrange(key_padding_mask, "b s -> b 1 1 s")
+            atten_mask = atten_mask.logical_not()
+            mask = causal & atten_mask
+
+        # return freqs_cis, mask
 
         for layer in self.layers:
             if self.config.use_gradient_checkpointing and self.training:
@@ -310,11 +316,6 @@ class BaseTransformer(nn.Module):
         input_pos: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        # This is used for generation, optimized for torch compile
-        # assert (
-        #     self.max_seq_len != -1 and self.max_batch_size != -1
-        # ), "Please call setup_caches before forward_generate"
-
         x = self.embed(inp, share_codebook_embeddings=self.config.share_codebook_embeddings)
 
         if input_pos is None:
@@ -322,6 +323,7 @@ class BaseTransformer(nn.Module):
             max_seq_len = inp.shape[-1]
         else:
             max_seq_len = self.max_seq_len
+        max_seq_len = inp.shape[-1]
 
         mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
@@ -649,25 +651,6 @@ class DualARTransformer(BaseTransformer):
             n=self.config.num_codebooks,
         )
 
-        # x = x[vq_mask_labels][vq_require_losses]
-        # codebooks = vq_parts[..., :-1][vq_require_losses]
-
-        # x = self.fast_project_in(x)
-        # codebook_embeddings = self.fast_embeddings(codebooks)
-        # x = torch.cat([x[:, None], codebook_embeddings], dim=1)
-
-        # for layer in self.fast_layers:
-        #     if self.config.use_gradient_checkpointing and self.training:
-        #         x = checkpoint(
-        #             layer, x, self.fast_freqs_cis, None, None, use_reentrant=True
-        #         )
-        #     else:
-        #         x = layer(x, self.fast_freqs_cis, None, None)
-
-        # # unflatten the batch and num_codebooks
-        # fast_out = self.fast_norm(x)
-        # codebook_logits = None
-
         return TransformerForwardResult(
             token_logits=token_logits,
             codebook_logits=codebook_logits,
@@ -862,6 +845,17 @@ class RMSNorm(nn.Module):
 
 
 def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor:
+    """
+    Precomputes frequency tensors for complex exponentials (cis)
+
+    Args:
+        seq_len: Length of the sequence for which positional embeddings are needed.
+        n_elem: Number of elements in the frequency tensor.
+        base: Base value for the frequency scaling (default: 10000).
+
+    Returns:
+        A tensor containing the precomputed frequencies in real and imaginary parts (bfloat16).
+    """
     freqs = 1.0 / (
         base ** (torch.arange(0, n_elem, 2)[: (n_elem // 2)].float() / n_elem)
     )

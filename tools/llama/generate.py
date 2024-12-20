@@ -251,16 +251,12 @@ def decode_one_token_ar(
     model: DualARTransformer,
     x: torch.Tensor,
     input_pos: torch.Tensor,
-    semantic_ids: list,
     previous_tokens: torch.Tensor = None,
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
 
     sampling_kwargs_main = sampling_kwargs.copy()
-    # sampling_kwargs_main["temperature"] = 0.1
-    # sampling_kwargs_main["top_p"] = 0.1
-    # sampling_kwargs_main["repetition_penalty"] = 1.0
 
     codebooks = [
         sample(
@@ -354,7 +350,6 @@ def decode_n_tokens(
     cur_token: torch.Tensor,
     input_pos: torch.Tensor,
     num_new_tokens: int,
-    semantic_ids: list,
     decode_one_token=decode_one_token_naive,
     **sampling_kwargs,
 ):
@@ -384,7 +379,6 @@ def decode_n_tokens(
                 x=cur_token,
                 input_pos=input_pos,
                 previous_tokens=window,
-                semantic_ids=semantic_ids,
                 **sampling_kwargs,
             )
 
@@ -415,21 +409,18 @@ def generate(
     """
 
     # create an empty tensor of the expected final shape and fill in the current tokens
-    T = prompt.size(1)
-    # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
-    semantic_ids = [
-        model.tokenizer.get_token_id(f"<|semantic:{i}|>") for i in range(1024)
-    ]
+    prompt_seq_len = prompt.size(1)
+    print(prompt.shape)
 
     if max_new_tokens:
-        if T + max_new_tokens > model.config.max_seq_len:
-            max_new_tokens = model.config.max_seq_len - T
+        if prompt_seq_len + max_new_tokens > model.config.max_seq_len:
+            max_new_tokens = model.config.max_seq_len - prompt_seq_len
             logger.info(f"Truncating max_new_tokens to {max_new_tokens}")
 
-        T_new = T + max_new_tokens
+        prompt_seq_len_new = prompt_seq_len + max_new_tokens
     else:
-        T_new = model.config.max_seq_len
-        max_new_tokens = T_new - T
+        prompt_seq_len_new = model.config.max_seq_len
+        max_new_tokens = prompt_seq_len_new - prompt_seq_len
 
     device, dtype = prompt.device, prompt.dtype
 
@@ -438,9 +429,9 @@ def generate(
     empty = torch.empty(
         (codebook_dim, model.config.max_seq_len), dtype=dtype, device=device
     )
-    empty[:, :T] = prompt
+    empty[:, :prompt_seq_len] = prompt
     seq = empty
-    input_pos = torch.arange(0, T, device=device)
+    input_pos = torch.arange(0, prompt_seq_len, device=device)
 
     # Use non-accelerated version for now, to avoid compilation overhead
     prefill_decode = (
@@ -453,24 +444,22 @@ def generate(
         model,
         prompt.view(1, codebook_dim, -1),
         input_pos,
-        semantic_ids=semantic_ids,
         **sampling_kwargs,
     )
-    seq[:, T : T + 1] = next_token
+    seq[:, prompt_seq_len: prompt_seq_len + 1] = next_token
 
-    input_pos = torch.tensor([T], device=device, dtype=torch.int)
+    input_pos = torch.tensor([prompt_seq_len], device=device, dtype=torch.int)
     x = decode_n_tokens(
         model,
         next_token.view(1, codebook_dim, -1),
         input_pos,
         max_new_tokens - 1,
         decode_one_token=decode_one_token,
-        semantic_ids=semantic_ids,
         **sampling_kwargs,
     )
     # x = torch.cat(generated_tokens, dim=1)
-    seq = seq[:, : T + 1 + x.size(1)]
-    seq[:, T + 1 :] = x
+    seq = seq[:, : prompt_seq_len + 1 + x.size(1)]
+    seq[:, prompt_seq_len + 1:] = x
 
     return seq
 
@@ -591,7 +580,6 @@ def generate_agent(
         model,
         prompt,
         input_pos,
-        semantic_ids=semantic_ids,
         **sampling_kwargs,
     ).view(num_samples, codebook_dim, -1)
     yield next_token.cpu()

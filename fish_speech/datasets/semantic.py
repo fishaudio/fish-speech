@@ -200,7 +200,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
                 role="system",
                 parts=[TextPart(text="Speak out the provided text.")],
                 # add_im_end=False,
-                cal_loss=True,
+                # cal_loss=True,
             )
         ]
 
@@ -212,7 +212,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
             Message(
                 role="user",
                 parts=[TextPart(text=cated_sentences)],
-                cal_loss=True,
+                # cal_loss=True,
             )
         )
 
