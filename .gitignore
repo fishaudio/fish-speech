@@ -30,3 +30,4 @@ asr-label*
 /example
 /faster_whisper
 /.gradio
+*log
