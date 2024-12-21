@@ -140,11 +140,13 @@ class ServeStreamResponse(BaseModel):
 class ServeReferenceAudio(BaseModel):
     audio: bytes
     text: str
-    
+
     @model_validator(mode="before")
     def decode_audio(cls, values):
         audio = values.get("audio")
-        if isinstance(audio, str) and len(audio) > 255:  # Check if audio is a string (Base64)
+        if (
+            isinstance(audio, str) and len(audio) > 255
+        ):  # Check if audio is a string (Base64)
             try:
                 values["audio"] = base64.b64decode(audio)
             except Exception as e:
