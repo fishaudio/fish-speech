@@ -323,7 +323,6 @@ class BaseTransformer(nn.Module):
             max_seq_len = inp.shape[-1]
         else:
             max_seq_len = self.max_seq_len
-        max_seq_len = inp.shape[-1]
 
         mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
