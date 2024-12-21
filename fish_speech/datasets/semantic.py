@@ -50,11 +50,11 @@ def split_by_rank_worker(files):
 
     # DDP
     if is_initialized():
-        files = files[get_rank():: get_world_size()]
+        files = files[get_rank() :: get_world_size()]
 
     # Split by worker
     if worker_info is not None:
-        files = files[worker_info.id:: worker_info.num_workers]
+        files = files[worker_info.id :: worker_info.num_workers]
 
     return files
 
@@ -173,7 +173,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
                 samples = group.sentences
             else:
                 begin = random.randint(0, len(group.sentences) - num_samples)
-                samples = group.sentences[begin: begin + num_samples]
+                samples = group.sentences[begin : begin + num_samples]
         else:
             samples = random.choices(
                 group.sentences, k=min(num_samples, len(group.sentences))
@@ -228,8 +228,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         )
 
         num_codebooks = (
-            len(semantics[0]
-                ) if self.num_codebooks is None else self.num_codebooks
+            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
         )
 
         conversation = Conversation(messages=messages)
@@ -239,8 +238,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         )
 
         tokens_raw = encoded.tokens
-        tokens = torch.zeros(
-            (num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
+        tokens = torch.zeros((num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
         tokens[0] = tokens_raw
 
         vq_parts = encoded.vq_parts
@@ -249,8 +247,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         tokens[1:, encoded.vq_mask_tokens] = vq_parts
 
         labels_raw = encoded.labels
-        labels = torch.full(
-            (num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
+        labels = torch.full((num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
         labels[0, :] = labels_raw
         labels[1:, encoded.vq_mask_labels] = vq_parts
         labels[1:, -1:] = CODEBOOK_PAD_TOKEN_ID
@@ -259,8 +256,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         labels = labels.long()
 
         # Verify the padding is correct, and the last token is eos
-        assert (tokens[1:, ~(encoded.vq_mask_tokens)]
-                == CODEBOOK_PAD_TOKEN_ID).all()
+        assert (tokens[1:, ~(encoded.vq_mask_tokens)] == CODEBOOK_PAD_TOKEN_ID).all()
         assert (labels[1:, -1:] == CODEBOOK_PAD_TOKEN_ID).all()
 
         return tokens, labels
@@ -292,8 +288,7 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         labels = torch.cat(all_labels, dim=1)
 
         # Verify that the length is correct
-        assert tokens.size(1) == labels.size(
-            1), f"{tokens.size(1)} != {labels.size(1)}"
+        assert tokens.size(1) == labels.size(1), f"{tokens.size(1)} != {labels.size(1)}"
 
         data = {"tokens": tokens, "labels": labels}
 
@@ -400,10 +395,7 @@ class AutoTextSemanticInstructionDataset(Dataset):
                     skip_text=random.random() < self.skip_text_prob,
                 )
 
-                self.data.append({
-                    "tokens": tokens,
-                    "labels": labels
-                })
+                self.data.append({"tokens": tokens, "labels": labels})
 
         random.Random(self.seed).shuffle(self.data)
 
@@ -449,8 +441,7 @@ class AutoTextSemanticInstructionDataset(Dataset):
         )
 
         num_codebooks = (
-            len(semantics[0]
-                ) if self.num_codebooks is None else self.num_codebooks
+            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
         )
 
         conversation = Conversation(messages=messages)
@@ -459,8 +450,7 @@ class AutoTextSemanticInstructionDataset(Dataset):
         )
 
         tokens_raw = encoded.tokens
-        tokens = torch.zeros(
-            (num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
+        tokens = torch.zeros((num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
         tokens[0] = tokens_raw
 
         vq_parts = encoded.vq_parts
@@ -469,8 +459,7 @@ class AutoTextSemanticInstructionDataset(Dataset):
         tokens[1:, encoded.vq_mask_tokens] = vq_parts
 
         labels_raw = encoded.labels
-        labels = torch.full(
-            (num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
+        labels = torch.full((num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
         labels[0, :] = labels_raw
         labels[1:, encoded.vq_mask_labels] = vq_parts
         labels[1:, -1:] = CODEBOOK_PAD_TOKEN_ID
@@ -478,8 +467,7 @@ class AutoTextSemanticInstructionDataset(Dataset):
         tokens = tokens.long()
         labels = labels.long()
 
-        assert (tokens[1:, ~(encoded.vq_mask_tokens)]
-                == CODEBOOK_PAD_TOKEN_ID).all()
+        assert (tokens[1:, ~(encoded.vq_mask_tokens)] == CODEBOOK_PAD_TOKEN_ID).all()
         assert (labels[1:, -1:] == CODEBOOK_PAD_TOKEN_ID).all()
 
         return tokens, labels
@@ -511,8 +499,7 @@ class InterleaveDataset(IterableDataset):
                 yield next(dataset_iterator)
             except StopIteration:
                 # Exhausted, create a new iterator
-                dataset_iterators[dataset_idx] = iter(
-                    self.datasets[dataset_idx])
+                dataset_iterators[dataset_idx] = iter(self.datasets[dataset_idx])
                 yield next(dataset_iterators[dataset_idx])
 
 
@@ -550,15 +537,13 @@ class TextDataCollator:
         # Calculate the max length
         max_tokens_length = 0
         for example in examples:
-            max_tokens_length = max(
-                max_tokens_length, example[tokens_key].size(1))
+            max_tokens_length = max(max_tokens_length, example[tokens_key].size(1))
         max_tokens_length = min(max_tokens_length, self.max_length)
 
         for example in examples:
             _tokens = example[tokens_key][:, :max_tokens_length]
             _labels = example[labels_key][:, :max_tokens_length]
-            _attention_mask = torch.ones(
-                (max_tokens_length,), dtype=torch.bool)
+            _attention_mask = torch.ones((max_tokens_length,), dtype=torch.bool)
             tokens_length = _tokens.size(1)
             _attention_mask[:tokens_length] = False
 
@@ -595,8 +580,16 @@ class TextDataCollator:
 class SemanticDataModule(LightningDataModule):
     def __init__(
         self,
-        train_dataset: Union[AutoTextSemanticInstructionDataset, AutoTextSemanticInstructionIterableDataset, InterleaveDataset],
-        val_dataset: Union[AutoTextSemanticInstructionDataset, AutoTextSemanticInstructionIterableDataset,InterleaveDataset],
+        train_dataset: Union[
+            AutoTextSemanticInstructionDataset,
+            AutoTextSemanticInstructionIterableDataset,
+            InterleaveDataset,
+        ],
+        val_dataset: Union[
+            AutoTextSemanticInstructionDataset,
+            AutoTextSemanticInstructionIterableDataset,
+            InterleaveDataset,
+        ],
         batch_size: int = 32,
         tokenizer: FishTokenizer = None,
         max_length: int = 1024,
@@ -635,8 +628,7 @@ if __name__ == "__main__":
 
     ds = AutoTextSemanticInstructionDataset(
         ["data/protos"],
-        tokenizer=FishTokenizer(
-            "checkpoints/fish-speech-1.5/tokenizer.tiktoken"),
+        tokenizer=FishTokenizer("checkpoints/fish-speech-1.5/tokenizer.tiktoken"),
         use_speaker=False,
         interactive_prob=1.0,
         skip_text_prob=0.5,
