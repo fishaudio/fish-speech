@@ -2,42 +2,55 @@ from threading import Lock
 
 import pyrootutils
 import uvicorn
-from kui.asgi import FactoryClass, HTTPException, HttpRoute, Kui, OpenAPI, Routes
+from kui.asgi import (
+    Depends,
+    FactoryClass,
+    HTTPException,
+    HttpRoute,
+    Kui,
+    OpenAPI,
+    Routes,
+)
+from kui.cors import CORSConfig
+from kui.openapi.specification import Info
+from kui.security import bearer_auth
 from loguru import logger
+from typing_extensions import Annotated
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
-from tools.server.views import (
-    ASRView,
-    ChatView,
-    HealthView,
-    TTSView,
-    VQGANDecodeView,
-    VQGANEncodeView,
-)
+from tools.server.views import routes
 
 
 class API(ExceptionHandler):
     def __init__(self):
         self.args = parse_args()
-        self.routes = [
-            ("/v1/health", HealthView),
-            ("/v1/vqgan/encode", VQGANEncodeView),
-            ("/v1/vqgan/decode", VQGANDecodeView),
-            ("/v1/asr", ASRView),
-            ("/v1/tts", TTSView),
-            ("/v1/chat", ChatView),
-        ]
-        self.routes = Routes([HttpRoute(path, view) for path, view in self.routes])
+        self.routes = routes
+
+        def api_auth(endpoint):
+            async def verify(token: Annotated[str, Depends(bearer_auth)]):
+                if token != self.args.api_key:
+                    raise HTTPException(401, None, "Invalid token")
+                return await endpoint()
+
+            async def passthrough():
+                return await endpoint()
+
+            if self.args.api_key is not None:
+                return verify
+            else:
+                return passthrough
 
         self.openapi = OpenAPI(
-            {
-                "title": "Fish Speech API",
-                "version": "1.5.0",
-            },
+            Info(
+                {
+                    "title": "Fish Speech API",
+                    "version": "1.5.0",
+                }
+            ),
         ).routes
 
         # Initialize the app
@@ -48,7 +61,7 @@ class API(ExceptionHandler):
                 Exception: self.other_exception_handler,
             },
             factory_class=FactoryClass(http=MsgPackRequest),
-            cors_config={},
+            cors_config=CORSConfig(),
         )
 
         # Add the state variables
