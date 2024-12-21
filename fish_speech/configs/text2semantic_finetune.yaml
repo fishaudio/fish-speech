@@ -26,7 +26,7 @@ tokenizer:
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
@@ -36,7 +36,7 @@ train_dataset:
   interactive_prob: 0.7
 
 val_dataset:
-  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
