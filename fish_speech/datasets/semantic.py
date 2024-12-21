@@ -24,8 +24,8 @@ from fish_speech.conversation import (
 )
 from fish_speech.datasets.protos.text_data_pb2 import SampledData
 from fish_speech.datasets.protos.text_data_stream import read_pb_stream
-from fish_speech.tokenizer import FishTokenizer
 from fish_speech.text.clean import clean_text
+from fish_speech.tokenizer import FishTokenizer
 from fish_speech.utils import RankedLogger
 from fish_speech.utils.braceexpand import braceexpand
 
@@ -186,12 +186,12 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         )
 
     def pack_sentences(
-            self,
-            sentences: list[str],
-            semantics: list,
-            # speaker: Optional[str] = None,
-            skip_text: bool = False,
-        ):
+        self,
+        sentences: list[str],
+        semantics: list,
+        # speaker: Optional[str] = None,
+        skip_text: bool = False,
+    ):
         # if speaker is None:
         #     speaker = "assistant"
 
@@ -228,8 +228,7 @@ class AutoTextSemanticInstructionDataset(IterableDataset):
         )
 
         num_codebooks = (
-            len(semantics[0]
-                ) if self.num_codebooks is None else self.num_codebooks
+            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
         )
 
         conversation = Conversation(messages=messages)
@@ -348,7 +347,7 @@ class TextDataCollator:
                 _tokens = F.pad(
                     _tokens,
                     (0, max_tokens_length - tokens_length),
-                    value=self.tokenizer.get_token_id('<|end_of_text|>'),
+                    value=self.tokenizer.get_token_id("<|end_of_text|>"),
                 )
                 _tokens[1:, tokens_length:] = CODEBOOK_PAD_TOKEN_ID
                 _labels = F.pad(

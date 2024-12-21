@@ -7,6 +7,7 @@ from .tokenizer import MODALITY_TOKENS, FishTokenizer
 
 CODEBOOK_PAD_TOKEN_ID = 0
 
+
 @dataclass(kw_only=True)
 class BasePart:
     pass
@@ -210,7 +211,7 @@ class Conversation:
             "purple": "\033[95m",
             "yellow": "\033[93m",
             "red": "\033[91m",
-            "cyan": "\033[96m", 
+            "cyan": "\033[96m",
         }
         first_idx = 0
         second_idx = 0
@@ -236,7 +237,6 @@ class Conversation:
                 print_first_group(val)
 
         print()
-
 
     def append(self: "Conversation", message: Message):
         self.messages.append(message)

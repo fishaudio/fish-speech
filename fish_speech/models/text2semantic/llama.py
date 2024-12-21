@@ -246,7 +246,7 @@ class BaseTransformer(nn.Module):
                 dtype=dtype,
             )
 
-    def embed(self, inp: Tensor, share_codebook_embeddings= True) -> Tensor:
+    def embed(self, inp: Tensor, share_codebook_embeddings=True) -> Tensor:
         embeds = []
         semantic_token_ids_tensor = torch.tensor(
             self.semantic_token_ids, device=inp.device
@@ -254,7 +254,9 @@ class BaseTransformer(nn.Module):
 
         for i in range(self.config.num_codebooks):
             if share_codebook_embeddings:
-                emb = self.codebook_embeddings(inp[:, i + 1] + i * self.config.codebook_size)
+                emb = self.codebook_embeddings(
+                    inp[:, i + 1] + i * self.config.codebook_size
+                )
             else:
                 emb = self.codebook_embeddings(inp[:, i + 1])
             embeds.append(emb)
@@ -282,7 +284,7 @@ class BaseTransformer(nn.Module):
         # To maintain consistency, key_padding_mask use TRUE to mask out
         mask = None
         if key_padding_mask is not None:
-            causal = self.causal_mask[ :seq_len, :seq_len]  
+            causal = self.causal_mask[:seq_len, :seq_len]
             causal = rearrange(causal, "q k -> 1 1 q k")
 
             atten_mask = rearrange(key_padding_mask, "b s -> b 1 1 s")
@@ -316,7 +318,9 @@ class BaseTransformer(nn.Module):
         input_pos: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        x = self.embed(inp, share_codebook_embeddings=self.config.share_codebook_embeddings)
+        x = self.embed(
+            inp, share_codebook_embeddings=self.config.share_codebook_embeddings
+        )
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)

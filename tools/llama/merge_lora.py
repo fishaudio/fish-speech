@@ -79,15 +79,15 @@ def merge(lora_config, base_weight, lora_weight, output):
 
     tolerance = 1e-5
     for key in original_keys:
-        diff_l1 = (new_state_dict[key] -
-                    llama_state_dict_copy[key]).abs().sum().item()
+        diff_l1 = (new_state_dict[key] - llama_state_dict_copy[key]).abs().sum().item()
         if diff_l1 > tolerance:
             logger.info(f"Significant difference found in key: {key}")
             break
 
     if diff_l1 <= tolerance:
         logger.warning(
-            "Merged model seems identical to the original model. Further validation might be needed.")
+            "Merged model seems identical to the original model. Further validation might be needed."
+        )
     else:
         logger.info("Merged model is different from the original model, check passed")
 
