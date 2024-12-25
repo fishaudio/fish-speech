@@ -54,6 +54,14 @@ class Text:
     def normalize(self):
         text = self.raw_text
 
+        # 处理千分位数值例如 12,234.40
+        pattern = re.compile(r"[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?%?")
+        matchers = pattern.findall(text)
+        if matchers:
+            for matcher in matchers:
+                text = text.replace(",", "")
+
+
         # 规范化日期
         pattern = re.compile(
             r"\D+((([089]\d|(19|20)\d{2})年)?(\d{1,2}月(\d{1,2}[日号])?)?)"
@@ -173,5 +181,5 @@ if __name__ == "__main__":
     print(Text(raw_text="编号：31520181154418。").normalize())
     print(Text(raw_text="纯数：2983.07克或12345.60米。").normalize())
     print(Text(raw_text="日期：1999年2月20日或09年3月15号。").normalize())
-    print(Text(raw_text="金钱：12块5，34.5元，20.1万").normalize())
+    print(Text(raw_text="金钱：12块5，34.5元，20.1万，3,123.20元").normalize())
     print(Text(raw_text="特殊：O2O或B2C。").normalize())
