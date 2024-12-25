@@ -127,7 +127,7 @@ python -m tools.api_client \
 你可以使用以下命令来启动 WebUI:
 
 ```bash
-python -m tools.webui \
+python -m tools.run_webui \
     --llama-checkpoint-path "checkpoints/fish-speech-1.5" \
     --decoder-checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
     --decoder-config-name firefly_gan_vq

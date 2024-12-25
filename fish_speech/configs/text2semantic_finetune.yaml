@@ -4,26 +4,29 @@ defaults:
 
 project: text2semantic_finetune_dual_ar
 max_length: 4096
-pretrained_ckpt_path: checkpoints/fish-speech-1.4
+pretrained_ckpt_path: checkpoints/fish-speech-1.5
 
 # Lightning Trainer
 trainer:
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   gradient_clip_algorithm: "norm"
-  max_steps: 1000
+  max_steps: 10000
   precision: bf16-true
   limit_val_batches: 10
   val_check_interval: 100
+  # strategy:
+  #   find_unused_parameters: true
+  #   static_graph: true 
 
 # Dataset Configuration
 tokenizer:
-  _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: ${pretrained_ckpt_path}
+  _target_: fish_speech.tokenizer.FishTokenizer
+  model_path: ${pretrained_ckpt_path}/tokenizer.tiktoken
 
 # Dataset Configuration
 train_dataset:
-  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
@@ -33,7 +36,7 @@ train_dataset:
   interactive_prob: 0.7
 
 val_dataset:
-  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionDataset
+  _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
     - data/protos
   tokenizer: ${tokenizer}
@@ -47,7 +50,7 @@ data:
   train_dataset: ${train_dataset}
   val_dataset: ${val_dataset}
   num_workers: 4
-  batch_size: 8
+  batch_size: 4
   tokenizer: ${tokenizer}
   max_length: ${max_length}
 

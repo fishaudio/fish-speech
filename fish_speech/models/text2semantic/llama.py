@@ -167,7 +167,7 @@ class BaseTransformer(nn.Module):
     def __init__(
         self,
         config: BaseModelArgs,
-        tokenizer: FishTokenizer | AutoTokenizer,
+        tokenizer: FishTokenizer,
         init_weights: bool = True,
     ) -> None:
         super().__init__()
@@ -246,17 +246,24 @@ class BaseTransformer(nn.Module):
                 dtype=dtype,
             )
 
-    def embed(self, x: Tensor) -> Tensor:
-        vocab_embeds = [self.embeddings(x[:, 0])]
-        for i in range(self.config.num_codebooks):
-            emb = self.codebook_embeddings(x[:, i + 1] + i * self.config.codebook_size)
-            semantic_token_ids_tensor = torch.tensor(
-                self.semantic_token_ids, device=x.device
-            )
-            emb[~torch.isin(x[:, 0], semantic_token_ids_tensor)] = 0
+    def embed(self, inp: Tensor, share_codebook_embeddings=True) -> Tensor:
+        embeds = []
+        semantic_token_ids_tensor = torch.tensor(
+            self.semantic_token_ids, device=inp.device
+        )
 
-        x = torch.stack(vocab_embeds, dim=3)
-        x = x.sum(dim=3)
+        for i in range(self.config.num_codebooks):
+            if share_codebook_embeddings:
+                emb = self.codebook_embeddings(
+                    inp[:, i + 1] + i * self.config.codebook_size
+                )
+            else:
+                emb = self.codebook_embeddings(inp[:, i + 1])
+            embeds.append(emb)
+
+        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
+        vq_embeds_sum[~torch.isin(inp[:, 0], semantic_token_ids_tensor)] = 0
+        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         return x
 
@@ -277,8 +284,14 @@ class BaseTransformer(nn.Module):
         # To maintain consistency, key_padding_mask use TRUE to mask out
         mask = None
         if key_padding_mask is not None:
-            mask = self.causal_mask[None, None, :seq_len, :seq_len]  # (B, N, Q, K)
-            mask = mask & key_padding_mask[:, None, None, :].logical_not()
+            causal = self.causal_mask[:seq_len, :seq_len]
+            causal = rearrange(causal, "q k -> 1 1 q k")
+
+            atten_mask = rearrange(key_padding_mask, "b s -> b 1 1 s")
+            atten_mask = atten_mask.logical_not()
+            mask = causal & atten_mask
+
+        # return freqs_cis, mask
 
         for layer in self.layers:
             if self.config.use_gradient_checkpointing and self.training:
@@ -303,35 +316,11 @@ class BaseTransformer(nn.Module):
         self,
         inp: Tensor,
         input_pos: Optional[Tensor] = None,
-        vq_masks: Optional[Tensor] = None,  # this is not used in fact
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        # This is used for generation, optimized for torch compile
-        # assert (
-        #     self.max_seq_len != -1 and self.max_batch_size != -1
-        # ), "Please call setup_caches before forward_generate"
-
-        embeds = []
-        for i in range(self.config.num_codebooks):
-            if self.config.share_codebook_embeddings:
-                _tokens = inp[:, i + 1] + i * self.config.codebook_size
-            else:
-                _tokens = inp[:, i + 1]
-
-            emb = self.codebook_embeddings(_tokens)
-            embeds.append(emb)
-
-        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-        # if self.config.use_codebook_mlp:
-        #     vq_embeds_sum = vq_embeds_sum / self.config.num_codebooks
-        #     vq_embeds_sum = self.codebook_mlp(vq_embeds_sum)
-
-        vq_masks = (inp[:, 0] >= self.tokenizer.semantic_begin_id) & (
-            inp[:, 0] <= self.tokenizer.semantic_end_id
+        x = self.embed(
+            inp, share_codebook_embeddings=self.config.share_codebook_embeddings
         )
-
-        vq_embeds_sum[~vq_masks] = 0
-        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
@@ -401,11 +390,8 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        if is_agent:
-            tokenizer = AutoTokenizer.from_pretrained(str(path))
-        else:
-            tokenizer_path = str(path) + "/tokenizer.tiktoken"
-            tokenizer = FishTokenizer(tokenizer_path)
+        tokenizer_path = str(path) + "/tokenizer.tiktoken"
+        tokenizer = FishTokenizer(tokenizer_path)
 
         log.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
@@ -862,6 +848,17 @@ class RMSNorm(nn.Module):
 
 
 def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor:
+    """
+    Precomputes frequency tensors for complex exponentials (cis)
+
+    Args:
+        seq_len: Length of the sequence for which positional embeddings are needed.
+        n_elem: Number of elements in the frequency tensor.
+        base: Base value for the frequency scaling (default: 10000).
+
+    Returns:
+        A tensor containing the precomputed frequencies in real and imaginary parts (bfloat16).
+    """
     freqs = 1.0 / (
         base ** (torch.arange(0, n_elem, 2)[: (n_elem // 2)].float() / n_elem)
     )

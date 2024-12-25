@@ -7,12 +7,9 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
-from kui.asgi import HTTPException, JSONResponse, StreamResponse, request
-from kui.asgi import Routes
-from typing_extensions import Annotated
-from kui.asgi import Body
-
+from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, request
 from loguru import logger
+from typing_extensions import Annotated
 
 from tools.schema import (
     ServeASRRequest,
@@ -38,6 +35,7 @@ MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
 routes = Routes()
 
+
 @routes.http.post("/v1/health")
 async def health():
     return JSONResponse({"status": "ok"})
@@ -52,9 +50,7 @@ async def vqgan_encode(req: Annotated[ServeVQGANEncodeRequest, Body(exclusive=Tr
     # Encode the audio
     start_time = time.time()
     tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
-    logger.info(
-        f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms"
-    )
+    logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
 
     # Return the response
     return ormsgpack.packb(
@@ -73,9 +69,7 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
     tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
     start_time = time.time()
     audios = vqgan_decode(decoder_model, tokens)
-    logger.info(
-        f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms"
-    )
+    logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
     audios = [audio.astype(np.float16).tobytes() for audio in audios]
 
     # Return the response
@@ -83,6 +77,7 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
         ServeVQGANDecodeResponse(audios=audios),
         option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
     )
+
 
 @routes.http.post("/v1/asr")
 async def asr(req: Annotated[ServeASRRequest, Body(exclusive=True)]):
@@ -159,6 +154,7 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
             },
             content_type=get_content_type(req.format),
         )
+
 
 @routes.http.post("/v1/chat")
 async def chat(req: Annotated[ServeChatRequest, Body(exclusive=True)]):

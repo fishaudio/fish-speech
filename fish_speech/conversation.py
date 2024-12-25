@@ -207,35 +207,34 @@ class Conversation:
             tokenizer, add_shift=False, ignore_loss_tokens=ignore_loss_tokens
         )
 
-        # Colors for alternating tokens
         colors = {
-            "blue": "\033[94m",  # Light blue
-            "cyan": "\033[96m",  # Cyan
-            "green": "\033[92m",  # Light green
-            "dark_green": "\033[32m",  # Dark green
+            "purple": "\033[95m",
+            "yellow": "\033[93m",
+            "red": "\033[91m",
+            "cyan": "\033[96m",
         }
-        blue_idx = 0
-        green_idx = 0
+        first_idx = 0
+        second_idx = 0
 
-        def print_in_blue(x):
-            nonlocal blue_idx
-            color = colors["blue"] if blue_idx % 2 == 0 else colors["cyan"]
+        def print_first_group(x):
+            nonlocal first_idx
+            color = colors["purple"] if first_idx % 2 == 0 else colors["yellow"]
             print(f"{color}{x}\033[0m", end="")
-            blue_idx += 1
+            first_idx += 1
 
-        def print_in_green(x):
-            nonlocal green_idx
-            color = colors["green"] if green_idx % 2 == 0 else colors["dark_green"]
+        def print_second_group(x):
+            nonlocal second_idx
+            color = colors["red"] if second_idx % 2 == 0 else colors["cyan"]
             print(f"{color}{x}\033[0m", end="")
-            green_idx += 1
+            second_idx += 1
 
         for tok, lab in zip(encoded.tokens, encoded.labels):
             val = tokenizer.decode([tok])
 
             if lab == -100:
-                print_in_green(val)
+                print_second_group(val)
             else:
-                print_in_blue(val)
+                print_first_group(val)
 
         print()
 
