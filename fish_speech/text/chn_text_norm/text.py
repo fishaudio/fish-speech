@@ -61,7 +61,6 @@ class Text:
             for matcher in matchers:
                 text = text.replace(",", "")
 
-
         # 规范化日期
         pattern = re.compile(
             r"\D+((([089]\d|(19|20)\d{2})年)?(\d{1,2}月(\d{1,2}[日号])?)?)"
