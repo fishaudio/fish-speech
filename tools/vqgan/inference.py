@@ -11,6 +11,7 @@ from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import OmegaConf
 
+import zluda
 from tools.file import AUDIO_EXTENSIONS
 
 # register eval resolver
