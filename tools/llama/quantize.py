@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fish_speech.models.text2semantic.llama import find_multiple
-from tools.llama.generate import load_model
+from fish_speech.models.text2semantic.inference import load_model
 
 ##### Quantization Primitives ######
 

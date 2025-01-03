@@ -12,7 +12,7 @@ from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.inference_engine.reference_loader import ReferenceLoader
 from fish_speech.inference_engine.utils import InferenceResult, wav_chunk_header
 from fish_speech.inference_engine.vq_manager import VQManager
-from tools.llama.generate import (
+from fish_speech.models.text2semantic.inference import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,

@@ -2,7 +2,7 @@ import queue
 
 from fish_speech.conversation import Conversation, Message
 from fish_speech.tokenizer import IM_END_TOKEN
-from tools.llama.generate import GenerateRequest
+from fish_speech.models.text2semantic.inference import GenerateRequest
 
 
 def prepare_messages(request, tokenizer, config):

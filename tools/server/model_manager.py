@@ -3,13 +3,13 @@ from funasr import AutoModel
 from loguru import logger
 
 from fish_speech.inference_engine import TTSInferenceEngine
-from tools.llama.generate import (
+from fish_speech.models.text2semantic.inference import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
 )
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
-from tools.vqgan.inference import load_model as load_decoder_model
+from fish_speech.models.vqgan.inference import load_model as load_decoder_model
 
 ASR_MODEL_NAME = "iic/SenseVoiceSmall"
 
