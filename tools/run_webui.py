@@ -8,7 +8,7 @@ from loguru import logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from tools.inference_engine import TTSInferenceEngine
+from fish_speech.inference_engine import TTSInferenceEngine
 from tools.llama.generate import launch_thread_safe_queue
 from tools.schema import ServeTTSRequest
 from tools.vqgan.inference import load_model as load_decoder_model

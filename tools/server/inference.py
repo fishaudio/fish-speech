@@ -3,7 +3,7 @@ from http import HTTPStatus
 import numpy as np
 from kui.asgi import HTTPException
 
-from tools.inference_engine import TTSInferenceEngine
+from fish_speech.inference_engine import TTSInferenceEngine
 from tools.schema import ServeTTSRequest
 
 AMPLITUDE = 32768  # Needs an explaination

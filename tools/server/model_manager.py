@@ -2,7 +2,7 @@ import torch
 from funasr import AutoModel
 from loguru import logger
 
-from tools.inference_engine import TTSInferenceEngine
+from fish_speech.inference_engine import TTSInferenceEngine
 from tools.llama.generate import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
