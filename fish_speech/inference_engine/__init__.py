@@ -6,9 +6,6 @@ import numpy as np
 import torch
 from loguru import logger
 
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
-from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
-from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.inference_engine.reference_loader import ReferenceLoader
 from fish_speech.inference_engine.utils import InferenceResult, wav_chunk_header
 from fish_speech.inference_engine.vq_manager import VQManager
@@ -17,6 +14,9 @@ from fish_speech.models.text2semantic.inference import (
     GenerateResponse,
     WrappedGenerateResponse,
 )
+from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
+from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
 
 
@@ -72,7 +72,10 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         if req.streaming:
             yield InferenceResult(
                 code="header",
-                audio=(sample_rate, np.array(wav_chunk_header(sample_rate=sample_rate))),
+                audio=(
+                    sample_rate,
+                    np.array(wav_chunk_header(sample_rate=sample_rate)),
+                ),
                 error=None,
             )
 

@@ -29,7 +29,11 @@ from tools.server.api_utils import (
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
-from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, batch_vqgan_decode
+from tools.server.model_utils import (
+    batch_asr,
+    batch_vqgan_decode,
+    cached_vqgan_batch_encode,
+)
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
