@@ -72,7 +72,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         if req.streaming:
             yield InferenceResult(
                 code="header",
-                audio=(sample_rate, wav_chunk_header(sample_rate=sample_rate)),
+                audio=(sample_rate, np.array(wav_chunk_header(sample_rate=sample_rate))),
                 error=None,
             )
 
