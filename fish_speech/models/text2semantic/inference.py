@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Literal, Optional, Tuple, Union
 
 import click
-import hydra
 import numpy as np
 import torch
 import torch._dynamo.config

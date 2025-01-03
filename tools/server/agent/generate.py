@@ -1,6 +1,6 @@
 import time
 
-from tools.schema import ServeMessage, ServeResponse, ServeStreamResponse
+from fish_speech.utils.schema import ServeMessage, ServeResponse, ServeStreamResponse
 from tools.server.agent.generation_utils import (
     initialize_decode_buffers,
     process_response_tokens,

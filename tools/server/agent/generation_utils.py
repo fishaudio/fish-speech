@@ -1,6 +1,6 @@
 import time
 
-from tools.schema import (
+from fish_speech.utils.schema import (
     ServeStreamDelta,
     ServeStreamResponse,
     ServeTextPart,

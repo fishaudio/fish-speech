@@ -3,7 +3,7 @@ from functools import partial
 from typing import Any, Callable
 
 from fish_speech.i18n import i18n
-from tools.schema import ServeReferenceAudio, ServeTTSRequest
+from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 
 
 def inference_wrapper(

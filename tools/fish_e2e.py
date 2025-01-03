@@ -13,7 +13,7 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 
-from .schema import (
+from fish_speech.utils.schema import (
     ServeChatRequest,
     ServeMessage,
     ServeTextPart,

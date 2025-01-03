@@ -11,7 +11,7 @@ from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import OmegaConf
 
-from tools.file import AUDIO_EXTENSIONS
+from fish_speech.utils.file import AUDIO_EXTENSIONS
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
@@ -19,7 +19,7 @@ OmegaConf.register_new_resolver("eval", eval)
 
 def load_model(config_name, checkpoint_path, device="cuda"):
     hydra.core.global_hydra.GlobalHydra.instance().clear()
-    with initialize(version_base="1.3", config_path="../../fish_speech/configs"):
+    with initialize(version_base="1.3", config_path="../../configs"):
         cfg = compose(config_name=config_name)
 
     model = instantiate(cfg)
