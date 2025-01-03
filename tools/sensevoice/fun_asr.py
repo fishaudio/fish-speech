@@ -17,7 +17,7 @@ from pydub import AudioSegment
 from silero_vad import get_speech_timestamps, load_silero_vad, read_audio
 from tqdm import tqdm
 
-from tools.file import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, list_files
 from tools.sensevoice.auto_model import AutoModel
 
 

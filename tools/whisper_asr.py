@@ -32,7 +32,7 @@ from loguru import logger
 from pydub import AudioSegment
 from tqdm import tqdm
 
-from tools.file import AUDIO_EXTENSIONS, list_files
+from fish_speech.utils.file import AUDIO_EXTENSIONS, import list_files
 
 
 @click.command()

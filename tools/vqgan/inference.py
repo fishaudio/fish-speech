@@ -11,7 +11,7 @@ from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import OmegaConf
 
-from tools.file import AUDIO_EXTENSIONS
+from fish_speech.utils.file import AUDIO_EXTENSIONS
 
 # register eval resolver
 OmegaConf.register_new_resolver("eval", eval)
