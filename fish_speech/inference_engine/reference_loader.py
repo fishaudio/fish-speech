@@ -9,7 +9,7 @@ from loguru import logger
 
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.utils.file import AUDIO_EXTENSIONS, audio_to_bytes, list_files, read_ref_text
-from tools.schema import ServeReferenceAudio
+from fish_speech.utils.schema import ServeReferenceAudio
 
 
 class ReferenceLoader:

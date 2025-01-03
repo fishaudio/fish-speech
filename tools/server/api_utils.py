@@ -7,7 +7,7 @@ from baize.datastructures import ContentType
 from kui.asgi import HTTPException, HttpRequest
 
 from fish_speech.inference_engine import TTSInferenceEngine
-from tools.schema import ServeTTSRequest
+from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
 

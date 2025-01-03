@@ -3,10 +3,9 @@ import re
 import wave
 
 import gradio as gr
-import numpy as np
 
 from .fish_e2e import FishE2EAgent, FishE2EEventType
-from .schema import ServeMessage, ServeTextPart, ServeVQPart
+from fish_speech.utils.schema import ServeMessage, ServeTextPart, ServeVQPart
 
 
 def wav_chunk_header(sample_rate=44100, bit_depth=16, channels=1):

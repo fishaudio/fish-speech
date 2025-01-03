@@ -7,7 +7,7 @@ from tools.llama.generate import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
 )
-from tools.schema import ServeTTSRequest
+from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 from tools.vqgan.inference import load_model as load_decoder_model
 

@@ -17,7 +17,7 @@ from tools.llama.generate import (
     GenerateResponse,
     WrappedGenerateResponse,
 )
-from tools.schema import ServeTTSRequest
+from fish_speech.utils.schema import ServeTTSRequest
 
 
 class TTSInferenceEngine(ReferenceLoader, VQManager):

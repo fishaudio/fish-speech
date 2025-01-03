@@ -4,7 +4,7 @@ import numpy as np
 from kui.asgi import HTTPException
 
 from fish_speech.inference_engine import TTSInferenceEngine
-from tools.schema import ServeTTSRequest
+from fish_speech.utils.schema import ServeTTSRequest
 
 AMPLITUDE = 32768  # Needs an explaination
 

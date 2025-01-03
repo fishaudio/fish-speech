@@ -11,7 +11,7 @@ from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, 
 from loguru import logger
 from typing_extensions import Annotated
 
-from tools.schema import (
+from fish_speech.utils.schema import (
     ServeASRRequest,
     ServeASRResponse,
     ServeChatRequest,
