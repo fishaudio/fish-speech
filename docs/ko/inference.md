@@ -24,7 +24,7 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
     모델이 음색을 무작위로 선택하도록 하려면 이 단계를 건너뛸 수 있습니다.
 
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
@@ -34,7 +34,7 @@ python tools/vqgan/inference.py \
 ### 2. 텍스트에서 시맨틱 토큰 생성:
 
 ```bash
-python tools/llama/generate.py \
+python fish_speech/models/text2semantic/inference.py \
     --text "변환할 텍스트" \
     --prompt-text "참고할 텍스트" \
     --prompt-tokens "fake.npy" \
@@ -57,7 +57,7 @@ python tools/llama/generate.py \
 #### VQGAN 디코더
 
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
