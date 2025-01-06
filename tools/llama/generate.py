@@ -17,6 +17,7 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+import zluda
 from fish_speech.conversation import (
     CODEBOOK_PAD_TOKEN_ID,
     Conversation,
@@ -1004,6 +1005,7 @@ def launch_thread_safe_queue_agent(
     type=str,
     default="你说的对, 但是原神是一款由米哈游自主研发的开放世界手游.",
 )
+@click.option("--text-file", type=str, default=None)
 @click.option("--prompt-text", type=str, default=None, multiple=True)
 @click.option(
     "--prompt-tokens",
@@ -1029,6 +1031,7 @@ def launch_thread_safe_queue_agent(
 @click.option("--chunk-length", type=int, default=100)
 def main(
     text: str,
+    text_file: str,
     prompt_text: Optional[list[str]],
     prompt_tokens: Optional[list[Path]],
     num_samples: int,
@@ -1070,6 +1073,10 @@ def main(
 
     if prompt_tokens is not None:
         prompt_tokens = [torch.from_numpy(np.load(p)).to(device) for p in prompt_tokens]
+
+    if text_file is not None:
+        with open(text_file, "r") as f:
+            text = f.read()
 
     torch.manual_seed(seed)
 
