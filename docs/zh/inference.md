@@ -29,6 +29,9 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 !!! note
     如果你打算让模型随机选择音色, 你可以跳过这一步.
 
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/vqgan/infernce.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
+
 ```bash
 python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
@@ -38,6 +41,9 @@ python fish_speech/models/vqgan/inference.py \
 你应该能得到一个 `fake.npy` 文件.
 
 ### 2. 从文本生成语义 token:
+
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/llama/generate.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -61,6 +67,9 @@ python fish_speech/models/text2semantic/inference.py \
 ### 3. 从语义 token 生成人声:
 
 #### VQGAN 解码
+
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/vqgan/infernce.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
 
 ```bash
 python fish_speech/models/vqgan/inference.py \

@@ -23,6 +23,9 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 !!! note
     モデルにランダムに音声の音色を選ばせる場合、このステップをスキップできます。
 
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/vqgan/infernce.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
+
 ```bash
 python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
@@ -32,6 +35,9 @@ python fish_speech/models/vqgan/inference.py \
 `fake.npy`ファイルが生成されるはずです。
 
 ### 2. テキストからセマンティックトークンを生成する：
+
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/llama/generate.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -55,6 +61,9 @@ python fish_speech/models/text2semantic/inference.py \
 ### 3. セマンティックトークンから音声を生成する：
 
 #### VQGAN デコーダー
+
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/vqgan/infernce.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
 
 ```bash
 python fish_speech/models/vqgan/inference.py \

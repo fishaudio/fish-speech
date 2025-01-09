@@ -23,6 +23,9 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 !!! note
     Se quiser permitir que o modelo escolha aleatoriamente um timbre de voz, pule esta etapa.
 
+!!! warning "Aviso de Versão Futura"
+    Mantivemos a interface acessível a partir do caminho original (tools/vqgan/infernce.py), mas esta interface poderá ser removida em algumas versões futuras. Por favor, altere o seu código o mais breve possível.
+
 ```bash
 python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
@@ -32,6 +35,9 @@ python fish_speech/models/vqgan/inference.py \
 Você deverá obter um arquivo `fake.npy`.
 
 ### 2. Gerar tokens semânticos a partir do texto:
+
+!!! warning "Aviso de Versão Futura"
+    Mantivemos a interface acessível a partir do caminho original (tools/llama/generate.py), mas esta interface poderá ser removida em algumas versões futuras. Por favor, altere o seu código o mais breve possível.
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -55,6 +61,9 @@ Este comando criará um arquivo `codes_N` no diretório de trabalho, onde N é u
 ### 3. Gerar vocais a partir de tokens semânticos:
 
 #### Decodificador VQGAN
+
+!!! warning "Aviso de Versão Futura"
+    Mantivemos a interface acessível a partir do caminho original (tools/vqgan/infernce.py), mas esta interface poderá ser removida em algumas versões futuras. Por favor, altere o seu código o mais breve possível.
 
 ```bash
 python fish_speech/models/vqgan/inference.py \

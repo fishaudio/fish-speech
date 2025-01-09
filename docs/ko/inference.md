@@ -23,6 +23,9 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 !!! note
     모델이 음색을 무작위로 선택하도록 하려면 이 단계를 건너뛸 수 있습니다.
 
+!!! warning "향후 버전 경고"
+    원래 경로(tools/vqgan/infernce.py)에서 접근할 수 있는 인터페이스는 유지했지만, 이 인터페이스는 향후 몇몇 버전에서 삭제될 수 있습니다. 가능한 한 빨리 코드를 변경하십시오.
+
 ```bash
 python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
@@ -32,6 +35,9 @@ python fish_speech/models/vqgan/inference.py \
 이 명령을 실행하면 `fake.npy` 파일을 얻게 됩니다.
 
 ### 2. 텍스트에서 시맨틱 토큰 생성:
+
+!!! warning "향후 버전 경고"
+    원래 경로(tools/llama/generate.py)에서 접근할 수 있는 인터페이스는 유지했지만, 이 인터페이스는 향후 몇몇 버전에서 삭제될 수 있습니다. 가능한 한 빨리 코드를 변경하십시오.
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -55,6 +61,9 @@ python fish_speech/models/text2semantic/inference.py \
 ### 3. 시맨틱 토큰에서 음성 생성:
 
 #### VQGAN 디코더
+
+!!! warning "향후 버전 경고"
+    원래 경로(tools/vqgan/infernce.py)에서 접근할 수 있는 인터페이스는 유지했지만, 이 인터페이스는 향후 몇몇 버전에서 삭제될 수 있습니다. 가능한 한 빨리 코드를 변경하십시오.
 
 ```bash
 python fish_speech/models/vqgan/inference.py \
