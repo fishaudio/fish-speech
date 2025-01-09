@@ -416,7 +416,6 @@ def generate(
 
     # create an empty tensor of the expected final shape and fill in the current tokens
     T = prompt.size(1)
-    # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
     semantic_ids = [
         model.tokenizer.get_token_id(f"<|semantic:{i}|>") for i in range(1024)
     ]
