@@ -54,7 +54,7 @@ def cached_vqgan_batch_encode(model, audios: list[bytes]):
 
 @torch.no_grad()
 @torch.autocast(device_type="cuda", dtype=torch.half)
-def vqgan_decode(model, features):
+def batch_vqgan_decode(model, features):
     lengths = torch.tensor(
         [feature.shape[-1] for feature in features], device=model.device
     )

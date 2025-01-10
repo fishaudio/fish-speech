@@ -29,8 +29,11 @@ HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech
 !!! note
     如果你打算让模型随机选择音色, 你可以跳过这一步.
 
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/vqgan/infernce.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
@@ -39,8 +42,11 @@ python tools/vqgan/inference.py \
 
 ### 2. 从文本生成语义 token:
 
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/llama/generate.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
+
 ```bash
-python tools/llama/generate.py \
+python fish_speech/models/text2semantic/inference.py \
     --text "要转换的文本" \
     --prompt-text "你的参考文本" \
     --prompt-tokens "fake.npy" \
@@ -62,8 +68,11 @@ python tools/llama/generate.py \
 
 #### VQGAN 解码
 
+!!! warning "未来版本警告"
+    我们保留了从原来路径（tools/vqgan/infernce.py）访问的接口，但是这个接口可能在之后几个版本被删除，请尽快更改你的代码。
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```

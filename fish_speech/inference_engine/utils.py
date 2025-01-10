@@ -11,7 +11,7 @@ from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 @dataclass
 class InferenceResult:
     code: Literal["header", "segment", "error", "final"]
-    audio: Optional[Tuple[int, np.ndarray | bytes]]
+    audio: Optional[Tuple[int, np.ndarray]]
     error: Optional[Exception]
 
 
