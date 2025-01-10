@@ -48,7 +48,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
 
         ref_id: str | None = req.reference_id
         prompt_tokens, prompt_texts = [], []
-        # Load the reference audio and text based on id or hash
+        # Load the reference audio and text based on id, hash, or preprocessed references
         if ref_id is not None:
             prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
 
@@ -56,6 +56,10 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             prompt_tokens, prompt_texts = self.load_by_hash(
                 req.references, req.use_memory_cache
             )
+        
+        elif req.preprocessed_references:
+            prompt_tokens = [ref.tokens for ref in req.preprocessed_references]
+            prompt_texts = [ref.text for ref in req.preprocessed_references]
 
         # Set the random seed if provided
         if req.seed is not None:
@@ -106,7 +110,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             if result.action != "next":
                 segment = self.get_audio_segment(result)
 
-                if req.streaming:  # Used only by the API server
+                if req.streaming:
                     yield InferenceResult(
                         code="segment",
                         audio=(sample_rate, segment),
