@@ -2,7 +2,7 @@ import base64
 import os
 import queue
 from dataclasses import dataclass
-from typing import Literal, Any
+from typing import Any, Literal
 
 import torch
 from pydantic import BaseModel, Field, conint, conlist, model_validator

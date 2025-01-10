@@ -56,7 +56,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             prompt_tokens, prompt_texts = self.load_by_hash(
                 req.references, req.use_memory_cache
             )
-        
+
         elif req.preprocessed_references:
             prompt_tokens = [ref.tokens for ref in req.preprocessed_references]
             prompt_texts = [ref.text for ref in req.preprocessed_references]

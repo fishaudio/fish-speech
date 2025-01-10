@@ -1,33 +1,33 @@
-import torch
 import warnings
-import numpy as np
 from queue import Queue
-from typing import List, Optional, Literal, Union, Generator
+from typing import Generator, List, Literal, Optional, Union
 
+import numpy as np
+import torch
+
+from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.models.vqgan.inference import load_model as load_vqgan_model
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
-from fish_speech.utils.schema import ServeTTSRequest, Reference
-from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.file import audio_to_bytes
+from fish_speech.utils.schema import Reference, ServeTTSRequest
 
 Device = Literal["cuda", "mps", "cpu"]
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 class Pipeline:
 
     def __init__(
-            self,
-            llama_path: str,
-            vqgan_path: str,
-            vqgan_config: str = "firefly_gan_vq",
-            device: Device = "cpu",
-            half: bool = False,
-            compile: bool = False,
-        ) -> None:
+        self,
+        llama_path: str,
+        vqgan_path: str,
+        vqgan_config: str = "firefly_gan_vq",
+        device: Device = "cpu",
+        half: bool = False,
+        compile: bool = False,
+    ) -> None:
         """
         Initialize the TTS pipeline.
 
@@ -62,9 +62,8 @@ class Pipeline:
 
         self.warmup(self.inference_engine)
 
-
     def check_device(self, device: str) -> Device:
-        """ Check if the device is available. """
+        """Check if the device is available."""
         device = device.lower()
 
         # If CUDA or MPS chosen, check if available
@@ -81,12 +80,13 @@ class Pipeline:
                 pass
             case _:
                 raise ValueError("Invalid device, choose from 'cuda', 'mps', 'cpu'.")
-        
-        return device
-    
 
-    def load_llama(self, llama_path: str, device: str, precision: torch.dtype, compile: bool) -> Queue:
-        """ Load the LLAMA model. """
+        return device
+
+    def load_llama(
+        self, llama_path: str, device: str, precision: torch.dtype, compile: bool
+    ) -> Queue:
+        """Load the LLAMA model."""
         try:
             return launch_thread_safe_queue(
                 checkpoint_path=llama_path,
@@ -97,9 +97,10 @@ class Pipeline:
         except Exception as e:
             raise ValueError(f"Failed to load LLAMA model: {e}")
 
-
-    def load_vqgan(self, vqgan_config: str, vqgan_path: str, device: str) -> FireflyArchitecture:
-        """ Load the VQ-GAN model. """
+    def load_vqgan(
+        self, vqgan_config: str, vqgan_path: str, device: str
+    ) -> FireflyArchitecture:
+        """Load the VQ-GAN model."""
         try:
             return load_vqgan_model(
                 config_name=vqgan_config,
@@ -109,9 +110,8 @@ class Pipeline:
         except Exception as e:
             raise ValueError(f"Failed to load VQ-GAN model: {e}")
 
-
     def warmup(self, inference_engine: TTSInferenceEngine) -> None:
-        """ Warm up the inference engine. """
+        """Warm up the inference engine."""
         try:
             list(
                 inference_engine.inference(
@@ -130,36 +130,33 @@ class Pipeline:
             )
         except Exception as e:
             raise ValueError(f"Failed to warm up the inference engine: {e}")
-    
 
     @property
     def sample_rate(self) -> int:
-        """ Get the sample rate of the audio. """
+        """Get the sample rate of the audio."""
         return self.inference_engine.decoder_model.spec_transform.sample_rate
 
-
     def make_reference(self, audio_path: str, text: str) -> Reference:
-        """ Create a reference object from audio and text. """
+        """Create a reference object from audio and text."""
         audio_bytes = audio_to_bytes(audio_path)
         if audio_bytes is None:
             raise ValueError("Failed to load audio file.")
-        
+
         tokens = self.inference_engine.encode_reference(audio_bytes, True)
         return Reference(tokens=tokens, text=text)
 
-
     def generate_streaming(
-            self,
-            text: str,
-            references: Union[List[Reference], Reference] = [],
-            seed: Optional[int] = None,
-            streaming: bool = False,
-            max_new_tokens: int = 0,
-            chunk_length: int = 200,
-            top_p: Optional[float] = None,
-            repetition_penalty: Optional[float] = None,
-            temperature: Optional[float] = None,
-        ) -> Generator:
+        self,
+        text: str,
+        references: Union[List[Reference], Reference] = [],
+        seed: Optional[int] = None,
+        streaming: bool = False,
+        max_new_tokens: int = 0,
+        chunk_length: int = 200,
+        top_p: Optional[float] = None,
+        repetition_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+    ) -> Generator:
         """
         Generate audio from text.
 
@@ -192,8 +189,8 @@ class Pipeline:
         for result in self.inference_engine.inference(request):
             match result.code:
                 case "header":
-                    pass    # In this case, we only want to yield the audio (amplitude)
-                            # User can save with a library like soundfile if needed
+                    pass  # In this case, we only want to yield the audio (amplitude)
+                    # User can save with a library like soundfile if needed
 
                 case "error":
                     if isinstance(result.error, Exception):
@@ -214,19 +211,18 @@ class Pipeline:
         if count == 0:
             raise RuntimeError("No audio generated, please check the input text.")
 
-    
     def generate(
-            self,
-            text: str,
-            references: Union[List[Reference], Reference] = [],
-            seed: Optional[int] = None,
-            streaming: bool = False,
-            max_new_tokens: int = 0,
-            chunk_length: int = 200,
-            top_p: Optional[float] = None,
-            repetition_penalty: Optional[float] = None,
-            temperature: Optional[float] = None,
-        ) -> Union[Generator, np.ndarray]:
+        self,
+        text: str,
+        references: Union[List[Reference], Reference] = [],
+        seed: Optional[int] = None,
+        streaming: bool = False,
+        max_new_tokens: int = 0,
+        chunk_length: int = 200,
+        top_p: Optional[float] = None,
+        repetition_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[Generator, np.ndarray]:
         """
         Wrapper for the generate_streaming method.
         Returns either a generator or directly the final audio.
