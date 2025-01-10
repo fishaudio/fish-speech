@@ -1,9 +1,11 @@
 from typing import List, Tuple, Dict, Any, Optional, Literal, Union
 import warnings
 import torch
+from queue import Queue
 
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.models.vqgan.inference import load_model as load_vqgan_model
+from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.schema import ServeTTSRequest
 
@@ -16,11 +18,22 @@ class Pipeline:
             self,
             llama_path: str,
             vqgan_path: str,
-            vqgan_config: str,
+            vqgan_config: str = "firefly_gan_vq",
             device: Device = "cpu",
             half: bool = False,
             compile: bool = False,
             ) -> None:
+        """
+        Initialize the TTS pipeline.
+
+        Args:
+            llama_path (str): Path to the LLAMA model.
+            vqgan_path (str): Path to the VQ-GAN model.
+            vqgan_config (str, optional): VQ-GAN model configuration name. Defaults to base configuration.
+            device (Device, optional): Device to run the pipeline on. Defaults to "cpu".
+            half (bool, optional): Use half precision. Defaults to False.
+            compile (bool, optional): Compile the models. Defaults to False.
+        """
 
         # Validate input
         assert isinstance(llama_path, str), "llama_path must be a string."
@@ -46,6 +59,7 @@ class Pipeline:
 
 
     def check_device(self, device: str) -> Device:
+        """ Check if the device is available. """
         device = device.lower()
 
         # If CUDA or MPS chosen, check if available
@@ -66,7 +80,8 @@ class Pipeline:
         return device
     
 
-    def load_llama(self, llama_path: str, device: str, precision: torch.dtype, compile: bool) -> Any:
+    def load_llama(self, llama_path: str, device: str, precision: torch.dtype, compile: bool) -> Queue:
+        """ Load the LLAMA model. """
         try:
             return launch_thread_safe_queue(
                 checkpoint_path=llama_path,
@@ -76,9 +91,10 @@ class Pipeline:
             )
         except Exception as e:
             raise ValueError(f"Failed to load LLAMA model: {e}")
-    
 
-    def load_vqgan(self, vqgan_config: str, vqgan_path: str, device: str) -> Any:
+
+    def load_vqgan(self, vqgan_config: str, vqgan_path: str, device: str) -> FireflyArchitecture:
+        """ Load the VQ-GAN model. """
         try:
             return load_vqgan_model(
                 config_name=vqgan_config,
@@ -90,6 +106,7 @@ class Pipeline:
 
 
     def warmup(self, inference_engine: TTSInferenceEngine) -> None:
+        """ Warm up the inference engine. """
         try:
             list(
                 inference_engine.inference(
