@@ -1,8 +1,8 @@
-from typing import List, Tuple, Dict, Any, Optional, Literal, Union, Generator
-import warnings
 import torch
-from queue import Queue
+import warnings
 import numpy as np
+from queue import Queue
+from typing import List, Optional, Literal, Union, Generator
 
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.models.vqgan.inference import load_model as load_vqgan_model
@@ -155,6 +155,7 @@ class Pipeline:
             seed: Optional[int] = None,
             streaming: bool = False,
             max_new_tokens: int = 0,
+            chunk_length: int = 200,
             top_p: Optional[float] = None,
             repetition_penalty: Optional[float] = None,
             temperature: Optional[float] = None,
@@ -168,6 +169,7 @@ class Pipeline:
             seed (Optional[int], optional): Random seed. Defaults to None.
             streaming (bool, optional): Stream the audio. Defaults to False.
             max_new_tokens (int, optional): Maximum number of tokens. Defaults to 0 (no limit).
+            chunk_length (int, optional): Chunk length for streaming. Defaults to 200.
             top_p (Optional[float], optional): Top-p sampling. Defaults to None.
             repetition_penalty (Optional[float], optional): Repetition penalty. Defaults to None.
             temperature (Optional[float], optional): Sampling temperature. Defaults to None.
@@ -180,6 +182,7 @@ class Pipeline:
             seed=seed,
             streaming=streaming,
             max_new_tokens=max_new_tokens,
+            chunk_length=chunk_length,
             top_p=top_p or 0.7,
             repetition_penalty=repetition_penalty or 1.2,
             temperature=temperature or 0.7,
@@ -219,6 +222,7 @@ class Pipeline:
             seed: Optional[int] = None,
             streaming: bool = False,
             max_new_tokens: int = 0,
+            chunk_length: int = 200,
             top_p: Optional[float] = None,
             repetition_penalty: Optional[float] = None,
             temperature: Optional[float] = None,
@@ -233,6 +237,7 @@ class Pipeline:
             seed (Optional[int], optional): Random seed. Defaults to None.
             streaming (bool, optional): Stream the audio. Defaults to False.
             max_new_tokens (int, optional): Maximum number of tokens. Defaults to 0 (no limit).
+            chunk_length (int, optional): Chunk length for streaming. Defaults to 200.
             top_p (Optional[float], optional): Top-p sampling. Defaults to None.
             repetition_penalty (Optional[float], optional): Repetition penalty. Defaults to None.
             temperature (Optional[float], optional): Sampling temperature. Defaults to None.
@@ -244,6 +249,7 @@ class Pipeline:
             seed=seed,
             streaming=streaming,
             max_new_tokens=max_new_tokens,
+            chunk_length=chunk_length,
             top_p=top_p,
             repetition_penalty=repetition_penalty,
             temperature=temperature,
