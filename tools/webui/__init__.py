@@ -3,7 +3,7 @@ from typing import Callable
 import gradio as gr
 
 from fish_speech.i18n import i18n
-from tools.inference_engine.utils import normalize_text
+from fish_speech.inference_engine.utils import normalize_text
 from tools.webui.variables import HEADER_MD, TEXTBOX_PLACEHOLDER
 
 

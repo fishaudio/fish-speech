@@ -23,8 +23,11 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 !!! note
     If you plan to let the model randomly choose a voice timbre, you can skip this step.
 
+!!! warning "Future Warning"
+    We have kept the interface accessible from the original path (tools/vqgan/inference.py), but this interface may be removed in subsequent releases, so please change your code as soon as possible.
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
@@ -33,8 +36,11 @@ You should get a `fake.npy` file.
 
 ### 2. Generate semantic tokens from text:
 
+!!! warning "Future Warning"
+    We have kept the interface accessible from the original path (tools/llama/generate.py), but this interface may be removed in subsequent releases, so please change your code as soon as possible.
+
 ```bash
-python tools/llama/generate.py \
+python fish_speech/models/text2semantic/inference.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
@@ -56,8 +62,11 @@ This command will create a `codes_N` file in the working directory, where N is a
 
 #### VQGAN Decoder
 
+!!! warning "Future Warning"
+    We have kept the interface accessible from the original path (tools/vqgan/inference.py), but this interface may be removed in subsequent releases, so please change your code as soon as possible.
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```

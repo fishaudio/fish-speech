@@ -118,7 +118,7 @@ apt install build-essential \
 pip3 install -e .[stable]
 ```
 
-## macos setup
+## MacOS setup
 
 If you want to perform inference on MPS, please add the `--device mps` flag.
 Please refer to [this PR](https://github.com/fishaudio/fish-speech/pull/461#issuecomment-2284277772) for a comparison of inference speeds.
@@ -127,6 +127,8 @@ Please refer to [this PR](https://github.com/fishaudio/fish-speech/pull/461#issu
     The `compile` option is not officially supported on Apple Silicon devices, so there is no guarantee that inference speed will improve.
 
 ```bash
+# install dependencies
+brew install portaudio
 # create a python 3.10 virtual environment, you can also use virtualenv
 conda create -n fish-speech python=3.10
 conda activate fish-speech

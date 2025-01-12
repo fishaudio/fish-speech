@@ -23,8 +23,11 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 !!! note
     モデルにランダムに音声の音色を選ばせる場合、このステップをスキップできます。
 
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/vqgan/infernce.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "paimon.wav" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```
@@ -33,8 +36,11 @@ python tools/vqgan/inference.py \
 
 ### 2. テキストからセマンティックトークンを生成する：
 
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/llama/generate.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
+
 ```bash
-python tools/llama/generate.py \
+python fish_speech/models/text2semantic/inference.py \
     --text "変換したいテキスト" \
     --prompt-text "参照テキスト" \
     --prompt-tokens "fake.npy" \
@@ -56,8 +62,11 @@ python tools/llama/generate.py \
 
 #### VQGAN デコーダー
 
+!!! warning "将来のバージョンに関する警告"
+    元のパス（tools/vqgan/infernce.py）からアクセスできるインターフェースは残していますが、このインターフェースは将来のいくつかのバージョンで削除される可能性があります。お早めにコードを変更してください。
+
 ```bash
-python tools/vqgan/inference.py \
+python fish_speech/models/vqgan/inference.py \
     -i "codes_0.npy" \
     --checkpoint-path "checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
 ```

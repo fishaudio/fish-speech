@@ -11,7 +11,7 @@ from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, 
 from loguru import logger
 from typing_extensions import Annotated
 
-from tools.schema import (
+from fish_speech.utils.schema import (
     ServeASRRequest,
     ServeASRResponse,
     ServeChatRequest,
@@ -29,7 +29,11 @@ from tools.server.api_utils import (
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
-from tools.server.model_utils import batch_asr, cached_vqgan_batch_encode, vqgan_decode
+from tools.server.model_utils import (
+    batch_asr,
+    batch_vqgan_decode,
+    cached_vqgan_batch_encode,
+)
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
@@ -68,7 +72,7 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
     # Decode the audio
     tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
     start_time = time.time()
-    audios = vqgan_decode(decoder_model, tokens)
+    audios = batch_vqgan_decode(decoder_model, tokens)
     logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
     audios = [audio.astype(np.float16).tobytes() for audio in audios]
 
