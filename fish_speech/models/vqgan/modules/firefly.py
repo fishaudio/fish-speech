@@ -45,9 +45,13 @@ def get_extra_padding_for_conv1d(
     n_frames = (length - kernel_size + padding_total) / stride + 1
     # for tracer, math.ceil will make onnx graph become constant
     if isinstance(n_frames, torch.Tensor):
-        ideal_length = (torch.ceil(n_frames).long() - 1) * stride + (kernel_size - padding_total)
+        ideal_length = (torch.ceil(n_frames).long() - 1) * stride + (
+            kernel_size - padding_total
+        )
     else:
-        ideal_length = (math.ceil(n_frames) - 1) * stride + (kernel_size - padding_total)
+        ideal_length = (math.ceil(n_frames) - 1) * stride + (
+            kernel_size - padding_total
+        )
     return ideal_length - length
 
 
