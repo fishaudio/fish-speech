@@ -76,7 +76,7 @@ python -m tools.e2e_webui
 
 ## Performance
 
-在我们的测试环境下， 4060 laptop GPU 只能刚刚运行该模型，只有大概 8 tokens/s。 4090 CPU 可以在编译后达到 95 tokens/s，我们推荐使用至少 4080 以上级别的 GPU 来达到较好体验。
+在我们的测试环境下， 4060 laptop GPU 只能刚刚运行该模型，只有大概 8 tokens/s。 4090 GPU 可以在编译后达到 95 tokens/s，我们推荐使用至少 4080 以上级别的 GPU 来达到较好体验。
 
 # About Agent
 
