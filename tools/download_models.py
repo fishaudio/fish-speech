@@ -25,7 +25,7 @@ def check_and_download_files(repo_id, file_list, local_dir):
 repo_id_1 = "fishaudio/fish-speech-1.5"
 local_dir_1 = "./checkpoints/fish-speech-1.5"
 files_1 = [
-    "gitattributes",
+    ".gitattributes",
     "model.pth",
     "README.md",
     "special_tokens.json",
