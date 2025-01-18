@@ -10,8 +10,7 @@
     3. 给定一段新文本, 让模型生成对应的语义 token.
     4. 将生成的语义 token 输入 VQGAN 解码, 生成对应的语音.
 
-## 命令行推理
-
+## 下载模型
 从我们的 huggingface 仓库下载所需的 `vqgan` 和 `llama` 模型。
 
 ```bash
@@ -24,6 +23,7 @@ huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-
 HF_ENDPOINT=https://hf-mirror.com huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
+## 命令行推理
 ### 1. 从语音生成 prompt:
 
 !!! note
