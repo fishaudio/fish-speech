@@ -10,14 +10,14 @@ Suporte para inferência por linha de comando, API HTTP e interface web (WebUI).
     3. Dado um novo trecho de texto, fazer com que o modelo gere os tokens semânticos correspondentes.
     4. Inserir os tokens semânticos gerados no VITS / VQGAN para decodificar e gerar a voz correspondente.
 
-## Inferência por Linha de Comando
-
+## Baixar modelos
 Baixe os modelos `vqgan` e `llama` necessários do nosso repositório Hugging Face.
 
 ```bash
 huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
+## Inferência por Linha de Comando
 ### 1. Gerar prompt a partir da voz:
 
 !!! note

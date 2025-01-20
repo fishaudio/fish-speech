@@ -10,14 +10,14 @@
     3. 新しいテキストが与えられた場合、モデルに対応するセマンティックトークンを生成させます。
     4. 生成されたセマンティックトークンをVITS / VQGANに入力してデコードし、対応する音声を生成します。
 
-## コマンドライン推論
-
+## モデルをダウンロード
 必要な`vqgan`および`llama`モデルを Hugging Face リポジトリからダウンロードします。
 
 ```bash
 huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
+## コマンドライン推論
 ### 1. 音声からプロンプトを生成する：
 
 !!! note
