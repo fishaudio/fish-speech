@@ -72,6 +72,10 @@ You should mention that the content is released under a **CC BY-NC-SA 4.0 licenc
 
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
+## Inference Colab Demo
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/fishaudio/fish-speech/blob/main/inference.ipynb)
+
 ## Online Demo
 
 [Fish Audio](https://fish.audio)
