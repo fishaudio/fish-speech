@@ -1,7 +1,6 @@
 import re
 from threading import Lock
 
-
 import pyrootutils
 import uvicorn
 from kui.asgi import (
@@ -101,15 +100,14 @@ class API(ExceptionHandler):
 
 if __name__ == "__main__":
     api = API()
-    
+
     # IPv6 address format is [xxxx:xxxx::xxxx]:port
-    match = re.search(r'\[([^\]]+)\]:(\d+)$', api.args.listen)
+    match = re.search(r"\[([^\]]+)\]:(\d+)$", api.args.listen)
     if match:
-        host, port = match.groups()  # IPv6 
+        host, port = match.groups()  # IPv6
     else:
-        host, port = api.args.listen.split(":")  # IPv4 
-    
-    
+        host, port = api.args.listen.split(":")  # IPv4
+
     uvicorn.run(
         api.app,
         host=host,
