@@ -78,9 +78,9 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 
 [Fish Agent](https://fish.audio/demo/live)
 
-## Quick Start for Local Inference
+## Quick Start for Local Inference 
 
-[inference.ipynb](/inference.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/fishaudio/fish-speech/blob/main/inference.ipynb)
 
 ## Videos
 
