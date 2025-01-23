@@ -1,3 +1,4 @@
+import re
 from threading import Lock
 
 import pyrootutils
@@ -98,9 +99,14 @@ class API(ExceptionHandler):
 # Instead, it's better to use multiprocessing or independent models per thread.
 
 if __name__ == "__main__":
-
     api = API()
-    host, port = api.args.listen.split(":")
+
+    # IPv6 address format is [xxxx:xxxx::xxxx]:port
+    match = re.search(r"\[([^\]]+)\]:(\d+)$", api.args.listen)
+    if match:
+        host, port = match.groups()  # IPv6
+    else:
+        host, port = api.args.listen.split(":")  # IPv4
 
     uvicorn.run(
         api.app,
