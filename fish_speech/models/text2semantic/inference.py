@@ -1,3 +1,9 @@
+from fish_speech.models.text2semantic.llama import (
+    BaseTransformer,
+    DualARTransformer,
+    NaiveTransformer,
+)
+from torch.nn.attention import SDPBackend, sdpa_kernel
 import os
 import queue
 import threading
@@ -36,15 +42,6 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
     torch._inductor.config.fx_graph_cache = True
 
 
-from torch.nn.attention import SDPBackend, sdpa_kernel
-
-from fish_speech.models.text2semantic.llama import (
-    BaseTransformer,
-    DualARTransformer,
-    NaiveTransformer,
-)
-
-
 def multinomial_sample_one_no_sync(
     probs_sort,
 ):  # Does multinomial sampling without a cuda synchronization
@@ -70,7 +67,8 @@ def logits_to_probs(
 
     # Apply top-p sampling
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-    cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
+    cum_probs = torch.cumsum(
+        torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
     sorted_indices_to_remove = cum_probs > top_p
     sorted_indices_to_remove[0] = False  # keep at least one option
     indices_to_remove = sorted_indices_to_remove.scatter(
@@ -109,7 +107,8 @@ def logits_to_probs_agent(
 
     # Apply top-p sampling
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-    cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
+    cum_probs = torch.cumsum(
+        torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
     sorted_indices_to_remove = cum_probs > top_p
     sorted_indices_to_remove[..., 0] = False  # keep at least one option
     indices_to_remove = sorted_indices_to_remove.scatter(
@@ -229,7 +228,8 @@ def decode_one_token_naive_agent(
             sample_agent(
                 x.codebook_logits[:, :, i],
                 previous_tokens=(
-                    previous_tokens[:, i + 1] if previous_tokens is not None else None
+                    previous_tokens[:, i +
+                                    1] if previous_tokens is not None else None
                 ),
                 **sampling_kwargs,
             )[0]
@@ -278,7 +278,8 @@ def decode_one_token_ar(
         layer.attention.kv_cache.k_cache.fill_(0)
         layer.attention.kv_cache.v_cache.fill_(0)
 
-    input_pos = torch.tensor([0], device=hidden_states.device, dtype=torch.long)
+    input_pos = torch.tensor(
+        [0], device=hidden_states.device, dtype=torch.long)
     model.forward_generate_fast(hidden_states, input_pos)
     a = codebooks[0] - model.tokenizer.semantic_begin_id
     a[a < 0] = 0
@@ -339,7 +340,8 @@ def decode_one_token_naive(
             sample(
                 x.codebook_logits[:, :, i],
                 previous_tokens=(
-                    previous_tokens[i + 1] if previous_tokens is not None else None
+                    previous_tokens[i +
+                                    1] if previous_tokens is not None else None
                 ),
                 **sampling_kwargs,
             )[0]
@@ -369,11 +371,18 @@ def decode_n_tokens(
         if i < win_size:
             window = previous_tokens[:, :win_size]
         else:
-            window = previous_tokens[:, i - win_size : i]
+            window = previous_tokens[:, i - win_size: i]
 
         with (
-            torch.backends.cuda.sdp_kernel(
-                enable_flash=False, enable_mem_efficient=False, enable_math=True
+            # torch.backends.cuda.sdp_kernel(
+            #     enable_flash=False, enable_mem_efficient=False, enable_math=True
+            # )
+            torch.nn.attention.sdpa_kernel(
+                [
+                    torch.nn.attention.SDPBackend.FLASH_ATTENTION,
+                    torch.nn.attention.SDPBackend.EFFICIENT_ATTENTION,
+                    torch.nn.attention.SDPBackend.MATH,
+                ]
             )
             if torch.cuda.is_available()
             else nullcontext()
@@ -389,7 +398,7 @@ def decode_n_tokens(
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
-        previous_tokens[:, i : i + 1] = next_token.view(
+        previous_tokens[:, i: i + 1] = next_token.view(
             model.config.num_codebooks + 1, -1
         )
 
@@ -455,7 +464,7 @@ def generate(
         semantic_ids=semantic_ids,
         **sampling_kwargs,
     )
-    seq[:, T : T + 1] = next_token
+    seq[:, T: T + 1] = next_token
 
     input_pos = torch.tensor([T], device=device, dtype=torch.int)
     x = decode_n_tokens(
@@ -469,7 +478,7 @@ def generate(
     )
     # x = torch.cat(generated_tokens, dim=1)
     seq = seq[:, : T + 1 + x.size(1)]
-    seq[:, T + 1 :] = x
+    seq[:, T + 1:] = x
 
     return seq
 
@@ -491,7 +500,8 @@ def decode_n_tokens_agent(
         dtype=torch.int,
         device=cur_token.device,
     )
-    finished = torch.zeros(batch_size, dtype=torch.bool, device=cur_token.device)
+    finished = torch.zeros(batch_size, dtype=torch.bool,
+                           device=cur_token.device)
     finished = finished | (cur_token[:, 0, -1] == im_end_id)
     start_time = time.time()
 
@@ -501,7 +511,7 @@ def decode_n_tokens_agent(
         if i < win_size:
             window = previous_tokens[:, :, :win_size]
         else:
-            window = previous_tokens[:, :, i - win_size : i]
+            window = previous_tokens[:, :, i - win_size: i]
 
         with sdpa_kernel(
             SDPBackend.MATH
@@ -516,8 +526,9 @@ def decode_n_tokens_agent(
             )
 
         input_pos += 1
-        cur_token = next_token.view(batch_size, model.config.num_codebooks + 1, -1)
-        previous_tokens[:, :, i : i + 1] = next_token.view(
+        cur_token = next_token.view(
+            batch_size, model.config.num_codebooks + 1, -1)
+        previous_tokens[:, :, i: i + 1] = next_token.view(
             batch_size, model.config.num_codebooks + 1, -1
         )
 
@@ -848,7 +859,8 @@ def generate_long(
             )
 
             if sample_idx == 0 and seg_idx == 0 and compile:
-                logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
+                logger.info(
+                    f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
 
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
@@ -871,7 +883,7 @@ def generate_long(
 
             # Put the generated tokens
             # since there is <im_end>, we remove last token
-            codes = y[1:, prompt_length + 1 :].clone()
+            codes = y[1:, prompt_length + 1:].clone()
             assert (codes >= 0).all(), f"Negative code found"
 
             decoded = y[:, prompt_length:].clone()
@@ -932,10 +944,12 @@ def launch_thread_safe_queue(
                     model=model, decode_one_token=decode_one_token, **kwargs
                 ):
                     response_queue.put(
-                        WrappedGenerateResponse(status="success", response=chunk)
+                        WrappedGenerateResponse(
+                            status="success", response=chunk)
                     )
             except Exception as e:
-                response_queue.put(WrappedGenerateResponse(status="error", response=e))
+                response_queue.put(WrappedGenerateResponse(
+                    status="error", response=e))
 
     threading.Thread(target=worker, daemon=True).start()
     init_event.wait()
@@ -1070,7 +1084,8 @@ def main(
     logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
 
     if prompt_tokens is not None:
-        prompt_tokens = [torch.from_numpy(np.load(p)).to(device) for p in prompt_tokens]
+        prompt_tokens = [torch.from_numpy(np.load(p)).to(
+            device) for p in prompt_tokens]
 
     torch.manual_seed(seed)
 
