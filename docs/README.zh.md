@@ -100,10 +100,3 @@
   <br>
   <a href="https://6block.com/">数据处理服务器由 6Block 提供</a>
 </div>
-<div>
-  <a href="https://www.lepton.ai/">
-    <img src="https://www.lepton.ai/favicons/apple-touch-icon.png" width="100" height="100" alt="Lepton Avatar"/>
-  </a>
-  <br>
-  <a href="https://www.lepton.ai/">Fish Audio 在线推理与 Lepton 合作</a>
-</div>
