@@ -131,10 +131,3 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
   <br>
   <a href="https://6block.com/">Data Processing sponsor by 6Block</a>
 </div>
-<div>
-  <a href="https://www.lepton.ai/">
-    <img src="https://www.lepton.ai/favicons/apple-touch-icon.png" width="100" height="100" alt="Lepton Avatar"/>
-  </a>
-  <br>
-  <a href="https://www.lepton.ai/">Fish Audio is served on Lepton.AI</a>
-</div>
