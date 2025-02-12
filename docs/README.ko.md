@@ -102,10 +102,3 @@
   <br>
   <a href="https://6block.com/">데이터 처리 후원: 6Block</a>
 </div>
-<div>
-  <a href="https://www.lepton.ai/">
-    <img src="https://www.lepton.ai/favicons/apple-touch-icon.png" width="100" height="100" alt="Lepton Avatar"/>
-  </a>
-  <br>
-  <a href="https://www.lepton.ai/">Fish Audio는 Lepton.AI에서 제공됩니다</a>
-</div>
