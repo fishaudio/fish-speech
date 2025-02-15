@@ -7,7 +7,15 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
-from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, request, HttpView
+from kui.asgi import (
+    Body,
+    HTTPException,
+    HttpView,
+    JSONResponse,
+    Routes,
+    StreamResponse,
+    request,
+)
 from loguru import logger
 from typing_extensions import Annotated
 
