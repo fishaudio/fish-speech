@@ -7,7 +7,7 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
-from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, request
+from kui.asgi import Body, HTTPException, JSONResponse, Routes, StreamResponse, request, HttpView
 from loguru import logger
 from typing_extensions import Annotated
 
@@ -40,9 +40,15 @@ MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 routes = Routes()
 
 
-@routes.http.post("/v1/health")
-async def health():
-    return JSONResponse({"status": "ok"})
+@routes.http("/v1/health")
+class Health(HttpView):
+    @classmethod
+    async def get(cls):
+        return JSONResponse({"status": "ok"})
+
+    @classmethod
+    async def post(cls):
+        return JSONResponse({"status": "ok"})
 
 
 @routes.http.post("/v1/vqgan/encode")
