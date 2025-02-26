@@ -12,7 +12,8 @@ from loguru import logger
 from tqdm import tqdm
 
 from fish_speech.datasets.protos.text_data_pb2 import Semantics, Sentence, TextData
-from fish_speech.datasets.protos.text_data_stream import load_filelist, pack_pb_stream
+from fish_speech.datasets.protos.text_data_stream import pack_pb_stream
+from fish_speech.utils.file import load_filelist
 
 # To avoid CPU overload
 os.environ["MKL_NUM_THREADS"] = "1"

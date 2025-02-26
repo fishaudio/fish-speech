@@ -10,14 +10,14 @@ Inference support command line, HTTP API and web UI.
     3. Given a new piece of text, let the model generate the corresponding semantic tokens.
     4. Input the generated semantic tokens into VITS / VQGAN to decode and generate the corresponding voice.
 
-## Command Line Inference
-
+## Download Models
 Download the required `vqgan` and `llama` models from our Hugging Face repository.
 
 ```bash
 huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
+## Command Line Inference
 ### 1. Generate prompt from voice:
 
 !!! note

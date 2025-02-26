@@ -10,14 +10,14 @@
     3. 새로운 텍스트를 입력하면, 모델이 해당하는 시맨틱 토큰을 생성합니다.
     4. 생성된 시맨틱 토큰을 VITS / VQGAN에 입력하여 음성을 디코딩하고 생성합니다.
 
-## 명령줄 추론
-
+## 모델 다운로드
 필요한 `vqgan` 및 `llama` 모델을 Hugging Face 리포지토리에서 다운로드하세요.
 
 ```bash
 huggingface-cli download fishaudio/fish-speech-1.5 --local-dir checkpoints/fish-speech-1.5
 ```
 
+## 명령줄 추론
 ### 1. 음성에서 프롬프트 생성:
 
 !!! note

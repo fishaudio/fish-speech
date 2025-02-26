@@ -105,10 +105,3 @@ Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as
   <br>
   <a href="https://6block.com/">Servidores de processamento de dados fornecidos por 6Block</a>
 </div>
-<div>
-  <a href="https://www.lepton.ai/">
-    <img src="https://www.lepton.ai/favicons/apple-touch-icon.png" width="100" height="100" alt="Lepton Avatar"/>
-  </a>
-  <br>
-  <a href="https://www.lepton.ai/">Inferência online do Fish Audio em parceria com a Lepton</a>
-</div>

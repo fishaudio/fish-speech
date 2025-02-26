@@ -20,6 +20,7 @@ class LinearSpectrogram(nn.Module):
         self.hop_length = hop_length
         self.center = center
         self.mode = mode
+        self.return_complex = True
 
         self.register_buffer("window", torch.hann_window(win_length), persistent=False)
 
@@ -46,10 +47,11 @@ class LinearSpectrogram(nn.Module):
             pad_mode="reflect",
             normalized=False,
             onesided=True,
-            return_complex=True,
+            return_complex=self.return_complex,
         )
 
-        spec = torch.view_as_real(spec)
+        if self.return_complex:
+            spec = torch.view_as_real(spec)
 
         if self.mode == "pow2_sqrt":
             spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
