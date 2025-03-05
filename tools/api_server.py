@@ -29,7 +29,7 @@ from tools.server.views import routes
 class API(ExceptionHandler):
     def __init__(self):
         self.args = parse_args()
-        
+
         def api_auth(endpoint):
             async def verify(token: Annotated[str, Depends(bearer_auth)]):
                 if token != self.args.api_key:
