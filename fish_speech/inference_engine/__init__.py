@@ -15,7 +15,6 @@ from fish_speech.models.text2semantic.inference import (
     WrappedGenerateResponse,
 )
 from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
-from fish_speech.text.chn_text_norm.text import Text as ChnNormedText
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
 
@@ -150,11 +149,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         request = dict(
             device=self.decoder_model.device,
             max_new_tokens=req.max_new_tokens,
-            text=(
-                req.text
-                if not req.normalize
-                else ChnNormedText(raw_text=req.text).normalize()
-            ),
+            text=req.text,
             top_p=req.top_p,
             repetition_penalty=req.repetition_penalty,
             temperature=req.temperature,
