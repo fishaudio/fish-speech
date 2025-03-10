@@ -5,11 +5,13 @@ from typing import Literal, Optional, Tuple
 
 import numpy as np
 
+
 @dataclass
 class InferenceResult:
     code: Literal["header", "segment", "error", "final"]
     audio: Optional[Tuple[int, np.ndarray]]
     error: Optional[Exception]
+
 
 def wav_chunk_header(
     sample_rate: int = 44100, bit_depth: int = 16, channels: int = 1
