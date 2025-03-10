@@ -3,7 +3,6 @@ from typing import Callable
 import gradio as gr
 
 from fish_speech.i18n import i18n
-from fish_speech.inference_engine.utils import normalize_text
 from tools.webui.variables import HEADER_MD, TEXTBOX_PLACEHOLDER
 
 
@@ -25,20 +24,6 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                 text = gr.Textbox(
                     label=i18n("Input Text"), placeholder=TEXTBOX_PLACEHOLDER, lines=10
                 )
-                refined_text = gr.Textbox(
-                    label=i18n("Realtime Transform Text"),
-                    placeholder=i18n(
-                        "Normalization Result Preview (Currently Only Chinese)"
-                    ),
-                    lines=5,
-                    interactive=False,
-                )
-
-                with gr.Row():
-                    normalize = gr.Checkbox(
-                        label=i18n("Text Normalization"),
-                        value=False,
-                    )
 
                 with gr.Row():
                     with gr.Column():
@@ -147,14 +132,11 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                             variant="primary",
                         )
 
-        text.input(fn=normalize_text, inputs=[text, normalize], outputs=[refined_text])
-
         # Submit
         generate.click(
             inference_fct,
             [
-                refined_text,
-                normalize,
+                text,
                 reference_id,
                 reference_audio,
                 reference_text,
