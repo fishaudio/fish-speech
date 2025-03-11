@@ -27,6 +27,10 @@
 
 ## Windows 配置
 
+!!! info "注意"
+    我们强烈建议非Windows专业用户使用GUI运行该项目。[GUI在这里](https://github.com/AnyaCoder/fish-speech-gui).
+
+
 Windows 专业用户可以考虑 WSL2 或 docker 来运行代码库。
 
 ```bash
@@ -43,25 +47,6 @@ pip3 install -e .
 # (开启编译加速) 安装 triton-windows
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
-
-Windows 非专业用户可考虑以下为免 Linux 环境的基础运行方法（附带模型编译功能，即 `torch.compile`）：
-
-1. 解压项目压缩包。
-2. 点击 `install_env.bat` 安装环境。
-3. 若需要开启编译加速则执行这一步:
-    1. 使用如下链接下载 LLVM 编译器。
-        - [LLVM-17.0.6（原站站点下载）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - [LLVM-17.0.6（镜像站点下载）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - 下载完 `LLVM-17.0.6-win64.exe` 后，双击进行安装，选择合适的安装位置，最重要的是勾选 `Add Path to Current User` 添加环境变量。
-        - 确认安装完成。
-    2. 下载安装 Microsoft Visual C++ 可再发行程序包，解决潜在 .dll 丢失问题。
-        - [MSVC++ 14.40.33810.0 下载](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    3. 下载安装 Visual Studio 社区版以获取 MSVC++ 编译工具, 解决 LLVM 的头文件依赖问题。
-        - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
-        - 安装好 Visual Studio Installer 之后，下载 Visual Studio Community 2022
-        - 如下图点击`修改`按钮，找到`使用C++的桌面开发`项，勾选下载
-    4. 下载安装 [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
-4. 双击 `start.bat` 打开训练推理 WebUI 管理界面. 如有需要，可照下列提示修改`API_FLAGS`.
 
 !!! info "可选"
 
@@ -196,6 +181,7 @@ pip install -e .[stable]
 
 ## 更新日志
 
+- 2024/12/03: 更新了 Fish-Speech 到 1.5，增加更多支持语言，在开源领域属于SOTA.
 - 2024/09/10: 更新了 Fish-Speech 到 1.4, 增加了数据集大小， quantizer n_groups 4 -> 8.
 - 2024/07/02: 更新了 Fish-Speech 到 1.2 版本，移除 VITS Decoder，同时极大幅度提升 zero-shot 能力.
 - 2024/05/10: 更新了 Fish-Speech 到 1.1 版本，引入了 VITS Decoder 来降低口胡和提高音色相似度.
