@@ -27,6 +27,9 @@
 
 ## Windows 설정
 
+!!! info "주의"
+    Windows 전문가가 아닌 사용자는 GUI를 통해 프로젝트를 실행할 것을 강력히 권장합니다. [GUI는 여기에서](https://github.com/AnyaCoder/fish-speech-gui) 확인하세요.
+
 고급 Windows 사용자는 WSL2 또는 Docker를 사용하여 코드베이스를 실행하는 것을 고려할 수 있습니다.
 
 ```bash
@@ -43,54 +46,6 @@ pip3 install -e .
 # (가속 활성화) triton-windows 설치
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
-
-비전문 Windows 사용자는 Linux 환경 없이 프로젝트를 실행할 수 있는 다음 기본 방법을 고려할 수 있습니다 (모델 컴파일 기능 포함, 즉 `torch.compile`):
-
-1. 프로젝트 패키지 추출.
-2. `install_env.bat`을 클릭하여 환경 설치.
-3. 컴파일 가속을 활성화하려면 아래 단계를 따르세요:
-    1. LLVM 컴파일러 다운로드:
-        - [LLVM-17.0.6 (공식 사이트)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - [LLVM-17.0.6 (미러 사이트)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - `LLVM-17.0.6-win64.exe`를 다운로드 후 더블클릭하여 설치하고, 설치 경로 선택 시 `Add Path to Current User` 옵션을 체크하여 환경 변수를 추가합니다.
-        - 설치가 완료되었는지 확인합니다.
-    2. Microsoft Visual C++ 재배포 가능 패키지를 다운로드하여 .dll 누락 문제 해결:
-        - [MSVC++ 14.40.33810.0 다운로드](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    3. Visual Studio Community Edition을 다운로드하여 LLVM의 헤더 파일 의존성을 해결:
-        - [Visual Studio 다운로드](https://visualstudio.microsoft.com/zh-hans/downloads/)
-        - Visual Studio Installer를 설치한 후 Visual Studio Community 2022를 다운로드.
-        - `Desktop development with C++` 옵션을 선택하여 설치.
-    4. [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64) 다운로드 및 설치.
-4. `start.bat`을 더블 클릭하여 훈련 추론 WebUI 관리 인터페이스를 엽니다. 필요한 경우 아래 지침에 따라 `API_FLAGS`를 수정할 수 있습니다.
-
-!!! info "Optional"
-
-	추론을 위해 WebUI를 사용하고자 하시나요?
-
-    프로젝트 루트 디렉토리의 `API_FLAGS.txt` 파일을 편집하고 첫 세 줄을 아래와 같이 수정하세요:
-    ```
-     --infer
-     # --api
-     # --listen ...
-     ...
-    ```
-
-!!! info "Optional"
-
-	API 서버를 시작하고 싶으신가요?
-
-    프로젝트 루트 디렉토리의 `API_FLAGS.txt` 파일을 편집하고 첫 세 줄을 아래와 같이 수정하세요:
-
-    ```
-    # --infer
-    --api
-    --listen ...
-    ...
-    ```
-
-!!! info "Optional"
-
-	`run_cmd.bat`을 더블 클릭하여 이 프로젝트의 conda/python 명령줄 환경에 진입할 수 있습니다.
 
 ## Linux 설정
 

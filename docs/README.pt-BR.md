@@ -67,11 +67,7 @@ Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as
 
 ## Vídeos
 
-#### 1.4 Introdução: https://www.bilibili.com/video/BV1pu46eVEk7
-
-#### 1.2 Introdução: https://www.bilibili.com/video/BV1wz421B71D
-
-#### 1.1 Apresentação Técnica: https://www.bilibili.com/video/BV1zJ4m1K7cj
+#### 1.5 Introdução: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
 
 ## Documentação
 

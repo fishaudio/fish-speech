@@ -27,6 +27,9 @@
 
 ## Windowsセットアップ
 
+!!! info "注意"
+    Windowsの専門ユーザー以外の方には、GUIを使用してプロジェクトを実行することを強くお勧めします。[GUIはこちら](https://github.com/AnyaCoder/fish-speech-gui).
+
 プロフェッショナルなWindowsユーザーは、WSL2またはDockerを使用してコードベースを実行することを検討してください。
 
 ```bash
@@ -43,52 +46,6 @@ pip3 install -e .
 # (アクセラレーションを有効にする) triton-windowsをインストール
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
-
-非プロフェッショナルなWindowsユーザーは、Linux環境なしでプロジェクトを実行するための以下の基本的な方法を検討できます（モデルコンパイル機能、つまり`torch.compile`を使用可能）：
-
-1. プロジェクトパッケージを解凍する。
-2. `install_env.bat`をクリックして環境をインストールする。
-3. コンパイルアクセラレーションを有効にしたい場合は、次のステップに従ってください：
-    1. 以下のリンクからLLVMコンパイラをダウンロード：
-        - [LLVM-17.0.6（公式サイトのダウンロード）](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - [LLVM-17.0.6（ミラーサイトのダウンロード）](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - `LLVM-17.0.6-win64.exe`をダウンロードした後、ダブルクリックしてインストールし、適切なインストール場所を選択し、最も重要なのは`Add Path to Current User`オプションを選択して環境変数を追加することです。
-        - インストールが完了したことを確認する。
-    2. 欠落している .dll の問題を解決するため、Microsoft Visual C++ Redistributable をダウンロードしてインストールする：
-        - [MSVC++ 14.40.33810.0 ダウンロード](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    3. Visual Studio Community Editionをダウンロードして、MSVC++ビルドツールを取得し、LLVMのヘッダーファイルの依存関係を解決する：
-        - [Visual Studio ダウンロード](https://visualstudio.microsoft.com/ja/downloads/)
-        - Visual Studio Installerをインストールした後、Visual Studio Community 2022をダウンロード。
-        - 下記のように、`Modify`ボタンをクリックし、`C++によるデスクトップ開発`オプションを選択してダウンロード。
-        - <img src="../assets/figs/VS_1.jpg"/>
-    4. [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)をダウンロードしてインストールする。
-4. `start.bat`をダブルクリックして、トレーニング推論WebUI管理インターフェースを開きます。必要に応じて、以下に示すように`API_FLAGS`を修正できます。
-
-
-!!! info "オプション"
-    推論WebUIを起動しますか？
-    プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
-    ```
-    --infer
-    # --api
-    # --listen ...
-    ...
-    ```
-
-!!! info "オプション"
-    APIサーバーを起動しますか？
-    プロジェクトのルートディレクトリにある `API_FLAGS.txt` ファイルを編集し、最初の3行を次のように変更します：
-    ```
-    # --infer
-    --api
-    --listen ...
-    ...
-    ```
-
-!!! info "オプション"
-    `run_cmd.bat` をダブルクリックして、このプロジェクトの conda/python コマンドライン環境に入ります。
-
-
 
 ## Linux セットアップ
 

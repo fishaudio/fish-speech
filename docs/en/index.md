@@ -27,6 +27,10 @@
 
 ## Windows Setup
 
+!!! info "Attention"
+
+    We strongly suggest non-professional windows users use our official GUI to run the project. [GUI is here](https://github.com/AnyaCoder/fish-speech-gui).
+
 Professional Windows users may consider using WSL2 or Docker to run the codebase.
 
 ```bash
@@ -43,54 +47,6 @@ pip3 install -e .
 # (Enable acceleration) Install triton-windows
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
-
-Non-professional Windows users can consider the following basic methods to run the project without a Linux environment (with model compilation capabilities, i.e., `torch.compile`):
-
-1. Extract the project package.
-2. Click `install_env.bat` to install the environment.
-3. If you want to enable compilation acceleration, follow this step:
-    1. Download the LLVM compiler from the following links:
-        - [LLVM-17.0.6 (Official Site Download)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - [LLVM-17.0.6 (Mirror Site Download)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - After downloading `LLVM-17.0.6-win64.exe`, double-click to install, select an appropriate installation location, and most importantly, check the `Add Path to Current User` option to add the environment variable.
-        - Confirm that the installation is complete.
-    2. Download and install the Microsoft Visual C++ Redistributable to solve potential .dll missing issues:
-        - [MSVC++ 14.40.33810.0 Download](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    3. Download and install Visual Studio Community Edition to get MSVC++ build tools and resolve LLVM's header file dependencies:
-        - [Visual Studio Download](https://visualstudio.microsoft.com/zh-hans/downloads/)
-        - After installing Visual Studio Installer, download Visual Studio Community 2022.
-        - As shown below, click the `Modify` button and find the `Desktop development with C++` option to select and download.
-    4. Download and install [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
-4. Double-click `start.bat` to open the training inference WebUI management interface. If needed, you can modify the `API_FLAGS` as prompted below.
-
-!!! info "Optional"
-
-	Want to start the inference WebUI?
-
-    Edit the `API_FLAGS.txt` file in the project root directory and modify the first three lines as follows:
-    ```
-     --infer
-     # --api
-     # --listen ...
-     ...
-    ```
-
-!!! info "Optional"
-
-	Want to start the API server?
-
-    Edit the `API_FLAGS.txt` file in the project root directory and modify the first three lines as follows:
-
-    ```
-    # --infer
-    --api
-    --listen ...
-    ...
-    ```
-
-!!! info "Optional"
-
-	Double-click `run_cmd.bat` to enter the conda/python command line environment of this project.
 
 ## Linux Setup
 

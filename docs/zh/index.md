@@ -48,30 +48,6 @@ pip3 install -e .
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
 
-!!! info "可选"
-
-    想启动 推理 WebUI 界面？编辑项目根目录下的 `API_FLAGS.txt`, 前三行修改成如下格式:
-    ```
-    --infer
-    # --api
-    # --listen ...
-    ...
-    ```
-
-!!! info "可选"
-
-    想启动 API 服务器？编辑项目根目录下的 `API_FLAGS.txt`, 前三行修改成如下格式:
-    ```
-    # --infer
-    --api
-    --listen ...
-    ...
-    ```
-
-!!! info "可选"
-
-    双击 `run_cmd.bat` 进入本项目的 conda/python 命令行环境
-
 ## Linux 配置
 
 有关详细信息，请参见 [pyproject.toml](../../pyproject.toml)。

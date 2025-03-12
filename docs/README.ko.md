@@ -66,7 +66,7 @@
 
 ## 영상
 
-#### V1.4 데모 영상: [Youtube](https://www.youtube.com/watch?v=Ghc8cJdQyKQ)
+#### V1.5 데모 영상: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
 
 ## 문서
 
