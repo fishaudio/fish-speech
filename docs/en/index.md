@@ -151,6 +151,7 @@ pip install -e .[stable]
 
 ## Changelog
 
+- 2024/12/03: Updated Fish-Speech to 1.5 version, supports more languages, and reaches SOTA in the Open-Source field.
 - 2024/09/10: Updated Fish-Speech to 1.4 version, with an increase in dataset size and a change in the quantizer's n_groups from 4 to 8.
 - 2024/07/02: Updated Fish-Speech to 1.2 version, remove VITS Decoder, and greatly enhanced zero-shot ability.
 - 2024/05/10: Updated Fish-Speech to 1.1 version, implement VITS decoder to reduce WER and improve timbre similarity.

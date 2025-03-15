@@ -147,6 +147,8 @@ pip install -e .[stable]
     Se estiver implantando em um servidor, substitua localhost pelo IP do seu servidor.
 
 ## Histórico de Alterações
+
+- 12/03/2024: Atualização do Fish-Speech para 1.5, com suporte para mais idiomas, sendo considerado SOTA (estado da arte) no campo de código aberto.
 - 10/09/2024: Fish-Speech atualizado para a versão 1.4, aumentado o tamanho do conjunto de dados, quantizer n_groups 4 -> 8.
 - 02/07/2024: Fish-Speech atualizado para a versão 1.2, removido o Decodificador VITS e aprimorado consideravelmente a capacidade de zero-shot.
 - 10/05/2024: Fish-Speech atualizado para a versão 1.1, implementado o decodificador VITS para reduzir a WER e melhorar a similaridade de timbre.

@@ -31,7 +31,7 @@
     </a>
 </div>
 
-Este código-fonte e os modelos são publicados sob a licença CC-BY-NC-SA-4.0. Consulte [LICENSE](LICENSE) para mais detalhes.
+Este repositório de código é disponibilizado sob a licença Apache 2.0, e o modelo sob a licença CC-BY-NC-SA-4.0. Consulte [LICENSE](../LICENSE) para mais detalhes.
 
 ---
 
