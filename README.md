@@ -38,7 +38,7 @@ This codebase is released under Apache License and all model weights are release
 
 ---
 ## Fish Agent
-We are very excited to announce that we have made our self-research agent demo open source, you can now try our agent demo online at [demo](https://fish.audio) for instant English chat and English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
+We are very excited to announce that we have made our self-research agent demo open source, you can now try our agent demo for instant English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
 
 You should mention that the content is released under a **CC BY-NC-SA 4.0 licence**. And the demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
 
