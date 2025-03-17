@@ -128,7 +128,7 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                 with gr.Row():
                     with gr.Column(scale=3):
                         generate = gr.Button(
-                            value="\U0001F3A7 " + i18n("Generate"),
+                            value="\U0001f3a7 " + i18n("Generate"),
                             variant="primary",
                         )
 
