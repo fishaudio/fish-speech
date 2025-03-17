@@ -369,9 +369,6 @@ def decode_n_tokens(
             window = previous_tokens[:, i - win_size : i]
 
         with (
-            # torch.backends.cuda.sdp_kernel(
-            #     enable_flash=False, enable_mem_efficient=False, enable_math=True
-            # )
             sdpa_kernel(
                 [
                     SDPBackend.FLASH_ATTENTION,
