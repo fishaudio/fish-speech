@@ -9,7 +9,6 @@ REPLACE_SYMBOL_REGEX = re.compile(
     "|".join(re.escape(p) for p in SYMBOLS_MAPPING.keys())
 )
 
-
 EMOJI_REGEX = re.compile(
     "["
     "\U0001F1E0-\U0001F1FF"  # flags (iOS)
@@ -28,19 +27,18 @@ EMOJI_REGEX = re.compile(
     flags=re.UNICODE,
 )
 
-
 def clean_text(text):
     # Clean the text
     text = text.strip()
 
-    # Replace all chinese symbols with their english counterparts
+    # Replace all Chinese symbols with their English counterparts
     text = REPLACE_SYMBOL_REGEX.sub(lambda x: SYMBOLS_MAPPING[x.group()], text)
 
     # Remove emojis
     text = EMOJI_REGEX.sub(r"", text)
 
     text = re.sub(r"[←→↑↓⇄⇅]+", "", text)  # Arrows
-    text = re.sub(r"[\u0600-\u06FF]+", "", text)  # Arabicr
+    text = re.sub(r"[\u0600-\u06FF]+", "", text)  # Arabic
     text = re.sub(r"[\u0590-\u05FF]+", "", text)  # Hebrew
 
     # Remove continuous periods (...) and commas (,,,)

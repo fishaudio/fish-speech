@@ -65,7 +65,6 @@ def parse_args():
         default=True,
         help="Whether to play audio after receiving data",
     )
-    parser.add_argument("--normalize", type=bool, default=True)
     parser.add_argument(
         "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
     )
@@ -160,7 +159,6 @@ if __name__ == "__main__":
             for ref_text, ref_audio in zip(ref_texts, byte_audios)
         ],
         "reference_id": idstr,
-        "normalize": args.normalize,
         "format": args.format,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
