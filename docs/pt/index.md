@@ -27,6 +27,9 @@
 
 ## Configuração do Windows
 
+!!! info "Aviso"
+    Recomendamos fortemente que usuários que não sejam especialistas em Windows usem a GUI para executar o projeto. [A GUI está aqui](https://github.com/AnyaCoder/fish-speech-gui).
+    
 Usuários profissionais do Windows podem considerar o uso do WSL2 ou Docker para executar a base de código.
 
 ```bash
@@ -43,50 +46,6 @@ pip3 install -e .
 # (Ativar aceleração) Instalar triton-windows
 pip install https://github.com/AnyaCoder/fish-speech/releases/download/v0.1.0/triton_windows-0.1.0-py3-none-any.whl
 ```
-
-Usuários não profissionais do Windows podem considerar os seguintes métodos básicos para executar o projeto sem um ambiente Linux (com capacidades de compilação de modelo, ou seja, `torch.compile`):
-
-1. Extraia o pacote do projeto.
-2. Clique em `install_env.bat` para instalar o ambiente.
-3. Se você quiser ativar a aceleração de compilação, siga estas etapas:
-    1. Baixe o compilador LLVM nos seguintes links:
-        - [LLVM-17.0.6 (Download do site oficial)](https://huggingface.co/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - [LLVM-17.0.6 (Download do site espelho)](https://hf-mirror.com/fishaudio/fish-speech-1/resolve/main/LLVM-17.0.6-win64.exe?download=true)
-        - Após baixar o `LLVM-17.0.6-win64.exe`, clique duas vezes para instalar, selecione um local de instalação apropriado e, o mais importante, marque a opção `Add Path to Current User` para adicionar a variável de ambiente.
-        - Confirme que a instalação foi concluída.
-    2. Baixe e instale o Microsoft Visual C++ Redistributable para resolver possíveis problemas de arquivos .dll ausentes:
-        - [Download do MSVC++ 14.40.33810.0](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    3. Baixe e instale o Visual Studio Community Edition para obter as ferramentas de compilação do MSVC++ e resolver as dependências dos arquivos de cabeçalho do LLVM:
-        - [Download do Visual Studio](https://visualstudio.microsoft.com/pt-br/downloads/)
-        - Após instalar o Visual Studio Installer, baixe o Visual Studio Community 2022.
-        - Conforme mostrado abaixo, clique no botão `Modificar`, encontre a opção `Desenvolvimento de área de trabalho com C++` e selecione para fazer o download.
-    4. Baixe e instale o [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-12-1-0-download-archive?target_os=Windows&target_arch=x86_64)
-4. Clique duas vezes em `start.bat` para abrir a interface de gerenciamento WebUI de inferência de treinamento. Se necessário, você pode modificar as `API_FLAGS` conforme mostrado abaixo.
-
-!!! info "Opcional"
-    Você quer iniciar o WebUI de inferência?
-    Edite o arquivo `API_FLAGS.txt` no diretório raiz do projeto e modifique as três primeiras linhas como segue:
-    ```
-    --infer
-    # --api
-    # --listen ...
-    ...
-    ```
-
-!!! info "Opcional"
-    Você quer iniciar o servidor de API?
-    Edite o arquivo `API_FLAGS.txt` no diretório raiz do projeto e modifique as três primeiras linhas como segue:
-
-    ```
-    # --infer
-    --api
-    --listen ...
-    ...
-    ```
-
-!!! info "Opcional"
-    Clique duas vezes em `run_cmd.bat` para entrar no ambiente de linha de comando conda/python deste projeto.
-
 
 ## Configuração para Linux
 
@@ -188,6 +147,8 @@ pip install -e .[stable]
     Se estiver implantando em um servidor, substitua localhost pelo IP do seu servidor.
 
 ## Histórico de Alterações
+
+- 12/03/2024: Atualização do Fish-Speech para 1.5, com suporte para mais idiomas, sendo considerado SOTA (estado da arte) no campo de código aberto.
 - 10/09/2024: Fish-Speech atualizado para a versão 1.4, aumentado o tamanho do conjunto de dados, quantizer n_groups 4 -> 8.
 - 02/07/2024: Fish-Speech atualizado para a versão 1.2, removido o Decodificador VITS e aprimorado consideravelmente a capacidade de zero-shot.
 - 10/05/2024: Fish-Speech atualizado para a versão 1.1, implementado o decodificador VITS para reduzir a WER e melhorar a similaridade de timbre.

@@ -84,7 +84,7 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 
 ## Videos
 
-#### V1.4 Demo Video: [Youtube](https://www.youtube.com/watch?v=Ghc8cJdQyKQ)
+#### V1.5 Demo Video: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
 
 ## Documents
 

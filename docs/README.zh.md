@@ -33,7 +33,7 @@
 
 </div>
 
-此代码库及模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](LICENSE) 了解更多细节.
+此代码库根据 Apache 2.0 许可证发布，模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](../LICENSE) 了解更多细节.
 
 ---
 
@@ -61,6 +61,8 @@
 [inference.ipynb](/inference.ipynb)
 
 ## 视频
+
+#### 1.5 介绍: https://www.bilibili.com/video/BV1EKiDYBE4o
 
 #### 1.4 介绍: https://www.bilibili.com/video/BV1pu46eVEk7
 
