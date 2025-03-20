@@ -13,7 +13,6 @@ import torch
 import torch._dynamo.config
 import torch._inductor.config
 from loguru import logger
-
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -25,11 +24,6 @@ from fish_speech.conversation import (
     VQPart,
 )
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-
-
-
-
-
 from fish_speech.text import clean_text, split_text
 from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 
@@ -380,10 +374,6 @@ def decode_n_tokens(
         with (
             torch.backends.cuda.sdp_kernel(
                 enable_flash=False, enable_mem_efficient=False, enable_math=True
-
-
-
-
             )
             if torch.cuda.is_available()
             else nullcontext()
