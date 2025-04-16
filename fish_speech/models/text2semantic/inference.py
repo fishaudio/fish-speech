@@ -252,6 +252,7 @@ def decode_one_token_ar(
     input_pos: torch.Tensor,
     semantic_ids: list,
     previous_tokens: torch.Tensor = None,
+    batched=False,
     **sampling_kwargs,
 ) -> torch.Tensor:
     x = model.forward_generate(x, input_pos)
@@ -260,12 +261,14 @@ def decode_one_token_ar(
     # sampling_kwargs_main["temperature"] = 0.1
     # sampling_kwargs_main["top_p"] = 0.1
     # sampling_kwargs_main["repetition_penalty"] = 1.0
-
+    _sample = sample_agent if batched else sample
     codebooks = [
-        sample(
+        _sample(
             x.logits,
             previous_tokens=(
-                previous_tokens[0] if previous_tokens is not None else None
+                (previous_tokens[:, 0] if batched else previous_tokens[0]) if previous_tokens is not None else None
+                # (previous_tokens[:, 0] if batched else previous_tokens[0]) if previous_tokens is not None and not batched else None
+                # TODO: support batched
             ),  # Disable repetition penalty for the token codebook
             **sampling_kwargs_main,
         )[0]
@@ -290,10 +293,10 @@ def decode_one_token_ar(
             [codebook_idx], device=hidden_states.device, dtype=torch.long
         )
         logits = model.forward_generate_fast(hidden_states, input_pos)
-        a = sample(
+        a = _sample(
             logits,
             previous_tokens=(
-                previous_tokens[codebook_idx + 1]
+                (previous_tokens[:, codebook_idx + 1] if batched else previous_tokens[codebook_idx + 1])
                 if previous_tokens is not None
                 else None
             ),
@@ -302,7 +305,7 @@ def decode_one_token_ar(
         hidden_states = model.fast_embeddings(a)
         codebooks.append(a)
 
-    codebooks = torch.stack(codebooks, dim=0)
+    codebooks = torch.stack(codebooks, dim=1 if batched else 0)
     # semantic_ids_tensor = torch.tensor(semantic_ids, device=codebooks.device)
     # codebooks[1:, :] = torch.masked_fill(
     #     codebooks[1:, :], ~torch.isin(codebooks[:1, :], semantic_ids_tensor), CODEBOOK_PAD_TOKEN_ID
@@ -346,7 +349,6 @@ def decode_one_token_naive(
         )
 
     return torch.stack(codebooks, dim=0)
-
 
 def decode_n_tokens(
     model: NaiveTransformer,
@@ -397,6 +399,62 @@ def decode_n_tokens(
             break
 
     return previous_tokens[:, : i + 1]
+
+def decode_n_tokens_batched(
+    model: NaiveTransformer,
+    cur_token: torch.Tensor,
+    input_pos: torch.Tensor,
+    num_new_tokens: int,
+    semantic_ids: list,
+    decode_one_token=decode_one_token_naive,
+    **sampling_kwargs,
+):
+    batch_size = cur_token.size(0)
+    previous_tokens = torch.zeros(
+        (batch_size, model.config.num_codebooks + 1, model.config.max_seq_len),
+        dtype=torch.int,
+        device=cur_token.device,
+    )
+    im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
+    finished = torch.zeros(batch_size, dtype=torch.bool, device=cur_token.device)
+    finished = finished | (cur_token[:, 0, -1] == im_end_id)
+
+    for i in tqdm(range(num_new_tokens)):
+        # We need to get windowed repeat penalty
+        win_size = 16
+        if i < win_size:
+            window = previous_tokens[:, :, :win_size]
+        else:
+            window = previous_tokens[:, :, i - win_size : i]
+
+        with (
+            torch.backends.cuda.sdp_kernel(
+                enable_flash=False, enable_mem_efficient=False, enable_math=True
+            )
+            if torch.cuda.is_available()
+            else nullcontext()
+        ):  # Actually better for Inductor to codegen attention here
+            next_token = decode_one_token(
+                model=model,
+                x=cur_token,
+                input_pos=input_pos,
+                previous_tokens=window,
+                semantic_ids=semantic_ids,
+                batched=True,
+                **sampling_kwargs,
+            )
+
+        input_pos += 1
+        cur_token = next_token.view(batch_size, model.config.num_codebooks + 1, -1)
+        previous_tokens[:, :, i : i + 1] = next_token.view(
+            batch_size, model.config.num_codebooks + 1, -1
+        )
+
+        finished = finished | (cur_token[:, 0, -1] == im_end_id)
+        if finished.all():
+            break
+
+    return previous_tokens[:, :, : i + 1]
 
 
 @torch.no_grad()
@@ -450,7 +508,7 @@ def generate(
 
     next_token = prefill_decode(
         model,
-        prompt.view(1, codebook_dim, -1),
+        prompt.view(1, codebook_dim, -1), # assume bs = 1
         input_pos,
         semantic_ids=semantic_ids,
         **sampling_kwargs,
@@ -460,7 +518,7 @@ def generate(
     input_pos = torch.tensor([T], device=device, dtype=torch.int)
     x = decode_n_tokens(
         model,
-        next_token.view(1, codebook_dim, -1),
+        next_token.view(1, codebook_dim, -1), # assume bs = 1
         input_pos,
         max_new_tokens - 1,
         decode_one_token=decode_one_token,
@@ -470,6 +528,77 @@ def generate(
     # x = torch.cat(generated_tokens, dim=1)
     seq = seq[:, : T + 1 + x.size(1)]
     seq[:, T + 1 :] = x
+
+    return seq
+
+@torch.no_grad()
+@torch.inference_mode()
+def generate_batched(
+    *,
+    model: NaiveTransformer,
+    prompt: torch.Tensor,
+    max_new_tokens: int,
+    decode_one_token=decode_one_token_naive,
+    **sampling_kwargs,
+) -> torch.Tensor:
+    """
+    Takes a conditioning sequence (prompt) as input and continues to generate as many tokens as requested.
+    """
+
+    # create an empty tensor of the expected final shape and fill in the current tokens
+    bs, C, T = prompt.shape 
+    device, dtype = prompt.device, prompt.dtype
+    # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
+    semantic_ids = [
+        model.tokenizer.get_token_id(f"<|semantic:{i}|>") for i in range(1024)
+    ]
+
+    if max_new_tokens:
+        if T + max_new_tokens > model.config.max_seq_len:
+            max_new_tokens = model.config.max_seq_len - T
+            logger.info(f"Truncating max_new_tokens to {max_new_tokens}")
+
+        T_new = T + max_new_tokens
+    else:
+        T_new = model.config.max_seq_len
+        max_new_tokens = T_new - T
+
+    codebook_dim = 1 + model.config.num_codebooks
+    # create an empty tensor of the expected final shape and fill in the current tokens
+    seq = torch.empty(
+        (bs, codebook_dim, model.config.max_seq_len), dtype=dtype, device=device
+    )
+    seq[:, :, :T] = prompt
+    input_pos = torch.arange(0, T, device=device)
+
+    # Use non-accelerated version for now, to avoid compilation overhead
+    prefill_decode = decode_one_token_ar
+
+    next_token = prefill_decode(
+        model,
+        prompt.view(bs, codebook_dim, -1),
+        input_pos,
+        semantic_ids=semantic_ids,
+        batched=True,
+        **sampling_kwargs,
+    )
+    seq[:, :, T : T + 1] = next_token
+
+    input_pos = torch.tensor([T], device=device, dtype=torch.int)
+    x = decode_n_tokens_batched(
+        model,
+        next_token.view(bs, codebook_dim, -1),
+        input_pos,
+        max_new_tokens - 1,
+        decode_one_token=decode_one_token,
+        semantic_ids=semantic_ids,
+        **sampling_kwargs,
+    )
+    # x = torch.cat(generated_tokens, dim=1)
+    seq = seq[:, :, : T + 1 + x.size(2)]
+    seq[:, :, T + 1 :] = x.view(
+            bs, model.config.num_codebooks + 1, -1
+        )
 
     return seq
 
@@ -632,7 +761,7 @@ def encode_tokens(
         if prompt_tokens.ndim == 3:
             assert (
                 prompt_tokens.shape[0] == 1
-            ), "3D prompt tokens should have shape (1, num_codebooks, seq_len)"
+            ), f"3D prompt tokens should have shape (1, num_codebooks, seq_len), found {prompt_tokens.shape[0]}"
             prompt_tokens = prompt_tokens[0]
 
         assert prompt_tokens.ndim == 2, "Prompt tokens should be 2D tensor"
@@ -885,6 +1014,188 @@ def generate_long(
         # This indicates the end of the current sample
         yield GenerateResponse(action="next")
 
+def generate_batch(
+    *,
+    model,
+    device: str | torch.device,
+    decode_one_token: callable,
+    text: str | list[str],
+    num_samples: int = 1,
+    max_new_tokens: int = 0,
+    top_p: int = 0.7,
+    repetition_penalty: float = 1.5,
+    temperature: float = 0.7,
+    compile: bool = False,
+    max_length: int = 2048,
+    prompt_text: Optional[str | list[str]] = None,
+    prompt_tokens: Optional[torch.Tensor | list[torch.Tensor]] = None,
+    batched=False
+):
+    assert 0 < top_p <= 1, "top_p must be in (0, 1]"
+    assert 0 < repetition_penalty < 2, "repetition_penalty must be in (0, 2)"
+    assert 0 < temperature < 2, "temperature must be in (0, 2)"
+    print("prompt_tokens", prompt_tokens[0].shape)
+    use_prompt = prompt_text is not None and prompt_tokens is not None
+    if use_prompt and isinstance(prompt_text, str):
+        prompt_text = [prompt_text]
+        prompt_tokens = [prompt_tokens]
+
+    assert use_prompt is False or len(prompt_text) == len(
+        prompt_tokens
+    ), "Prompt text and tokens must have the same length"
+
+    model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    tokenizer = model.tokenizer
+    im_end_id = tokenizer.get_token_id("<|im_end|>")
+    
+    encodeds = []
+    encoded_prompts_ = []
+    for idx, t in enumerate(text):
+        encoded = []
+        encoded_prompts = [
+            Conversation(
+                messages=[
+                    Message(
+                        role="system",
+                        parts=[TextPart(text="Speak out the provided text.")],
+                        cal_loss=False,
+                    )
+                ]
+            )
+            .encode_for_inference(
+                tokenizer=tokenizer,
+                num_codebooks=model.config.num_codebooks,
+            )
+            .to(device)
+        ]
+
+        if use_prompt:
+            encoded_prompts.append(
+                encode_tokens(
+                    tokenizer,
+                    string=prompt_text[idx],
+                    device=device,
+                    prompt_tokens=prompt_tokens[idx],
+                    num_codebooks=model.config.num_codebooks,
+                )
+                )
+            print(use_prompt, encoded_prompts[0].shape)
+        tokens = encode_tokens(
+                tokenizer,
+                string=t,
+                device=device,
+                num_codebooks=model.config.num_codebooks,
+            )
+        if batched: tokens = tokens
+        encoded.append(tokens)
+        logger.info(f"Encoded text: {text}")
+        encodeds.extend(encoded)
+        encoded_prompts_.append(torch.cat(encoded_prompts, dim=1))
+    print(*[i.shape for i in encoded_prompts_])
+    encoded, encoded_mask = collate(encodeds, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
+    encoded_prompts, encoded_prompts_mask = collate(encoded_prompts_, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
+    print(encoded.shape, encoded_prompts.shape)
+    encoded = [encoded]
+    encoded_prompts = [encoded_prompts]
+    # Move temperature, top_p, repetition_penalty to device
+    # This is important so that changing params doesn't trigger recompile
+    temperature = torch.tensor(temperature, device=device, dtype=torch.float)
+    top_p = torch.tensor(top_p, device=device, dtype=torch.float)
+    repetition_penalty = torch.tensor(
+        repetition_penalty, device=device, dtype=torch.float
+    )
+
+    for sample_idx in range(num_samples):
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        global_encoded = []
+        seg_idx = 0
+
+        # for each text
+        while seg_idx < len(encoded):
+            logger.info(
+                f"Generating sentence {seg_idx + 1}/{len(encoded)} of sample {sample_idx + 1}/{num_samples}"
+            )
+
+            seg = encoded[seg_idx]
+            global_encoded.append(seg)
+
+            lengths = reversed([seg.size(2) for seg in global_encoded])
+
+            # Pick last 2000 tokens
+            count = 0
+            for i, length in enumerate(lengths):
+                count += length
+                if count + length > max_length - 1024 - sum(
+                    t.shape[2] for t in encoded_prompts
+                ):
+                    break
+
+            if i != 0 and i % 2 == 0:
+                i -= 1
+
+            # Rotate the list, always make sure first segment is included to avoid drift
+            if i < len(global_encoded) - 2:
+                partial_encoded = global_encoded[:2] + global_encoded[-i:]
+            else:
+                partial_encoded = global_encoded
+            
+            # add prompt
+            if use_prompt:
+                partial_encoded = encoded_prompts + partial_encoded
+
+            cat_encoded = torch.cat(partial_encoded, dim=2)
+            prompt_length = cat_encoded.size(2)
+
+            t0 = time.perf_counter()
+            _generate = generate_batched if batched else generate
+            y = _generate(
+                model=model,
+                prompt=cat_encoded,
+                max_new_tokens=max_new_tokens,
+                decode_one_token=decode_one_token, #decode_one_token_ar
+                temperature=temperature,
+                top_p=top_p,
+                repetition_penalty=repetition_penalty,
+            )
+
+            if sample_idx == 0 and seg_idx == 0 and compile:
+                logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
+
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+
+            t = time.perf_counter() - t0
+
+            tokens_generated = y.size(2) - prompt_length
+            tokens_sec = tokens_generated / t
+            logger.info(
+                f"Generated {tokens_generated} tokens in {t:.02f} seconds, {tokens_sec:.02f} tokens/sec"
+            )
+            logger.info(
+                f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
+            )
+
+            if torch.cuda.is_available():
+                logger.info(
+                    f"GPU Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB"
+                )
+
+            # Put the generated tokens
+            # since there is <im_end>, we remove last token
+            codes = y[:, 1:, prompt_length + 1 :].clone()
+            assert (codes >= 0).all(), f"Negative code found: {codes}"
+
+            decoded = y[:, :, prompt_length:].clone()
+            # But for global encoding, we should keep the <im_end> token
+
+            global_encoded.append(decoded)
+            yield GenerateResponse(action="sample", codes=codes, text=text[seg_idx])
+            seg_idx += 1
+
+        # This indicates the end of the current sample
+        yield GenerateResponse(action="next")
 
 @dataclass
 class WrappedGenerateResponse:
