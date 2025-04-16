@@ -1,13 +1,12 @@
 import torch
-from fish_speech.conversation import (
-    CODEBOOK_PAD_TOKEN_ID,)
 import torch.nn.functional as F
 
+from fish_speech.conversation import (
+    CODEBOOK_PAD_TOKEN_ID,
+)
 
-def collate(tokens_list,
-            max_length=torch.inf,
-            end_of_text=None,
-            pad_right=True):
+
+def collate(tokens_list, max_length=torch.inf, end_of_text=None, pad_right=True):
     assert end_of_text
     tokens, attention_masks = [], []
     max_tokens_length = 0
@@ -22,7 +21,7 @@ def collate(tokens_list,
             _tokens = F.pad(
                 _tokens,
                 (0, max_tokens_length - tokens_length),
-                value=end_of_text #self.tokenizer.get_token_id("<|end_of_text|>"),
+                value=end_of_text,  # self.tokenizer.get_token_id("<|end_of_text|>"),
             )
             _tokens[1:, tokens_length:] = CODEBOOK_PAD_TOKEN_ID
 
