@@ -267,7 +267,9 @@ def decode_one_token_ar(
         _sample(
             x.logits,
             previous_tokens=(
-                (previous_tokens[:, 0] if batched else previous_tokens[0]) if previous_tokens is not None else None
+                (previous_tokens[:, 0] if batched else previous_tokens[0])
+                if previous_tokens is not None
+                else None
             ),  # Disable repetition penalty for the token codebook
             **sampling_kwargs_main,
         )[0]
@@ -295,7 +297,11 @@ def decode_one_token_ar(
         a = _sample(
             logits,
             previous_tokens=(
-                (previous_tokens[:, codebook_idx + 1] if batched else previous_tokens[codebook_idx + 1])
+                (
+                    previous_tokens[:, codebook_idx + 1]
+                    if batched
+                    else previous_tokens[codebook_idx + 1]
+                )
                 if previous_tokens is not None
                 else None
             ),
@@ -349,6 +355,7 @@ def decode_one_token_naive(
 
     return torch.stack(codebooks, dim=0)
 
+
 def decode_n_tokens(
     model: NaiveTransformer,
     cur_token: torch.Tensor,
@@ -398,6 +405,7 @@ def decode_n_tokens(
             break
 
     return previous_tokens[:, : i + 1]
+
 
 def decode_n_tokens_batched(
     model: NaiveTransformer,
@@ -507,7 +515,7 @@ def generate(
 
     next_token = prefill_decode(
         model,
-        prompt.view(1, codebook_dim, -1), # assume bs = 1
+        prompt.view(1, codebook_dim, -1),  # assume bs = 1
         input_pos,
         semantic_ids=semantic_ids,
         **sampling_kwargs,
@@ -517,7 +525,7 @@ def generate(
     input_pos = torch.tensor([T], device=device, dtype=torch.int)
     x = decode_n_tokens(
         model,
-        next_token.view(1, codebook_dim, -1), # assume bs = 1
+        next_token.view(1, codebook_dim, -1),  # assume bs = 1
         input_pos,
         max_new_tokens - 1,
         decode_one_token=decode_one_token,
@@ -529,6 +537,7 @@ def generate(
     seq[:, T + 1 :] = x
 
     return seq
+
 
 @torch.no_grad()
 @torch.inference_mode()
@@ -545,7 +554,7 @@ def generate_batched(
     """
 
     # create an empty tensor of the expected final shape and fill in the current tokens
-    bs, C, T = prompt.shape 
+    bs, C, T = prompt.shape
     device, dtype = prompt.device, prompt.dtype
     # semantic_id = model.tokenizer.convert_tokens_to_ids("<|semantic|>")
     semantic_ids = [
@@ -595,9 +604,7 @@ def generate_batched(
     )
     # x = torch.cat(generated_tokens, dim=1)
     seq = seq[:, :, : T + 1 + x.size(2)]
-    seq[:, :, T + 1 :] = x.view(
-            bs, model.config.num_codebooks + 1, -1
-        )
+    seq[:, :, T + 1 :] = x.view(bs, model.config.num_codebooks + 1, -1)
 
     return seq
 
@@ -1013,6 +1020,7 @@ def generate_long(
         # This indicates the end of the current sample
         yield GenerateResponse(action="next")
 
+
 def generate_batch(
     *,
     model,
@@ -1044,7 +1052,7 @@ def generate_batch(
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     tokenizer = model.tokenizer
     im_end_id = tokenizer.get_token_id("<|im_end|>")
-    
+
     encodeds = []
     encoded_prompts_ = []
     for idx, t in enumerate(text):
@@ -1086,8 +1094,12 @@ def generate_batch(
         logger.info(f"Encoded text: {t}")
         encodeds.extend(encoded)
         encoded_prompts_.append(torch.cat(encoded_prompts, dim=1))
-    encoded, encoded_mask = collate(encodeds, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
-    encoded_prompts, encoded_prompts_mask = collate(encoded_prompts_, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
+    encoded, encoded_mask = collate(
+        encodeds, end_of_text=tokenizer.get_token_id("<|end_of_text|>")
+    )
+    encoded_prompts, encoded_prompts_mask = collate(
+        encoded_prompts_, end_of_text=tokenizer.get_token_id("<|end_of_text|>")
+    )
     logger.info(f"Encoded text batch of shape {list(encoded.shape)}, and prompt batch {list(encoded_prompts.shape)}")
     encoded = [encoded]
     encoded_prompts = [encoded_prompts]
@@ -1134,7 +1146,7 @@ def generate_batch(
                 partial_encoded = global_encoded[:2] + global_encoded[-i:]
             else:
                 partial_encoded = global_encoded
-            
+
             # add prompt
             if use_prompt:
                 partial_encoded = encoded_prompts + partial_encoded
@@ -1147,7 +1159,7 @@ def generate_batch(
                 model=model,
                 prompt=cat_encoded,
                 max_new_tokens=max_new_tokens,
-                decode_one_token=decode_one_token, #decode_one_token_ar
+                decode_one_token=decode_one_token,  # decode_one_token_ar
                 temperature=temperature,
                 top_p=top_p,
                 repetition_penalty=repetition_penalty,
@@ -1189,6 +1201,7 @@ def generate_batch(
 
         # This indicates the end of the current sample
         yield GenerateResponse(action="next")
+
 
 @dataclass
 class WrappedGenerateResponse:
