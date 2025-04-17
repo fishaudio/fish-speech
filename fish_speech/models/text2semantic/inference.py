@@ -24,7 +24,7 @@ from fish_speech.conversation import (
     VQPart,
 )
 from fish_speech.models.text2semantic.llama import BaseModelArgs
-from fish_speech.models.text2semantic.utils import collate 
+from fish_speech.models.text2semantic.utils import collate
 from fish_speech.text import clean_text, split_text
 from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 
@@ -1083,13 +1083,13 @@ def generate_batch(
                     prompt_tokens=prompt_tokens[idx],
                     num_codebooks=model.config.num_codebooks,
                 )
-                )
-        tokens = encode_tokens(
-                tokenizer,
-                string=t,
-                device=device,
-                num_codebooks=model.config.num_codebooks,
             )
+        tokens = encode_tokens(
+            tokenizer,
+            string=t,
+            device=device,
+            num_codebooks=model.config.num_codebooks,
+        )
         encoded.append(tokens)
         logger.info(f"Encoded text: {t}")
         encodeds.extend(encoded)
@@ -1100,7 +1100,9 @@ def generate_batch(
     encoded_prompts, encoded_prompts_mask = collate(
         encoded_prompts_, end_of_text=tokenizer.get_token_id("<|end_of_text|>")
     )
-    logger.info(f"Encoded text batch of shape {list(encoded.shape)}, and prompt batch {list(encoded_prompts.shape)}")
+    logger.info(
+        f"Encoded text batch of shape {list(encoded.shape)}, and prompt batch {list(encoded_prompts.shape)}"
+    )
     encoded = [encoded]
     encoded_prompts = [encoded_prompts]
     # Move temperature, top_p, repetition_penalty to device
