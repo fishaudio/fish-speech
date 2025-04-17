@@ -24,6 +24,7 @@ from fish_speech.conversation import (
     VQPart,
 )
 from fish_speech.models.text2semantic.llama import BaseModelArgs
+from fish_speech.models.text2semantic.utils import collate 
 from fish_speech.text import clean_text, split_text
 from fish_speech.tokenizer import IM_END_TOKEN, FishTokenizer
 
@@ -267,8 +268,6 @@ def decode_one_token_ar(
             x.logits,
             previous_tokens=(
                 (previous_tokens[:, 0] if batched else previous_tokens[0]) if previous_tokens is not None else None
-                # (previous_tokens[:, 0] if batched else previous_tokens[0]) if previous_tokens is not None and not batched else None
-                # TODO: support batched
             ),  # Disable repetition penalty for the token codebook
             **sampling_kwargs_main,
         )[0]
@@ -1029,12 +1028,10 @@ def generate_batch(
     max_length: int = 2048,
     prompt_text: Optional[str | list[str]] = None,
     prompt_tokens: Optional[torch.Tensor | list[torch.Tensor]] = None,
-    batched=False
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < repetition_penalty < 2, "repetition_penalty must be in (0, 2)"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
-    print("prompt_tokens", prompt_tokens[0].shape)
     use_prompt = prompt_text is not None and prompt_tokens is not None
     if use_prompt and isinstance(prompt_text, str):
         prompt_text = [prompt_text]
@@ -1079,22 +1076,19 @@ def generate_batch(
                     num_codebooks=model.config.num_codebooks,
                 )
                 )
-            print(use_prompt, encoded_prompts[0].shape)
         tokens = encode_tokens(
                 tokenizer,
                 string=t,
                 device=device,
                 num_codebooks=model.config.num_codebooks,
             )
-        if batched: tokens = tokens
         encoded.append(tokens)
-        logger.info(f"Encoded text: {text}")
+        logger.info(f"Encoded text: {t}")
         encodeds.extend(encoded)
         encoded_prompts_.append(torch.cat(encoded_prompts, dim=1))
-    print(*[i.shape for i in encoded_prompts_])
     encoded, encoded_mask = collate(encodeds, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
     encoded_prompts, encoded_prompts_mask = collate(encoded_prompts_, end_of_text=tokenizer.get_token_id("<|end_of_text|>"))
-    print(encoded.shape, encoded_prompts.shape)
+    logger.info(f"Encoded text batch of shape {list(encoded.shape)}, and prompt batch {list(encoded_prompts.shape)}")
     encoded = [encoded]
     encoded_prompts = [encoded_prompts]
     # Move temperature, top_p, repetition_penalty to device
@@ -1149,8 +1143,7 @@ def generate_batch(
             prompt_length = cat_encoded.size(2)
 
             t0 = time.perf_counter()
-            _generate = generate_batched if batched else generate
-            y = _generate(
+            y = generate_batched(
                 model=model,
                 prompt=cat_encoded,
                 max_new_tokens=max_new_tokens,
