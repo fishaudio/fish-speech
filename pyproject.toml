@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Fish Speech"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13,<4.0"
 keywords = ["TTS", "Speech"]
 license = {text = "Apache-2.0"}
 classifiers = [
