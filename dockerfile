@@ -2,7 +2,8 @@ FROM python:3.12-slim-bookworm AS stage-1
 ARG TARGETARCH
 
 ARG HUGGINGFACE_MODEL=fish-speech-1.5
-ARG HF_ENDPOINT=https://huggingface.co
+#ARG HF_ENDPOINT=https://huggingface.co
+ARG HF_ENDPOINT=http://spirit.51.airia.com:8081/repository/huggingface-proxy
 
 WORKDIR /opt/fish-speech
 
@@ -43,8 +44,10 @@ RUN --mount=type=cache,target=/root/.cache,sharing=locked \
 
 COPY --from=stage-1 /opt/fish-speech/checkpoints /opt/fish-speech/checkpoints
 
-ENV GRADIO_SERVER_NAME="0.0.0.0"
+#ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-EXPOSE 7860
+#EXPOSE 7860
+EXPOSE 8080
 
-CMD ["./entrypoint.sh"]
+#CMD ["./entrypoint.sh"]
+CMD ["python", "tools/api_server.py", "--listen", "0.0.0.0:8080", "--compile"]

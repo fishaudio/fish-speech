@@ -26,7 +26,6 @@ asr-label*
 /fishenv
 /.locale
 /demo-audios
-/references
 /example
 /faster_whisper
 /.gradio
