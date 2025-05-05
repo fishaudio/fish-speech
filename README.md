@@ -8,6 +8,8 @@ Docker image for running fish-speech v.1.5 with an API server. The container tak
 
 
 # API Usage
+
+Sample API call:
 ```
   curl -X POST http://localhost:8080/v1/tts \
     -H "Content-Type: application/json" \
@@ -21,3 +23,5 @@ Docker image for running fish-speech v.1.5 with an API server. The container tak
       "repetition_penalty": 1.2
     }' --output sample.wav
 ```
+
+The `reference_id` parameter can be used to refer to voice reference samples in the references folder. If you do not wish to do cloing of a voice reference, leave out this parameter in API calls. Without a reference voice, be sure to keep the seed the same between calls for consistency in the generated voice.
