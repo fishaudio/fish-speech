@@ -612,8 +612,13 @@ class DualARTransformer(BaseTransformer):
         x = rearrange(x, "b n s d -> (b s) n d")  # flatten the batch and seq_len
 
         # Remove padded part
-        codebooks = rearrange(codebooks, "b n s -> (b s) n")
-        codebook_mask = (codebooks == 0).all(dim=-1)
+        # codebooks = rearrange(codebooks, "b n s -> (b s) n")
+        # codebook_mask = (codebooks == 0).all(dim=-1)
+        # Remove padded part, but keep EOS
+        codebook_mask_ = codebooks == 0
+        codebook_mask_right_shift = F.pad(codebook_mask_, (1, 0), value=1)[:, :, :-1]
+        codebook_mask = torch.logical_and(codebook_mask_, codebook_mask_right_shift)
+        codebook_mask = rearrange(codebook_mask, "b n s -> (b s) n").all(dim=-1)
 
         if torch.all(codebook_mask):
             # If all codebooks are padded, we keep first 8 to make sure the model runs
