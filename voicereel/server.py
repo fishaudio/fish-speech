@@ -6,8 +6,10 @@ import queue
 import sqlite3
 import tempfile
 import threading
+import time
 import urllib.parse
 import uuid
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from .caption import export_captions
@@ -25,6 +27,8 @@ class VoiceReelServer:
         handler = self._make_handler()
         self.httpd = HTTPServer((self.host, self.port), handler)
         self.thread: threading.Thread | None = None
+        self.worker: threading.Thread | None = None
+        self._stop_event = threading.Event()
 
     # ------------------------------------------------------------------
     # Internal setup methods
@@ -49,6 +53,14 @@ class VoiceReelServer:
                 audio_url TEXT,
                 caption_path TEXT,
                 caption_format TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usage (
+                ts TEXT,
+                length REAL
             )
             """
         )
@@ -174,10 +186,17 @@ class VoiceReelServer:
                     job_id = str(uuid.uuid4())
                     cur.execute(
                         "INSERT INTO jobs (id, type, status, audio_url, caption_path, caption_format) VALUES (?, ?, ?, ?, ?, ?)",
-                        (job_id, "register_speaker", "succeeded", None, None, None),
+                        (
+                            job_id,
+                            "register_speaker",
+                            "pending",
+                            None,
+                            None,
+                            None,
+                        ),
                     )
                     server.db.commit()
-                    server.job_queue.put(("register_speaker", speaker_id))
+                    server.job_queue.put(("register_speaker", job_id, speaker_id))
                     body = json.dumps(
                         {
                             "job_id": job_id,
@@ -232,11 +251,15 @@ class VoiceReelServer:
                         (
                             job_id,
                             "synthesize",
-                            "succeeded",
+                            "pending",
                             audio_path,
                             caption_path,
                             caption_format,
                         ),
+                    )
+                    cur.execute(
+                        "INSERT INTO usage (ts, length) VALUES (?, ?)",
+                        (datetime.now().isoformat(), len(script) * 0.5),
                     )
                     server.db.commit()
                     server.job_queue.put(("synthesize", job_id))
@@ -249,11 +272,31 @@ class VoiceReelServer:
                     self.send_response(404)
                     self.end_headers()
 
-            def log_message(self, format: str, *args) -> None:
-                # Suppress default logging
-                return
+        def log_message(self, format: str, *args) -> None:
+            # Suppress default logging
+            return
 
         return Handler
+
+    def _worker_loop(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                item = self.job_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            if item is None:
+                continue
+            if len(item) == 2:
+                job_type, job_id = item
+            else:
+                job_type, job_id, *_ = item
+            cur = self.db.cursor()
+            cur.execute(
+                "UPDATE jobs SET status=? WHERE id=?",
+                ("succeeded", job_id),
+            )
+            self.db.commit()
+            self.job_queue.task_done()
 
     # ------------------------------------------------------------------
     # Public methods
@@ -266,9 +309,39 @@ class VoiceReelServer:
         self.thread = threading.Thread(target=self.httpd.serve_forever)
         self.thread.daemon = True
         self.thread.start()
+        self.worker = threading.Thread(target=self._worker_loop)
+        self.worker.daemon = True
+        self.worker.start()
 
     def stop(self) -> None:
         if self.thread:
             self.httpd.shutdown()
             self.thread.join()
             self.thread = None
+        if self.worker:
+            self._stop_event.set()
+            self.job_queue.put(None)
+            self.worker.join()
+            self.worker = None
+            self._stop_event.clear()
+
+    def wait_all_jobs(self, timeout: float = 1.0) -> None:
+        end = datetime.now().timestamp() + timeout
+        while datetime.now().timestamp() < end:
+            if self.job_queue.empty():
+                return
+            time.sleep(0.01)
+
+    def usage_report(self, year: int, month: int) -> dict:
+        start = datetime(year, month, 1)
+        if month == 12:
+            end_dt = datetime(year + 1, 1, 1)
+        else:
+            end_dt = datetime(year, month + 1, 1)
+        cur = self.db.cursor()
+        cur.execute(
+            "SELECT COUNT(*), COALESCE(SUM(length), 0) FROM usage WHERE ts >= ? AND ts < ?",
+            (start.isoformat(), end_dt.isoformat()),
+        )
+        count, total = cur.fetchone()
+        return {"count": count, "total_length": total}

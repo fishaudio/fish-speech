@@ -5,6 +5,7 @@ import sys
 import types
 import urllib.error
 import urllib.request
+from datetime import datetime
 
 import pytest
 
@@ -48,6 +49,25 @@ def test_health_endpoint():
         server.stop()
 
 
+def test_usage_report():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"script": [{"speaker_id": 1, "text": "hi"}]}).encode()
+        for _ in range(3):
+            req = urllib.request.Request(
+                f"{_base_url(server)}/v1/synthesize", data=payload, method="POST"
+            )
+            urllib.request.urlopen(req).read()
+        server.wait_all_jobs()
+        now = datetime.now()
+        report = server.usage_report(now.year, now.month)
+        assert report["count"] >= 3
+        assert report["total_length"] >= 1.5
+    finally:
+        server.stop()
+
+
 def test_register_and_list_speakers():
     server = VoiceReelServer()
     server.start()
@@ -66,6 +86,13 @@ def test_register_and_list_speakers():
         ) as resp:
             data = json.loads(resp.read().decode())
         assert any(s["id"] == body["speaker_id"] for s in data["speakers"])
+
+        server.wait_all_jobs()
+        with urllib.request.urlopen(
+            f"{_base_url(server)}/v1/jobs/{body['job_id']}"
+        ) as resp:
+            info = json.loads(resp.read().decode())
+        assert info["status"] == "succeeded"
     finally:
         server.stop()
 
@@ -96,8 +123,12 @@ def test_synthesize_endpoint():
         with urllib.request.urlopen(req) as resp:
             data = json.loads(resp.read().decode())
         assert "job_id" in data
-        job_type, _ = server.job_queue.get_nowait()
-        assert job_type == "synthesize"
+        server.wait_all_jobs()
+        with urllib.request.urlopen(
+            f"{_base_url(server)}/v1/jobs/{data['job_id']}"
+        ) as resp:
+            info = json.loads(resp.read().decode())
+        assert info["status"] == "succeeded"
     finally:
         server.stop()
 
@@ -114,6 +145,7 @@ def test_job_get_and_delete():
             data = json.loads(resp.read().decode())
         job_id = data["job_id"]
 
+        server.wait_all_jobs()
         with urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}") as resp:
             info = json.loads(resp.read().decode())
         assert info["status"] == "succeeded"
@@ -149,6 +181,7 @@ def test_synthesize_caption_formats():
             with urllib.request.urlopen(req) as resp:
                 data = json.loads(resp.read().decode())
             job_id = data["job_id"]
+            server.wait_all_jobs()
             with urllib.request.urlopen(
                 f"{_base_url(server)}/v1/jobs/{job_id}"
             ) as resp:
