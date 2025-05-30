@@ -5,6 +5,7 @@ import queue
 import sqlite3
 import threading
 import uuid
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -47,9 +48,17 @@ class VoiceReelServer:
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
                     self.wfile.write(b'{"status":"ok"}')
-                elif self.path == "/v1/speakers":
+                elif self.path.startswith("/v1/speakers"):
+                    query = urllib.parse.urlparse(self.path).query
+                    params = urllib.parse.parse_qs(query)
+                    page = int(params.get("page", ["1"])[0])
+                    page_size = int(params.get("page_size", ["10"])[0])
+                    offset = (page - 1) * page_size
                     cur = server.db.cursor()
-                    cur.execute("SELECT id, name, lang FROM speakers")
+                    cur.execute(
+                        "SELECT id, name, lang FROM speakers LIMIT ? OFFSET ?",
+                        (page_size, offset),
+                    )
                     speakers = [
                         {"id": row[0], "name": row[1], "lang": row[2]}
                         for row in cur.fetchall()
@@ -66,7 +75,27 @@ class VoiceReelServer:
             def do_POST(self):
                 if self.path == "/v1/speakers":
                     length = int(self.headers.get("Content-Length", 0))
-                    _ = self.rfile.read(length)
+                    raw = self.rfile.read(length)
+                    try:
+                        payload = json.loads(raw.decode()) if raw else {}
+                    except json.JSONDecodeError:
+                        self.send_response(400)
+                        self.end_headers()
+                        return
+
+                    duration = float(payload.get("duration", 0))
+                    script = payload.get("script", "")
+                    if duration < 30:
+                        self.send_response(422)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b'{"error":"INSUFFICIENT_REF"}')
+                        return
+                    if not script:
+                        self.send_response(400)
+                        self.end_headers()
+                        return
+
                     cur = server.db.cursor()
                     cur.execute(
                         "INSERT INTO speakers (name, lang) VALUES (?, ?)",
