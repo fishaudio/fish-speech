@@ -191,6 +191,21 @@ def test_register_and_list(client):
     assert speakers["speakers"][0]["id"] == "spk1"
 
 
+def test_get_speaker(client):
+    with (
+        tempfile.NamedTemporaryFile("wb", suffix=".wav") as fa,
+        tempfile.NamedTemporaryFile("w", suffix=".txt") as ft,
+    ):
+        fa.write(b"data")
+        fa.flush()
+        ft.write("hello")
+        ft.flush()
+        resp = client.register_speaker("name", "en", fa.name, ft.name)
+    speaker_id = resp.get("speaker_temp_id", "spk1")
+    info = client.get_speaker(speaker_id)
+    assert info["id"] == "spk1"
+
+
 def test_synthesize_and_job(client):
     job = client.synthesize([{"speaker_id": "spk1", "text": "hi"}])
     assert job["job_id"] == "job456"

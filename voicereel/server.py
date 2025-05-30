@@ -102,6 +102,25 @@ class VoiceReelServer:
                     else:
                         self.send_response(404)
                         self.end_headers()
+                elif self.path.startswith("/v1/speakers/"):
+                    speaker_id = self.path.rsplit("/", 1)[-1]
+                    cur = server.db.cursor()
+                    cur.execute(
+                        "SELECT id, name, lang FROM speakers WHERE id=?",
+                        (speaker_id,),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        body = json.dumps(
+                            {"id": row[0], "name": row[1], "lang": row[2]}
+                        ).encode()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(body)
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
                 elif self.path.startswith("/v1/speakers"):
                     query = urllib.parse.urlparse(self.path).query
                     params = urllib.parse.parse_qs(query)

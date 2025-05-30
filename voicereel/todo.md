@@ -13,7 +13,7 @@
    - [x] 등록 처리 Job 생성 → 작업 큐 전달
 
 3. **화자 조회 기능 (FR-02)**
-   - [x] `/v1/speakers` GET 목록 및 `/v1/speakers/{id}` 세부 조회 구현
+   - [x] `/v1/speakers` GET 목록 및 `/v1/speakers/{id}` 세부 조회 구현 *(완료)*
    - [x] Pagination 파라미터 처리
 
 4. **다중 화자 합성 API (FR-03)**
