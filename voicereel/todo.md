@@ -3,9 +3,9 @@
 우선순위와 의존성을 고려하여 VoiceReel Studio PRD를 구현하기 위한 작업 목록이다.
 
 1. **API 서버 기반 구축**
-   - [x] Flask+Gunicorn 스켈레톤 작성
-   - [x] Celery/Redis로 비동기 작업 큐 구성
-   - [x] Metadata DB(PostgreSQL) 초기 스키마 설계
+   - [x] Flask+Gunicorn 스켈레톤 작성 *(`flask_app.py` 추가)*
+   - [x] Celery/Redis로 비동기 작업 큐 구성 *(`task_queue.py`에서 메모리 큐 구현)*
+   - [x] Metadata DB(PostgreSQL) 초기 스키마 설계 *(`db.init_db`에서 테이블 생성)*
 
 2. **화자 등록 기능 (FR-01)**
    - [x] `/v1/speakers` POST 엔드포인트 구현
