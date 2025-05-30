@@ -61,6 +61,7 @@ nav:
   - Inference: inference.md
   - Start Agent: start_agent.md
   - Samples: samples.md
+  - VoiceReel API: voicereel.md
 
 # Plugins
 plugins:
