@@ -97,6 +97,28 @@ def test_register_and_list_speakers():
         server.stop()
 
 
+def test_get_single_speaker():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"duration": 30, "script": "hello"}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/speakers", data=payload, method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            body = json.loads(resp.read().decode())
+        speaker_id = body["speaker_id"]
+
+        server.wait_all_jobs()
+        with urllib.request.urlopen(
+            f"{_base_url(server)}/v1/speakers/{speaker_id}"
+        ) as resp:
+            info = json.loads(resp.read().decode())
+        assert info["id"] == speaker_id
+    finally:
+        server.stop()
+
+
 def test_register_invalid_duration():
     server = VoiceReelServer()
     server.start()
