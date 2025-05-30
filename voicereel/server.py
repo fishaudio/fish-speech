@@ -6,6 +6,8 @@ import sqlite3
 import threading
 import uuid
 import urllib.parse
+import os
+import tempfile
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -41,7 +43,8 @@ class VoiceReelServer:
             CREATE TABLE IF NOT EXISTS jobs (
                 id TEXT PRIMARY KEY,
                 type TEXT,
-                status TEXT
+                status TEXT,
+                audio_url TEXT
             )
             """
         )
@@ -57,6 +60,30 @@ class VoiceReelServer:
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
                     self.wfile.write(b'{"status":"ok"}')
+                elif self.path.startswith("/v1/jobs/"):
+                    job_id = self.path.rsplit("/", 1)[-1]
+                    cur = server.db.cursor()
+                    cur.execute(
+                        "SELECT id, type, status, audio_url FROM jobs WHERE id=?",
+                        (job_id,),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        body = json.dumps(
+                            {
+                                "id": row[0],
+                                "type": row[1],
+                                "status": row[2],
+                                "audio_url": row[3],
+                            }
+                        ).encode()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(body)
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
                 elif self.path.startswith("/v1/speakers"):
                     query = urllib.parse.urlparse(self.path).query
                     params = urllib.parse.parse_qs(query)
@@ -77,6 +104,30 @@ class VoiceReelServer:
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
                     self.wfile.write(body)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+
+            def do_DELETE(self):
+                if self.path.startswith("/v1/jobs/"):
+                    job_id = self.path.rsplit("/", 1)[-1]
+                    cur = server.db.cursor()
+                    cur.execute("SELECT audio_url FROM jobs WHERE id=?", (job_id,))
+                    row = cur.fetchone()
+                    if not row:
+                        self.send_response(404)
+                        self.end_headers()
+                        return
+                    audio_url = row[0]
+                    if audio_url:
+                        try:
+                            os.remove(audio_url)
+                        except FileNotFoundError:
+                            pass
+                    cur.execute("DELETE FROM jobs WHERE id=?", (job_id,))
+                    server.db.commit()
+                    self.send_response(204)
+                    self.end_headers()
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -111,8 +162,12 @@ class VoiceReelServer:
                         ("unknown", "en"),
                     )
                     speaker_id = cur.lastrowid
-                    server.db.commit()
                     job_id = str(uuid.uuid4())
+                    cur.execute(
+                        "INSERT INTO jobs (id, type, status, audio_url) VALUES (?, ?, ?, ?)",
+                        (job_id, "register_speaker", "succeeded", None),
+                    )
+                    server.db.commit()
                     server.job_queue.put(("register_speaker", speaker_id))
                     body = json.dumps({
                         "job_id": job_id,
@@ -140,9 +195,12 @@ class VoiceReelServer:
 
                     job_id = str(uuid.uuid4())
                     cur = server.db.cursor()
+                    audio_path = os.path.join(tempfile.gettempdir(), f"{job_id}.wav")
+                    with open(audio_path, "wb") as f:
+                        f.write(b"FAKE")
                     cur.execute(
-                        "INSERT INTO jobs (id, type, status) VALUES (?, ?, ?)",
-                        (job_id, "synthesize", "queued"),
+                        "INSERT INTO jobs (id, type, status, audio_url) VALUES (?, ?, ?, ?)",
+                        (job_id, "synthesize", "succeeded", audio_path),
                     )
                     server.db.commit()
                     server.job_queue.put(("synthesize", job_id))

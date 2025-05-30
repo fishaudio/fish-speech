@@ -99,3 +99,33 @@ def test_synthesize_endpoint():
         assert job_type == "synthesize"
     finally:
         server.stop()
+
+
+def test_job_get_and_delete():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"script": [{"speaker_id": 1, "text": "hi"}]}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/synthesize", data=payload, method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+        job_id = data["job_id"]
+
+        with urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}") as resp:
+            info = json.loads(resp.read().decode())
+        assert info["status"] == "succeeded"
+        assert "audio_url" in info
+
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/jobs/{job_id}", method="DELETE"
+        )
+        with urllib.request.urlopen(req) as resp:
+            assert resp.status == 204
+
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}")
+        assert exc.value.code == 404
+    finally:
+        server.stop()
