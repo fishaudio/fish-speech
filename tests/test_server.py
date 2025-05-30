@@ -1,9 +1,11 @@
 import json
 import urllib.request
+import urllib.error
 import sys
 import os
 import types
 import importlib.util
+import pytest
 
 # Ensure project root is on sys.path for module imports
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -49,16 +51,34 @@ def test_register_and_list_speakers():
     server = VoiceReelServer()
     server.start()
     try:
+        payload = json.dumps({"duration": 30, "script": "hello"}).encode()
         req = urllib.request.Request(
-            f"{_base_url(server)}/v1/speakers", data=b"{}", method="POST"
+            f"{_base_url(server)}/v1/speakers", data=payload, method="POST"
         )
         with urllib.request.urlopen(req) as resp:
             body = json.loads(resp.read().decode())
         assert "job_id" in body
         assert "speaker_id" in body
 
-        with urllib.request.urlopen(f"{_base_url(server)}/v1/speakers") as resp:
+        with urllib.request.urlopen(
+            f"{_base_url(server)}/v1/speakers?page=1&page_size=1"
+        ) as resp:
             data = json.loads(resp.read().decode())
         assert any(s["id"] == body["speaker_id"] for s in data["speakers"])
+    finally:
+        server.stop()
+
+
+def test_register_invalid_duration():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"duration": 10, "script": "hi"}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/speakers", data=payload, method="POST"
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 422
     finally:
         server.stop()
