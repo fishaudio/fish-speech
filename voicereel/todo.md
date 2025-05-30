@@ -17,8 +17,8 @@
    - [x] Pagination 파라미터 처리
 
 4. **다중 화자 합성 API (FR-03)**
-   - [ ] `/v1/synthesize` POST 엔드포인트 구현
-   - [ ] 입력 JSON 스크립트 파싱 및 음성 합성 Job 생성
+   - [x] `/v1/synthesize` POST 엔드포인트 구현
+   - [x] 입력 JSON 스크립트 파싱 및 음성 합성 Job 생성
    - [ ] 결과 WAV/MP3 저장 후 presigned URL 반환
 
 5. **자막 Export (FR-04)**
@@ -26,7 +26,7 @@
    - [ ] 클라이언트에서 원하는 포맷 선택 가능하도록 옵션 처리
 
 6. **작업 상태 관리 (FR-05)**
-   - [ ] Job metadata 테이블 설계
+   - [x] Job metadata 테이블 설계
    - [ ] `/v1/jobs/{id}` GET/DELETE 구현
    - [ ] 비동기 완료 시 상태 업데이트 로직 작성
 
