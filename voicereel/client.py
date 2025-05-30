@@ -238,6 +238,13 @@ def parse_args() -> argparse.Namespace:
     job_p = sub.add_parser("job", help="Get job status")
     job_p.add_argument("job_id")
 
+    list_p = sub.add_parser("list-speakers", help="List registered speakers")
+    list_p.add_argument("--page", type=int)
+    list_p.add_argument("--page-size", type=int)
+
+    del_job_p = sub.add_parser("delete-job", help="Delete a job")
+    del_job_p.add_argument("job_id")
+
     return parser.parse_args()
 
 
@@ -261,6 +268,12 @@ def main() -> None:
     elif args.command == "job":
         result = client.get_job(args.job_id)
         print(json.dumps(result, indent=2))
+    elif args.command == "list-speakers":
+        result = client.list_speakers(page=args.page, page_size=args.page_size)
+        print(json.dumps(result, indent=2))
+    elif args.command == "delete-job":
+        client.delete_job(args.job_id)
+        print(f"Job {args.job_id} deleted")
 
 
 if __name__ == "__main__":
