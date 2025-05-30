@@ -1,10 +1,11 @@
-import json
-import urllib.request
-import urllib.error
-import sys
-import os
-import types
 import importlib.util
+import json
+import os
+import sys
+import types
+import urllib.error
+import urllib.request
+
 import pytest
 
 # Ensure project root is on sys.path for module imports
@@ -127,5 +128,32 @@ def test_job_get_and_delete():
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}")
         assert exc.value.code == 404
+    finally:
+        server.stop()
+
+
+def test_synthesize_caption_formats():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        for fmt in ["json", "vtt", "srt"]:
+            payload = json.dumps(
+                {
+                    "script": [{"speaker_id": 1, "text": "hi"}],
+                    "caption_format": fmt,
+                }
+            ).encode()
+            req = urllib.request.Request(
+                f"{_base_url(server)}/v1/synthesize", data=payload, method="POST"
+            )
+            with urllib.request.urlopen(req) as resp:
+                data = json.loads(resp.read().decode())
+            job_id = data["job_id"]
+            with urllib.request.urlopen(
+                f"{_base_url(server)}/v1/jobs/{job_id}"
+            ) as resp:
+                info = json.loads(resp.read().decode())
+            assert info["caption_format"] == fmt
+            assert os.path.exists(info["caption_url"])
     finally:
         server.stop()
