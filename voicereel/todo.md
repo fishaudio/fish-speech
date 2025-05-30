@@ -19,7 +19,7 @@
 4. **다중 화자 합성 API (FR-03)**
    - [x] `/v1/synthesize` POST 엔드포인트 구현
    - [x] 입력 JSON 스크립트 파싱 및 음성 합성 Job 생성
-   - [ ] 결과 WAV/MP3 저장 후 presigned URL 반환
+   - [x] 결과 WAV/MP3 저장 후 presigned URL 반환
 
 5. **자막 Export (FR-04)**
    - [ ] 합성 결과에 대해 WebVTT/SRT/JSON 포맷 변환 모듈 작성
@@ -27,7 +27,7 @@
 
 6. **작업 상태 관리 (FR-05)**
    - [x] Job metadata 테이블 설계
-   - [ ] `/v1/jobs/{id}` GET/DELETE 구현
+   - [x] `/v1/jobs/{id}` GET/DELETE 구현
    - [ ] 비동기 완료 시 상태 업데이트 로직 작성
 
 7. **Usage Metering (FR-06)**
