@@ -1,10 +1,10 @@
-import sys
-import os
 import json
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
+import sys
 import tempfile
+import threading
 import types
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
@@ -12,6 +12,7 @@ import pytest
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
 
 # ---------------------------------------------------------------------------
 # Provide minimal stubs for dependencies that require heavy packages
@@ -22,7 +23,12 @@ class ServeReferenceAudio:
         self.text = text
 
     def model_dump(self):
-        return {"audio": self.audio.decode() if isinstance(self.audio, bytes) else self.audio, "text": self.text}
+        return {
+            "audio": (
+                self.audio.decode() if isinstance(self.audio, bytes) else self.audio
+            ),
+            "text": self.text,
+        }
 
 
 class ServeTTSRequest:
@@ -67,6 +73,8 @@ from voicereel import VoiceReelClient
 
 
 class MockHandler(BaseHTTPRequestHandler):
+    last_payload: dict | None = None
+
     def do_POST(self):
         if self.path == "/v1/tts":
             self.send_response(200)
@@ -80,7 +88,11 @@ class MockHandler(BaseHTTPRequestHandler):
             body = {"job_id": "job123", "speaker_temp_id": "spk_tmp"}
             self.wfile.write(json.dumps(body).encode())
         elif self.path == "/v1/synthesize":
-            _ = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            try:
+                MockHandler.last_payload = json.loads(raw.decode()) if raw else {}
+            except json.JSONDecodeError:
+                MockHandler.last_payload = {}
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -165,7 +177,10 @@ def test_tts(client):
 
 
 def test_register_and_list(client):
-    with tempfile.NamedTemporaryFile("wb", suffix=".wav") as fa, tempfile.NamedTemporaryFile("w", suffix=".txt") as ft:
+    with (
+        tempfile.NamedTemporaryFile("wb", suffix=".wav") as fa,
+        tempfile.NamedTemporaryFile("w", suffix=".txt") as ft,
+    ):
         fa.write(b"data")
         fa.flush()
         ft.write("hello")
@@ -182,3 +197,8 @@ def test_synthesize_and_job(client):
     status = client.get_job(job["job_id"])
     assert status["status"] == "succeeded"
     client.delete_job(job["job_id"])
+
+
+def test_synthesize_caption_option(client):
+    _ = client.synthesize([{"speaker_id": "spk1", "text": "hi"}], caption_format="vtt")
+    assert MockHandler.last_payload["caption_format"] == "vtt"
