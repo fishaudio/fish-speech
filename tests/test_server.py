@@ -82,3 +82,20 @@ def test_register_invalid_duration():
         assert exc.value.code == 422
     finally:
         server.stop()
+
+
+def test_synthesize_endpoint():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"script": [{"speaker_id": 1, "text": "hi"}]}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/synthesize", data=payload, method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+        assert "job_id" in data
+        job_type, _ = server.job_queue.get_nowait()
+        assert job_type == "synthesize"
+    finally:
+        server.stop()

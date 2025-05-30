@@ -36,6 +36,15 @@ class VoiceReelServer:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                status TEXT
+            )
+            """
+        )
         self.db.commit()
 
     def _make_handler(self):
@@ -109,6 +118,35 @@ class VoiceReelServer:
                         "job_id": job_id,
                         "speaker_id": speaker_id,
                     }).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(body)
+                elif self.path == "/v1/synthesize":
+                    length = int(self.headers.get("Content-Length", 0))
+                    raw = self.rfile.read(length)
+                    try:
+                        payload = json.loads(raw.decode()) if raw else {}
+                    except json.JSONDecodeError:
+                        self.send_response(400)
+                        self.end_headers()
+                        return
+
+                    script = payload.get("script")
+                    if not isinstance(script, list) or not script:
+                        self.send_response(400)
+                        self.end_headers()
+                        return
+
+                    job_id = str(uuid.uuid4())
+                    cur = server.db.cursor()
+                    cur.execute(
+                        "INSERT INTO jobs (id, type, status) VALUES (?, ?, ?)",
+                        (job_id, "synthesize", "queued"),
+                    )
+                    server.db.commit()
+                    server.job_queue.put(("synthesize", job_id))
+                    body = json.dumps({"job_id": job_id}).encode()
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
