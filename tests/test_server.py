@@ -8,6 +8,7 @@ import urllib.request
 from datetime import datetime
 import hmac
 import hashlib
+import time
 
 import pytest
 
@@ -211,7 +212,8 @@ def test_synthesize_caption_formats():
             ) as resp:
                 info = json.loads(resp.read().decode())
             assert info["caption_format"] == fmt
-            assert os.path.exists(info["caption_url"])
+            path = info["caption_url"].split("?")[0]
+            assert os.path.exists(path)
     finally:
         server.stop()
 
@@ -256,6 +258,31 @@ def test_hmac_signature(monkeypatch):
         with urllib.request.urlopen(req) as resp:
             data = json.loads(resp.read().decode())
         assert data["status"] == "ok"
+    finally:
+        server.stop()
+
+
+def test_presigned_and_cleanup(tmp_path):
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"script": [{"speaker_id": 1, "text": "hi"}]}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/synthesize", data=payload, method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+        job_id = data["job_id"]
+
+        server.wait_all_jobs()
+        with urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}") as resp:
+            info = json.loads(resp.read().decode())
+        assert "expires=" in info["audio_url"]
+
+        path = info["audio_url"].split("?")[0]
+        os.utime(path, (time.time() - 49 * 3600,) * 2)
+        server.cleanup_old_files()
+        assert not os.path.exists(path)
     finally:
         server.stop()
 
