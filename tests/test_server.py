@@ -6,6 +6,8 @@ import types
 import urllib.error
 import urllib.request
 from datetime import datetime
+import hmac
+import hashlib
 
 import pytest
 
@@ -225,6 +227,31 @@ def test_api_key_required(monkeypatch):
 
         req = urllib.request.Request(
             f"{_base_url(server)}/health", headers={"X-VR-APIKEY": "secret"}
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+        assert data["status"] == "ok"
+    finally:
+        server.stop()
+
+
+def test_hmac_signature(monkeypatch):
+    monkeypatch.setenv("VR_API_KEY", "secret")
+    monkeypatch.setenv("VR_HMAC_SECRET", "hmac")
+    server = VoiceReelServer()
+    server.start()
+    try:
+        req = urllib.request.Request(
+            f"{_base_url(server)}/health", headers={"X-VR-APIKEY": "secret"}
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 401
+
+        sign = hmac.new(b"hmac", b"", hashlib.sha256).hexdigest()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/health",
+            headers={"X-VR-APIKEY": "secret", "X-VR-SIGN": sign},
         )
         with urllib.request.urlopen(req) as resp:
             data = json.loads(resp.read().decode())

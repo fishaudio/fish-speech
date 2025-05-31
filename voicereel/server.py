@@ -18,11 +18,22 @@ from .caption import export_captions
 class VoiceReelServer:
     """Minimal HTTP server skeleton for VoiceReel."""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 0, *, dsn: str | None = None, api_key: str | None = None):
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 0,
+        *,
+        dsn: str | None = None,
+        api_key: str | None = None,
+        hmac_secret: str | None = None,
+        redis_url: str | None = None,
+    ):
         self.host = host
         self.port = port
         self.job_queue: queue.Queue = queue.Queue()
         self.api_key = api_key or os.getenv("VR_API_KEY")
+        self.hmac_secret = hmac_secret or os.getenv("VR_HMAC_SECRET")
+        self.redis_url = redis_url or os.getenv("VR_REDIS_URL")
         dsn = dsn or os.getenv("VR_DSN", ":memory:")
         self.db = sqlite3.connect(dsn, check_same_thread=False)
         self._init_db()
@@ -72,12 +83,23 @@ class VoiceReelServer:
         server = self
 
         class Handler(BaseHTTPRequestHandler):
-            def _require_key(self) -> bool:
+            def _require_key(self, body: bytes = b"") -> bool:
                 if server.api_key:
                     if self.headers.get("X-VR-APIKEY") != server.api_key:
                         self.send_response(401)
                         self.end_headers()
                         return False
+                    if server.hmac_secret:
+                        import hashlib
+                        import hmac
+
+                        expected = hmac.new(
+                            server.hmac_secret.encode(), body, hashlib.sha256
+                        ).hexdigest()
+                        if self.headers.get("X-VR-SIGN") != expected:
+                            self.send_response(401)
+                            self.end_headers()
+                            return False
                 return True
             def do_GET(self):
                 if not self._require_key():
@@ -186,11 +208,11 @@ class VoiceReelServer:
                     self.end_headers()
 
             def do_POST(self):
-                if not self._require_key():
+                length = int(self.headers.get("Content-Length", 0))
+                raw = self.rfile.read(length)
+                if not self._require_key(raw):
                     return
                 if self.path == "/v1/speakers":
-                    length = int(self.headers.get("Content-Length", 0))
-                    raw = self.rfile.read(length)
                     try:
                         payload = json.loads(raw.decode()) if raw else {}
                     except json.JSONDecodeError:
@@ -242,8 +264,6 @@ class VoiceReelServer:
                     self.end_headers()
                     self.wfile.write(body)
                 elif self.path == "/v1/synthesize":
-                    length = int(self.headers.get("Content-Length", 0))
-                    raw = self.rfile.read(length)
                     try:
                         payload = json.loads(raw.decode()) if raw else {}
                     except json.JSONDecodeError:
