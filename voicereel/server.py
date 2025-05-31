@@ -18,6 +18,8 @@ from .caption import export_captions
 class VoiceReelServer:
     """Minimal HTTP server skeleton for VoiceReel."""
 
+    PRESIGNED_TTL = 15 * 60  # 15 minutes
+
     def __init__(
         self,
         host: str = "127.0.0.1",
@@ -118,13 +120,17 @@ class VoiceReelServer:
                     )
                     row = cur.fetchone()
                     if row:
+                        audio = server._presign_path(row[3]) if row[3] else None
+                        caption = (
+                            server._presign_path(row[4]) if row[4] else None
+                        )
                         body = json.dumps(
                             {
                                 "id": row[0],
                                 "type": row[1],
                                 "status": row[2],
-                                "audio_url": row[3],
-                                "caption_url": row[4],
+                                "audio_url": audio,
+                                "caption_url": caption,
                                 "caption_format": row[5],
                             }
                         ).encode()
@@ -399,3 +405,34 @@ class VoiceReelServer:
         )
         count, total = cur.fetchone()
         return {"count": count, "total_length": total}
+
+    # ------------------------------------------------------------------
+    # Helper methods
+    # ------------------------------------------------------------------
+    def _presign_path(self, path: str | None) -> str | None:
+        if not path:
+            return None
+        expiry = int(time.time()) + self.PRESIGNED_TTL
+        return f"{path}?expires={expiry}"
+
+    def cleanup_old_files(self, max_age_hours: float = 48) -> None:
+        cutoff = time.time() - max_age_hours * 3600
+        cur = self.db.cursor()
+        cur.execute(
+            "SELECT id, audio_url, caption_path FROM jobs WHERE status='succeeded'"
+        )
+        rows = cur.fetchall()
+        for job_id, audio, caption in rows:
+            keep = False
+            for p in (audio, caption):
+                if p and os.path.exists(p):
+                    if os.path.getmtime(p) < cutoff:
+                        try:
+                            os.remove(p)
+                        except FileNotFoundError:
+                            pass
+                    else:
+                        keep = True
+            if not keep:
+                cur.execute("DELETE FROM jobs WHERE id=?", (job_id,))
+        self.db.commit()

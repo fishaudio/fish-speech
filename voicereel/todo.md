@@ -47,9 +47,15 @@
 10. **SaaS 배포 준비**
    - [x] 환경 변수 기반 설정(`VR_DSN`, `VR_REDIS_URL`, `VR_API_KEY` 등)
    - [x] API-Key 인증 미들웨어 및 HMAC 서명 옵션
-   - [ ] Celery/Redis 및 PostgreSQL 실제 연동
-   - [ ] 합성 결과를 S3에 업로드하는 모듈
-   - [ ] Docker 이미지/Helm 차트 작성 및 K8s 배포 예시
-   - [ ] Prometheus/Loki 등 모니터링 스택 연동
-   - [ ] GitHub Actions 기반 CI/CD 파이프라인
-   - [ ] S3 presigned URL 15분 제한 및 48시간 후 자동 삭제
+ - [ ] Celery/Redis 및 PostgreSQL 실제 연동
+ - [ ] 합성 결과를 S3에 업로드하는 모듈
+ - [ ] Docker 이미지/Helm 차트 작성 및 K8s 배포 예시
+ - [ ] Prometheus/Loki 등 모니터링 스택 연동
+ - [ ] GitHub Actions 기반 CI/CD 파이프라인
+  - [x] S3 presigned URL 15분 제한 및 48시간 후 자동 삭제
+
+11. **보안 및 로컬라이제이션**
+  - [ ] 전 구간 TLS 1.3 적용
+  - [ ] ISO 639-1 언어코드 기반 로케일 지원(ko, en, ja)
+  - [ ] 기본 대시보드 및 API 키 관리 화면 구현
+  - [ ] SOC 2 Type II / ISO 27001 컴플라이언스 로드맵
