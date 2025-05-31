@@ -228,6 +228,15 @@ class VoiceReelServer:
 
                     duration = float(payload.get("duration", 0))
                     script = payload.get("script", "")
+                    name = payload.get("name", "unknown")
+                    lang = payload.get("lang", "en")
+                    allowed_langs = {"en", "ko", "ja"}
+                    if lang not in allowed_langs:
+                        self.send_response(400)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b'{"error":"INVALID_LANG"}')
+                        return
                     if duration < 30:
                         self.send_response(422)
                         self.send_header("Content-Type", "application/json")
@@ -242,7 +251,7 @@ class VoiceReelServer:
                     cur = server.db.cursor()
                     cur.execute(
                         "INSERT INTO speakers (name, lang) VALUES (?, ?)",
-                        ("unknown", "en"),
+                        (name, lang),
                     )
                     speaker_id = cur.lastrowid
                     job_id = str(uuid.uuid4())
