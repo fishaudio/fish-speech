@@ -1,3 +1,8 @@
+import os
+import sys
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 import importlib
 
 from voicereel.flask_app import create_app
@@ -26,3 +31,28 @@ def test_init_db_tables():
     for tbl in ['speakers', 'jobs', 'usage']:
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (tbl,))
         assert cur.fetchone() is not None
+
+def test_init_db_postgres(monkeypatch):
+    calls = {}
+
+    class DummyCursor:
+        def execute(self, sql):
+            calls.setdefault('exec', []).append(sql)
+
+    class DummyConn:
+        def cursor(self):
+            return DummyCursor()
+
+        def commit(self):
+            calls['commit'] = True
+
+    def fake_connect(dsn):
+        calls['dsn'] = dsn
+        return DummyConn()
+
+    monkeypatch.setitem(importlib.import_module('sys').modules, 'psycopg2', type('PG', (), {'connect': staticmethod(fake_connect)}))
+    conn = init_db('postgresql://example/db')
+    assert isinstance(conn, DummyConn)
+    assert calls.get('dsn') == 'postgresql://example/db'
+    assert 'commit' in calls
+
