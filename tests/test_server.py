@@ -137,6 +137,21 @@ def test_register_invalid_duration():
         server.stop()
 
 
+def test_register_invalid_lang():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        payload = json.dumps({"duration": 30, "script": "hi", "lang": "zz"}).encode()
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/speakers", data=payload, method="POST"
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+    finally:
+        server.stop()
+
+
 def test_synthesize_endpoint():
     server = VoiceReelServer()
     server.start()
