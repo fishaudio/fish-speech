@@ -39,15 +39,17 @@
    - [x] CLI 서브커맨드 추가 예제 작성
 
 9. **테스트 및 문서화**
-   - [x] unit test와 통합 test 작성
-   - [x] mkdocs 기반 API 사용 가이드 작성
+ - [x] unit test와 통합 test 작성
+ - [x] mkdocs 기반 API 사용 가이드 작성
+  - [ ] 오류 코드 표준화 및 문서화(PRD 10.3)
 
 각 단계는 앞선 기능이 선행되어야 다음 단계 진행이 원활하다. 우선 API 서버와 핵심 합성 기능을 완성한 뒤, 모니터링/통계 및 문서화를 진행한다.
 
 10. **SaaS 배포 준비**
    - [x] 환경 변수 기반 설정(`VR_DSN`, `VR_REDIS_URL`, `VR_API_KEY` 등)
    - [x] API-Key 인증 미들웨어 및 HMAC 서명 옵션
- - [ ] Celery/Redis 및 PostgreSQL 실제 연동
+ - [x] PostgreSQL 실제 연동(`init_db`에서 psycopg2 사용)
+ - [ ] Celery/Redis 연동
  - [ ] 합성 결과를 S3에 업로드하는 모듈
  - [ ] Docker 이미지/Helm 차트 작성 및 K8s 배포 예시
  - [ ] Prometheus/Loki 등 모니터링 스택 연동
