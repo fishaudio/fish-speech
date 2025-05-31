@@ -18,11 +18,13 @@ from .caption import export_captions
 class VoiceReelServer:
     """Minimal HTTP server skeleton for VoiceReel."""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 0):
+    def __init__(self, host: str = "127.0.0.1", port: int = 0, *, dsn: str | None = None, api_key: str | None = None):
         self.host = host
         self.port = port
         self.job_queue: queue.Queue = queue.Queue()
-        self.db = sqlite3.connect(":memory:", check_same_thread=False)
+        self.api_key = api_key or os.getenv("VR_API_KEY")
+        dsn = dsn or os.getenv("VR_DSN", ":memory:")
+        self.db = sqlite3.connect(dsn, check_same_thread=False)
         self._init_db()
         handler = self._make_handler()
         self.httpd = HTTPServer((self.host, self.port), handler)
@@ -70,7 +72,16 @@ class VoiceReelServer:
         server = self
 
         class Handler(BaseHTTPRequestHandler):
+            def _require_key(self) -> bool:
+                if server.api_key:
+                    if self.headers.get("X-VR-APIKEY") != server.api_key:
+                        self.send_response(401)
+                        self.end_headers()
+                        return False
+                return True
             def do_GET(self):
+                if not self._require_key():
+                    return
                 if self.path == "/health":
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
@@ -146,6 +157,8 @@ class VoiceReelServer:
                     self.end_headers()
 
             def do_DELETE(self):
+                if not self._require_key():
+                    return
                 if self.path.startswith("/v1/jobs/"):
                     job_id = self.path.rsplit("/", 1)[-1]
                     cur = server.db.cursor()
@@ -173,6 +186,8 @@ class VoiceReelServer:
                     self.end_headers()
 
             def do_POST(self):
+                if not self._require_key():
+                    return
                 if self.path == "/v1/speakers":
                     length = int(self.headers.get("Content-Length", 0))
                     raw = self.rfile.read(length)

@@ -43,3 +43,12 @@
    - [x] mkdocs 기반 API 사용 가이드 작성
 
 각 단계는 앞선 기능이 선행되어야 다음 단계 진행이 원활하다. 우선 API 서버와 핵심 합성 기능을 완성한 뒤, 모니터링/통계 및 문서화를 진행한다.
+
+10. **SaaS 배포 준비**
+   - [ ] 환경 변수 기반 설정(`VR_DSN`, `VR_REDIS_URL`, `VR_API_KEY` 등)
+   - [ ] API-Key 인증 미들웨어 추가
+   - [ ] Celery/Redis 및 PostgreSQL 실제 연동
+   - [ ] 합성 결과를 S3에 업로드하는 모듈
+   - [ ] Docker 이미지/Helm 차트 작성 및 K8s 배포 예시
+   - [ ] Prometheus/Loki 등 모니터링 스택 연동
+   - [ ] GitHub Actions 기반 CI/CD 파이프라인
