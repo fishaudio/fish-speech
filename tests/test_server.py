@@ -212,3 +212,23 @@ def test_synthesize_caption_formats():
             assert os.path.exists(info["caption_url"])
     finally:
         server.stop()
+
+def test_api_key_required(monkeypatch):
+    monkeypatch.setenv("VR_API_KEY", "secret")
+    server = VoiceReelServer()
+    server.start()
+    try:
+        req = urllib.request.Request(f"{_base_url(server)}/health")
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 401
+
+        req = urllib.request.Request(
+            f"{_base_url(server)}/health", headers={"X-VR-APIKEY": "secret"}
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+        assert data["status"] == "ok"
+    finally:
+        server.stop()
+
