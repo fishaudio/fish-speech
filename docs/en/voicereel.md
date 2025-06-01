@@ -46,3 +46,17 @@ curl $SERVER/v1/jobs/job_123
 
 If the job succeeded, the response will contain download links for the audio and captions.
 
+## Error Codes
+
+The API returns standardized error responses. The table below lists the codes defined in the PRD:
+
+| Code | Meaning | Description |
+| --- | --- | --- |
+| 400 `INVALID_INPUT` | invalid parameters | missing fields or malformed JSON |
+| 401 `UNAUTHORIZED` | authentication failure | API key mismatch or bad HMAC |
+| 404 `NOT_FOUND` | resource missing | wrong `speaker_id` or `job_id` |
+| 413 `PAYLOAD_TOO_LARGE` | upload too big | reference audio > 30&nbsp;MB |
+| 422 `INSUFFICIENT_REF` | reference too short | at least 30&nbsp;sec required |
+| 500 `INTERNAL_ERROR` | server error | unexpected exception |
+
+

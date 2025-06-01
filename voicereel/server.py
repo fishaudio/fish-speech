@@ -85,11 +85,19 @@ class VoiceReelServer:
         server = self
 
         class Handler(BaseHTTPRequestHandler):
+            def _json(self, code: int, body: dict) -> None:
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(body).encode())
+
+            def _error(self, code: int, name: str) -> None:
+                self._json(code, {"error": name})
+
             def _require_key(self, body: bytes = b"") -> bool:
                 if server.api_key:
                     if self.headers.get("X-VR-APIKEY") != server.api_key:
-                        self.send_response(401)
-                        self.end_headers()
+                        self._error(401, "UNAUTHORIZED")
                         return False
                     if server.hmac_secret:
                         import hashlib
@@ -99,10 +107,10 @@ class VoiceReelServer:
                             server.hmac_secret.encode(), body, hashlib.sha256
                         ).hexdigest()
                         if self.headers.get("X-VR-SIGN") != expected:
-                            self.send_response(401)
-                            self.end_headers()
+                            self._error(401, "UNAUTHORIZED")
                             return False
                 return True
+
             def do_GET(self):
                 if not self._require_key():
                     return
@@ -121,9 +129,7 @@ class VoiceReelServer:
                     row = cur.fetchone()
                     if row:
                         audio = server._presign_path(row[3]) if row[3] else None
-                        caption = (
-                            server._presign_path(row[4]) if row[4] else None
-                        )
+                        caption = server._presign_path(row[4]) if row[4] else None
                         body = json.dumps(
                             {
                                 "id": row[0],
@@ -139,8 +145,7 @@ class VoiceReelServer:
                         self.end_headers()
                         self.wfile.write(body)
                     else:
-                        self.send_response(404)
-                        self.end_headers()
+                        self._error(404, "NOT_FOUND")
                 elif self.path.startswith("/v1/speakers/"):
                     speaker_id = self.path.rsplit("/", 1)[-1]
                     cur = server.db.cursor()
@@ -158,8 +163,7 @@ class VoiceReelServer:
                         self.end_headers()
                         self.wfile.write(body)
                     else:
-                        self.send_response(404)
-                        self.end_headers()
+                        self._error(404, "NOT_FOUND")
                 elif self.path.startswith("/v1/speakers"):
                     query = urllib.parse.urlparse(self.path).query
                     params = urllib.parse.parse_qs(query)
@@ -181,8 +185,7 @@ class VoiceReelServer:
                     self.end_headers()
                     self.wfile.write(body)
                 else:
-                    self.send_response(404)
-                    self.end_headers()
+                    self._error(404, "NOT_FOUND")
 
             def do_DELETE(self):
                 if not self._require_key():
@@ -195,8 +198,7 @@ class VoiceReelServer:
                     )
                     row = cur.fetchone()
                     if not row:
-                        self.send_response(404)
-                        self.end_headers()
+                        self._error(404, "NOT_FOUND")
                         return
                     audio_url, caption_path = row
                     for path in (audio_url, caption_path):
@@ -210,11 +212,14 @@ class VoiceReelServer:
                     self.send_response(204)
                     self.end_headers()
                 else:
-                    self.send_response(404)
-                    self.end_headers()
+                    self._error(404, "NOT_FOUND")
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
+                if length > 30 * 1024 * 1024:
+                    self._error(413, "PAYLOAD_TOO_LARGE")
+                    _ = self.rfile.read(length)
+                    return
                 raw = self.rfile.read(length)
                 if not self._require_key(raw):
                     return
@@ -222,8 +227,7 @@ class VoiceReelServer:
                     try:
                         payload = json.loads(raw.decode()) if raw else {}
                     except json.JSONDecodeError:
-                        self.send_response(400)
-                        self.end_headers()
+                        self._error(400, "INVALID_INPUT")
                         return
 
                     duration = float(payload.get("duration", 0))
@@ -232,20 +236,13 @@ class VoiceReelServer:
                     lang = payload.get("lang", "en")
                     allowed_langs = {"en", "ko", "ja"}
                     if lang not in allowed_langs:
-                        self.send_response(400)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b'{"error":"INVALID_LANG"}')
+                        self._error(400, "INVALID_INPUT")
                         return
                     if duration < 30:
-                        self.send_response(422)
-                        self.send_header("Content-Type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b'{"error":"INSUFFICIENT_REF"}')
+                        self._error(422, "INSUFFICIENT_REF")
                         return
                     if not script:
-                        self.send_response(400)
-                        self.end_headers()
+                        self._error(400, "INVALID_INPUT")
                         return
 
                     cur = server.db.cursor()
@@ -282,15 +279,13 @@ class VoiceReelServer:
                     try:
                         payload = json.loads(raw.decode()) if raw else {}
                     except json.JSONDecodeError:
-                        self.send_response(400)
-                        self.end_headers()
+                        self._error(400, "INVALID_INPUT")
                         return
 
                     script = payload.get("script")
                     caption_format = payload.get("caption_format", "json")
                     if not isinstance(script, list) or not script:
-                        self.send_response(400)
-                        self.end_headers()
+                        self._error(400, "INVALID_INPUT")
                         return
 
                     job_id = str(uuid.uuid4())
@@ -338,8 +333,7 @@ class VoiceReelServer:
                     self.end_headers()
                     self.wfile.write(body)
                 else:
-                    self.send_response(404)
-                    self.end_headers()
+                    self._error(404, "NOT_FOUND")
 
         def log_message(self, format: str, *args) -> None:
             # Suppress default logging

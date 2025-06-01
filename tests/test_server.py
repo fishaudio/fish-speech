@@ -1,14 +1,14 @@
+import hashlib
+import hmac
 import importlib.util
 import json
 import os
 import sys
+import time
 import types
 import urllib.error
 import urllib.request
 from datetime import datetime
-import hmac
-import hashlib
-import time
 
 import pytest
 
@@ -152,6 +152,24 @@ def test_register_invalid_lang():
         server.stop()
 
 
+def test_synthesize_invalid_json():
+    server = VoiceReelServer()
+    server.start()
+    try:
+        req = urllib.request.Request(
+            f"{_base_url(server)}/v1/synthesize",
+            data=b"{bad json",
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+        body = exc.value.read().decode()
+        assert json.loads(body)["error"] == "INVALID_INPUT"
+    finally:
+        server.stop()
+
+
 def test_synthesize_endpoint():
     server = VoiceReelServer()
     server.start()
@@ -200,6 +218,8 @@ def test_job_get_and_delete():
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(f"{_base_url(server)}/v1/jobs/{job_id}")
         assert exc.value.code == 404
+        body = exc.value.read().decode()
+        assert json.loads(body)["error"] == "NOT_FOUND"
     finally:
         server.stop()
 
@@ -232,6 +252,7 @@ def test_synthesize_caption_formats():
     finally:
         server.stop()
 
+
 def test_api_key_required(monkeypatch):
     monkeypatch.setenv("VR_API_KEY", "secret")
     server = VoiceReelServer()
@@ -241,6 +262,8 @@ def test_api_key_required(monkeypatch):
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(req)
         assert exc.value.code == 401
+        body = exc.value.read().decode()
+        assert json.loads(body)["error"] == "UNAUTHORIZED"
 
         req = urllib.request.Request(
             f"{_base_url(server)}/health", headers={"X-VR-APIKEY": "secret"}
@@ -264,6 +287,8 @@ def test_hmac_signature(monkeypatch):
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(req)
         assert exc.value.code == 401
+        body = exc.value.read().decode()
+        assert json.loads(body)["error"] == "UNAUTHORIZED"
 
         sign = hmac.new(b"hmac", b"", hashlib.sha256).hexdigest()
         req = urllib.request.Request(
@@ -300,4 +325,3 @@ def test_presigned_and_cleanup(tmp_path):
         assert not os.path.exists(path)
     finally:
         server.stop()
-
