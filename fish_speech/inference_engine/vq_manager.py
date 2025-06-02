@@ -3,14 +3,14 @@ from typing import Callable
 import torch
 from loguru import logger
 
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.models.dac.modded_dac import DAC
 
 
 class VQManager:
 
     def __init__(self):
         # Make Pylance happy (attribut/method not defined...)
-        self.decoder_model: FireflyArchitecture
+        self.decoder_model: DAC
         self.load_audio: Callable
 
     def decode_vq_tokens(self, codes):
@@ -19,7 +19,7 @@ class VQManager:
         )
         logger.info(f"VQ features: {codes.shape}")
 
-        if isinstance(self.decoder_model, FireflyArchitecture):
+        if isinstance(self.decoder_model, DAC):
             return self.decoder_model.decode(
                 indices=codes[None],
                 feature_lengths=feature_lengths,
@@ -45,7 +45,7 @@ class VQManager:
             )
 
             # VQ Encoder
-            if isinstance(self.decoder_model, FireflyArchitecture):
+            if isinstance(self.decoder_model, DAC):
                 prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
                 logger.info(f"Encoded prompt: {prompt_tokens.shape}")
             else:

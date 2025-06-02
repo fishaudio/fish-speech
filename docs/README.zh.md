@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | **简体中文** | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md)<br>
+[English](../README.md) | **简体中文** | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -29,62 +29,74 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
-    <br>
-
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
-此代码库根据 Apache 2.0 许可证发布，模型根据 CC-BY-NC-SA-4.0 许可证发布。请参阅 [LICENSE](../LICENSE) 了解更多细节.
+此代码库在 Apache License 下发布，所有模型权重在 CC-BY-NC-SA-4.0 License 下发布。更多详情请参考 [LICENSE](../LICENSE)。
 
----
+我们很高兴地宣布，我们已将名字更改为 OpenAudio，这将是一个全新的文本转语音模型系列。
+
+演示可在 [Fish Audio Playground](https://fish.audio) 获得。
+
+访问 [OpenAudio 网站](https://openaudio.com) 获取博客和技术报告。
 
 ## 特性
+### OpenAudio-S1 (Fish-Speech 的新版本)
 
-1. **零样本 & 小样本 TTS**：输入 10 到 30 秒的声音样本即可生成高质量的 TTS 输出。**详见 [语音克隆最佳实践指南](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)。**
-2. **多语言 & 跨语言支持**：只需复制并粘贴多语言文本到输入框中，无需担心语言问题。目前支持英语、日语、韩语、中文、法语、德语、阿拉伯语和西班牙语。
-3. **无音素依赖**：模型具备强大的泛化能力，不依赖音素进行 TTS，能够处理任何文字表示的语言。
-4. **高准确率**：在 5 分钟的英文文本上，达到了约 2% 的 CER（字符错误率）和 WER（词错误率）。
-5. **快速**：通过 fish-tech 加速，在 Nvidia RTX 4060 笔记本上的实时因子约为 1:5，在 Nvidia RTX 4090 上约为 1:15。
-6. **WebUI 推理**：提供易于使用的基于 Gradio 的网页用户界面，兼容 Chrome、Firefox、Edge 等浏览器。
-7. **GUI 推理**：提供 PyQt6 图形界面，与 API 服务器无缝协作。支持 Linux、Windows 和 macOS。[查看 GUI](https://github.com/AnyaCoder/fish-speech-gui)。
-8. **易于部署**：轻松设置推理服务器，原生支持 Linux、Windows 和 macOS，最大程度减少速度损失。
+1. 此模型具有 fish-speech 的**所有功能**。
+
+2. OpenAudio S1 支持多种情感、语调和特殊标记来增强语音合成：
+   
+      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused) PS:中文也支持
+
+   同时支持语调标记：
+
+   (急促的语调) (大喊) (尖叫) (低语) (温柔的语调)
+
+    还有一些特殊标记得到支持：
+
+    (笑声) (轻笑) (抽泣) (大声哭泣) (叹气) (喘气) (呻吟) (人群笑声) (背景笑声) (观众笑声)
+
+    您也可以使用 **哈，哈，哈** 来控制，还有许多其他情况等待您自己探索。
+
+3. OpenAudio S1 包含以下规模：
+-   **S1 (4B, 专有)：** 完整规模的模型。
+-   **S1-mini (0.5B, 开源)：** S1 的蒸馏版本。
+
+    S1 和 S1-mini 都结合了在线人类反馈强化学习（RLHF）。
+
+4. 评估
+
+    **Seed TTS 评估指标（英语，自动评估，基于 OpenAI gpt-4o-transcribe，使用 Revai/pyannote-wespeaker-voxceleb-resnet34-LM 的说话人距离）：**
+
+    -   **S1：**
+        -   WER（词错误率）：**0.008**
+        -   CER（字符错误率）：**0.004**
+        -   距离：**0.332**
+    -   **S1-mini：**
+        -   WER（词错误率）：**0.011**
+        -   CER（字符错误率）：**0.005**
+        -   距离：**0.380**
+    
 
 ## 免责声明
 
-我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
-
-## 在线 DEMO
-
-[Fish Audio](https://fish.audio)
-
-## 快速开始本地推理
-
-[inference.ipynb](/inference.ipynb)
+我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的规定。
 
 ## 视频
 
-#### 1.5 介绍: https://www.bilibili.com/video/BV1EKiDYBE4o
-
-#### 1.4 介绍: https://www.bilibili.com/video/BV1pu46eVEk7
-
-#### 1.2 介绍: https://www.bilibili.com/video/BV1wz421B71D
-
-#### 1.1 介绍: https://www.bilibili.com/video/BV1zJ4m1K7cj
+#### 待续。
 
 ## 文档
 
-- [English](https://speech.fish.audio/)
-- [中文](https://speech.fish.audio/zh/)
-- [日本語](https://speech.fish.audio/ja/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/)
+- [构建环境](zh/install.md)
+- [推理](zh/inference.md)
 
-## 例子 (2024/10/02 V1.4)
+需要注意的是，当前模型**不支持微调**。
 
-- [English](https://speech.fish.audio/samples/)
-- [中文](https://speech.fish.audio/zh/samples/)
-- [日本語](https://speech.fish.audio/ja/samples/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/samples/)
-
-## 鸣谢
+## 致谢
 
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
@@ -93,12 +105,17 @@
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
-## 赞助
+## 技术报告 (V1.4)
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156},
+}
+```
 
-<div>
-  <a href="https://6block.com/">
-    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
-  </a>
-  <br>
-  <a href="https://6block.com/">数据处理服务器由 6Block 提供</a>
-</div>
+

@@ -16,6 +16,7 @@
 <div align="center">
     <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
+
 <br>
 
 <div align="center">
@@ -28,63 +29,74 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
-이 코드 저장소는 Apache 2.0 라이선스 하에 배포되며, 모델은 CC-BY-NC-SA-4.0 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하십시오.
+이 코드베이스는 Apache License 하에 릴리스되며, 모든 모델 가중치는 CC-BY-NC-SA-4.0 License 하에 릴리스됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하세요.
 
----
+저희는 이름을 OpenAudio로 변경했다고 발표하게 되어 기쁩니다. 이는 완전히 새로운 Text-to-Speech 모델 시리즈가 될 것입니다.
+
+데모는 [Fish Audio Playground](https://fish.audio)에서 사용할 수 있습니다.
+
+블로그와 기술 보고서는 [OpenAudio 웹사이트](https://openaudio.com)를 방문하세요.
 
 ## 기능
+### OpenAudio-S1 (Fish-Speech의 새 버전)
 
-1. **Zero-shot & Few-shot TTS:** 10초에서 30초의 음성 샘플을 입력하여 고품질의 TTS 출력을 생성합니다. **자세한 가이드는 [모범 사례](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)를 참조하시길 바랍니다.**
+1. 이 모델은 fish-speech가 가지고 있던 **모든 기능**을 가지고 있습니다.
 
-2. **다국어 및 교차 언어 지원:** 다국어 걱정 없이, 텍스트를 입력창에 복사하여 붙여넣기만 하면 됩니다. 현재 영어, 일본어, 한국어, 중국어, 프랑스어, 독일어, 아랍어, 스페인어를 지원합니다.
+2. OpenAudio S1은 음성 합성을 향상시키기 위한 다양한 감정, 톤, 특별한 마커를 지원합니다:
+   
+      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
 
-3. **음소 의존성 제거:** 이 모델은 강력한 일반화 능력을 가지고 있으며, TTS가 음소에 의존하지 않습니다. 모든 언어 스크립트 텍스트를 손쉽게 처리할 수 있습니다.
+   또한 톤 마커도 지원합니다:
 
-4. **높은 정확도:** 영어 텍스트 기준 5분 기준에서 단, 2%의 문자 오류율(CER)과 단어 오류율(WER)을 달성합니다.
+   (급한 톤) (외치기) (비명지르기) (속삭이기) (부드러운 톤)
 
-5. **빠른 속도:** fish-tech 가속을 통해 실시간 인자(RTF)는 Nvidia RTX 4060 노트북에서는 약 1:5, Nvidia RTX 4090에서는 1:15입니다.
+    지원되는 몇 가지 특별한 마커가 있습니다:
 
-6. **웹 UI 추론:** Chrome, Firefox, Edge 등 다양한 브라우저에서 호환되는 Gradio 기반의 사용하기 쉬운 웹 UI를 제공합니다.
+    (웃음) (킥킥거림) (흐느낌) (큰 소리로 우는 것) (한숨) (헐떡거림) (신음) (군중 웃음) (배경 웃음) (관객 웃음)
 
-7. **GUI 추론:** PyQt6 그래픽 인터페이스를 제공하여 API 서버와 원활하게 작동합니다. Linux, Windows 및 macOS를 지원합니다. [GUI 참조](https://github.com/AnyaCoder/fish-speech-gui).
+    또한 **하, 하, 하**를 사용하여 제어할 수도 있으며, 여러분이 직접 탐험할 수 있는 많은 다른 경우들이 있습니다.
 
-8. **배포 친화적:** Linux, Windows, macOS에서 네이티브로 지원되는 추론 서버를 쉽게 설정할 수 있어 속도 손실을 최소화합니다.
+3. OpenAudio S1은 다음 크기를 포함합니다:
+-   **S1 (4B, 독점):** 전체 크기 모델.
+-   **S1-mini (0.5B, 오픈소스):** S1의 증류 버전.
+
+    S1과 S1-mini 모두 온라인 인간 피드백 강화학습(RLHF)을 통합하고 있습니다.
+
+4. 평가
+
+    **Seed TTS 평가 메트릭 (영어, 자동 평가, OpenAI gpt-4o-transcribe 기반, Revai/pyannote-wespeaker-voxceleb-resnet34-LM을 사용한 화자 거리):**
+
+    -   **S1:**
+        -   WER (단어 오류율): **0.008**
+        -   CER (문자 오류율): **0.004**
+        -   거리: **0.332**
+    -   **S1-mini:**
+        -   WER (단어 오류율): **0.011**
+        -   CER (문자 오류율): **0.005**
+        -   거리: **0.380**
+    
 
 ## 면책 조항
 
-이 코드베이스의 불법적 사용에 대해 어떠한 책임도 지지 않습니다. DMCA 및 관련 법률에 대한 로컬 법률을 참조하십시오.
+저희는 코드베이스의 불법적인 사용에 대해 어떠한 책임도 지지 않습니다. DMCA 및 기타 관련 법률에 대한 현지 법률을 참조하세요.
 
-## 온라인 데모
+## 비디오
 
-[Fish Audio](https://fish.audio)
-
-## 로컬 추론을 위한 빠른 시작
-
-[inference.ipynb](/inference.ipynb)
-
-## 영상
-
-#### V1.5 데모 영상: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
+#### 계속될 예정입니다.
 
 ## 문서
 
-- [English](https://speech.fish.audio/)
-- [中文](https://speech.fish.audio/zh/)
-- [日本語](https://speech.fish.audio/ja/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/)
-- [한국어](https://speech.fish.audio/ko/)
+- [환경 구축](en/install.md)
+- [추론](en/inference.md)
 
-## Samples (2024/10/02 V1.4)
+현재 모델은 **파인튜닝을 지원하지 않는다**는 점에 유의해야 합니다.
 
-- [English](https://speech.fish.audio/samples/)
-- [中文](https://speech.fish.audio/zh/samples/)
-- [日本語](https://speech.fish.audio/ja/samples/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/samples/)
-- [한국어](https://speech.fish.audio/ko/samples/)
-
-## Credits
+## 크레딧
 
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
@@ -93,12 +105,16 @@
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
-## Sponsor
+## 기술 보고서 (V1.4)
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156},
+}
+```
 
-<div>
-  <a href="https://6block.com/">
-    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
-  </a>
-  <br>
-  <a href="https://6block.com/">데이터 처리 후원: 6Block</a>
-</div>

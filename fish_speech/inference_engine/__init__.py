@@ -14,7 +14,7 @@ from fish_speech.models.text2semantic.inference import (
     GenerateResponse,
     WrappedGenerateResponse,
 )
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.models.dac.modded_dac import DAC
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
 
@@ -24,7 +24,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
     def __init__(
         self,
         llama_queue: queue.Queue,
-        decoder_model: FireflyArchitecture,
+        decoder_model: DAC,
         precision: torch.dtype,
         compile: bool,
     ) -> None:
