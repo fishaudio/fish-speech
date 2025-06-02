@@ -31,3 +31,5 @@ asr-label*
 /faster_whisper
 /.gradio
 *log
+.venv/
+.claude/
