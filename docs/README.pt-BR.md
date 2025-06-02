@@ -117,4 +117,3 @@ Deve-se notar que o modelo atual **NÃO SUPORTA AJUSTE FINO**.
       url={https://arxiv.org/abs/2411.01156},
 }
 ```
-

@@ -3,11 +3,11 @@ from funasr import AutoModel
 from loguru import logger
 
 from fish_speech.inference_engine import TTSInferenceEngine
+from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.inference import (
     launch_thread_safe_queue,
     launch_thread_safe_queue_agent,
 )
-from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 

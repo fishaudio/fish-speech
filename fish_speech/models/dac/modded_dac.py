@@ -34,6 +34,7 @@ def find_multiple(n: int, k: int) -> int:
         return n
     return n + k - (n % k)
 
+
 @dataclass
 class ModelArgs:
     block_size: int = 2048
@@ -975,6 +976,7 @@ class DAC(BaseModel, CodecMixin):
 
 
 if __name__ == "__main__":
+
     def filter_state_dict_shapes(params, model):
         model_state_dict = model.state_dict()
         filtered_state_dict = {
@@ -984,32 +986,36 @@ if __name__ == "__main__":
         }
         skipped_keys = set(params.keys()) - set(filtered_state_dict.keys())
         if skipped_keys:
-            print(f"Warning: Skipped loading some keys due to shape mismatch: {skipped_keys}")
+            print(
+                f"Warning: Skipped loading some keys due to shape mismatch: {skipped_keys}"
+            )
         return filtered_state_dict, skipped_keys
 
-    model = hydra.utils.instantiate(OmegaConf.load("fish_speech/configs/modded_dac_vq.yaml"))
+    model = hydra.utils.instantiate(
+        OmegaConf.load("fish_speech/configs/modded_dac_vq.yaml")
+    )
     sd = torch.load("checkpoints/openaudio-s1-mini/firefly-gan-large.pth")
     filtered_sd, skipped_keys = filter_state_dict_shapes(sd, model)
     print(f"Skipped keys: {skipped_keys}")
     model.load_state_dict(filtered_sd, strict=False)
     model.eval()
-    
+
     src_audio_path = "./test.wav"
     wave_np, _ = librosa.load(src_audio_path, sr=44100, mono=False)
     if len(wave_np.shape) == 1:
         wave_np = wave_np[None, :]
     wave_tensor = torch.from_numpy(wave_np).unsqueeze(1)
-    
+
     with torch.no_grad():
         # encode 返回 (indices, indices_lens)
         indices, indices_lens = model.encode(wave_tensor)
         print(f"Indices shape: {indices.shape}")
         print(f"Indices lengths: {indices_lens}")
-        
+
         # decode 需要 indices 和 feature_lengths 两个参数
         fake_audio, audio_lengths = model.decode(indices, indices_lens)
         print(f"Decoded audio shape: {fake_audio.shape}")
         print(f"Audio lengths: {audio_lengths}")
-    
+
     # 保存重建的音频
     sf.write("fake.wav", fake_audio.squeeze(1).cpu().numpy().T, 44100)
