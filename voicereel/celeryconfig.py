@@ -3,16 +3,16 @@
 import os
 
 # Broker settings
-broker_url = os.getenv('VR_REDIS_URL', 'redis://localhost:6379/0')
-result_backend = os.getenv('VR_REDIS_URL', 'redis://localhost:6379/0')
+broker_url = os.getenv("VR_REDIS_URL", "redis://localhost:6379/0")
+result_backend = os.getenv("VR_REDIS_URL", "redis://localhost:6379/0")
 
 # Serialization
-task_serializer = 'json'
-result_serializer = 'json'
-accept_content = ['json']
+task_serializer = "json"
+result_serializer = "json"
+accept_content = ["json"]
 
 # Time zone
-timezone = 'UTC'
+timezone = "UTC"
 enable_utc = True
 
 # Task execution
@@ -23,9 +23,9 @@ worker_prefetch_multiplier = 1
 
 # Task routing
 task_routes = {
-    'voicereel.tasks.register_speaker': {'queue': 'speakers'},
-    'voicereel.tasks.synthesize': {'queue': 'synthesis'},
-    'voicereel.tasks.cleanup_old_files': {'queue': 'maintenance'},
+    "voicereel.tasks.register_speaker": {"queue": "speakers"},
+    "voicereel.tasks.synthesize": {"queue": "synthesis"},
+    "voicereel.tasks.cleanup_old_files": {"queue": "maintenance"},
 }
 
 # Retry policy
@@ -42,9 +42,9 @@ worker_concurrency = 4  # Adjust based on your hardware
 
 # Beat schedule (for periodic tasks)
 beat_schedule = {
-    'cleanup-old-files': {
-        'task': 'voicereel.tasks.cleanup_old_files',
-        'schedule': 3600.0,  # Run every hour
-        'args': (48,)  # 48 hours max age
+    "cleanup-old-files": {
+        "task": "voicereel.tasks.cleanup_old_files",
+        "schedule": 3600.0,  # Run every hour
+        "args": (48,),  # 48 hours max age
     },
 }

@@ -2,10 +2,10 @@ from argparse import ArgumentParser
 from http import HTTPStatus
 from typing import Annotated, Any
 
-import ormsgpack
 from baize.datastructures import ContentType
 from kui.asgi import HTTPException, HttpRequest
 
+import ormsgpack
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference

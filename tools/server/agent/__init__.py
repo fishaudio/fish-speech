@@ -2,7 +2,6 @@ import struct
 from functools import partial
 
 import ormsgpack
-
 from tools.server.agent.generate import generate_responses
 from tools.server.agent.pre_generation_utils import prepare_messages
 

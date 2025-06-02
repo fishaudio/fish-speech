@@ -10,9 +10,9 @@ from typing import AsyncGenerator, Union
 
 import httpx
 import numpy as np
-import ormsgpack
 import soundfile as sf
 
+import ormsgpack
 from fish_speech.utils.schema import (
     ServeChatRequest,
     ServeMessage,

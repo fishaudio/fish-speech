@@ -70,4 +70,3 @@ except ImportError:
 4. **Artifact validation** – ensures the API returns URLs for the generated audio and captions.
 
 These steps verify that the HTTP layer, worker queue, and database are all wired correctly.
-
