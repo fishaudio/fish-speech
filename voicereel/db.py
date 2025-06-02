@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Optional, Any
+from typing import Any, Optional
 
 
 def _init_schema(cur) -> None:

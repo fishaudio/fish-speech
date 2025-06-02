@@ -58,5 +58,3 @@ The API returns standardized error responses. The table below lists the codes de
 | 413 `PAYLOAD_TOO_LARGE` | upload too big | reference audio > 30&nbsp;MB |
 | 422 `INSUFFICIENT_REF` | reference too short | at least 30&nbsp;sec required |
 | 500 `INTERNAL_ERROR` | server error | unexpected exception |
-
-

@@ -18,4 +18,3 @@ This repository does not currently provide coding or contribution guidelines. Th
 ## Pull request description
 - Summarize notable changes and reference relevant file locations with Markdown links.
 - Include the result of running tests (pass/fail) in the PR body.
-

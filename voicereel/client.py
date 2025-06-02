@@ -10,7 +10,6 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError
 
 import ormsgpack
-
 from fish_speech.utils.file import audio_to_bytes, read_ref_text
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 

@@ -4,7 +4,6 @@ import time
 from http import HTTPStatus
 
 import numpy as np
-import ormsgpack
 import soundfile as sf
 import torch
 from kui.asgi import (
@@ -19,6 +18,7 @@ from kui.asgi import (
 from loguru import logger
 from typing_extensions import Annotated
 
+import ormsgpack
 from fish_speech.utils.schema import (
     ServeASRRequest,
     ServeASRResponse,
