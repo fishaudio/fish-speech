@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | **日本語** | [한국어](README.ko.md)<br>
+[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | **日本語** | [한국어](README.ko.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -16,6 +16,7 @@
 <div align="center">
     <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
 </div>
+
 <br>
 
 <div align="center">
@@ -28,52 +29,72 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
-このコードリポジトリはApache 2.0ライセンスの下で公開されており、モデルはCC-BY-NC-SA-4.0ライセンスの下で公開されています。詳細については[LICENSE](../LICENSE)をご参照ください。
+このコードベースはApache Licenseの下でリリースされ、すべてのモデルウェイトはCC-BY-NC-SA-4.0 Licenseの下でリリースされています。詳細については[LICENSE](../LICENSE)をご参照ください。
 
----
+私たちは名前をOpenAudioに変更したことをお知らせでき、嬉しく思います。これは全く新しいText-to-Speechモデルシリーズになります。
+
+デモは[Fish Audio Playground](https://fish.audio)で利用可能です。
+
+ブログと技術レポートについては[OpenAudioウェブサイト](https://openaudio.com)をご覧ください。
 
 ## 機能
+### OpenAudio-S1 (Fish-Speechの新バージョン)
 
-1. **ゼロショット & フューショット TTS**：10〜30 秒の音声サンプルを入力して、高品質の TTS 出力を生成します。**詳細は [音声クローンのベストプラクティス](https://docs.fish.audio/text-to-speech/voice-clone-best-practices) を参照してください。**
-2. **多言語 & クロスリンガル対応**：多言語テキストを入力ボックスにコピーペーストするだけで、言語を気にする必要はありません。現在、英語、日本語、韓国語、中国語、フランス語、ドイツ語、アラビア語、スペイン語に対応しています。
-3. **音素依存なし**：このモデルは強力な汎化能力を持ち、TTS に音素を必要としません。あらゆる言語スクリプトに対応可能です。
-4. **高精度**：5 分間の英語テキストに対し、CER（文字誤り率）と WER（単語誤り率）は約 2%の精度を達成します。
-5. **高速**：fish-tech アクセラレーションにより、Nvidia RTX 4060 ラップトップではリアルタイムファクターが約 1:5、Nvidia RTX 4090 では約 1:15 です。
-6. **WebUI 推論**：使いやすい Gradio ベースの Web ユーザーインターフェースを搭載し、Chrome、Firefox、Edge などのブラウザに対応しています。
-7. **GUI 推論**：PyQt6 のグラフィカルインターフェースを提供し、API サーバーとシームレスに連携します。Linux、Windows、macOS に対応しています。[GUI を見る](https://github.com/AnyaCoder/fish-speech-gui)。
-8. **デプロイしやすい**：Linux、Windows、macOS にネイティブ対応した推論サーバーを簡単にセットアップでき、速度の低下を最小限に抑えます。
+1. このモデルはfish-speechが持っていた**すべての機能**を持っています。
+
+2. OpenAudio S1は音声合成を強化するための様々な感情、トーン、特別なマーカーをサポートしています：
+   
+      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
+
+   またトーンマーカーもサポートしています：
+
+   (急いだトーン) (叫び) (絶叫) (ささやき) (柔らかいトーン)
+
+    サポートされているいくつかの特別なマーカーがあります：
+
+    (笑い) (くすくす笑い) (すすり泣き) (大声で泣く) (ため息) (あえぎ) (うめき) (群衆の笑い) (背景の笑い) (観客の笑い)
+
+    また、**ハ、ハ、ハ**を使って制御することもでき、あなた自身が探索を待っている他の多くのケースがあります。
+
+3. OpenAudio S1には以下のサイズが含まれています：
+-   **S1 (4B, プロプライエタリ):** フルサイズのモデル。
+-   **S1-mini (0.5B, オープンソース):** S1の蒸留版。
+
+    S1とS1-miniの両方がオンライン人間フィードバック強化学習（RLHF）を組み込んでいます。
+
+4. 評価
+
+    **Seed TTS評価メトリクス（英語、自動評価、OpenAI gpt-4o-transcribeベース、Revai/pyannote-wespeaker-voxceleb-resnet34-LMを使用したスピーカー距離）：**
+
+    -   **S1:**
+        -   WER（単語誤り率）：**0.008**
+        -   CER（文字誤り率）：**0.004**
+        -   距離：**0.332**
+    -   **S1-mini:**
+        -   WER（単語誤り率）：**0.011**
+        -   CER（文字誤り率）：**0.005**
+        -   距離：**0.380**
+    
 
 ## 免責事項
 
-コードベースの違法な使用については一切責任を負いません。DMCA（デジタルミレニアム著作権法）およびその他の関連法については、地域の法律を参照してください。
+コードベースの違法な使用について、いかなる責任も負いません。DMCAおよびその他の関連法律に関する現地の法律をご参照ください。
 
-## オンラインデモ
+## 動画
 
-[Fish Audio](https://fish.audio)
-
-## ローカル推論のクイックスタート
-
-[inference.ipynb](/inference.ipynb)
-
-## ビデオ
-
-#### V1.5 デモビデオ: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
+#### 続く予定。
 
 ## ドキュメント
 
-- [英語](https://speech.fish.audio/)
-- [中文](https://speech.fish.audio/zh/)
-- [日本語](https://speech.fish.audio/ja/)
-- [ポルトガル語 (ブラジル)](https://speech.fish.audio/pt/)
+- [環境構築](en/install.md)
+- [推論](en/inference.md)
 
-## サンプル (2024/10/02 V1.4)
-
-- [英語](https://speech.fish.audio/samples/)
-- [中文](https://speech.fish.audio/zh/samples/)
-- [日本語](https://speech.fish.audio/ja/samples/)
-- [ポルトガル語 (ブラジル)](https://speech.fish.audio/pt/samples/)
+現在のモデルは**ファインチューニングをサポートしていない**ことに注意してください。
 
 ## クレジット
 
@@ -84,12 +105,15 @@
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
-## スポンサー
-
-<div>
-  <a href="https://6block.com/">
-    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
-  </a>
-  <br>
-  <a href="https://6block.com/">データ処理スポンサー：6Block</a>
-</div>
+## 技術レポート (V1.4)
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156},
+}
+```
