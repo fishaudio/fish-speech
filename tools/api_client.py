@@ -2,12 +2,12 @@ import argparse
 import base64
 import wave
 
-import ormsgpack
 import pyaudio
 import requests
 from pydub import AudioSegment
 from pydub.playback import play
 
+import ormsgpack
 from fish_speech.utils.file import audio_to_bytes, read_ref_text
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 
