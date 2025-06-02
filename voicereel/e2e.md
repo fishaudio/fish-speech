@@ -21,14 +21,46 @@ Set the following variables before executing the tests:
 ## Running the Tests
 
 ```bash
-# Install additional dependency
-pip install psycopg2-binary
+# Install additional dependencies
+pip install psycopg2-binary pytest
 
 # Execute only the E2E suite
-pytest tests/test_voicereel_e2e.py
+pytest tests/test_voicereel_e2e.py -v
 ```
 
 The tests are skipped automatically if any of the required environment variables are missing or if `psycopg2` is not installed.
+
+### Test Skip Conditions
+
+The E2E tests will be automatically skipped in these scenarios:
+1. **Missing environment variables**: Any of the four required environment variables is not set
+2. **Missing psycopg2**: The PostgreSQL Python adapter is not installed
+3. **Missing voicereel module**: The VoiceReel Python package dependencies are not available
+
+### Verifying Test Prerequisites
+
+You can check if the E2E test environment is properly set up:
+
+```bash
+python -c "
+import os
+print('Environment variables:')
+for var in ['VOICE_REEL_E2E_URL', 'VOICE_REEL_E2E_DSN', 'VOICE_REEL_E2E_AUDIO', 'VOICE_REEL_E2E_SCRIPT']:
+    print(f'  {var}: {\"✓\" if os.getenv(var) else \"✗\"}')
+
+try:
+    import psycopg2
+    print('psycopg2: ✓')
+except ImportError:
+    print('psycopg2: ✗')
+
+try:
+    from voicereel import VoiceReelClient
+    print('voicereel: ✓')
+except ImportError:
+    print('voicereel: ✗')
+"
+```
 
 ## What the Test Covers
 

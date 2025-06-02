@@ -5,10 +5,14 @@ import time
 
 import pytest
 
-VoiceReelClient = pytest.importorskip("voicereel").VoiceReelClient
+# Try to import voicereel, skip if not available
+try:
+    from voicereel import VoiceReelClient
+except ImportError:
+    pytest.skip("voicereel module not available", allow_module_level=True)
 
 # Optional dependency for database validation
-psycopg2 = pytest.importorskip("psycopg2")
+psycopg2 = pytest.importorskip("psycopg2", minversion="2.8")
 
 SERVER_URL = os.getenv("VOICE_REEL_E2E_URL")
 DSN = os.getenv("VOICE_REEL_E2E_DSN")

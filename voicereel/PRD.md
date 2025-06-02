@@ -258,16 +258,46 @@ type CaptionUnit {
 | Beta v0.9      | 7월 4주 | 다중 화자, 캡션, 대시보드   |
 | GA v1.0        | 8월 4주 | SLA 99.9 %, 결제 연동 |
 
+## 16. E2E 테스트 전략
+
+VoiceReel API의 품질 보증을 위해 End-to-End 테스트가 구현되어 있습니다:
+
+### 16.1 테스트 환경 요구사항
+- 실제 배포된 VoiceReel API 서버
+- PostgreSQL 데이터베이스 연결
+- 30초 이상의 샘플 오디오 파일 및 매칭 스크립트
+- `psycopg2` 패키지 설치
+
+### 16.2 환경 변수 설정
+```bash
+export VOICE_REEL_E2E_URL="http://localhost:8080"
+export VOICE_REEL_E2E_DSN="postgresql://user:pass@localhost/voicereel"
+export VOICE_REEL_E2E_AUDIO="/path/to/reference.wav"
+export VOICE_REEL_E2E_SCRIPT="/path/to/script.txt"
+```
+
+### 16.3 테스트 실행
+```bash
+pip install psycopg2-binary
+pytest tests/test_voicereel_e2e.py -v
+```
+
+### 16.4 테스트 커버리지
+1. **화자 등록 워크플로우**: 레퍼런스 오디오 업로드 → 비동기 처리 대기 → 완료 확인
+2. **데이터베이스 검증**: PostgreSQL에서 화자 레코드 존재 확인
+3. **음성 합성**: 등록된 화자로 합성 요청 → 오디오/자막 URL 검증
+4. **전체 파이프라인**: HTTP API → 작업 큐 → 데이터베이스 연동 검증
+
 ---
 
-## 16. 미해결 이슈
+## 17. 미해결 이슈
 
 1. 화자 톤 정책(윤리·저작권) 가이드 확정
 2. 무료 티어 쿼터 범위?
 
 ---
 
-## 17. 부록
+## 18. 부록
 
 * fish‑speech 1.5 연구 노트 링크
 * MOS 측정 방법론(JND 퀴즈)
