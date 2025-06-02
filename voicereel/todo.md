@@ -1,77 +1,127 @@
 # VoiceReel TODO
 
-우선순위와 의존성을 고려하여 VoiceReel Studio PRD를 구현하기 위한 작업 목록이다.
+## 🔴 Critical Priority (MVP 필수)
 
-1. **API 서버 기반 구축**
-   - [x] Flask+Gunicorn 스켈레톤 작성 *(`flask_app.py` 추가)*
-   - [x] Celery/Redis로 비동기 작업 큐 구성 *(`task_queue.py`에서 메모리 큐 구현)*
-   - [x] Metadata DB(PostgreSQL) 초기 스키마 설계 *(`db.init_db`에서 테이블 생성)*
+### 1. Celery/Redis 작업 큐 구현
+- [ ] Redis 서버 연동 설정 추가
+- [ ] Celery worker 구현
+- [ ] 기존 인메모리 큐를 Celery 태스크로 마이그레이션
+- [ ] 작업 상태 Redis에 저장
+- [ ] 작업 재시도 로직 구현
 
-2. **화자 등록 기능 (FR-01)**
-   - [x] `/v1/speakers` POST 엔드포인트 구현
-   - [x] 업로드된 음성 검증(≥30초) 및 스크립트 매칭 로직 작성
-   - [x] 등록 처리 Job 생성 → 작업 큐 전달
+### 2. Fish-Speech 엔진 통합
+- [ ] fish_speech 모델 로더 구현
+- [ ] 화자 등록 시 실제 음성 특징 추출
+- [ ] 다중 화자 합성 실제 구현
+- [ ] GPU 워커 풀 설정
+- [ ] 성능 최적화 (30초 오디오 → 8초 이내)
 
-3. **화자 조회 기능 (FR-02)**
-   - [x] `/v1/speakers` GET 목록 및 `/v1/speakers/{id}` 세부 조회 구현 *(완료)*
-   - [x] Pagination 파라미터 처리
+### 3. S3 스토리지 연동
+- [ ] boto3 클라이언트 설정
+- [ ] 오디오 파일 S3 업로드 구현
+- [ ] Presigned URL 생성 로직
+- [ ] 48시간 자동 삭제 Lambda 함수
+- [ ] 로컬 파일시스템 폴백 옵션
 
-4. **다중 화자 합성 API (FR-03)**
-   - [x] `/v1/synthesize` POST 엔드포인트 구현
-   - [x] 입력 JSON 스크립트 파싱 및 음성 합성 Job 생성
-   - [x] 결과 WAV/MP3 저장 후 presigned URL 반환
+## 🟡 High Priority (프로덕션 필수)
 
-5. **자막 Export (FR-04)**
-   - [x] 합성 결과에 대해 WebVTT/SRT/JSON 포맷 변환 모듈 작성
-   - [x] 클라이언트에서 원하는 포맷 선택 가능하도록 옵션 처리
+### 4. 보안 강화
+- [ ] TLS 1.3 인증서 설정
+- [ ] CORS 정책 구현
+- [ ] Rate limiting 미들웨어
+- [ ] SQL injection 방어 검증
+- [ ] 입력 데이터 검증 강화
 
-6. **작업 상태 관리 (FR-05)**
-   - [x] Job metadata 테이블 설계
-   - [x] `/v1/jobs/{id}` GET/DELETE 구현
-   - [x] 비동기 완료 시 상태 업데이트 로직 작성
+### 5. Docker 컨테이너화
+- [ ] VoiceReel API Dockerfile 작성
+- [ ] docker-compose.yml 구성 (API + Redis + PostgreSQL)
+- [ ] GPU 지원 Docker 이미지 빌드
+- [ ] 환경별 설정 분리 (.env 파일)
+- [ ] Health check 엔드포인트 추가
 
-7. **Usage Metering (FR-06)**
-   - [x] 호출 수/합성 길이 통계 수집 모듈 작성
-   - [x] 월간 리포트용 쿼리 함수 제공
+### 6. 에러 처리 및 로깅
+- [ ] 구조화된 로깅 시스템 (JSON 로그)
+- [ ] Sentry 에러 추적 연동
+- [ ] API 에러 응답 표준화
+- [ ] 디버그 모드 설정
+- [ ] 요청/응답 로깅 미들웨어
 
-8. **클라이언트 개선 및 예제**
-   - [x] `voicereel.client`에 목록 조회, 작업 삭제 등 기능 보완
-   - [x] CLI 서브커맨드 추가 예제 작성
+## 🟢 Medium Priority (안정성/운영)
 
-9. **테스트 및 문서화**
-- [x] unit test와 통합 test 작성
-- [x] mkdocs 기반 API 사용 가이드 작성
- - [x] 오류 코드 표준화 및 문서화(PRD 10.3)
- - [x] E2E 테스트 구현 및 문서화
-   - [x] `test_voicereel_e2e.py` - 실제 서버와 DB 연동 테스트
-   - [x] `voicereel/e2e.md` - E2E 테스트 실행 가이드
-   - [x] PRD 섹션 16 - E2E 테스트 전략 문서화
+### 7. 모니터링 시스템
+- [ ] Prometheus 메트릭 엑스포터
+- [ ] Grafana 대시보드 템플릿
+- [ ] 알림 규칙 설정 (PagerDuty/Slack)
+- [ ] APM 도구 연동 (DataDog/NewRelic)
+- [ ] 사용량 통계 대시보드
 
-각 단계는 앞선 기능이 선행되어야 다음 단계 진행이 원활하다. 우선 API 서버와 핵심 합성 기능을 완성한 뒤, 모니터링/통계 및 문서화를 진행한다.
+### 8. CI/CD 파이프라인
+- [ ] GitHub Actions 워크플로우
+- [ ] 자동화된 테스트 실행
+- [ ] Docker 이미지 자동 빌드/푸시
+- [ ] 스테이징 환경 자동 배포
+- [ ] Blue-Green 배포 전략
 
-10. **SaaS 배포 준비**
-   - [x] 환경 변수 기반 설정(`VR_DSN`, `VR_REDIS_URL`, `VR_API_KEY` 등)
-   - [x] API-Key 인증 미들웨어 및 HMAC 서명 옵션
- - [x] PostgreSQL 실제 연동(`init_db`에서 psycopg2 사용)
- - [ ] Celery/Redis 연동
- - [ ] 합성 결과를 S3에 업로드하는 모듈
- - [ ] Docker 이미지/Helm 차트 작성 및 K8s 배포 예시
- - [ ] Prometheus/Loki 등 모니터링 스택 연동
- - [ ] GitHub Actions 기반 CI/CD 파이프라인
-  - [x] S3 presigned URL 15분 제한 및 48시간 후 자동 삭제
+### 9. 성능 최적화
+- [ ] 데이터베이스 인덱스 최적화
+- [ ] 연결 풀링 구현
+- [ ] 캐싱 전략 (Redis 캐시)
+- [ ] 배치 처리 최적화
+- [ ] 동시성 제한 설정
 
-11. **보안 및 로컬라이제이션**
-  - [ ] 전 구간 TLS 1.3 적용
-  - [x] ISO 639-1 언어코드 기반 로케일 지원(ko, en, ja)
-  - [ ] 기본 대시보드 및 API 키 관리 화면 구현
-  - [ ] SOC 2 Type II / ISO 27001 컴플라이언스 로드맵
+## 🔵 Low Priority (향후 개선)
 
-12. **성능 및 안정성 향상**
-  - [ ] 30초 오디오를 8초 이내로 렌더링하는 최적화
-  - [ ] 동시 500 req/s 처리를 위한 스케일링 전략 수립
- - [ ] 월간 가용성 99.9% 모니터링 및 알림 구성
+### 10. 관리자 대시보드
+- [ ] React/Vue 기반 웹 UI
+- [ ] 화자 관리 인터페이스
+- [ ] 작업 모니터링 실시간 뷰
+- [ ] 사용량 통계 시각화
+- [ ] API 키 관리 UI
 
-13. **미해결 이슈**
-  - [ ] 화자 톤 정책(윤리·저작권) 가이드 확정
-  - [ ] 무료 티어 쿼터 범위 결정
+### 11. 고급 기능
+- [ ] 음성 속도/피치 조절
+- [ ] 감정 표현 파라미터
+- [ ] 배경음악 합성
+- [ ] 실시간 스트리밍 API
+- [ ] 음성 품질 A/B 테스트
 
+### 12. 문서화 및 지원
+- [ ] API 문서 자동 생성 (OpenAPI/Swagger)
+- [ ] 통합 테스트 시나리오 문서
+- [ ] 운영 가이드 작성
+- [ ] 트러블슈팅 가이드
+- [ ] 고객 지원 티켓 시스템
+
+## 📊 진행 상태
+
+**전체 진행률: 15% (18/120 작업 완료)**
+
+### 완료된 작업 ✅
+- [x] Flask 애플리케이션 구조
+- [x] HTTP 서버 구현
+- [x] 인메모리 작업 큐
+- [x] 데이터베이스 스키마
+- [x] 화자 등록 API
+- [x] 화자 조회 API
+- [x] 다중 화자 합성 API (더미)
+- [x] 자막 생성 모듈
+- [x] 작업 상태 관리 API
+- [x] 클라이언트 SDK
+- [x] CLI 인터페이스
+- [x] 단위 테스트
+- [x] 통합 테스트
+- [x] E2E 테스트 프레임워크
+- [x] API 키 인증
+- [x] HMAC 서명 검증
+- [x] 사용량 통계 수집
+- [x] Presigned URL (로컬)
+
+### 다음 스프린트 목표 (2주)
+1. Celery/Redis 통합 완료
+2. Fish-Speech 엔진 기본 연동
+3. Docker 컨테이너 구성
+4. 기본 에러 처리 구현
+
+---
+
+*마지막 업데이트: 2025-02-06*

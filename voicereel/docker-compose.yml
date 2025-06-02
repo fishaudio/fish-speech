@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: voicereel
+      POSTGRES_USER: voicereel
+      POSTGRES_PASSWORD: voicereel_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voicereel"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # VoiceReel API server
+  api:
+    build:
+      context: ..
+      dockerfile: voicereel/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      VR_DSN: postgresql://voicereel:voicereel_secret@postgres/voicereel
+      VR_REDIS_URL: redis://redis:6379/0
+      VR_API_KEY: ${VR_API_KEY:-dev_api_key}
+      VR_HMAC_SECRET: ${VR_HMAC_SECRET:-dev_hmac_secret}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./audio_cache:/tmp/voicereel_audio
+    command: python -m voicereel.flask_app
+
+  # Celery worker for speaker registration
+  worker_speakers:
+    build:
+      context: ..
+      dockerfile: voicereel/Dockerfile
+    environment:
+      VR_DSN: postgresql://voicereel:voicereel_secret@postgres/voicereel
+      VR_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./audio_cache:/tmp/voicereel_audio
+    command: celery -A voicereel.celery_app worker -Q speakers -n speaker@%h
+
+  # Celery worker for synthesis (GPU enabled in production)
+  worker_synthesis:
+    build:
+      context: ..
+      dockerfile: voicereel/Dockerfile
+    environment:
+      VR_DSN: postgresql://voicereel:voicereel_secret@postgres/voicereel
+      VR_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./audio_cache:/tmp/voicereel_audio
+    # In production, add GPU support:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    command: celery -A voicereel.celery_app worker -Q synthesis -n synthesis@%h
+
+  # Celery beat for scheduled tasks
+  beat:
+    build:
+      context: ..
+      dockerfile: voicereel/Dockerfile
+    environment:
+      VR_DSN: postgresql://voicereel:voicereel_secret@postgres/voicereel
+      VR_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: celery -A voicereel.celery_app beat
+
+  # Flower for monitoring (optional)
+  flower:
+    build:
+      context: ..
+      dockerfile: voicereel/Dockerfile
+    ports:
+      - "5555:5555"
+    environment:
+      VR_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+    command: celery -A voicereel.celery_app flower
+
+volumes:
+  redis_data:
+  postgres_data:

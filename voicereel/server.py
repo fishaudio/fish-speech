@@ -14,6 +14,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from .caption import export_captions
 
+# Try to import Celery tasks
+try:
+    from .tasks import register_speaker as celery_register_speaker
+    from .tasks import synthesize as celery_synthesize
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
 
 class VoiceReelServer:
     """Minimal HTTP server skeleton for VoiceReel."""
@@ -29,6 +37,7 @@ class VoiceReelServer:
         api_key: str | None = None,
         hmac_secret: str | None = None,
         redis_url: str | None = None,
+        use_celery: bool = None,
     ):
         self.host = host
         self.port = port
@@ -36,6 +45,14 @@ class VoiceReelServer:
         self.api_key = api_key or os.getenv("VR_API_KEY")
         self.hmac_secret = hmac_secret or os.getenv("VR_HMAC_SECRET")
         self.redis_url = redis_url or os.getenv("VR_REDIS_URL")
+        
+        # Determine whether to use Celery
+        if use_celery is None:
+            # Auto-detect: use Celery if available and Redis URL is configured
+            self.use_celery = CELERY_AVAILABLE and bool(self.redis_url)
+        else:
+            self.use_celery = use_celery and CELERY_AVAILABLE
+            
         dsn = dsn or os.getenv("VR_DSN", ":memory:")
         self.db = sqlite3.connect(dsn, check_same_thread=False)
         self._init_db()
@@ -264,7 +281,18 @@ class VoiceReelServer:
                         ),
                     )
                     server.db.commit()
-                    server.job_queue.put(("register_speaker", job_id, speaker_id))
+                    
+                    # Queue the task
+                    if server.use_celery:
+                        # Use Celery for async processing
+                        celery_register_speaker.delay(
+                            job_id, speaker_id, audio_path="dummy.wav", 
+                            script=script, lang=lang
+                        )
+                    else:
+                        # Use in-memory queue
+                        server.job_queue.put(("register_speaker", job_id, speaker_id))
+                    
                     body = json.dumps(
                         {
                             "job_id": job_id,
@@ -326,7 +354,18 @@ class VoiceReelServer:
                         (datetime.now().isoformat(), len(script) * 0.5),
                     )
                     server.db.commit()
-                    server.job_queue.put(("synthesize", job_id))
+                    
+                    # Queue the synthesis task
+                    if server.use_celery:
+                        # Use Celery for async processing
+                        celery_synthesize.delay(
+                            job_id, script, output_format, 
+                            sample_rate, caption_format
+                        )
+                    else:
+                        # Use in-memory queue
+                        server.job_queue.put(("synthesize", job_id))
+                    
                     body = json.dumps({"job_id": job_id}).encode()
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
@@ -372,9 +411,12 @@ class VoiceReelServer:
         self.thread = threading.Thread(target=self.httpd.serve_forever)
         self.thread.daemon = True
         self.thread.start()
-        self.worker = threading.Thread(target=self._worker_loop)
-        self.worker.daemon = True
-        self.worker.start()
+        
+        # Only start worker thread if not using Celery
+        if not self.use_celery:
+            self.worker = threading.Thread(target=self._worker_loop)
+            self.worker.daemon = True
+            self.worker.start()
 
     def stop(self) -> None:
         if self.thread:
