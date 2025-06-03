@@ -100,16 +100,16 @@ def decode_one_token_ar(
 ) -> torch.Tensor:
     """
     Generate one token using dual autoregressive transformer for text-to-speech.
-    
+
     First generates semantic tokens, then generates acoustic codebook tokens sequentially.
-    
+
     Args:
         x: Input token tensor (1, num_codebooks+1, seq_len)
         input_pos: Position indices for input tokens (seq_len,)
         temperature/top_p/repetition_penalty: Sampling parameters (1, 1)
         previous_tokens: Previous tokens for repetition penalty (1, num_codebooks+1, history_seq_len)
         audio_masks/audio_parts: Audio conditioning tensors (num_codebooks, seq_len)
-    
+
     Returns:
         Generated tokens tensor (num_codebooks+1, 1) - one token per codebook
     """
@@ -174,7 +174,7 @@ def decode_n_tokens(
 ):
     """
     Generate n tokens iteratively using the model.
-    
+
     Args:
         model: The transformer model
         cur_token: Current token tensor of shape (1, num_codebooks+1, seq_len)
@@ -183,7 +183,7 @@ def decode_n_tokens(
         semantic_ids: List of semantic token IDs
         decode_one_token: Function to decode one token
         **sampling_kwargs: Additional sampling parameters
-    
+
     Returns:
         Generated tokens tensor of shape (num_codebooks+1, generated_len)
     """
@@ -201,9 +201,7 @@ def decode_n_tokens(
         else:
             window = previous_tokens[:, i - win_size : i]
 
-        with sdpa_kernel(
-            SDPBackend.MATH
-        ):
+        with sdpa_kernel(SDPBackend.MATH):
             next_token = decode_one_token(
                 model=model,
                 x=cur_token,
@@ -236,14 +234,14 @@ def generate(
 ) -> torch.Tensor:
     """
     Generate tokens from text prompt using the transformer model.
-    
+
     Args:
         model: The transformer model for generation
         prompt: Input token tensor of shape (num_codebooks+1, seq_len)
         max_new_tokens: Maximum number of new tokens to generate
         decode_one_token: Function to decode one token at a time
         **sampling_kwargs: Additional sampling parameters (temperature, top_p, repetition_penalty)
-    
+
     Returns:
         Generated sequence tensor of shape (num_codebooks+1, total_seq_len)
         where total_seq_len = original_seq_len + generated_tokens_len
