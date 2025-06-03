@@ -1,107 +1,50 @@
-# 推論
+# 紹介
 
-ボコーダーモデルが変更されたため、以前よりも多くのVRAMが必要です。スムーズな推論には12GBを推奨します。
+<div>
+<a target="_blank" href="https://discord.gg/Es5qTB9BcN">
+<img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
+</a>
+<a target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093">
+<img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
+</a>
+<a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
+<img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+</a>
+</div>
 
-推論には、コマンドライン、HTTP API、WebUIをサポートしており、お好きな方法を選択できます。
+!!! warning
+    このコードベースの違法な使用について、当方は一切の責任を負いません。お住まいの地域のDMCA（デジタルミレニアム著作権法）およびその他の関連法規をご参照ください。<br/>
+    このコードベースはApache 2.0ライセンスの下でリリースされ、すべてのモデルはCC-BY-NC-SA-4.0ライセンスの下でリリースされています。
 
-## 重みのダウンロード
+## システム要件
 
-まず、モデルの重みをダウンロードする必要があります：
+- GPU メモリ：12GB（推論）
+- システム：Linux、Windows
 
-```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
-```
+## セットアップ
 
-## コマンドライン推論
-
-!!! note
-    モデルにランダムに音色を選択させる場合は、この手順をスキップできます。
-
-### 1. 参照音声からVQトークンを取得
-
-```bash
-python fish_speech/models/dac/inference.py \
-    -i "ref_audio_name.wav" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
-```
-
-`fake.npy` と `fake.wav` が得られるはずです。
-
-### 2. テキストからセマンティックトークンを生成：
+まず、パッケージをインストールするためのconda環境を作成する必要があります。
 
 ```bash
-python fish_speech/models/text2semantic/inference.py \
-    --text "変換したいテキスト" \
-    --prompt-text "参照テキスト" \
-    --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # より高速化を求める場合
+
+conda create -n fish-speech python=3.12
+conda activate fish-speech
+
+pip install sudo apt-get install portaudio19-dev # pyaudio用
+pip install -e . # これにより残りのパッケージがすべてダウンロードされます。
+
+apt install libsox-dev ffmpeg # 必要に応じて。
 ```
 
-このコマンドは、作業ディレクトリに `codes_N` ファイルを作成します（Nは0から始まる整数）。
+!!! warning
+    `compile`オプションはWindowsとmacOSでサポートされていません。compileで実行したい場合は、tritionを自分でインストールする必要があります。
 
-!!! note
-    より高速な推論のために `--compile` を使用してCUDAカーネルを融合することができます（約30トークン/秒 -> 約500トークン/秒）。
-    対応して、加速を使用しない場合は、`--compile` パラメータをコメントアウトできます。
+## 謝辞
 
-!!! info
-    bf16をサポートしないGPUの場合、`--half` パラメータの使用が必要かもしれません。
-
-### 3. セマンティックトークンから音声を生成：
-
-#### VQGANデコーダー
-
-!!! warning "将来の警告"
-    元のパス（tools/vqgan/inference.py）からアクセス可能なインターフェースを維持していますが、このインターフェースは後続のリリースで削除される可能性があるため、できるだけ早くコードを変更してください。
-
-```bash
-python fish_speech/models/dac/inference.py \
-    -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
-```
-
-## HTTP API推論
-
-推論用のHTTP APIを提供しています。以下のコマンドでサーバーを開始できます：
-
-```bash
-python -m tools.api_server \
-    --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
-    --decoder-config-name modded_dac_vq
-```
-
-> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
-
-その後、http://127.0.0.1:8080/ でAPIを表示・テストできます。
-
-## GUI推論 
-[クライアントをダウンロード](https://github.com/AnyaCoder/fish-speech-gui/releases)
-
-## WebUI推論
-
-以下のコマンドでWebUIを開始できます：
-
-```bash
-python -m tools.run_webui \
-    --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
-    --decoder-config-name modded_dac_vq
-```
-
-または単純に
-
-```bash
-python -m tools.run_webui
-```
-> 推論を高速化したい場合は、`--compile` パラメータを追加できます。
-
-!!! note
-    ラベルファイルと参照音声ファイルをメインディレクトリの `references` フォルダに事前に保存することができます（自分で作成する必要があります）。これにより、WebUIで直接呼び出すことができます。
-
-!!! note
-    `GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME` などのGradio環境変数を使用してWebUIを設定できます。
-
-お楽しみください！
+- [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
+- [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
+- [GPT VITS](https://github.com/innnky/gpt-vits)
+- [MQTTS](https://github.com/b04901014/MQTTS)
+- [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+- [Transformers](https://github.com/huggingface/transformers)
+- [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)

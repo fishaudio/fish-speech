@@ -1,108 +1,50 @@
-# Inference
+# Introduction
 
-As the vocoder model has been changed, you need more VRAM than before, 12GB is recommended for fluently inference.
+<div>
+<a target="_blank" href="https://discord.gg/Es5qTB9BcN">
+<img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
+</a>
+<a target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093">
+<img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
+</a>
+<a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
+<img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+</a>
+</div>
 
-We support command line, HTTP API and WebUI for inference, you can choose any method you like.
+!!! warning
+    We assume no responsibility for any illegal use of the codebase. Please refer to the local laws regarding DMCA (Digital Millennium Copyright Act) and other relevant laws in your area. <br/>
+    This codebase is released under Apache 2.0 license and all models are released under the CC-BY-NC-SA-4.0 license.
 
-## Download Weights
+## Requirements
 
-First you need to download the model weights:
+- GPU Memory: 12GB (Inference)
+- System: Linux, Windows
 
-```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
-```
+## Setup
 
-## Command Line Inference
-
-!!! note
-    If you plan to let the model randomly choose a voice timbre, you can skip this step.
-
-### 1. Get VQ tokens from reference audio
-
-```bash
-python fish_speech/models/dac/inference.py \
-    -i "ref_audio_name.wav" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
-```
-
-You should get a `fake.npy` and a `fake.wav`.
-
-### 2. Generate semantic tokens from text:
+First, we need to create a conda environment to install the packages.
 
 ```bash
-python fish_speech/models/text2semantic/inference.py \
-    --text "The text you want to convert" \
-    --prompt-text "Your reference text" \
-    --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # if you want a faster speed
+
+conda create -n fish-speech python=3.12
+conda activate fish-speech
+
+pip install sudo apt-get install portaudio19-dev # For pyaudio
+pip install -e . # This will download all rest packages.
+
+apt install libsox-dev ffmpeg # If needed.
 ```
 
-This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
+!!! warning
+    The `compile` option is not supported on windows and macOS, if you want to run with compile, you need to install trition by yourself.
 
-!!! note
-    You may want to use `--compile` to fuse CUDA kernels for faster inference (~30 tokens/second -> ~500 tokens/second).
-    Correspondingly, if you do not plan to use acceleration, you can comment out the `--compile` parameter.
+## Acknowledgements
 
-!!! info
-    For GPUs that do not support bf16, you may need to use the `--half` parameter.
-
-### 3. Generate vocals from semantic tokens:
-
-#### VQGAN Decoder
-
-!!! warning "Future Warning"
-    We have kept the interface accessible from the original path (tools/vqgan/inference.py), but this interface may be removed in subsequent releases, so please change your code as soon as possible.
-
-```bash
-python fish_speech/models/dac/inference.py \
-    -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
-```
-
-## HTTP API Inference
-
-We provide a HTTP API for inference. You can use the following command to start the server:
-
-```bash
-python -m tools.api_server \
-    --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
-    --decoder-config-name modded_dac_vq
-```
-
-> If you want to speed up inference, you can add the `--compile` parameter.
-
-After that, you can view and test the API at http://127.0.0.1:8080/.
-
-## GUI Inference 
-[Download client](https://github.com/AnyaCoder/fish-speech-gui/releases)
-
-## WebUI Inference
-
-You can start the WebUI using the following command:
-
-```bash
-python -m tools.run_webui \
-    --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
-    --decoder-config-name modded_dac_vq
-```
-
-Or simply
-
-```bash
-python -m tools.run_webui
-```
-> If you want to speed up inference, you can add the `--compile` parameter.
-
-
-!!! note
-    You can save the label file and reference audio file in advance to the `references` folder in the main directory (which you need to create yourself), so that you can directly call them in the WebUI.
-
-!!! note
-    You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
-
-Enjoy!
+- [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
+- [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
+- [GPT VITS](https://github.com/innnky/gpt-vits)
+- [MQTTS](https://github.com/b04901014/MQTTS)
+- [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+- [Transformers](https://github.com/huggingface/transformers)
+- [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
