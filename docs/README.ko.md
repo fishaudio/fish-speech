@@ -156,9 +156,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화학습(RLHF)을 통합하�
 </a>
 
 ### **비디오 쇼케이스**
-<a href="https://www.youtube.com/watch?v=Ghc8cJdQyKQ" target="_blank">
-    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 비디오" style="width: 50%;" />
-</a>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### **오디오 샘플**
 <div style="margin: 20px 0;">

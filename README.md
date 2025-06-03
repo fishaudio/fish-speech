@@ -157,9 +157,7 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 </a>
 
 ### **Video Showcases**
-<a href="https://www.youtube.com/watch?v=Ghc8cJdQyKQ" target="_blank">
-    <img src="docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
-</a>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### **Audio Samples**
 <div style="margin: 20px 0;">

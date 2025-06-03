@@ -156,9 +156,7 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
 </a>
 
 ### **视频展示**
-<a href="https://www.youtube.com/watch?v=Ghc8cJdQyKQ" target="_blank">
-    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 视频" style="width: 50%;" />
-</a>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### **音频样本**
 <div style="margin: 20px 0;">

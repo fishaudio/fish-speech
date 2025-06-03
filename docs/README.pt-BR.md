@@ -156,9 +156,7 @@ Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback 
 </a>
 
 ### **Vitrines de Vídeo**
-<a href="https://www.youtube.com/watch?v=Ghc8cJdQyKQ" target="_blank">
-    <img src="assets/Thumbnail.jpg" alt="Vídeo OpenAudio S1" style="width: 50%;" />
-</a>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### **Amostras de Áudio**
 <div style="margin: 20px 0;">
