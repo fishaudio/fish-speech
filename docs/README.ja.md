@@ -20,6 +20,9 @@
 <br>
 
 <div align="center">
+    <a target="_blank" href="https://arena.speechcolab.org/">
+      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
+    </a>
     <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
         <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
     </a>
@@ -34,67 +37,142 @@
     </a>
 </div>
 
-このコードベースはApache Licenseの下でリリースされ、すべてのモデルウェイトはCC-BY-NC-SA-4.0 Licenseの下でリリースされています。詳細については[LICENSE](../LICENSE)をご参照ください。
+> [!IMPORTANT]
+> **ライセンス注意事項**  
+> このコードベースは**Apache License**の下でリリースされ、すべてのモデルウェイトは**CC-BY-NC-SA-4.0 License**の下でリリースされています。詳細については[LICENSE](../LICENSE)をご参照ください。
 
-私たちは名前をOpenAudioに変更したことをお知らせでき、嬉しく思います。これは全く新しいText-to-Speechモデルシリーズになります。
+> [!WARNING]
+> **法的免責事項**  
+> 私たちはコードベースの不法な使用について一切の責任を負いません。DMCA及びその他の関連法律について、現地の法律をご参照ください。
 
-デモは[Fish Audio Playground](https://fish.audio)で利用可能です。
+---
 
-ブログと技術レポートについては[OpenAudioウェブサイト](https://openaudio.com)をご覧ください。
+## 🎉 発表
 
-## 機能
-### OpenAudio-S1 (Fish-Speechの新バージョン)
+**OpenAudio**へのリブランドを発表できることを嬉しく思います。Fish-Speechの基盤を元に構築された、革新的な新しい高度Text-to-Speechモデルシリーズを紹介します。
 
-1. このモデルはfish-speechが持っていた**すべての機能**を持っています。
+このシリーズの最初のモデルとして**OpenAudio-S1**をリリースできることを誇りに思います。品質、性能、機能において大幅な改善を実現しました。
 
-2. OpenAudio S1は音声合成を強化するための様々な感情、トーン、特別なマーカーをサポートしています：
-   
-      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
+OpenAudio-S1には2つのバージョンがあります：**OpenAudio-S1**と**OpenAudio-S1-mini**。両モデルとも[Fish Audio Playground](https://fish.audio)（**OpenAudio-S1**用）と[Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**OpenAudio-S1-mini**用）で利用可能です。
 
-   またトーンマーカーもサポートしています：
+ブログと技術レポートについては[OpenAudioウェブサイト](https://openaudio.com/blogs/s1)をご覧ください。
 
-   (急いだトーン) (叫び) (絶叫) (ささやき) (柔らかいトーン)
+## ハイライト ✨
 
-    サポートされているいくつかの特別なマーカーがあります：
+### **優秀なTTS品質**
 
-    (笑い) (くすくす笑い) (すすり泣き) (大声で泣く) (ため息) (あえぎ) (うめき) (群衆の笑い) (背景の笑い) (観客の笑い)
+Seed TTS Eval Metricsを使用してモデル性能を評価した結果、OpenAudio S1は英語テキストで**0.008 WER**と**0.004 CER**を達成し、これは従来のモデルより大幅に優れています。（英語、自動評価、OpenAI gpt-4o-transcribeベース、Revai/pyannote-wespeaker-voxceleb-resnet34-LMを使用した話者距離）
 
-    また、**ハ、ハ、ハ**を使って制御することもでき、あなた自身が探索を待っている他の多くのケースがあります。
+| モデル | 単語誤り率 (WER) | 文字誤り率 (CER) | 話者距離 |
+|-------|------------------|------------------|----------|
+| **S1** | **0.008** | **0.004** | **0.332** |
+| **S1-mini** | **0.011** | **0.005** | **0.380** |
 
-3. OpenAudio S1には以下のサイズが含まれています：
--   **S1 (4B, プロプライエタリ):** フルサイズのモデル。
--   **S1-mini (0.5B, オープンソース):** S1の蒸留版。
+### **TTS-Arena2でのベストモデル** 🏆
 
-    S1とS1-miniの両方がオンライン人間フィードバック強化学習（RLHF）を組み込んでいます。
+OpenAudio S1は、テキスト音声変換評価のベンチマークである[TTS-Arena2](https://arena.speechcolab.org/)で**1位**を獲得しました：
 
-4. 評価
+<div align="center">
+    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+</div>
 
-    **Seed TTS評価メトリクス（英語、自動評価、OpenAI gpt-4o-transcribeベース、Revai/pyannote-wespeaker-voxceleb-resnet34-LMを使用したスピーカー距離）：**
+### **音声制御**
+OpenAudio S1は**音声合成を強化するための様々な感情、トーン、特別なマーカーをサポート**しています：
 
-    -   **S1:**
-        -   WER（単語誤り率）：**0.008**
-        -   CER（文字誤り率）：**0.004**
-        -   距離：**0.332**
-    -   **S1-mini:**
-        -   WER（単語誤り率）：**0.011**
-        -   CER（文字誤り率）：**0.005**
-        -   距離：**0.380**
-    
+- **基本感情**:
+```
+(怒った) (悲しい) (興奮した) (驚いた) (満足した) (喜んだ) 
+(恐れた) (心配した) (動揺した) (緊張した) (イライラした) (憂鬱な)
+(共感的な) (恥ずかしい) (嫌悪した) (感動した) (誇らしい) (リラックスした)
+(感謝する) (自信のある) (興味のある) (好奇心のある) (混乱した) (喜びに満ちた)
+```
 
-## 免責事項
+- **高度な感情**:
+```
+(軽蔑的な) (不幸な) (不安な) (ヒステリックな) (無関心な) 
+(せっかちな) (罪悪感のある) (軽蔑した) (パニックした) (激怒した) (しぶしぶの)
+(熱心な) (不賛成の) (否定的な) (否認する) (驚愕した) (真剣な)
+(皮肉な) (宥める) (慰める) (誠実な) (冷笑する)
+(躊躇する) (屈服する) (苦痛な) (気まずい) (面白がる)
+```
 
-コードベースの違法な使用について、いかなる責任も負いません。DMCAおよびその他の関連法律に関する現地の法律をご参照ください。
+- **トーンマーカー**:
+```
+(急いだトーン) (叫ぶ) (悲鳴) (囁く) (柔らかいトーン)
+```
 
-## 動画
+- **特別な音響効果**:
+```
+(笑う) (くすくす笑う) (すすり泣く) (大声で泣く) (ため息) (息切れ)
+(うめく) (群衆の笑い声) (背景の笑い声) (聴衆の笑い声)
+```
 
-#### 続く予定。
+また、「ハ、ハ、ハ」を使って制御することもでき、あなた自身が探索できる多くの他のケースがあります。
+
+（現在、英語、中国語、日本語をサポートしており、より多くの言語が近日公開予定です！）
+
+### **2種類のモデル**
+
+| モデル | サイズ | 利用可能性 | 機能 |
+|-------|--------|------------|------|
+| **S1** | 4Bパラメータ | [fish.audio](fish.audio)で利用可能 | フル機能のフラッグシップモデル |
+| **S1-mini** | 0.5Bパラメータ | huggingface [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini)で利用可能 | コア機能を持つ蒸留版 |
+
+S1とS1-miniの両方がオンライン人間フィードバック強化学習（RLHF）を組み込んでいます。
+
+## **機能**
+
+1. **ゼロショット・少数ショットTTS：** 10〜30秒の音声サンプルを入力して高品質のTTS出力を生成します。**詳細なガイドラインについては、[Voice Cloning Best Practices](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)をご覧ください。**
+
+2. **多言語・言語横断サポート：** 多言語テキストを入力ボックスにコピー&ペーストするだけで、言語を気にする必要はありません。現在、英語、日本語、韓国語、中国語、フランス語、ドイツ語、アラビア語、スペイン語をサポートしています。
+
+3. **音素依存なし：** モデルは強い汎化能力を持ち、TTSに音素に依存しません。どの言語の文字体系のテキストも処理できます。
+
+4. **高精度：** Seed-TTS Evalで約0.4%の低いCER（文字誤り率）と約0.8%のWER（単語誤り率）を達成します。
+
+5. **高速：** fish-tech加速により、Nvidia RTX 4060ラップトップで約1:5、Nvidia RTX 4090で約1:15のリアルタイム係数を実現します。
+
+6. **WebUI推論：** Chrome、Firefox、Edge、その他のブラウザと互換性のある使いやすいGradioベースのWeb UIを提供します。
+
+7. **GUI推論：** APIサーバーとシームレスに動作するPyQt6グラフィカルインターフェースを提供します。Linux、Windows、macOSをサポートします。[GUIを見る](https://github.com/AnyaCoder/fish-speech-gui)。
+
+8. **デプロイフレンドリー：** Linux、Windows（macOSは近日公開予定）のネイティブサポートで推論サーバーを簡単にセットアップし、速度損失を最小限に抑えます。
+
+## **メディア・デモ**
+
+<div align="center">
+
+### **ソーシャルメディア**
+<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="Latest Demo on X" />
+</a>
+
+### **インタラクティブデモ**
+<a href="https://fish.audio" target="_blank">
+    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="Try OpenAudio S1" />
+</a>
+<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
+    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="Try S1 Mini" />
+</a>
+
+### **ビデオショーケース**
+<a href="https://www.youtube.com/watch?v=Ghc8cJdQyKQ" target="_blank">
+    <img src="../assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+</a>
+
+### **音声サンプル**
+<div style="margin: 20px 0;">
+    <em>高品質の音声サンプルは間もなく公開予定で、異なる言語と感情における私たちの多言語TTS機能を実演します。</em>
+</div>
+
+</div>
+
+---
 
 ## ドキュメント
 
-- [環境構築](en/install.md)
-- [推論](en/inference.md)
-
-現在のモデルは**ファインチューニングをサポートしていない**ことに注意してください。
+- [環境構築](ja/install.md)
+- [推論](ja/inference.md)
 
 ## クレジット
 
@@ -104,6 +182,7 @@
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## 技術レポート (V1.4)
 ```bibtex
