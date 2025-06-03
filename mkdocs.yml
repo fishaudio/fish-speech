@@ -1,4 +1,4 @@
-site_name: Fish Speech
+site_name: OpenAudio
 site_description: Targeting SOTA TTS solutions.
 site_url: https://speech.fish.audio
 
@@ -12,7 +12,7 @@ copyright: Copyright &copy; 2023-2025 by Fish Audio
 
 theme:
   name: material
-  favicon: assets/figs/logo-circle.png
+  favicon: assets/openaudio.png
   language: en
   features:
     - content.action.edit
@@ -25,8 +25,7 @@ theme:
     - search.highlight
     - search.share
     - content.code.copy
-  icon:
-    logo: fontawesome/solid/fish
+  logo: assets/openaudio.png
 
   palette:
     # Palette toggle for automatic mode
@@ -56,7 +55,8 @@ theme:
         code: Roboto Mono
 
 nav:
-  - Installation: en/index.md
+  - Introduction: en/index.md
+  - Installation: en/install.md
   - Inference: en/inference.md
 
 # Plugins
@@ -80,25 +80,29 @@ plugins:
           name: 简体中文
           build: true
           nav:
-            - 安装: zh/index.md
+            - 介绍: zh/index.md
+            - 安装: zh/install.md
             - 推理: zh/inference.md
         - locale: ja
           name: 日本語
           build: true
           nav:
-            - インストール: ja/index.md
+            - はじめに: ja/index.md
+            - インストール: ja/install.md
             - 推論: ja/inference.md
         - locale: pt
           name: Português (Brasil)
           build: true
           nav:
-            - Instalação: pt/index.md
+            - Introdução: pt/index.md
+            - Instalação: pt/install.md
             - Inferência: pt/inference.md
         - locale: ko
           name: 한국어
           build: true
           nav:
-            - 설치: ko/index.md
+            - 소개: ko/index.md
+            - 설치: ko/install.md
             - 추론: ko/inference.md
 
 markdown_extensions:

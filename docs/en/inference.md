@@ -34,9 +34,7 @@ python fish_speech/models/text2semantic/inference.py \
     --text "The text you want to convert" \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # if you want a faster speed
+    --compile
 ```
 
 This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
@@ -50,15 +48,12 @@ This command will create a `codes_N` file in the working directory, where N is a
 
 ### 3. Generate vocals from semantic tokens:
 
-#### VQGAN Decoder
-
 !!! warning "Future Warning"
     We have kept the interface accessible from the original path (tools/vqgan/inference.py), but this interface may be removed in subsequent releases, so please change your code as soon as possible.
 
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
 ```
 
 ## HTTP API Inference
