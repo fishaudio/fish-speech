@@ -104,6 +104,7 @@ It should be noted that the current model **DOESN'T SUPPORT FINETUNE**.
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## Tech Report (V1.4)
 ```bibtex

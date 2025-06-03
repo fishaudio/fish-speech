@@ -4,7 +4,7 @@ defaults:
 
 project: text2semantic_finetune_dual_ar
 max_length: 4096
-pretrained_ckpt_path: checkpoints/fish-speech-1.5
+pretrained_ckpt_path: checkpoints/openaudio-s1-mini
 
 # Lightning Trainer
 trainer:

@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from pydantic import BaseModel, Field, conint, conlist, model_validator
+from pydantic import BaseModel, Field, conint, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
 
-from fish_speech.conversation import Message, TextPart, VQPart
+from fish_speech.content_sequence import TextPart, VQPart
 
 
 class ServeVQPart(BaseModel):
@@ -63,31 +63,10 @@ class ServeASRResponse(BaseModel):
     transcriptions: list[ServeASRTranscription]
 
 
-class ServeMessage(BaseModel):
-    role: Literal["system", "assistant", "user"]
-    parts: list[ServeVQPart | ServeTextPart]
-
-    def to_conversation_message(self):
-        new_message = Message(role=self.role, parts=[])
-        if self.role == "assistant":
-            new_message.modality = "voice"
-
-        for part in self.parts:
-            if isinstance(part, ServeTextPart):
-                new_message.parts.append(TextPart(text=part.text))
-            elif isinstance(part, ServeVQPart):
-                new_message.parts.append(
-                    VQPart(codes=torch.tensor(part.codes, dtype=torch.int))
-                )
-            else:
-                raise ValueError(f"Unsupported part type: {part}")
-
-        return new_message
-
-
-class ServeChatRequest(BaseModel):
-    messages: Annotated[list[ServeMessage], conlist(ServeMessage, min_length=1)]
-    max_new_tokens: int = 1024
+class ServeRequest(BaseModel):
+    # Raw content sequence dict that we can use with ContentSequence(**content)
+    content: dict
+    max_new_tokens: int = 600
     top_p: float = 0.7
     repetition_penalty: float = 1.2
     temperature: float = 0.7
@@ -114,15 +93,15 @@ class ServeVQGANDecodeResponse(BaseModel):
     audios: list[bytes]
 
 
-class ServeForwardMessage(BaseModel):
-    role: str
-    content: str
+class ServeContentSequenceParts(BaseModel):
+    parts: list[VQPart | TextPart]
 
 
 class ServeResponse(BaseModel):
-    messages: list[ServeMessage]
+    content_sequences: list[ServeContentSequenceParts]
     finish_reason: Literal["stop", "error"] | None = None
     stats: dict[str, int | float | str] = {}
+    finished: list[bool] | None = None
 
 
 class ServeStreamDelta(BaseModel):

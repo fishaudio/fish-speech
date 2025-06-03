@@ -16,12 +16,8 @@ from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
 from transformers import AutoTokenizer
 
+from fish_speech.models.text2semantic.lora import LoraConfig, setup_lora
 from fish_speech.tokenizer import SEMANTIC_TOKENS, FishTokenizer
-from fish_speech.utils import RankedLogger
-
-from .lora import LoraConfig, setup_lora
-
-log = RankedLogger(__name__, rank_zero_only=True)
 
 
 def find_multiple(n: int, k: int) -> int:
@@ -47,6 +43,8 @@ class BaseModelArgs:
     dropout: float = 0.0
     tie_word_embeddings: bool = True
     attention_qkv_bias: bool = False
+    attention_o_bias: bool = False
+    attention_qk_norm: bool = False
 
     # Codebook configs
     codebook_size: int = 160
@@ -60,7 +58,6 @@ class BaseModelArgs:
 
     # Dummy vars
     is_reward_model: bool = False
-    share_codebook_embeddings: bool = True
     scale_codebook_embeddings: bool = False
 
     def __post_init__(self):
@@ -70,7 +67,8 @@ class BaseModelArgs:
             hidden_dim = 4 * self.dim
             n_hidden = int(2 * hidden_dim / 3)
             self.intermediate_size = find_multiple(n_hidden, 256)
-        self.head_dim = self.dim // self.n_head
+        if self.head_dim is None:
+            self.head_dim = self.dim // self.n_head
 
     @staticmethod
     def from_pretrained(path: str):
@@ -112,6 +110,8 @@ class DualARModelArgs(BaseModelArgs):
     fast_head_dim: int | None = None
     fast_intermediate_size: int | None = None
     fast_attention_qkv_bias: bool | None = None
+    fast_attention_qk_norm: bool | None = None
+    fast_attention_o_bias: bool | None = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -127,6 +127,16 @@ class DualARModelArgs(BaseModelArgs):
             self.fast_attention_qkv_bias
             if self.fast_attention_qkv_bias is not None
             else self.attention_qkv_bias
+        )
+        self.fast_attention_qk_norm = (
+            self.fast_attention_qk_norm
+            if self.fast_attention_qk_norm is not None
+            else self.attention_qk_norm
+        )
+        self.fast_attention_o_bias = (
+            self.fast_attention_o_bias
+            if self.fast_attention_o_bias is not None
+            else self.attention_o_bias
         )
 
 
@@ -173,9 +183,7 @@ class BaseTransformer(nn.Module):
         super().__init__()
         self.config = config
         self.tokenizer = tokenizer
-        self.semantic_token_ids = [
-            tokenizer.get_token_id(SEMANTIC_TOKEN) for SEMANTIC_TOKEN in SEMANTIC_TOKENS
-        ]
+        self.semantic_token_ids = list(tokenizer.semantic_id_to_token_id.values())
 
         # Slow transformer
         self.embeddings = nn.Embedding(
@@ -202,7 +210,7 @@ class BaseTransformer(nn.Module):
             "freqs_cis",
             precompute_freqs_cis(
                 config.max_seq_len,
-                config.dim // config.n_head,
+                config.head_dim,
                 config.rope_base,
             ),
             persistent=False,
@@ -232,7 +240,6 @@ class BaseTransformer(nn.Module):
         if self.max_seq_len >= max_seq_len and self.max_batch_size >= max_batch_size:
             return
 
-        head_dim = self.config.dim // self.config.n_head
         max_seq_len = find_multiple(max_seq_len, 8)
         self.max_seq_len = max_seq_len
         self.max_batch_size = max_batch_size
@@ -242,23 +249,20 @@ class BaseTransformer(nn.Module):
                 max_batch_size,
                 max_seq_len,
                 self.config.n_local_heads,
-                head_dim,
+                self.config.head_dim,
                 dtype=dtype,
             )
 
-    def embed(self, inp: Tensor, share_codebook_embeddings=True) -> Tensor:
+    def embed(self, inp: Tensor) -> Tensor:
         embeds = []
         semantic_token_ids_tensor = torch.tensor(
             self.semantic_token_ids, device=inp.device, dtype=inp.dtype
         )
 
         for i in range(self.config.num_codebooks):
-            if share_codebook_embeddings:
-                emb = self.codebook_embeddings(
-                    inp[:, i + 1] + i * self.config.codebook_size
-                )
-            else:
-                emb = self.codebook_embeddings(inp[:, i + 1])
+            emb = self.codebook_embeddings(
+                inp[:, i + 1] + i * self.config.codebook_size
+            )
             embeds.append(emb)
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
@@ -318,9 +322,7 @@ class BaseTransformer(nn.Module):
         input_pos: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        x = self.embed(
-            inp, share_codebook_embeddings=self.config.share_codebook_embeddings
-        )
+        x = self.embed(inp)
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
@@ -371,16 +373,15 @@ class BaseTransformer(nn.Module):
         max_length: int | None = None,
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
-        is_agent: bool = False,
     ) -> "BaseTransformer":
         config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:
             config.max_seq_len = max_length
-            log.info(f"Override max_seq_len to {max_length}")
+            logger.info(f"Override max_seq_len to {max_length}")
 
         if rope_base is not None:
             config.rope_base = rope_base
-            log.info(f"Override rope_base to {rope_base}")
+            logger.info(f"Override rope_base to {rope_base}")
 
         match config.model_type:
             case "naive":
@@ -390,18 +391,17 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        tokenizer_path = str(path) + "/tokenizer.tiktoken"
-        tokenizer = FishTokenizer(tokenizer_path)
+        tokenizer = FishTokenizer.from_pretrained(path)
 
-        log.info(f"Loading model from {path}, config: {config}")
+        logger.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
 
         if lora_config is not None:
             setup_lora(model, lora_config)
-            log.info(f"LoRA setup: {lora_config}")
+            logger.info(f"LoRA setup: {lora_config}")
 
         if load_weights is False:
-            log.info("Randomly initialized model")
+            logger.info("Randomly initialized model")
         else:
 
             if "int8" in str(Path(path)):
@@ -444,6 +444,11 @@ class BaseTransformer(nn.Module):
                     new_weights[k.replace("model.", "")] = v
                 weights = new_weights
 
+            # Remove audio related weights
+            for k in list(weights.keys()):
+                if "audio_" in k:
+                    weights.pop(k)
+
             # Verify the name and shape of parameters since strict=False in load_state_dict.
             for k, v in model.named_parameters():
                 if k not in weights:
@@ -454,7 +459,7 @@ class BaseTransformer(nn.Module):
                     )
 
             err = model.load_state_dict(weights, strict=False, assign=True)
-            log.info(f"Loaded weights with error: {err}")
+            logger.info(f"Loaded weights with error: {err}")
 
         return model
 
@@ -471,7 +476,7 @@ class BaseTransformer(nn.Module):
                     continue
 
                 state_dict.pop(key)
-                log.info(f"Drop LoRA parameter: {key}")
+                logger.info(f"Drop LoRA parameter: {key}")
 
         torch.save(state_dict, path / "model.pth")
         self.tokenizer.save_pretrained(path)
@@ -545,6 +550,8 @@ class DualARTransformer(BaseTransformer):
             head_dim=config.fast_head_dim,
             intermediate_size=config.fast_intermediate_size,
             attention_qkv_bias=config.fast_attention_qkv_bias,
+            attention_qk_norm=config.fast_attention_qk_norm,
+            attention_o_bias=config.fast_attention_o_bias,
         )
 
         self.fast_layers = nn.ModuleList(
@@ -562,7 +569,7 @@ class DualARTransformer(BaseTransformer):
             "fast_freqs_cis",
             precompute_freqs_cis(
                 config.num_codebooks,
-                config.fast_dim // config.fast_n_head,
+                config.fast_head_dim,
                 config.rope_base,
             ),
             persistent=False,
@@ -574,8 +581,6 @@ class DualARTransformer(BaseTransformer):
     ):
         super().setup_caches(max_batch_size, max_seq_len, dtype)
 
-        head_dim = self.config.fast_dim // self.config.fast_n_head
-
         # Fast transformer
         # The max seq len here is the number of codebooks
         for b in self.fast_layers:
@@ -583,7 +588,7 @@ class DualARTransformer(BaseTransformer):
                 max_batch_size,
                 self.config.num_codebooks,
                 self.config.fast_n_local_heads,
-                head_dim,
+                self.config.fast_head_dim,
                 dtype=dtype,
             )
 
@@ -716,8 +721,14 @@ class Attention(nn.Module):
         self.wqkv = nn.Linear(
             config.dim, total_head_dim, bias=config.attention_qkv_bias
         )
-        self.wo = nn.Linear(config.dim, config.dim, bias=False)
+        self.wo = nn.Linear(
+            config.n_head * config.head_dim, config.dim, bias=config.attention_o_bias
+        )
         self.kv_cache = None
+
+        if config.attention_qk_norm:
+            self.q_norm = nn.RMSNorm(config.head_dim, config.norm_eps)
+            self.k_norm = nn.RMSNorm(config.head_dim, config.norm_eps)
 
         self.dropout = config.dropout
         self.n_head = config.n_head
@@ -725,6 +736,9 @@ class Attention(nn.Module):
         self.n_local_heads = config.n_local_heads
         self.dim = config.dim
         self.use_sdpa = use_sdpa
+        self.attention_qk_norm = config.attention_qk_norm
+        self.config = config
+
         self._register_load_state_dict_pre_hook(self.load_hook)
 
     def load_hook(self, state_dict, prefix, *args):
@@ -743,12 +757,17 @@ class Attention(nn.Module):
     ) -> Tensor:
         bsz, seqlen, _ = x.shape
 
+        q_size = self.n_head * self.head_dim
         kv_size = self.n_local_heads * self.head_dim
-        q, k, v = self.wqkv(x).split([self.dim, kv_size, kv_size], dim=-1)
+        q, k, v = self.wqkv(x).split([q_size, kv_size, kv_size], dim=-1)
 
         q = q.view(bsz, seqlen, self.n_head, self.head_dim)
         k = k.view(bsz, seqlen, self.n_local_heads, self.head_dim)
         v = v.view(bsz, seqlen, self.n_local_heads, self.head_dim)
+
+        if self.attention_qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
 
         q = apply_rotary_emb(q, freqs_cis)
         k = apply_rotary_emb(k, freqs_cis)
@@ -789,7 +808,7 @@ class Attention(nn.Module):
                 dropout_p=self.dropout if self.training else 0.0,
             )
 
-        y = y.transpose(1, 2).contiguous().view(bsz, seqlen, self.dim)
+        y = y.transpose(1, 2).contiguous().view(bsz, seqlen, q_size)
 
         return self.wo(y)
 

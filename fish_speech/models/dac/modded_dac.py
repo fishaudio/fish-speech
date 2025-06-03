@@ -920,6 +920,9 @@ class DAC(BaseModel, CodecMixin):
         return indices, indices_lens
 
     def decode(self, indices: torch.Tensor, feature_lengths):
+        if indices.ndim == 2:
+            indices = indices[None]
+
         z = self.quantizer.decode(indices)
         audio_lengths = feature_lengths * self.frame_length
         return self.decoder(z), audio_lengths

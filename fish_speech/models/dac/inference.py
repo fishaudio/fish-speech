@@ -58,10 +58,10 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option(
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
-@click.option("--config-name", default="firefly_gan_vq")
+@click.option("--config-name", default="modded_dac_vq")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
+    default="checkpoints/openaudio-s1-mini/codec.pth",
 )
 @click.option(
     "--device",
@@ -88,6 +88,9 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         # VQ Encoder
         audio_lengths = torch.tensor([audios.shape[2]], device=device, dtype=torch.long)
         indices, indices_lens = model.encode(audios, audio_lengths)
+
+        if indices.ndim == 3:
+            indices = indices[0]
 
         logger.info(f"Generated indices of shape {indices.shape}")
 
