@@ -56,11 +56,8 @@ theme:
         code: Roboto Mono
 
 nav:
-  - Introduction: index.md
-  - Finetune: finetune.md
-  - Inference: inference.md
-  - Start Agent: start_agent.md
-  - Samples: samples.md
+  - Installation: en/index.md
+  - Inference: en/inference.md
 
 # Plugins
 plugins:
@@ -83,37 +80,26 @@ plugins:
           name: 简体中文
           build: true
           nav:
-            - 介绍: zh/index.md
-            - 微调: zh/finetune.md
+            - 安装: zh/index.md
             - 推理: zh/inference.md
-            - 启动Agent: zh/start_agent.md
-            - 例子: zh/samples.md
         - locale: ja
           name: 日本語
           build: true
           nav:
-            - Fish Speech の紹介: ja/index.md
-            - 微調整: ja/finetune.md
+            - インストール: ja/index.md
             - 推論: ja/inference.md
-            - スタートエージェント: ja/start_agent.md
-            - サンプル: ja/samples.md
         - locale: pt
           name: Português (Brasil)
           build: true
           nav:
-            - Introdução: pt/index.md
-            - Ajuste Fino: pt/finetune.md
+            - Instalação: pt/index.md
             - Inferência: pt/inference.md
-            - Agente inicial: pt/start_agent.md
-            - Amostras: pt/samples.md
         - locale: ko
           name: 한국어
           build: true
           nav:
-            - 소개: ko/index.md
-            - 파인튜닝: ko/finetune.md
+            - 설치: ko/index.md
             - 추론: ko/inference.md
-            - 샘플: ko/samples.md
 
 markdown_extensions:
   - pymdownx.highlight:
