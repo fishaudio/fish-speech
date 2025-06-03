@@ -34,9 +34,7 @@ python fish_speech/models/text2semantic/inference.py \
     --text "O texto que você quer converter" \
     --prompt-text "Seu texto de referência" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # se você quiser uma velocidade mais rápida
+    --compile
 ```
 
 Este comando criará um arquivo `codes_N` no diretório de trabalho, onde N é um inteiro começando de 0.
@@ -50,15 +48,12 @@ Este comando criará um arquivo `codes_N` no diretório de trabalho, onde N é u
 
 ### 3. Gerar vocais a partir de tokens semânticos:
 
-#### Decodificador VQGAN
-
 !!! warning "Aviso Futuro"
     Mantivemos a interface acessível do caminho original (tools/vqgan/inference.py), mas esta interface pode ser removida em versões subsequentes, então por favor altere seu código o mais breve possível.
 
 ```bash
 python fish_speech/models/dac/inference.py \
-    -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
+    -i "codes_0.npy"
 ```
 
 ## Inferência com API HTTP
@@ -103,5 +98,3 @@ python -m tools.run_webui
 
 !!! note
     Você pode usar variáveis de ambiente do Gradio, como `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` para configurar o WebUI.
-
-Divirta-se!

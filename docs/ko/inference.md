@@ -34,9 +34,7 @@ python fish_speech/models/text2semantic/inference.py \
     --text "변환하고 싶은 텍스트" \
     --prompt-text "참조 텍스트" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # 더 빠른 속도를 원한다면
+    --compile
 ```
 
 이 명령은 작업 디렉토리에 `codes_N` 파일을 생성합니다. 여기서 N은 0부터 시작하는 정수입니다.
@@ -50,15 +48,12 @@ python fish_speech/models/text2semantic/inference.py \
 
 ### 3. 의미 토큰에서 음성 생성:
 
-#### VQGAN 디코더
-
 !!! warning "향후 경고"
     원래 경로(tools/vqgan/inference.py)에서 액세스 가능한 인터페이스를 유지하고 있지만, 이 인터페이스는 향후 릴리스에서 제거될 수 있으므로 가능한 한 빨리 코드를 변경해 주세요.
 
 ```bash
 python fish_speech/models/dac/inference.py \
-    -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
+    -i "codes_0.npy"
 ```
 
 ## HTTP API 추론
@@ -103,5 +98,3 @@ python -m tools.run_webui
 
 !!! note
     `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME`과 같은 Gradio 환경 변수를 사용하여 WebUI를 구성할 수 있습니다.
-
-즐기세요!

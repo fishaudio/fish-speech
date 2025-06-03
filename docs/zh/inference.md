@@ -1,6 +1,6 @@
 # 推理
 
-由于声码器模型已更改，您需要比以前更多的显存，建议使用12GB显存以便流畅推理。
+由于声码器模型已更改，您需要比以前更多的 VRAM，建议使用 12GB 进行流畅推理。
 
 我们支持命令行、HTTP API 和 WebUI 进行推理，您可以选择任何您喜欢的方法。
 
@@ -17,7 +17,7 @@ huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/ope
 !!! note
     如果您计划让模型随机选择音色，可以跳过此步骤。
 
-### 1. 从参考音频获取VQ tokens
+### 1. 从参考音频获取 VQ 令牌
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -27,38 +27,33 @@ python fish_speech/models/dac/inference.py \
 
 您应该会得到一个 `fake.npy` 和一个 `fake.wav`。
 
-### 2. 从文本生成语义tokens：
+### 2. 从文本生成语义令牌：
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
     --text "您想要转换的文本" \
     --prompt-text "您的参考文本" \
     --prompt-tokens "fake.npy" \
-    --checkpoint-path "checkpoints/openaudio-s1-mini" \
-    --num-samples 2 \
-    --compile # 如果您想要更快的速度
+    --compile
 ```
 
-此命令将在工作目录中创建一个 `codes_N` 文件，其中N是从0开始的整数。
+此命令将在工作目录中创建一个 `codes_N` 文件，其中 N 是从 0 开始的整数。
 
 !!! note
-    您可能想要使用 `--compile` 来融合CUDA内核以获得更快的推理速度（约30 tokens/秒 -> 约500 tokens/秒）。
-    相应地，如果您不打算使用加速，可以删除 `--compile` 参数的注释。
+    您可能希望使用 `--compile` 来融合 CUDA 内核以实现更快的推理（~30 令牌/秒 -> ~500 令牌/秒）。
+    相应地，如果您不计划使用加速，可以注释掉 `--compile` 参数。
 
 !!! info
-    对于不支持bf16的GPU，您可能需要使用 `--half` 参数。
+    对于不支持 bf16 的 GPU，您可能需要使用 `--half` 参数。
 
-### 3. 从语义tokens生成人声：
-
-#### VQGAN 解码器
+### 3. 从语义令牌生成声音：
 
 !!! warning "未来警告"
-    我们保留了从原始路径（tools/vqgan/inference.py）访问的接口，但此接口可能在后续版本中被移除，请尽快更改您的代码。
+    我们保留了从原始路径（tools/vqgan/inference.py）访问接口的能力，但此接口可能在后续版本中被删除，因此请尽快更改您的代码。
 
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy" \
-    --checkpoint-path "checkpoints/openaudiio-s1-mini/codec.pth"
 ```
 
 ## HTTP API 推理
