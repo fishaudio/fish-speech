@@ -208,7 +208,7 @@ def decode_n_tokens(
                 input_pos=input_pos,
                 previous_tokens=window,
                 **sampling_kwargs,
-            )
+            ).clone()
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
