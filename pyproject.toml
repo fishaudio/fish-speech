@@ -31,7 +31,6 @@ dependencies = [
     "loguru>=0.6.0",
     "loralib>=0.1.2",
     "pyrootutils>=1.0.4",
-    "vector_quantize_pytorch==1.14.24",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
@@ -46,6 +45,7 @@ dependencies = [
     "tiktoken>=0.8.0",
     "pydantic==2.9.2",
     "cachetools",
+    "descript-audio-codec"
 ]
 
 [project.optional-dependencies]

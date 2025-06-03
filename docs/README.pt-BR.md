@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](README.zh.md) | **Portuguese** | [日本語](README.ja.md) | [한국어](README.ko.md)<br>
+[English](../README.md) | [简体中文](README.zh.md) | **Portuguese** | [日本語](README.ja.md) | [한국어](README.ko.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -29,61 +29,74 @@
     <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
         <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
     </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
 </div>
 
-Este repositório de código é disponibilizado sob a licença Apache 2.0, e o modelo sob a licença CC-BY-NC-SA-4.0. Consulte [LICENSE](../LICENSE) para mais detalhes.
+Esta base de código é lançada sob a Licença Apache e todos os pesos dos modelos são lançados sob a Licença CC-BY-NC-SA-4.0. Consulte [LICENSE](../LICENSE) para mais detalhes.
 
----
+Estamos animados em anunciar que mudamos nosso nome para OpenAudio, esta será uma nova série de modelos Text-to-Speech.
 
-## Funcionalidades
+Demo disponível em [Fish Audio Playground](https://fish.audio).
 
-1. **TTS Zero-shot & Few-shot**: Insira uma amostra vocal de 10 a 30 segundos para gerar saída de TTS de alta qualidade. **Para diretrizes detalhadas, veja [Melhores Práticas para Clonagem de Voz](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
+Visite o [site OpenAudio](https://openaudio.com) para blog e relatório técnico.
 
-2. **Suporte Multilíngue e Interlingual**: Basta copiar e colar o texto multilíngue na caixa de entrada—não se preocupe com o idioma. Atualmente suporta inglês, japonês, coreano, chinês, francês, alemão, árabe e espanhol.
+## Recursos
+### OpenAudio-S1 (Nova versão do Fish-Speech)
 
-3. **Sem Dependência de Fonemas**: O modelo tem forte capacidade de generalização e não depende de fonemas para TTS. Ele pode lidar com textos em qualquer script de idioma.
+1. Este modelo possui **TODOS OS RECURSOS** que o fish-speech tinha.
 
-4. **Alta Precisão**: Alcança uma CER (Taxa de Erro de Caracteres) e WER (Taxa de Erro de Palavras) de cerca de 2% para textos de 5 minutos em inglês.
+2. O OpenAudio S1 suporta uma variedade de marcadores emocionais, de tom e especiais para aprimorar a síntese de fala:
+   
+      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
 
-5. **Rápido**: Com a aceleração fish-tech, o fator de tempo real é de aproximadamente 1:5 em um laptop Nvidia RTX 4060 e 1:15 em uma Nvidia RTX 4090.
+   Também suporta marcadores de tom:
 
-6. **Inferência WebUI**: Apresenta uma interface de usuário web baseada em Gradio, fácil de usar e compatível com navegadores como Chrome, Firefox e Edge.
+   (tom apressado) (gritando) (berrando) (sussurrando) (tom suave)
 
-7. **Inferência GUI**: Oferece uma interface gráfica PyQt6 que funciona perfeitamente com o servidor API. Suporta Linux, Windows e macOS. [Veja o GUI](https://github.com/AnyaCoder/fish-speech-gui).
+    Há alguns marcadores especiais que são suportados:
 
-8. **Fácil de Implantar**: Configura facilmente um servidor de inferência com suporte nativo para Linux, Windows e macOS, minimizando a perda de velocidade.
+    (rindo) (dando risadinhas) (soluçando) (chorando alto) (suspirando) (ofegando) (gemendo) (multidão rindo) (riso de fundo) (audiência rindo)
 
-## Isenção de Responsabilidade
+    Você também pode usar **Ha,ha,ha** para controlar, há muitos outros casos esperando para serem explorados por você mesmo.
 
-Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as leis locais sobre DMCA (Digital Millennium Copyright Act) e outras leis relevantes em sua região.
+3. O OpenAudio S1 inclui os seguintes tamanhos:
+-   **S1 (4B, proprietário):** O modelo de tamanho completo.
+-   **S1-mini (0.5B, código aberto):** Uma versão destilada do S1.
 
-## Demonstração Online
+    Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online a partir de Feedback Humano (RLHF).
 
-[Fish Audio](https://fish.audio)
+4. Avaliações
 
-## Início Rápido de Inferência Local
+    **Métricas de Avaliação Seed TTS (Inglês, avaliação automática, baseada no OpenAI gpt-4o-transcribe, distância do locutor usando Revai/pyannote-wespeaker-voxceleb-resnet34-LM):**
 
-[inference.ipynb](/inference.ipynb)
+    -   **S1:**
+        -   WER (Taxa de Erro de Palavra): **0.008**
+        -   CER (Taxa de Erro de Caractere): **0.004**
+        -   Distância: **0.332**
+    -   **S1-mini:**
+        -   WER (Taxa de Erro de Palavra): **0.011**
+        -   CER (Taxa de Erro de Caractere): **0.005**
+        -   Distância: **0.380**
+    
+
+## Aviso Legal
+
+Não assumimos qualquer responsabilidade por qualquer uso ilegal da base de código. Consulte suas leis locais sobre DMCA e outras leis relacionadas.
 
 ## Vídeos
 
-#### 1.5 Introdução: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
+#### A ser continuado.
 
-## Documentação
+## Documentos
 
-- [Inglês](https://speech.fish.audio/)
-- [Chinês](https://speech.fish.audio/zh/)
-- [Japonês](https://speech.fish.audio/ja/)
-- [Português (Brasil)](https://speech.fish.audio/pt/)
+- [Construir Ambiente](en/install.md)
+- [Inferência](en/inference.md)
 
-## Exemplos
+Deve-se notar que o modelo atual **NÃO SUPORTA AJUSTE FINO**.
 
-- [Inglês](https://speech.fish.audio/samples/)
-- [Chinês](https://speech.fish.audio/zh/samples/)
-- [Japonês](https://speech.fish.audio/ja/samples/)
-- [Português (Brasil)](https://speech.fish.audio/pt/samples/)
-
-## Agradecimentos
+## Créditos
 
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
@@ -92,12 +105,15 @@ Não nos responsabilizamos por qualquer uso ilegal do código-fonte. Consulte as
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 
-## Patrocinadores
-
-<div>
-  <a href="https://6block.com/">
-    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
-  </a>
-  <br>
-  <a href="https://6block.com/">Servidores de processamento de dados fornecidos por 6Block</a>
-</div>
+## Relatório Técnico (V1.4)
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156},
+}
+```

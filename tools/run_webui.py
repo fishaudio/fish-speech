@@ -9,8 +9,8 @@ from loguru import logger
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.inference_engine import TTSInferenceEngine
+from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
-from fish_speech.models.vqgan.inference import load_model as load_decoder_model
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.webui import build_app
 from tools.webui.inference import get_inference_wrapper
@@ -24,14 +24,14 @@ def parse_args():
     parser.add_argument(
         "--llama-checkpoint-path",
         type=Path,
-        default="checkpoints/fish-speech-1.5",
+        default="checkpoints/openaudio-s1-mini",
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=Path,
-        default="checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
+        default="checkpoints/openaudio-s1-mini/codec.pth",
     )
-    parser.add_argument("--decoder-config-name", type=str, default="firefly_gan_vq")
+    parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--compile", action="store_true")

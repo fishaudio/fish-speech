@@ -3,14 +3,14 @@ from typing import Callable
 import torch
 from loguru import logger
 
-from fish_speech.models.vqgan.modules.firefly import FireflyArchitecture
+from fish_speech.models.dac.modded_dac import DAC
 
 
 class VQManager:
 
     def __init__(self):
         # Make Pylance happy (attribut/method not defined...)
-        self.decoder_model: FireflyArchitecture
+        self.decoder_model: DAC
         self.load_audio: Callable
 
     def decode_vq_tokens(self, codes):
@@ -19,7 +19,7 @@ class VQManager:
         )
         logger.info(f"VQ features: {codes.shape}")
 
-        if isinstance(self.decoder_model, FireflyArchitecture):
+        if isinstance(self.decoder_model, DAC):
             return self.decoder_model.decode(
                 indices=codes[None],
                 feature_lengths=feature_lengths,
@@ -30,9 +30,11 @@ class VQManager:
     def encode_reference(self, reference_audio, enable_reference_audio):
         if enable_reference_audio and reference_audio is not None:
             # Load audios, and prepare basic info here
-            reference_audio_content = self.load_audio(
-                reference_audio, self.decoder_model.spec_transform.sample_rate
-            )
+            if hasattr(self.decoder_model, "spec_transform"):
+                sample_rate = self.decoder_model.spec_transform.sample_rate
+            else:
+                sample_rate = self.decoder_model.sample_rate
+            reference_audio_content = self.load_audio(reference_audio, sample_rate)
 
             audios = torch.from_numpy(reference_audio_content).to(
                 self.decoder_model.device
@@ -41,11 +43,11 @@ class VQManager:
                 [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long
             )
             logger.info(
-                f"Loaded audio with {audios.shape[2] / self.decoder_model.spec_transform.sample_rate:.2f} seconds"
+                f"Loaded audio with {audios.shape[2] / sample_rate:.2f} seconds"
             )
 
             # VQ Encoder
-            if isinstance(self.decoder_model, FireflyArchitecture):
+            if isinstance(self.decoder_model, DAC):
                 prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
                 logger.info(f"Encoded prompt: {prompt_tokens.shape}")
             else:

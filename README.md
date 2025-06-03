@@ -36,69 +36,65 @@
 
 This codebase is released under Apache License and all model weights are released under CC-BY-NC-SA-4.0 License. Please refer to [LICENSE](LICENSE) for more details.
 
----
-## Fish Agent
-We are very excited to announce that we have made our self-research agent demo open source, you can now try our agent demo for instant English and Chinese chat locally by following the [docs](https://speech.fish.audio/start_agent/).
+We are excited to announce that we have changed our name into OpenAudio, this will be a brand new series of Text-to-Speech model.
 
-You should mention that the content is released under a **CC BY-NC-SA 4.0 licence**. And the demo is an early alpha test version, the inference speed needs to be optimised, and there are a lot of bugs waiting to be fixed. If you've found a bug or want to fix it, we'd be very happy to receive an issue or a pull request.
+Demo available at [Fish Audio Playground](https://fish.audio).
+
+Visit the [OpenAudio website](https://openaudio.com) for blog & tech report.
 
 ## Features
-### Fish Speech
+### OpenAudio-S1 (Fish-Speech's new verison)
 
-1. **Zero-shot & Few-shot TTS:** Input a 10 to 30-second vocal sample to generate high-quality TTS output. **For detailed guidelines, see [Voice Cloning Best Practices](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
+1. This model has **ALL FEATURES** that fish-speech had.
 
-2. **Multilingual & Cross-lingual Support:** Simply copy and paste multilingual text into the input box—no need to worry about the language. Currently supports English, Japanese, Korean, Chinese, French, German, Arabic, and Spanish.
+2. OpenAudio S1 supports a variety of emotional, tone, and special markers to enhance speech synthesis:
+   
+   (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
 
-3. **No Phoneme Dependency:** The model has strong generalization capabilities and does not rely on phonemes for TTS. It can handle text in any language script.
+   Also supports tone marker:
 
-4. **Highly Accurate:** Achieves a low CER (Character Error Rate) and WER (Word Error Rate) of around 2% for 5-minute English texts.
+   (in a hurry tone) (shouting) (screaming) (whispering) (soft tone)
 
-5. **Fast:** With fish-tech acceleration, the real-time factor is approximately 1:5 on an Nvidia RTX 4060 laptop and 1:15 on an Nvidia RTX 4090.
+    There's a few special markers that are supported:
 
-6. **WebUI Inference:** Features an easy-to-use, Gradio-based web UI compatible with Chrome, Firefox, Edge, and other browsers.
+    (laughing) (chuckling) (sobbing) (crying loudly) (sighing) (panting) (groaning) (crowd laughing) (background laughter) (audience laughing)
 
-7. **GUI Inference:** Offers a PyQt6 graphical interface that works seamlessly with the API server. Supports Linux, Windows, and macOS. [See GUI](https://github.com/AnyaCoder/fish-speech-gui).
+    You can also use **Ha,ha,ha** to control, there's many other cases waiting to be explored by yourself.
 
-8. **Deploy-Friendly:** Easily set up an inference server with native support for Linux, Windows and MacOS, minimizing speed loss.
+3. The OpenAudio S1 includes the following sizes:
+-   **S1 (4B, proprietary):** The full-sized model.
+-   **S1-mini (0.5B, open-sourced):** A distilled version of S1.
 
-### Fish Agent
-1. **Completely End to End:** Automatically integrates ASR and TTS parts, no need to plug-in other models, i.e., true end-to-end, not three-stage (ASR+LLM+TTS).
+    Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedback (RLHF).
 
-2. **Timbre Control:** Can use reference audio to control the speech timbre.
+4. Evaluations
 
-3. **Emotional:** The model can generate speech with strong emotion.
+    **Seed TTS Eval Metrics (English, auto eval, based on OpenAI gpt-4o-transcribe, speaker distance using Revai/pyannote-wespeaker-voxceleb-resnet34-LM):**
+
+    -   **S1:**
+        -   WER (Word Error Rate): **0.008**
+        -   CER (Character Error Rate): **0.004**
+        -   Distance: **0.332**
+    -   **S1-mini:**
+        -   WER (Word Error Rate): **0.011**
+        -   CER (Character Error Rate): **0.005**
+        -   Distance: **0.380**
+    
 
 ## Disclaimer
 
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
-## Online Demo
-
-[Fish Audio](https://fish.audio)
-
-[Fish Agent](https://fish.audio/demo/live)
-
-## Quick Start for Local Inference 
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/fishaudio/fish-speech/blob/main/inference.ipynb)
-
 ## Videos
 
-#### V1.5 Demo Video: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
+#### To be continued.
 
 ## Documents
 
-- [English](https://speech.fish.audio/)
-- [中文](https://speech.fish.audio/zh/)
-- [日本語](https://speech.fish.audio/ja/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/)
+- [Build Envrionment](docs/en/install.md)
+- [Inference](docs/en/inference.md)
 
-## Samples (2024/10/02 V1.4)
-
-- [English](https://speech.fish.audio/samples/)
-- [中文](https://speech.fish.audio/zh/samples/)
-- [日本語](https://speech.fish.audio/ja/samples/)
-- [Portuguese (Brazil)](https://speech.fish.audio/pt/samples/)
+It should be noted that the current model **DOESN'T SUPPORT FINETUNE**.
 
 ## Credits
 
@@ -108,6 +104,7 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## Tech Report (V1.4)
 ```bibtex
@@ -121,13 +118,3 @@ We do not hold any responsibility for any illegal usage of the codebase. Please 
       url={https://arxiv.org/abs/2411.01156},
 }
 ```
-
-## Sponsor
-
-<div>
-  <a href="https://6block.com/">
-    <img src="https://avatars.githubusercontent.com/u/60573493" width="100" height="100" alt="6Block Avatar"/>
-  </a>
-  <br>
-  <a href="https://6block.com/">Data Processing sponsor by 6Block</a>
-</div>

@@ -58,10 +58,10 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option(
     "--output-path", "-o", default="fake.wav", type=click.Path(path_type=Path)
 )
-@click.option("--config-name", default="firefly_gan_vq")
+@click.option("--config-name", default="modded_dac_vq")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth",
+    default="checkpoints/openaudio-s1-mini/codec.pth",
 )
 @click.option(
     "--device",
@@ -78,18 +78,19 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         audio, sr = torchaudio.load(str(input_path))
         if audio.shape[0] > 1:
             audio = audio.mean(0, keepdim=True)
-        audio = torchaudio.functional.resample(
-            audio, sr, model.spec_transform.sample_rate
-        )
+        audio = torchaudio.functional.resample(audio, sr, model.sample_rate)
 
         audios = audio[None].to(device)
         logger.info(
-            f"Loaded audio with {audios.shape[2] / model.spec_transform.sample_rate:.2f} seconds"
+            f"Loaded audio with {audios.shape[2] / model.sample_rate:.2f} seconds"
         )
 
         # VQ Encoder
         audio_lengths = torch.tensor([audios.shape[2]], device=device, dtype=torch.long)
-        indices = model.encode(audios, audio_lengths)[0][0]
+        indices, indices_lens = model.encode(audios, audio_lengths)
+
+        if indices.ndim == 3:
+            indices = indices[0]
 
         logger.info(f"Generated indices of shape {indices.shape}")
 
@@ -100,15 +101,13 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         indices = np.load(input_path)
         indices = torch.from_numpy(indices).to(device).long()
         assert indices.ndim == 2, f"Expected 2D indices, got {indices.ndim}"
+        indices_lens = torch.tensor([indices.shape[1]], device=device, dtype=torch.long)
     else:
         raise ValueError(f"Unknown input type: {input_path}")
 
     # Restore
-    feature_lengths = torch.tensor([indices.shape[1]], device=device)
-    fake_audios, _ = model.decode(
-        indices=indices[None], feature_lengths=feature_lengths
-    )
-    audio_time = fake_audios.shape[-1] / model.spec_transform.sample_rate
+    fake_audios, audio_lengths = model.decode(indices, indices_lens)
+    audio_time = fake_audios.shape[-1] / model.sample_rate
 
     logger.info(
         f"Generated audio of shape {fake_audios.shape}, equivalent to {audio_time:.2f} seconds from {indices.shape[1]} features, features/second: {indices.shape[1] / audio_time:.2f}"
@@ -116,7 +115,7 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
     # Save audio
     fake_audio = fake_audios[0, 0].float().cpu().numpy()
-    sf.write(output_path, fake_audio, model.spec_transform.sample_rate)
+    sf.write(output_path, fake_audio, model.sample_rate)
     logger.info(f"Saved audio to {output_path}")
 
 
