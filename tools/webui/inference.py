@@ -8,7 +8,6 @@ from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 
 def inference_wrapper(
     text,
-    normalize,
     reference_id,
     reference_audio,
     reference_text,
@@ -33,7 +32,6 @@ def inference_wrapper(
 
     req = ServeTTSRequest(
         text=text,
-        normalize=normalize,
         reference_id=reference_id if reference_id else None,
         references=references,
         max_new_tokens=max_new_tokens,

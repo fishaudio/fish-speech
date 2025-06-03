@@ -29,7 +29,6 @@ from tools.server.views import routes
 class API(ExceptionHandler):
     def __init__(self):
         self.args = parse_args()
-        self.routes = routes
 
         def api_auth(endpoint):
             async def verify(token: Annotated[str, Depends(bearer_auth)]):
@@ -45,6 +44,12 @@ class API(ExceptionHandler):
             else:
                 return passthrough
 
+        self.routes = Routes(
+            routes,  # keep existing routes
+            http_middlewares=[api_auth],  # apply api_auth middleware
+        )
+
+        # OpenAPIの設定
         self.openapi = OpenAPI(
             Info(
                 {

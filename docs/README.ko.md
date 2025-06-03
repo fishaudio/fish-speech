@@ -30,7 +30,7 @@
     </a>
 </div>
 
-이 코드베이스와 모든 모델은 CC-BY-NC-SA-4.0 라이선스에 따라 배포됩니다. 자세한 내용은 [LICENSE](LICENSE)를 참조하시길 바랍니다.
+이 코드 저장소는 Apache 2.0 라이선스 하에 배포되며, 모델은 CC-BY-NC-SA-4.0 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하십시오.
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## 영상
 
-#### V1.4 데모 영상: [Youtube](https://www.youtube.com/watch?v=Ghc8cJdQyKQ)
+#### V1.5 데모 영상: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
 
 ## 문서
 

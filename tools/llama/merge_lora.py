@@ -40,7 +40,7 @@ def merge(lora_config, base_weight, lora_weight, output):
     llama_state_dict = llama_model.state_dict()
     llama_state_dict = {k: v for k, v in llama_state_dict.items() if "lora" not in k}
     llama_state_dict_copy = deepcopy(llama_state_dict)
-    lora_state_dict = torch.load(lora_weight, map_location="cpu")
+    lora_state_dict = torch.load(lora_weight, map_location="cpu", weights_only=False)
 
     if "state_dict" in llama_state_dict:
         llama_state_dict = llama_state_dict["state_dict"]

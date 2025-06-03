@@ -30,7 +30,7 @@
     </a>
 </div>
 
-このコードベースとすべてのモデルは、CC-BY-NC-SA-4.0 ライセンスの下でリリースされています。詳細については、[LICENSE](LICENSE)を参照してください。
+このコードリポジトリはApache 2.0ライセンスの下で公開されており、モデルはCC-BY-NC-SA-4.0ライセンスの下で公開されています。詳細については[LICENSE](../LICENSE)をご参照ください。
 
 ---
 
@@ -59,11 +59,7 @@
 
 ## ビデオ
 
-#### V1.4 デモビデオ: https://www.bilibili.com/video/BV1pu46eVEk7
-
-#### V1.2 デモビデオ: https://www.bilibili.com/video/BV1wz421B71D
-
-#### V1.1 デモビデオ: https://www.bilibili.com/video/BV1zJ4m1K7cj
+#### V1.5 デモビデオ: [Watch the video on X (Twitter).](https://x.com/FishAudio/status/1864370933496205728)
 
 ## ドキュメント
 
