@@ -2,5 +2,5 @@
 --api
 --listen 0.0.0.0:8080 \
 --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
---decoder-checkpoint-path "checkpoints/openaudio-s1-mini/firefly-gan-vq-fsq-8x1024-21hz-generator.pth" \
---decoder-config-name firefly_gan_vq
+--decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
+--decoder-config-name modded_dac_vq
