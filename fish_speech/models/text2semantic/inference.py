@@ -322,9 +322,9 @@ def generate_long(
     text: str,
     num_samples: int = 1,
     max_new_tokens: int = 0,
-    top_p: int = 0.7,
-    repetition_penalty: float = 1.5,
-    temperature: float = 0.7,
+    top_p: int = 0.8,
+    repetition_penalty: float = 1.1,
+    temperature: float = 0.8,
     compile: bool = False,
     iterative_prompt: bool = True,
     chunk_length: int = 150,
@@ -343,6 +343,8 @@ def generate_long(
     assert use_prompt is False or len(prompt_text) == len(
         prompt_tokens
     ), "Prompt text and tokens must have the same length"
+
+    prompt_tokens = [i.cpu() for i in prompt_tokens]
 
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     tokenizer = model.tokenizer
@@ -423,7 +425,13 @@ def generate_long(
             #     partial_encoded = global_encoded
 
             # cat_encoded = torch.cat([encoded_prompts, *partial_encoded], dim=1)
-            cat_encoded = torch.cat([encoded_prompts, seg], dim=1)
+            if len(base_content_sequence.parts) <= 1 and len(global_encoded) >= 2:
+                cat_encoded = torch.cat(
+                    [encoded_prompts, global_encoded[0], global_encoded[1], seg], dim=1
+                )
+            else:
+                cat_encoded = torch.cat([encoded_prompts, seg], dim=1)
+
             cat_encoded = cat_encoded.to(device=device)
             prompt_length = cat_encoded.size(1)
 

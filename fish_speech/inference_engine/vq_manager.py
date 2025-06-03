@@ -30,9 +30,11 @@ class VQManager:
     def encode_reference(self, reference_audio, enable_reference_audio):
         if enable_reference_audio and reference_audio is not None:
             # Load audios, and prepare basic info here
-            reference_audio_content = self.load_audio(
-                reference_audio, self.decoder_model.spec_transform.sample_rate
-            )
+            if hasattr(self.decoder_model, "spec_transform"):
+                sample_rate = self.decoder_model.spec_transform.sample_rate
+            else:
+                sample_rate = self.decoder_model.sample_rate
+            reference_audio_content = self.load_audio(reference_audio, sample_rate)
 
             audios = torch.from_numpy(reference_audio_content).to(
                 self.decoder_model.device
@@ -41,7 +43,7 @@ class VQManager:
                 [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long
             )
             logger.info(
-                f"Loaded audio with {audios.shape[2] / self.decoder_model.spec_transform.sample_rate:.2f} seconds"
+                f"Loaded audio with {audios.shape[2] / sample_rate:.2f} seconds"
             )
 
             # VQ Encoder

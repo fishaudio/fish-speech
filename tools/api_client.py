@@ -82,19 +82,19 @@ def parse_args():
         help="Maximum new tokens to generate. \n0 means no limit.",
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=200, help="Chunk length for synthesis"
+        "--chunk_length", type=int, default=300, help="Chunk length for synthesis"
     )
     parser.add_argument(
-        "--top_p", type=float, default=0.7, help="Top-p sampling for synthesis"
+        "--top_p", type=float, default=0.8, help="Top-p sampling for synthesis"
     )
     parser.add_argument(
         "--repetition_penalty",
         type=float,
-        default=1.2,
+        default=1.1,
         help="Repetition penalty for synthesis",
     )
     parser.add_argument(
-        "--temperature", type=float, default=0.7, help="Temperature for sampling"
+        "--temperature", type=float, default=0.8, help="Temperature for sampling"
     )
 
     parser.add_argument(

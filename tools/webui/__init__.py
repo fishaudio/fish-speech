@@ -31,9 +31,9 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                             with gr.Row():
                                 chunk_length = gr.Slider(
                                     label=i18n("Iterative Prompt Length, 0 means off"),
-                                    minimum=0,
-                                    maximum=300,
-                                    value=200,
+                                    minimum=100,
+                                    maximum=400,
+                                    value=300,
                                     step=8,
                                 )
 
@@ -50,26 +50,26 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                             with gr.Row():
                                 top_p = gr.Slider(
                                     label="Top-P",
-                                    minimum=0.6,
-                                    maximum=0.9,
-                                    value=0.7,
+                                    minimum=0.7,
+                                    maximum=0.95,
+                                    value=0.8,
                                     step=0.01,
                                 )
 
                                 repetition_penalty = gr.Slider(
                                     label=i18n("Repetition Penalty"),
                                     minimum=1,
-                                    maximum=1.5,
-                                    value=1.2,
+                                    maximum=1.2,
+                                    value=1.1,
                                     step=0.01,
                                 )
 
                             with gr.Row():
                                 temperature = gr.Slider(
                                     label="Temperature",
-                                    minimum=0.6,
-                                    maximum=0.9,
-                                    value=0.7,
+                                    minimum=0.7,
+                                    maximum=1.0,
+                                    value=0.8,
                                     step=0.01,
                                 )
                                 seed = gr.Number(

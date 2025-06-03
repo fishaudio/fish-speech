@@ -65,7 +65,10 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         response_queue = self.send_Llama_request(req, prompt_tokens, prompt_texts)
 
         # Get the sample rate from the decoder model
-        sample_rate = self.decoder_model.spec_transform.sample_rate
+        if hasattr(self.decoder_model, "spec_transform"):
+            sample_rate = self.decoder_model.spec_transform.sample_rate
+        else:
+            sample_rate = self.decoder_model.sample_rate
 
         # If streaming, send the header
         if req.streaming:
@@ -156,7 +159,6 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             compile=self.compile,
             iterative_prompt=req.chunk_length > 0,
             chunk_length=req.chunk_length,
-            max_length=4096,
             prompt_tokens=prompt_tokens,
             prompt_text=prompt_texts,
         )
