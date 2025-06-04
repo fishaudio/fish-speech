@@ -46,7 +46,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화 학습(RLHF)이 통합되
 
 저희는 **OpenAudio**로의 브랜드 변경을 발표하게 되어 기쁩니다. Fish-Speech를 기반으로 하여 상당한 개선과 새로운 기능을 추가한 새로운 고급 텍스트-음성 변환 모델 시리즈를 소개합니다.
 
-**Openaudio-S1-mini**: [동영상](업로드 예정); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
+**Openaudio-S1-mini**: [블로그](https://openaudio.com/blogs/s1); [동영상](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
 
 **Fish-Speech v1.5**: [동영상](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
 
@@ -155,7 +155,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화 학습(RLHF)이 통합되
 
 <h3><strong>동영상 쇼케이스</strong></h3>
 <div align="center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 ## **문서**

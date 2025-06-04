@@ -20,7 +20,7 @@
 <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
 <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
 </a>
-</div>
+</div>·
 
 <strong>立即试用：</strong> <a href="https://fish.audio">Fish Audio Playground</a> | <strong>了解更多：</strong> <a href="https://openaudio.com">OpenAudio 网站</a>
 
@@ -38,7 +38,7 @@
 
 我们很高兴地宣布，我们已经更名为 **OpenAudio** - 推出全新的先进文字转语音模型系列，在 Fish-Speech 的基础上进行了重大改进并增加了新功能。
 
-**Openaudio-S1-mini**: [视频](即将上传); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
+**Openaudio-S1-mini**: [博客](https://openaudio.com/blogs/s1); [视频](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
 
 **Fish-Speech v1.5**: [视频](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
 
@@ -58,7 +58,7 @@
 OpenAudio S1 在 [TTS-Arena2](https://arena.speechcolab.org/) 上获得了 **#1 排名**，这是文字转语音评估的基准：
 
 <div align="center">
-    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+    <img src="../assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
 </div>
 
 ### **语音控制**
@@ -144,7 +144,7 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习 (RLHF)。
 
 <h3><strong>视频展示</strong></h3>
 <div align="center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 ## **文档**

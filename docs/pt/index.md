@@ -38,7 +38,7 @@
 
 Estamos empolgados em anunciar que mudamos nossa marca para **OpenAudio** - introduzindo uma nova série de modelos avançados de Text-to-Speech que se baseia na fundação do Fish-Speech com melhorias significativas e novas capacidades.
 
-**Openaudio-S1-mini**: [Vídeo](A ser carregado); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
+**OpenAudio-S1-mini**: [Blog](https://openaudio.com/blogs/s1); [Vídeo](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
 
 **Fish-Speech v1.5**: [Vídeo](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
 
@@ -144,7 +144,7 @@ Tanto o S1 quanto o S1-mini incorporam Aprendizado por Reforço Online com Feedb
 
 <h3><strong>Showcases em Vídeo</strong></h3>
 <div align="center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 ## **Documentação**

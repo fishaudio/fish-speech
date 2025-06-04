@@ -38,7 +38,7 @@
 
 私たちは **OpenAudio** への改名を発表できることを嬉しく思います。Fish-Speechを基盤とし、大幅な改善と新機能を加えた、新しい先進的なText-to-Speechモデルシリーズを紹介します。
 
-**Openaudio-S1-mini**: [動画](アップロード予定); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
+**Openaudio-S1-mini**: [ブログ](https://openaudio.com/blogs/s1); [動画](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
 
 **Fish-Speech v1.5**: [動画](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
 
@@ -58,7 +58,7 @@ Seed TTS評価指標を使用してモデルのパフォーマンスを評価し
 OpenAudio S1は[TTS-Arena2](https://arena.speechcolab.org/)で**#1ランキング**を達成しました。これはtext-to-speech評価のベンチマークです：
 
 <div align="center">
-    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+    <img src="../assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
 </div>
 
 ### **音声制御**
@@ -144,7 +144,7 @@ S1とS1-miniの両方にオンライン人間フィードバック強化学習�
 
 <h3><strong>動画ショーケース</strong></h3>
 <div align="center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ghc8cJdQyKQ" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 ## **ドキュメント**
