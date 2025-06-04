@@ -28,22 +28,40 @@
 
 ---
 
-!!! warning "Legal Notice"
-    We assume no responsibility for any illegal use of the codebase. Please refer to the local laws regarding DMCA (Digital Millennium Copyright Act) and other relevant laws in your area.
-    
-    **License:** This codebase is released under Apache 2.0 license and all models are released under the CC-BY-NC-SA-4.0 license.
+!!! note "License Notice"
+    This codebase is released under **Apache License** and all model weights are released under **CC-BY-NC-SA-4.0 License**. Please refer to [LICENSE](LICENSE) for more details.
+
+!!! warning "Legal Disclaimer"
+    We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
 ## **Introduction**
 
 We are excited to announce that we have rebranded to **OpenAudio** - introducing a brand new series of advanced Text-to-Speech models that builds upon the foundation of Fish-Speech with significant improvements and new capabilities.
 
-**Openaudio-S1-mini**: [Video](To Be Uploaded); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
+**Openaudio-S1-mini**: [Blog](https://openaudio.com/blogs/s1); [Video](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
 
 **Fish-Speech v1.5**: [Video](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
 
-## **Highlights** ✨
+## **Highlights**
 
-### **Emotion Control**
+### **Excellent TTS quality**
+
+We use Seed TTS Eval Metrics to evaluate the model performance, and the results show that OpenAudio S1 achieves **0.008 WER** and **0.004 CER** on English text, which is significantly better than previous models. (English, auto eval, based on OpenAI gpt-4o-transcribe, speaker distance using Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
+
+| Model | Word Error Rate (WER) | Character Error Rate (CER) | Speaker Distance |
+|:-----:|:--------------------:|:-------------------------:|:----------------:|
+| **S1** | **0.008** | **0.004** | **0.332** |
+| **S1-mini** | **0.011** | **0.005** | **0.380** |
+
+### **Best Model in TTS-Arena2**
+
+OpenAudio S1 has achieved the **#1 ranking** on [TTS-Arena2](https://arena.speechcolab.org/), the benchmark for text-to-speech evaluation:
+
+<div align="center">
+    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+</div>
+
+### **Speech Control**
 OpenAudio S1 **supports a variety of emotional, tone, and special markers** to enhance speech synthesis:
 
 - **Basic emotions**:
@@ -63,6 +81,8 @@ OpenAudio S1 **supports a variety of emotional, tone, and special markers** to e
 (hesitating) (yielding) (painful) (awkward) (amused)
 ```
 
+(Support for English, Chinese and Japanese now, and more languages is coming soon!)
+
 - **Tone markers**:
 ```
 (in a hurry tone) (shouting) (screaming) (whispering) (soft tone)
@@ -76,21 +96,13 @@ OpenAudio S1 **supports a variety of emotional, tone, and special markers** to e
 
 You can also use Ha,ha,ha to control, there's many other cases waiting to be explored by yourself.
 
-### **Excellent TTS quality**
-
-We use Seed TTS Eval Metrics to evaluate the model performance, and the results show that OpenAudio S1 achieves **0.008 WER** and **0.004 CER** on English text, which is significantly better than previous models. (English, auto eval, based on OpenAI gpt-4o-transcribe, speaker distance using Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
-
-| Model | Word Error Rate (WER) | Character Error Rate (CER) | Speaker Distance |
-|-------|----------------------|---------------------------|------------------|
-| **S1** | **0.008**  | **0.004**  | **0.332** |
-| **S1-mini** | **0.011** | **0.005** | **0.380** |
-
 ### **Two Type of Models**
 
-| Model | Size | Availability | Features |
-|-------|------|--------------|----------|
-| **S1** | 4B parameters | Avaliable on [fish.audio](fish.audio) | Full-featured flagship model |
-| **S1-mini** | 0.5B parameters | Avaliable on huggingface [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Distilled version with core capabilities |
+We offer two model variants to suit different needs:
+
+- **OpenAudio S1 (4B parameters)**: Our full-featured flagship model available on [fish.audio](https://fish.audio), delivering the highest quality speech synthesis with all advanced features.
+
+- **OpenAudio S1-mini (0.5B parameters)**: A distilled version with core capabilities, available on [Hugging Face Space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini), optimized for faster inference while maintaining excellent quality.
 
 Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedback (RLHF).
 
@@ -112,14 +124,28 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 
 8. **Deploy-Friendly:** Easily set up an inference server with native support for Linux, Windows (MacOS comming soon), minimizing speed loss.
 
-## **Disclaimer**
-
-We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
-
 ## **Media & Demos**
 
-#### 🚧 Coming Soon
-Video demonstrations and tutorials are currently in development.
+<!-- <div align="center"> -->
+
+<h3><strong>Social Media</strong></h3>
+<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="Latest Demo on X" />
+</a>
+
+<h3><strong>Interactive Demos</strong></h3>
+
+<a href="https://fish.audio" target="_blank">
+    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="Try OpenAudio S1" />
+</a>
+<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
+    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="Try S1 Mini" />
+</a>
+
+<h3><strong>Video Showcases</strong></h3>
+<div align="center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
 
 ## **Documentation**
 

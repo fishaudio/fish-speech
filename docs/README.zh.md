@@ -26,75 +26,157 @@
     <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
         <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
     </a>
-    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
-        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
-    </a>
     <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
       <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
     </a>
 </div>
 
-此代码库在 Apache License 下发布，所有模型权重在 CC-BY-NC-SA-4.0 License 下发布。更多详情请参考 [LICENSE](../LICENSE)。
+<div align="center">
+    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
+      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
+    </a>
+    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
+        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
+    </a>
+    <a target="_blank" href="https://huggingface.co/fishaudio/openaudio-s1-mini">
+        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+</div>
 
-我们很高兴地宣布，我们已将名字更改为 OpenAudio，这将是一个全新的文本转语音模型系列。
+> [!IMPORTANT]
+> **许可证声明**  
+> 此代码库在 **Apache License** 下发布，所有模型权重在 **CC-BY-NC-SA-4.0 License** 下发布。更多详情请参考 [LICENSE](../LICENSE)。
 
-演示可在 [Fish Audio Playground](https://fish.audio) 获得。
+> [!WARNING]
+> **法律免责声明**  
+> 我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的法规。
 
-访问 [OpenAudio 网站](https://openaudio.com) 获取博客和技术报告。
+---
 
-## 特性
-### OpenAudio-S1 (Fish-Speech 的新版本)
+## 🎉 公告
 
-1. 此模型具有 fish-speech 的**所有功能**。
+我们很高兴地宣布，我们已将品牌重塑为 **OpenAudio** —— 推出基于 Fish-Speech 基础构建的革命性新一代高级文本转语音模型系列。
 
-2. OpenAudio S1 支持多种情感、语调和特殊标记来增强语音合成：
+我们自豪地发布 **OpenAudio-S1** 作为该系列的第一个模型，在质量、性能和功能方面都有显著改进。
+
+OpenAudio-S1 提供两个版本：**OpenAudio-S1** 和 **OpenAudio-S1-mini**。两个模型现在都可以在 [Fish Audio Playground](https://fish.audio)（**OpenAudio-S1**）和 [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**OpenAudio-S1-mini**）上使用。
+
+请访问 [OpenAudio 网站](https://openaudio.com/blogs/s1) 获取博客和技术报告。
+
+## 亮点 ✨
+
+### **出色的 TTS 质量**
+
+我们使用 Seed TTS 评估指标来评估模型性能，结果显示 OpenAudio S1 在英语文本上达到了 **0.008 WER** 和 **0.004 CER**，这比以前的模型显著更好。（英语，自动评估，基于 OpenAI gpt-4o-transcribe，使用 Revai/pyannote-wespeaker-voxceleb-resnet34-LM 进行说话人距离计算）
+
+| 模型 | 词错误率 (WER) | 字符错误率 (CER) | 说话人距离 |
+|-------|----------------------|---------------------------|------------------|
+| **S1** | **0.008**  | **0.004**  | **0.332** |
+| **S1-mini** | **0.011** | **0.005** | **0.380** |
+
+### **TTS-Arena2 最佳模型** 🏆
+
+OpenAudio S1 在 [TTS-Arena2](https://arena.speechcolab.org/) 上取得了 **第一名**，这是文本转语音评估的基准：
+
+<div align="center">
+    <img src="assets/Elo.jpg" alt="TTS-Arena2 排名" style="width: 75%;" />
+</div>
+
+### **语音控制**
+OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合成：
+
+- **基础情感**：
+```
+(生气) (伤心) (兴奋) (惊讶) (满意) (高兴) 
+(害怕) (担心) (沮丧) (紧张) (挫败) (郁闷)
+(同情) (尴尬) (厌恶) (感动) (自豪) (放松)
+(感激) (自信) (感兴趣) (好奇) (困惑) (快乐)
+```
+
+- **高级情感**：
+```
+(鄙视) (不开心) (焦虑) (歇斯底里) (冷漠) 
+(不耐烦) (内疚) (轻蔑) (恐慌) (愤怒) (不情愿)
+(热衷) (不赞成) (消极) (否认) (震惊) (严肃)
+(讽刺) (安抚) (安慰) (真诚) (冷笑)
+(犹豫) (屈服) (痛苦) (尴尬) (觉得有趣)
+```
+
+- **语调标记**：
+```
+(急促的语调) (喊叫) (尖叫) (耳语) (柔和的语调)
+```
+
+- **特殊音频效果**：
+```
+(笑声) (轻笑) (抽泣) (大声哭泣) (叹息) (喘息)
+(呻吟) (人群笑声) (背景笑声) (观众笑声)
+```
+
+您也可以使用 哈,哈,哈 来控制，还有许多其他情况等待您自己探索。
+
+(目前支持英语、中文和日语，更多语言即将推出！)
+
+### **两种类型的模型**
+
+| 模型 | 大小 | 可用性 | 特性 |
+|-------|------|--------------|----------|
+| **S1** | 4B 参数 | 在 [fish.audio](https://fish.audio) 上可用 | 功能齐全的旗舰模型 |
+| **S1-mini** | 0.5B 参数 | 在 Hugging Face [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) 上可用 | 具有核心功能的精简版本 |
+
+S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
    
-      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused) PS:中文也支持
+   ## **功能**
 
-   同时支持语调标记：
+1. **零样本和少样本 TTS：** 输入 10 到 30 秒的语音样本以生成高质量的 TTS 输出。**详细指南请参见 [语音克隆最佳实践](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)。**
 
-   (急促的语调) (大喊) (尖叫) (低语) (温柔的语调)
+2. **多语言和跨语言支持：** 只需将多语言文本复制并粘贴到输入框中——无需担心语言问题。目前支持英语、日语、韩语、中文、法语、德语、阿拉伯语和西班牙语。
 
-    还有一些特殊标记得到支持：
+3. **无音素依赖：** 模型具有强大的泛化能力，不依赖音素进行 TTS。它可以处理任何语言脚本的文本。
 
-    (笑声) (轻笑) (抽泣) (大声哭泣) (叹气) (喘气) (呻吟) (人群笑声) (背景笑声) (观众笑声)
+4. **高准确性：** 在 Seed-TTS Eval 上实现约 0.4% 的低 CER（字符错误率）和约 0.8% 的 WER（词错误率）。
 
-    您也可以使用 **哈，哈，哈** 来控制，还有许多其他情况等待您自己探索。
+5. **快速：** 通过 fish-tech 加速，在 Nvidia RTX 4060 笔记本电脑上实时因子约为 1:5，在 Nvidia RTX 4090 上为 1:15。
 
-3. OpenAudio S1 包含以下规模：
--   **S1 (4B, 专有)：** 完整规模的模型。
--   **S1-mini (0.5B, 开源)：** S1 的蒸馏版本。
+6. **WebUI 推理：** 具有易于使用的基于 Gradio 的 Web UI，兼容 Chrome、Firefox、Edge 和其他浏览器。
 
-    S1 和 S1-mini 都结合了在线人类反馈强化学习（RLHF）。
+7. **GUI 推理：** 提供与 API 服务器无缝配合的 PyQt6 图形界面。支持 Linux、Windows 和 macOS。[查看 GUI](https://github.com/AnyaCoder/fish-speech-gui)。
 
-4. 评估
+8. **部署友好：** 通过对 Linux、Windows（macOS 即将推出）的原生支持，轻松设置推理服务器，最小化速度损失。
 
-    **Seed TTS 评估指标（英语，自动评估，基于 OpenAI gpt-4o-transcribe，使用 Revai/pyannote-wespeaker-voxceleb-resnet34-LM 的说话人距离）：**
+## **媒体和演示**
 
-    -   **S1：**
-        -   WER（词错误率）：**0.008**
-        -   CER（字符错误率）：**0.004**
-        -   距离：**0.332**
-    -   **S1-mini：**
-        -   WER（词错误率）：**0.011**
-        -   CER（字符错误率）：**0.005**
-        -   距离：**0.380**
-    
+<div align="center">
 
-## 免责声明
+### **社交媒体**
+<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="X 上的最新演示" />
+</a>
 
-我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的规定。
+### **交互式演示**
+<a href="https://fish.audio" target="_blank">
+    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="试用 OpenAudio S1" />
+</a>
+<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
+    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="试用 S1 Mini" />
+</a>
 
-## 视频
+### **视频展示**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### 待续。
+### **音频样本**
+<div style="margin: 20px 0;">
+    <em> 展示我们跨不同语言和情感的多语言 TTS 功能的高质量音频样本即将推出。</em>
+</div>
+
+</div>
+
+---
 
 ## 文档
 
 - [构建环境](zh/install.md)
 - [推理](zh/inference.md)
-
-需要注意的是，当前模型**不支持微调**。
 
 ## 致谢
 
@@ -104,6 +186,7 @@
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## 技术报告 (V1.4)
 ```bibtex

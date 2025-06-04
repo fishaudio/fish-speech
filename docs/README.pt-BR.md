@@ -26,75 +26,157 @@
     <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
         <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
     </a>
-    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
-        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
-    </a>
     <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
       <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
     </a>
 </div>
 
-Esta base de código é lançada sob a Licença Apache e todos os pesos dos modelos são lançados sob a Licença CC-BY-NC-SA-4.0. Consulte [LICENSE](../LICENSE) para mais detalhes.
+<div align="center">
+    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
+      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
+    </a>
+    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
+        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
+    </a>
+    <a target="_blank" href="https://huggingface.co/fishaudio/openaudio-s1-mini">
+        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+</div>
 
-Estamos animados em anunciar que mudamos nosso nome para OpenAudio, esta será uma nova série de modelos Text-to-Speech.
+> [!IMPORTANT]
+> **Aviso de Licença**  
+> Esta base de código é lançada sob a **Licença Apache** e todos os pesos dos modelos são lançados sob a **Licença CC-BY-NC-SA-4.0**. Consulte [LICENSE](../LICENSE) para mais detalhes.
 
-Demo disponível em [Fish Audio Playground](https://fish.audio).
+> [!WARNING]
+> **Isenção de Responsabilidade Legal**  
+> Não assumimos qualquer responsabilidade pelo uso ilegal da base de código. Consulte as leis locais sobre DMCA e outras leis relacionadas.
 
-Visite o [site OpenAudio](https://openaudio.com) para blog e relatório técnico.
+---
 
-## Recursos
-### OpenAudio-S1 (Nova versão do Fish-Speech)
+## 🎉 Anúncio
 
-1. Este modelo possui **TODOS OS RECURSOS** que o fish-speech tinha.
+Estamos animados em anunciar que mudamos nossa marca para **OpenAudio** — introduzindo uma nova série revolucionária de modelos avançados de Text-to-Speech que se baseia na fundação do Fish-Speech.
 
-2. O OpenAudio S1 suporta uma variedade de marcadores emocionais, de tom e especiais para aprimorar a síntese de fala:
+Temos o orgulho de lançar o **OpenAudio-S1** como o primeiro modelo desta série, oferecendo melhorias significativas em qualidade, desempenho e capacidades.
+
+O OpenAudio-S1 vem em duas versões: **OpenAudio-S1** e **OpenAudio-S1-mini**. Ambos os modelos estão agora disponíveis no [Fish Audio Playground](https://fish.audio) (para **OpenAudio-S1**) e [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini) (para **OpenAudio-S1-mini**).
+
+Visite o [site OpenAudio](https://openaudio.com/blogs/s1) para blog e relatório técnico.
+
+## Destaques ✨
+
+### **Excelente qualidade TTS**
+
+Usamos as métricas de avaliação Seed TTS para avaliar o desempenho do modelo, e os resultados mostram que o OpenAudio S1 alcança **0.008 WER** e **0.004 CER** em texto em inglês, que é significativamente melhor que modelos anteriores. (Inglês, avaliação automática, baseada no OpenAI gpt-4o-transcribe, distância do locutor usando Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
+
+| Modelo | Taxa de Erro de Palavra (WER) | Taxa de Erro de Caractere (CER) | Distância do Locutor |
+|-------|----------------------|---------------------------|------------------|
+| **S1** | **0.008**  | **0.004**  | **0.332** |
+| **S1-mini** | **0.011** | **0.005** | **0.380** |
+
+### **Melhor Modelo no TTS-Arena2** 🏆
+
+O OpenAudio S1 alcançou a **classificação #1** no [TTS-Arena2](https://arena.speechcolab.org/), o benchmark para avaliação de text-to-speech:
+
+<div align="center">
+    <img src="assets/Elo.jpg" alt="Classificação TTS-Arena2" style="width: 75%;" />
+</div>
+
+### **Controle de Fala**
+O OpenAudio S1 **suporta uma variedade de marcadores emocionais, de tom e especiais** para aprimorar a síntese de fala:
+
+- **Emoções básicas**:
+```
+(raivoso) (triste) (animado) (surpreso) (satisfeito) (encantado) 
+(assustado) (preocupado) (chateado) (nervoso) (frustrado) (deprimido)
+(empático) (envergonhado) (enojado) (emocionado) (orgulhoso) (relaxado)
+(grato) (confiante) (interessado) (curioso) (confuso) (alegre)
+```
+
+- **Emoções avançadas**:
+```
+(desdenhoso) (infeliz) (ansioso) (histérico) (indiferente) 
+(impaciente) (culpado) (desprezível) (em pânico) (furioso) (relutante)
+(entusiasmado) (desaprovador) (negativo) (negando) (espantado) (sério)
+(sarcástico) (conciliador) (consolador) (sincero) (escarnecedor)
+(hesitante) (cedendo) (doloroso) (constrangido) (divertido)
+```
+
+- **Marcadores de tom**:
+```
+(tom apressado) (gritando) (gritando alto) (sussurrando) (tom suave)
+```
+
+- **Efeitos de áudio especiais**:
+```
+(rindo) (dando risinhos) (soluçando) (chorando alto) (suspirando) (ofegando)
+(gemendo) (risos da multidão) (risos de fundo) (risos da audiência)
+```
+
+Você também pode usar Ha,ha,ha para controlar, há muitos outros casos esperando para serem explorados por você mesmo.
+
+(Suporte para inglês, chinês e japonês agora, e mais idiomas em breve!)
+
+### **Dois Tipos de Modelos**
+
+| Modelo | Tamanho | Disponibilidade | Recursos |
+|-------|------|--------------|----------|
+| **S1** | 4B parâmetros | Disponível em [fish.audio](https://fish.audio) | Modelo flagship com recursos completos |
+| **S1-mini** | 0.5B parâmetros | Disponível no Hugging Face [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Versão destilada com capacidades principais |
+
+Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback Humano (RLHF).
    
-      (angry) (sad) (disdainful) (excited) (surprised) (satisfied) (unhappy) (anxious) (hysterical) (delighted) (scared) (worried) (indifferent) (upset) (impatient) (nervous) (guilty) (scornful) (frustrated) (depressed) (panicked) (furious) (empathetic) (embarrassed) (reluctant) (disgusted) (keen) (moved) (proud) (relaxed) (grateful) (confident) (interested) (curious) (confused) (joyful) (disapproving) (negative) (denying) (astonished) (serious) (sarcastic) (conciliative) (comforting) (sincere) (sneering) (hesitating) (yielding) (painful) (awkward) (amused)
+   ## **Recursos**
 
-   Também suporta marcadores de tom:
+1. **TTS Zero-shot e Few-shot:** Insira uma amostra vocal de 10 a 30 segundos para gerar saída TTS de alta qualidade. **Para diretrizes detalhadas, veja [Melhores Práticas de Clonagem de Voz](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
 
-   (tom apressado) (gritando) (berrando) (sussurrando) (tom suave)
+2. **Suporte Multilíngue e Cross-lingual:** Simplesmente copie e cole texto multilíngue na caixa de entrada—não precisa se preocupar com o idioma. Atualmente suporta inglês, japonês, coreano, chinês, francês, alemão, árabe e espanhol.
 
-    Há alguns marcadores especiais que são suportados:
+3. **Sem Dependência de Fonema:** O modelo tem fortes capacidades de generalização e não depende de fonemas para TTS. Pode lidar com texto em qualquer script de idioma.
 
-    (rindo) (dando risadinhas) (soluçando) (chorando alto) (suspirando) (ofegando) (gemendo) (multidão rindo) (riso de fundo) (audiência rindo)
+4. **Altamente Preciso:** Alcança um baixo CER (Taxa de Erro de Caractere) de cerca de 0.4% e WER (Taxa de Erro de Palavra) de cerca de 0.8% para Seed-TTS Eval.
 
-    Você também pode usar **Ha,ha,ha** para controlar, há muitos outros casos esperando para serem explorados por você mesmo.
+5. **Rápido:** Com aceleração fish-tech, o fator de tempo real é aproximadamente 1:5 em um laptop Nvidia RTX 4060 e 1:15 em um Nvidia RTX 4090.
 
-3. O OpenAudio S1 inclui os seguintes tamanhos:
--   **S1 (4B, proprietário):** O modelo de tamanho completo.
--   **S1-mini (0.5B, código aberto):** Uma versão destilada do S1.
+6. **Inferência WebUI:** Apresenta uma UI web baseada em Gradio fácil de usar, compatível com Chrome, Firefox, Edge e outros navegadores.
 
-    Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online a partir de Feedback Humano (RLHF).
+7. **Inferência GUI:** Oferece uma interface gráfica PyQt6 que funciona perfeitamente com o servidor de API. Suporta Linux, Windows e macOS. [Ver GUI](https://github.com/AnyaCoder/fish-speech-gui).
 
-4. Avaliações
+8. **Amigável para Deploy:** Configure facilmente um servidor de inferência com suporte nativo para Linux, Windows (MacOS em breve), minimizando perda de velocidade.
 
-    **Métricas de Avaliação Seed TTS (Inglês, avaliação automática, baseada no OpenAI gpt-4o-transcribe, distância do locutor usando Revai/pyannote-wespeaker-voxceleb-resnet34-LM):**
+## **Mídia e Demos**
 
-    -   **S1:**
-        -   WER (Taxa de Erro de Palavra): **0.008**
-        -   CER (Taxa de Erro de Caractere): **0.004**
-        -   Distância: **0.332**
-    -   **S1-mini:**
-        -   WER (Taxa de Erro de Palavra): **0.011**
-        -   CER (Taxa de Erro de Caractere): **0.005**
-        -   Distância: **0.380**
-    
+<div align="center">
 
-## Aviso Legal
+### **Mídia Social**
+<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="Demo Mais Recente no X" />
+</a>
 
-Não assumimos qualquer responsabilidade por qualquer uso ilegal da base de código. Consulte suas leis locais sobre DMCA e outras leis relacionadas.
+### **Demos Interativos**
+<a href="https://fish.audio" target="_blank">
+    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="Experimente OpenAudio S1" />
+</a>
+<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
+    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="Experimente S1 Mini" />
+</a>
 
-## Vídeos
+### **Vitrines de Vídeo**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### A ser continuado.
+### **Amostras de Áudio**
+<div style="margin: 20px 0;">
+    <em> Amostras de áudio de alta qualidade estarão disponíveis em breve, demonstrando nossas capacidades TTS multilíngues em diferentes idiomas e emoções.</em>
+</div>
+
+</div>
+
+---
 
 ## Documentos
 
-- [Construir Ambiente](en/install.md)
-- [Inferência](en/inference.md)
-
-Deve-se notar que o modelo atual **NÃO SUPORTA AJUSTE FINO**.
+- [Construir Ambiente](pt/install.md)
+- [Inferência](pt/inference.md)
 
 ## Créditos
 
@@ -104,6 +186,7 @@ Deve-se notar que o modelo atual **NÃO SUPORTA AJUSTE FINO**.
 - [MQTTS](https://github.com/b04901014/MQTTS)
 - [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## Relatório Técnico (V1.4)
 ```bibtex
