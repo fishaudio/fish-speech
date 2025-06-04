@@ -162,16 +162,11 @@ Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback 
 </a>
 
 ### **Vitrines de Vídeo**
-<<<<<<< HEAD
 
 <a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
     <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
 
-=======
-<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
->>>>>>> upstream/main
 ### **Amostras de Áudio**
 <div style="margin: 20px 0;">
     <em> Amostras de áudio de alta qualidade estarão disponíveis em breve, demonstrando nossas capacidades TTS multilíngues em diferentes idiomas e emoções.</em>
