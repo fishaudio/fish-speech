@@ -162,7 +162,10 @@ S1とS1-miniの両方がオンライン人間フィードバック強化学習�
 </a>
 
 ### **ビデオショーケース**
-<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
+    <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+</a>
 
 ### **音声サンプル**
 <div style="margin: 20px 0;">
