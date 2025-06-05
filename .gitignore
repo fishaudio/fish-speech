@@ -1,33 +1,113 @@
+# =============================================================================
+# Fish Speech - .gitignore
+# =============================================================================
+
+# Operating System Files
+# -----------------------
 .DS_Store
-.pgx.*
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+# ----------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+# ------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+# --------------------
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+/fishenv/
+
+# Project Dependencies
+# --------------------
 .pdm-python
 /fish_speech.egg-info
-__pycache__
-/results
-/data
-/*.test.sh
+
+# Data and Model Files
+# --------------------
+/data/
+/results/
+/checkpoints/
+/references/
+/demo-audios/
+/example/
+filelists/
 *.filelist
-filelists
+
+# Audio Files
+# -----------
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Data Files
+# ----------
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.lab
 /fish_speech/text/cmudict_cache.pickle
-/checkpoints
-/.vscode
-/data_server/target
-/*.npy
-/*.wav
-/*.mp3
-/*.lab
-/results
-/data
-/.idea
+
+# Cache and Temporary Files
+# --------------------------
+/.cache/
+/.gradio/
+/.locale/
+.pgx.*
+*log
+*.log
+
+# External Tools
+# --------------
 ffmpeg.exe
 ffprobe.exe
+/faster_whisper/
+
+# Server Related
+# --------------
+/data_server/target/
+
+# Test Files
+# ----------
+/*.test.sh
 asr-label*
-/.cache
-/fishenv
-/.locale
-/demo-audios
-/references
-/example
-/faster_whisper
-/.gradio
-*log
