@@ -62,12 +62,12 @@ venv.bak/
 
 # Data and Model Files
 # --------------------
-/data/
-/results/
-/checkpoints/
-/references/
-/demo-audios/
-/example/
+data/
+results/
+checkpoints/
+references/
+demo-audios/
+example/
 filelists/
 *.filelist
 
