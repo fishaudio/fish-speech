@@ -365,24 +365,6 @@ def generate_long(
     texts = split_text(text, chunk_length) if iterative_prompt else [text]
     max_length = model.config.max_seq_len
 
-    # if use_prompt:
-    #     base_content_sequence.append(
-    #         [
-    #             TextPart(text=prompt_text[0]),
-    #             VQPart(codes=prompt_tokens[0]),
-    #         ],
-    #         add_end=True,
-    #     )
-
-    # for text in texts:
-    #     content_sequence = ContentSequence(modality=None)
-    #     base_content_sequence.append(
-    #         [
-    #             TextPart(text=text),
-    #         ],
-    #         add_end=True,
-    #     )
-
     if use_prompt:
         for t, c in zip(prompt_text, prompt_tokens):
             base_content_sequence.append(
