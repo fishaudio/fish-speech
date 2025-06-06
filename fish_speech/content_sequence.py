@@ -271,7 +271,7 @@ class ContentSequence:
         self: "ContentSequence",
         tokenizer: FishTokenizer,
         num_codebooks: int,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         encoded = self.encode(tokenizer, add_shift=False)
         tokens = encoded.tokens
         values = torch.zeros((num_codebooks + 1, len(tokens)), dtype=torch.int)
@@ -280,8 +280,9 @@ class ContentSequence:
         if (encoded.vq_parts is None or len(encoded.vq_parts) == 0) and (
             encoded.audio_parts is None or len(encoded.audio_parts) == 0
         ):
-            return values
+            return values, None, None
 
+        audio_parts = audio_masks = None
         if encoded.vq_parts is not None and len(encoded.vq_parts) > 0:
             vq_parts = encoded.vq_parts
             vq_parts = torch.cat(vq_parts, dim=1)
@@ -290,7 +291,11 @@ class ContentSequence:
             )
             values[1:, encoded.vq_mask_tokens] = vq_parts
 
-        return values
+        if encoded.audio_parts is not None and len(encoded.audio_parts) > 0:
+            audio_parts = torch.cat(encoded.audio_parts, dim=0)
+            audio_masks = encoded.audio_masks[None, :]
+
+        return values, audio_masks, audio_parts
 
     def visualize(
         self: "ContentSequence",
