@@ -320,9 +320,45 @@ class BaseTransformer(nn.Module):
         self,
         inp: Tensor,
         input_pos: Optional[Tensor] = None,
+        audio_masks: Optional[Tensor] = None,
+        audio_parts: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        x = self.embed(inp)
+        # This is used for generation, optimized for torch compile
+        # assert (
+        #     self.max_seq_len != -1 and self.max_batch_size != -1
+        # ), "Please call setup_caches before forward_generate"
+
+        embeds = []
+        for i in range(self.config.num_codebooks):
+            emb = self.codebook_embeddings(
+                inp[:, i + 1] + i * self.config.codebook_size
+            )
+            embeds.append(emb)
+
+        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
+
+        vq_masks = (inp[:, 0] >= self.tokenizer.semantic_begin_id) & (
+            inp[:, 0] <= self.tokenizer.semantic_end_id
+        )
+
+        vq_embeds_sum[~vq_masks] = 0
+        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
+
+        if self.config.scale_codebook_embeddings:
+            # Expand vq_masks to match x's shape
+            vq_masks_expanded = vq_masks.unsqueeze(-1).expand_as(x)
+            x = torch.where(
+                vq_masks_expanded, x / math.sqrt(self.config.num_codebooks + 1), x
+            )
+
+        # Audio embeddings
+        if audio_parts is not None:
+            audio_embeds = self.audio_projector(audio_parts)
+            if self.config.scale_codebook_embeddings:
+                x[audio_masks] = audio_embeds / math.sqrt(2)
+            else:
+                x[audio_masks] = audio_embeds
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
@@ -595,69 +631,69 @@ class DualARTransformer(BaseTransformer):
     def forward(
         self,
         inp: Tensor,
+        labels: Optional[Tensor] = None,
         key_padding_mask: Optional[Tensor] = None,
+        vq_parts: Optional[Tensor] = None,
+        vq_masks: Optional[Tensor] = None,
+        vq_require_losses: Optional[Tensor] = None,
+        mel_parts: Optional[Tensor] = None,
+        mel_masks: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
-        parent_result = super().forward(inp, key_padding_mask)
+        parent_result = super().forward(
+            inp=inp,
+            key_padding_mask=key_padding_mask,
+            vq_parts=vq_parts,
+            vq_masks=vq_masks,
+            mel_parts=mel_parts,
+            mel_masks=mel_masks,
+        )
         token_logits = parent_result.logits
         x = parent_result.hidden_states
-        x = self.fast_project_in(x)
 
         # Fast transformer
         fast_seq_len = self.config.num_codebooks
         fast_mask = self.causal_mask[
             None, None, :fast_seq_len, :fast_seq_len
         ]  # (B, N, Q, K)
+        fast_freqs_cis = self.fast_freqs_cis[:fast_seq_len]
 
-        # Drop the last token and rotate left
-        codebooks = inp[:, 1:-1, 1:]
-        codebooks = F.pad(codebooks, (0, 1), value=0)
+        # Extract corresponding parts with labels
+        codebook_mask = labels == self.semantic_token_id
+        # This gives where input token is <|semantic|>
+        x = x[codebook_mask]
+
+        if x.shape[0] == 0:
+            # Use dummy input when no vq is required
+            x = torch.zeros(
+                (4, self.config.dim),
+                device=x.device,
+                dtype=x.dtype,
+            )
+            codebooks = torch.zeros(
+                (x.shape[0], self.config.num_codebooks - 1),
+                device=x.device,
+                dtype=torch.int,
+            )
+        else:
+            codebooks = vq_parts[..., :-1][vq_require_losses][
+                vq_masks[vq_require_losses]
+            ]
+
+        x = self.fast_project_in(x)
         codebook_embeddings = self.fast_embeddings(codebooks)
         x = torch.cat([x[:, None], codebook_embeddings], dim=1)
-        b, s = x.size(0), x.size(2)
-        x = rearrange(x, "b n s d -> (b s) n d")  # flatten the batch and seq_len
-
-        # Remove padded part
-        codebooks = rearrange(codebooks, "b n s -> (b s) n")
-        codebook_mask = (codebooks == 0).all(dim=-1)
-
-        if torch.all(codebook_mask):
-            # If all codebooks are padded, we keep first 8 to make sure the model runs
-            codebook_mask[:8] = False
-
-        x_bs, x_len = x.size(0), x.size(1)
-        x = x[~codebook_mask]
 
         for layer in self.fast_layers:
             if self.config.use_gradient_checkpointing and self.training:
-                x = checkpoint(
-                    layer, x, self.fast_freqs_cis, fast_mask, use_reentrant=True
-                )
+                x = checkpoint(layer, x, fast_freqs_cis, fast_mask, use_reentrant=True)
             else:
-                x = layer(x, self.fast_freqs_cis, fast_mask)
+                x = layer(x, fast_freqs_cis, fast_mask)
 
         # unflatten the batch and num_codebooks
         fast_out = self.fast_norm(x)
         codebook_logits = self.fast_output(fast_out)
 
-        # Re-pad the codebook_logits
-        buffer = torch.zeros(
-            x_bs,
-            x_len,
-            codebook_logits.size(-1),
-            device=codebook_logits.device,
-            dtype=codebook_logits.dtype,
-        )
-        buffer[~codebook_mask] = codebook_logits
-        codebook_logits = buffer
-
         assert codebook_logits.shape[1] == self.config.num_codebooks
-        codebook_logits = rearrange(
-            codebook_logits,
-            "(b s) n d -> b s n d",
-            b=b,
-            s=s,
-            n=self.config.num_codebooks,
-        )
 
         return TransformerForwardResult(
             token_logits=token_logits,
@@ -668,7 +704,7 @@ class DualARTransformer(BaseTransformer):
         self, x: Tensor, input_pos: Optional[Tensor] = None
     ) -> Tensor:
         # Fast transformer
-        x = x.view(1, 1, -1)
+        x = x.view(x.shape[0], 1, -1)
 
         fast_mask = self.causal_mask[
             None, None, input_pos, : self.config.num_codebooks
@@ -688,9 +724,10 @@ class DualARTransformer(BaseTransformer):
         self,
         x: Tensor,
         input_pos: Optional[Tensor] = None,
-        vq_masks: Optional[Tensor] = None,
+        audio_masks: Optional[Tensor] = None,
+        audio_parts: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
-        x = super().forward_generate(x, input_pos, vq_masks)
+        x = super().forward_generate(x, input_pos, audio_masks, audio_parts)
         x.hidden_states = self.fast_project_in(x.hidden_states)
         return x
 
