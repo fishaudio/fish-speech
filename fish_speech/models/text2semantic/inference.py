@@ -2,11 +2,12 @@ import os
 import queue
 import threading
 import time
+import traceback
 from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional, Tuple, Union
-import traceback
+
 import click
 import numpy as np
 import torch
@@ -78,6 +79,7 @@ def logits_to_probs(
     probs = torch.nn.functional.softmax(logits, dim=-1)
     return probs
 
+
 def sample(
     logits,
     temperature: torch.Tensor,
@@ -94,6 +96,7 @@ def sample(
     )
     idx_next = multinomial_sample_one_no_sync(probs)
     return idx_next, probs
+
 
 def decode_one_token_ar(
     model: DualARTransformer,
@@ -193,7 +196,7 @@ def decode_n_tokens(
             window = previous_tokens[:, :win_size]
         else:
             window = previous_tokens[:, i - win_size : i]
-        
+
         with sdpa_kernel(
             SDPBackend.MATH
         ):  # Actually better for Inductor to codegen attention here
@@ -275,9 +278,7 @@ def generate(
     temperature = torch.tensor(
         sampling_kwargs["temperature"], device=device, dtype=torch.bfloat16
     )
-    top_p = torch.tensor(
-        sampling_kwargs["top_p"], device=device, dtype=torch.bfloat16
-    )
+    top_p = torch.tensor(sampling_kwargs["top_p"], device=device, dtype=torch.bfloat16)
     repetition_penalty = torch.tensor(
         sampling_kwargs["repetition_penalty"], device=device, dtype=torch.bfloat16
     )
@@ -326,7 +327,7 @@ def init_model(checkpoint_path, device, precision, compile=False):
         logger.info("Using DualARTransformer")
     else:
         raise ValueError("Unsupported model type")
-    
+
     # Initialize cache
     with torch.device(device):
         model.setup_caches(
@@ -334,7 +335,6 @@ def init_model(checkpoint_path, device, precision, compile=False):
             max_seq_len=model.config.max_seq_len,
             dtype=next(model.parameters()).dtype,
         )
-
 
     if compile:
         logger.info("Compiling function...")
@@ -400,23 +400,21 @@ def generate_long(
                     VQPart(codes=c),
                 ],
                 add_end=True,
-                speaker=0
+                speaker=0,
             )
     base_content_sequence.append(
         [
             TextPart(text=text),
         ],
         add_end=False,
-        speaker=0
+        speaker=0,
     )
 
     encoded, audio_masks, audio_parts = base_content_sequence.encode_for_inference(
         tokenizer, num_codebooks=model.config.num_codebooks
     )
     if encoded.size(1) > max_length - 2048:
-        raise ValueError(
-            f"Prompt is too long: {encoded.size(1)} > {max_length - 2048}"
-        )
+        raise ValueError(f"Prompt is too long: {encoded.size(1)} > {max_length - 2048}")
 
     encoded = encoded.to(device=device)
     logger.info(f"Encoded text: {text}")
@@ -463,13 +461,11 @@ def generate_long(
         logger.info(
             f"Generated {tokens_generated} tokens in {t:.02f} seconds, {tokens_sec:.02f} tokens/sec"
         )
-        logger.info(
-            f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
-        )
+        logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
 
         if torch.cuda.is_available():
             logger.info(
-                    f"GPU Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB"
+                f"GPU Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB"
             )
 
         # Put the generated tokens
