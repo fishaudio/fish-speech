@@ -51,6 +51,15 @@
 > **Legal Disclaimer**  
 > We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
+> [!WARNING]
+> **About Bad Performance**
+>
+> We are sorry about the current model's performance, there's some existing bugs in the repo. And we are working hard to solve it (won't be long).
+>
+> Current bad performance may include timbre switch and timbre decline for long sequence.
+>
+> If you are willing to help us solve these problems, pull requests are welcome :)
+
 ---
 
 ## 🎉 Announcement

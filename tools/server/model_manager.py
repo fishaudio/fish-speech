@@ -4,10 +4,7 @@ from loguru import logger
 
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
-from fish_speech.models.text2semantic.inference import (
-    launch_thread_safe_queue,
-    launch_thread_safe_queue_agent,
-)
+from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
@@ -83,15 +80,6 @@ class ModelManager:
                 device=device,
                 precision=precision,
                 compile=compile,
-            )
-        elif mode == "agent":
-            self.llama_queue, self.tokenizer, self.config = (
-                launch_thread_safe_queue_agent(
-                    checkpoint_path=checkpoint_path,
-                    device=device,
-                    precision=precision,
-                    compile=compile,
-                )
             )
         else:
             raise ValueError(f"Invalid mode: {mode}")

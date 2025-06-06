@@ -51,6 +51,15 @@
 > **Isenção de Responsabilidade Legal**  
 > Não assumimos qualquer responsabilidade pelo uso ilegal da base de código. Consulte as leis locais sobre DMCA e outras leis relacionadas.
 
+> [!WARNING]
+> **Sobre o Desempenho Ruim**
+>
+> Pedimos desculpas pelo desempenho atual do modelo, há alguns bugs existentes no repositório. E estamos trabalhando duro para resolvê-los (não vai demorar muito).
+>
+> O desempenho ruim atual pode incluir mudança de timbre e declínio de timbre para sequências longas.
+>
+> Se você está disposto a nos ajudar a resolver esses problemas, pull requests são bem-vindos :)
+
 ---
 
 ## 🎉 Anúncio

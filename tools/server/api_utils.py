@@ -13,7 +13,7 @@ from tools.server.inference import inference_wrapper as inference
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--mode", type=str, choices=["agent", "tts"], default="tts")
+    parser.add_argument("--mode", type=str, choices=["tts"], default="tts")
     parser.add_argument("--load-asr-model", action="store_true")
     parser.add_argument(
         "--llama-checkpoint-path",
