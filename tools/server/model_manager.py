@@ -7,6 +7,7 @@ from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
+
 class ModelManager:
     def __init__(
         self,

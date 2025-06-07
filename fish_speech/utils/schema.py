@@ -26,6 +26,7 @@ class ServeAudioPart(BaseModel):
     type: Literal["audio"] = "audio"
     audio: bytes
 
+
 class ServeRequest(BaseModel):
     # Raw content sequence dict that we can use with ContentSequence(**content)
     content: dict
@@ -54,6 +55,7 @@ class ServeVQGANDecodeRequest(BaseModel):
 class ServeVQGANDecodeResponse(BaseModel):
     # The audio here should be in PCM float16 format
     audios: list[bytes]
+
 
 class ServeReferenceAudio(BaseModel):
     audio: bytes
