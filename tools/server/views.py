@@ -34,7 +34,6 @@ from tools.server.api_utils import (
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
 from tools.server.model_utils import (
-    batch_asr,
     batch_vqgan_decode,
     cached_vqgan_batch_encode,
 )

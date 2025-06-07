@@ -84,6 +84,7 @@ class API(ExceptionHandler):
             mode=self.args.mode,
             device=self.args.device,
             half=self.args.half,
+            asr_enabled=False,
             compile=self.args.compile,
             llama_checkpoint_path=self.args.llama_checkpoint_path,
             decoder_checkpoint_path=self.args.decoder_checkpoint_path,
