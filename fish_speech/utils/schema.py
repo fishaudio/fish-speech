@@ -104,6 +104,7 @@ class ServeTTSRequest(BaseModel):
         # Allow arbitrary types for pytorch related types
         arbitrary_types_allowed = True
 
+
 class ServeSpeechRequest(BaseModel):
     input: str
     model: str

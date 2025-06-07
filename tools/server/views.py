@@ -20,12 +20,12 @@ from loguru import logger
 from typing_extensions import Annotated
 
 from fish_speech.utils.schema import (
+    ServeSpeechRequest,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
-    ServeSpeechRequest,
 )
 from tools.server.api_utils import (
     buffer_to_async_generator,
@@ -142,6 +142,7 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
             content_type=get_content_type(req.format),
         )
 
+
 @routes.http.post("/v1/audio/speech")
 async def speech(req: Annotated[ServeSpeechRequest, Body(exclusive=True)]):
     # Get the model from the app
@@ -158,19 +159,25 @@ async def speech(req: Annotated[ServeSpeechRequest, Body(exclusive=True)]):
         )
 
     # Perform TTS
-    fake_audios = next(inference(ServeTTSRequest(
-        text=req.input,
-        chunk_length=200,
-        format=req.response_format,
-        reference_id=None if req.model == "fish" else req.model,
-        seed=None if req.voice == "fish" else int(req.voice),
-        use_memory_cache="off",
-        normalize=True,
-        streaming=False,
-        max_new_tokens=1024,
-        top_p=0.8,
-        repetition_penalty=1.1,
-        temperature=0.8), engine))
+    fake_audios = next(
+        inference(
+            ServeTTSRequest(
+                text=req.input,
+                chunk_length=200,
+                format=req.response_format,
+                reference_id=None if req.model == "fish" else req.model,
+                seed=None if req.voice == "fish" else int(req.voice),
+                use_memory_cache="off",
+                normalize=True,
+                streaming=False,
+                max_new_tokens=1024,
+                top_p=0.8,
+                repetition_penalty=1.1,
+                temperature=0.8,
+            ),
+            engine,
+        )
+    )
     buffer = io.BytesIO()
     sf.write(
         buffer,
