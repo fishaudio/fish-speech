@@ -36,7 +36,6 @@ dependencies = [
     "zstandard>=0.22.0",
     "pydub",
     "pyaudio",
-    "faster_whisper",
     "modelscope==1.17.1",
     "opencc-python-reimplemented==0.1.7",
     "silero-vad",

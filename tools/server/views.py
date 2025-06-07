@@ -20,8 +20,6 @@ from loguru import logger
 from typing_extensions import Annotated
 
 from fish_speech.utils.schema import (
-    ServeASRRequest,
-    ServeASRResponse,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
@@ -93,34 +91,6 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
         ServeVQGANDecodeResponse(audios=audios),
         option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
     )
-
-
-@routes.http.post("/v1/asr")
-async def asr(req: Annotated[ServeASRRequest, Body(exclusive=True)]):
-    # Get the model from the app
-    model_manager: ModelManager = request.app.state.model_manager
-    asr_model = model_manager.asr_model
-    lock = request.app.state.lock
-
-    # Perform ASR
-    start_time = time.time()
-    audios = [np.frombuffer(audio, dtype=np.float16) for audio in req.audios]
-    audios = [torch.from_numpy(audio).float() for audio in audios]
-
-    if any(audios.shape[-1] >= 30 * req.sample_rate for audios in audios):
-        raise HTTPException(status_code=400, content="Audio length is too long")
-
-    transcriptions = batch_asr(
-        asr_model, lock, audios=audios, sr=req.sample_rate, language=req.language
-    )
-    logger.info(f"[EXEC] ASR time: {(time.time() - start_time) * 1000:.2f}ms")
-
-    # Return the response
-    return ormsgpack.packb(
-        ServeASRResponse(transcriptions=transcriptions),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-    )
-
 
 @routes.http.post("/v1/tts")
 async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
