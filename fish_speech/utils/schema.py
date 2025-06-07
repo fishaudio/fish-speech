@@ -103,3 +103,15 @@ class ServeTTSRequest(BaseModel):
     class Config:
         # Allow arbitrary types for pytorch related types
         arbitrary_types_allowed = True
+
+class ServeSpeechRequest(BaseModel):
+    input: str
+    model: str
+    voice: str
+    instructions: str | None = None
+    response_format: Literal["wav", "pcm", "mp3"] = "wav"
+    speed: float = 1.0
+
+    class Config:
+        # Allow arbitrary types for pytorch related types
+        arbitrary_types_allowed = True

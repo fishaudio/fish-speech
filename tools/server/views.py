@@ -25,6 +25,7 @@ from fish_speech.utils.schema import (
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
+    ServeSpeechRequest,
 )
 from tools.server.api_utils import (
     buffer_to_async_generator,
@@ -140,3 +141,48 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
             },
             content_type=get_content_type(req.format),
         )
+
+@routes.http.post("/v1/audio/speech")
+async def speech(req: Annotated[ServeSpeechRequest, Body(exclusive=True)]):
+    # Get the model from the app
+    app_state = request.app.state
+    model_manager: ModelManager = app_state.model_manager
+    engine = model_manager.tts_inference_engine
+    sample_rate = engine.decoder_model.sample_rate
+
+    # Check if the text is too long
+    if app_state.max_text_length > 0 and len(req.input) > app_state.max_text_length:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            content=f"Text is too long, max length is {app_state.max_text_length}",
+        )
+
+    # Perform TTS
+    fake_audios = next(inference(ServeTTSRequest(
+        text=req.input,
+        chunk_length=200,
+        format=req.response_format,
+        reference_id=None if req.model == "fish" else req.model,
+        seed=None if req.voice == "fish" else int(req.voice),
+        use_memory_cache="off",
+        normalize=True,
+        streaming=False,
+        max_new_tokens=1024,
+        top_p=0.8,
+        repetition_penalty=1.1,
+        temperature=0.8), engine))
+    buffer = io.BytesIO()
+    sf.write(
+        buffer,
+        fake_audios,
+        sample_rate,
+        format=req.response_format,
+    )
+
+    return StreamResponse(
+        iterable=buffer_to_async_generator(buffer.getvalue()),
+        headers={
+            "Content-Disposition": f"attachment; filename=audio.{req.response_format}",
+        },
+        content_type=get_content_type(req.response_format),
+    )
