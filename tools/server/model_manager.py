@@ -15,7 +15,6 @@ class ModelManager:
         device: str,
         half: bool,
         compile: bool,
-        asr_enabled: bool,
         llama_checkpoint_path: str,
         decoder_checkpoint_path: str,
         decoder_config_name: str,
@@ -35,10 +34,6 @@ class ModelManager:
         elif not torch.cuda.is_available():
             self.device = "cpu"
             logger.info("CUDA is not available, running on CPU.")
-
-        # Load the ASR model if enabled
-        if asr_enabled:
-            self.load_asr_model(self.device)
 
         # Load the TTS models
         self.load_llama_model(
