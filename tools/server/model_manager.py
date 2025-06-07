@@ -1,5 +1,4 @@
 import torch
-from funasr import AutoModel
 from loguru import logger
 
 from fish_speech.inference_engine import TTSInferenceEngine
@@ -7,9 +6,6 @@ from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
-
-ASR_MODEL_NAME = "iic/SenseVoiceSmall"
-
 
 class ModelManager:
     def __init__(
@@ -60,15 +56,6 @@ class ModelManager:
         # Warm up the models
         if self.mode == "tts":
             self.warm_up(self.tts_inference_engine)
-
-    def load_asr_model(self, device, hub="ms") -> None:
-        self.asr_model = AutoModel(
-            model=ASR_MODEL_NAME,
-            device=device,
-            disable_pbar=True,
-            hub=hub,
-        )
-        logger.info("ASR model loaded.")
 
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
