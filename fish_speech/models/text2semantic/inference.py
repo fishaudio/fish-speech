@@ -21,7 +21,6 @@ from fish_speech.content_sequence import (
     TextPart,
     VQPart,
 )
-from fish_speech.text import split_text
 from fish_speech.tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
