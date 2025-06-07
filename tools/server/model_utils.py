@@ -80,4 +80,3 @@ def batch_vqgan_decode(model, features):
     audios, audio_lengths = audios.cpu(), audio_lengths.cpu()
 
     return [audio[..., :length].numpy() for audio, length in zip(audios, audio_lengths)]
-

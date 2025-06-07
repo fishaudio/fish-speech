@@ -92,6 +92,7 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
         option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
     )
 
+
 @routes.http.post("/v1/tts")
 async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
     # Get the model from the app
