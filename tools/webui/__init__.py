@@ -29,13 +29,6 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                     with gr.Column():
                         with gr.Tab(label=i18n("Advanced Config")):
                             with gr.Row():
-                                chunk_length = gr.Slider(
-                                    label=i18n("Iterative Prompt Length, 0 means off"),
-                                    minimum=100,
-                                    maximum=400,
-                                    value=300,
-                                    step=8,
-                                )
 
                                 max_new_tokens = gr.Slider(
                                     label=i18n(
