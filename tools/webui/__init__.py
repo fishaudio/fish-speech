@@ -134,7 +134,6 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                 reference_audio,
                 reference_text,
                 max_new_tokens,
-                chunk_length,
                 top_p,
                 repetition_penalty,
                 temperature,
