@@ -26,5 +26,18 @@ pip install -e .
 uv sync --python 3.12
 ```
 
+### Intel Arc XPU 지원
+
+일반적인 절차로 설치한 후, XPU를 지원하는 PyTorch를 설치합니다.
+
+```bash
+conda create -n fish-speech python=3.12
+conda activate fish-speech
+
+pip install -e .
+
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/xpu
+```
+
 !!! warning
     `compile` 옵션은 Windows와 macOS에서 지원되지 않습니다. compile로 실행하려면 triton을 직접 설치해야 합니다.
