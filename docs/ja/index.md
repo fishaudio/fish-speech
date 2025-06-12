@@ -118,11 +118,11 @@ S1とS1-miniの両方にオンライン人間フィードバック強化学習�
 
 5. **高速：** torch compile加速により、Nvidia RTX 4090でリアルタイム係数約1:7。
 
-7. **WebUI推論：** Chrome、Firefox、Edge、その他のブラウザと互換性のあるGradioベースの使いやすいWebUIを備えています。
+6. **WebUI推論：** Chrome、Firefox、Edge、その他のブラウザと互換性のあるGradioベースの使いやすいWebUIを備えています。
 
-8. **GUI推論：** APIサーバーとシームレスに連携するPyQt6グラフィカルインターフェースを提供します。Linux、Windows、macOSをサポートします。[GUIを見る](https://github.com/AnyaCoder/fish-speech-gui)。
+7. **GUI推論：** APIサーバーとシームレスに連携するPyQt6グラフィカルインターフェースを提供します。Linux、Windows、macOSをサポートします。[GUIを見る](https://github.com/AnyaCoder/fish-speech-gui)。
 
-9. **デプロイフレンドリー：** Linux、Windows（MacOS近日公開）のネイティブサポートで推論サーバーを簡単にセットアップし、速度低下を最小化します。
+8. **デプロイフレンドリー：** Linux、Windows（MacOS近日公開）のネイティブサポートで推論サーバーを簡単にセットアップし、速度低下を最小化します。
 
 ## **メディア・デモ**
 
