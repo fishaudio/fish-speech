@@ -127,7 +127,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화 학습(RLHF)이 통합되
 
 4. **높은 정확도:** Seed-TTS Eval에서 약 0.4%의 낮은 문자 오류율(CER)과 약 0.8%의 단어 오류율(WER)을 달성합니다.
 
-5. **빠른 속도:** fish-tech 가속을 통해 Nvidia RTX 4060 노트북에서 실시간 계수 약 1:5, Nvidia RTX 4090에서 약 1:15를 달성합니다.
+5. **빠른 속도:** torch compile 가속을 통해 Nvidia RTX 4090 실시간 계수 약 1:7.
 
 6. **WebUI 추론:** Chrome, Firefox, Edge 및 기타 브라우저와 호환되는 사용하기 쉬운 Gradio 기반 웹 UI를 제공합니다.
 
