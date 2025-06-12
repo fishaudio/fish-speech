@@ -47,4 +47,8 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 EXPOSE 7860
 
+# Create non-root user for security
+RUN adduser --system --no-create-home --shell /bin/false fishspeech
+USER fishspeech
+
 CMD ["./entrypoint.sh"]
