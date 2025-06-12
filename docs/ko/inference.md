@@ -40,7 +40,7 @@ python fish_speech/models/text2semantic/inference.py \
 이 명령은 작업 디렉토리에 `codes_N` 파일을 생성합니다. 여기서 N은 0부터 시작하는 정수입니다.
 
 !!! note
-    더 빠른 추론을 위해 `--compile`을 사용하여 CUDA 커널을 융합할 수 있습니다(약 30 토큰/초 -> 약 500 토큰/초).
+    더 빠른 추론을 위해 `--compile`을 사용하여 CUDA 커널을 융합할 수 있습니다(약 15 토큰/초 -> 약 150 토큰/초, RTX 4090 GPU).
     이에 따라 가속을 사용하지 않으려면 `--compile` 매개변수를 주석 처리할 수 있습니다.
 
 !!! info
