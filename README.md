@@ -137,7 +137,7 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 
 4. **Highly Accurate:** Achieves a low CER (Character Error Rate) of around 0.4% and WER (Word Error Rate) of around 0.8% for Seed-TTS Eval.
 
-5. **Fast:** With fish-tech acceleration, the real-time factor is approximately 1:5 on an Nvidia RTX 4060 laptop and 1:15 on an Nvidia RTX 4090.
+5. **Fast:** Accelerated by torch compile, the real-time factor is approximately 1:7 on an Nvidia RTX 4090 GPU.
 
 6. **WebUI Inference:** Features an easy-to-use, Gradio-based web UI compatible with Chrome, Firefox, Edge, and other browsers.
 
