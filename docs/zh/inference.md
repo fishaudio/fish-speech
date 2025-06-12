@@ -40,7 +40,7 @@ python fish_speech/models/text2semantic/inference.py \
 此命令将在工作目录中创建一个 `codes_N` 文件，其中 N 是从 0 开始的整数。
 
 !!! note
-    您可能希望使用 `--compile` 来融合 CUDA 内核以实现更快的推理（~30 令牌/秒 -> ~500 令牌/秒）。
+    您可能希望使用 `--compile` 来融合 CUDA 内核以实现更快的推理（~15 令牌/秒 -> ~150 令牌/秒，在RTX 4090 GPU上）。
     相应地，如果您不计划使用加速，可以注释掉 `--compile` 参数。
 
 !!! info
