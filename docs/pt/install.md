@@ -28,15 +28,15 @@ uv sync --python 3.12
 
 ### Suporte para Intel Arc XPU
 
-Após a instalação pelo procedimento padrão, instale o PyTorch com suporte a XPU.
-
 ```bash
 conda create -n fish-speech python=3.12
 conda activate fish-speech
 
-pip install -e .
+conda install libstdcxx -c conda-forge
 
 pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/xpu
+
+pip install -e .
 ```
 
 !!! warning
