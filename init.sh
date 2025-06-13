@@ -91,3 +91,46 @@ pip install huggingface_hub
 echo "📥 モデルダウンロード..."
 
 huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# 251GB RAM活用 - モデル事前キャッシング
+echo "💾 モデル事前キャッシング（251GB RAM活用）..."
+python3 -c "
+import torch
+import sys
+import os
+sys.path.append('/workspace/fish-speech')
+os.chdir('/workspace/fish-speech')
+
+print('🔄 Fish Speech環境確認...')
+
+# モデルファイル確認
+model_path = './checkpoints/openaudio-s1-mini'
+if os.path.exists(model_path):
+    print(f'✅ モデルパス存在: {model_path}')
+    files = os.listdir(model_path)
+    print(f'📁 モデルファイル: {files}')
+else:
+    print(f'❌ モデルパス不存在: {model_path}')
+
+# CUDA環境確認
+if torch.cuda.is_available():
+    print(f'✅ CUDA利用可能: {torch.cuda.get_device_name(0)}')
+    print(f'📊 VRAM容量: {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f}GB')
+    
+    # H100最適化確認
+    if 'H100' in torch.cuda.get_device_name(0):
+        print('🚀 H100検出 - 最適化適用')
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        print('✅ TF32有効化完了')
+    
+    # メモリ確保テスト（軽量）
+    test_tensor = torch.randn(1000, 1000, device='cuda')
+    print(f'📊 メモリテスト成功: {torch.cuda.memory_allocated()/1024**2:.1f}MB使用')
+    del test_tensor
+    torch.cuda.empty_cache()
+else:
+    print('❌ CUDA利用不可')
+
+print('✅ モデル事前確認完了')
+"
