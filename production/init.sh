@@ -15,13 +15,21 @@ set -e
 echo "📦 パッケージインストール..."
 
 apt update && apt upgrade -y
+# 基本パッケージインストール（最小構成）
+echo "📦 基本パッケージインストール..."
 apt install -y \
     build-essential cmake ca-certificates \
     libsox-dev libasound-dev portaudio19-dev \
     libportaudio2 libportaudiocpp0 \
     ffmpeg git wget curl
 
-apt install -y redis-server supervisor jq
+# 本番環境パッケージ（推奨）
+echo "🚀 本番環境パッケージインストール..."
+apt install -y \
+    htop \
+    redis-server \
+    supervisor \
+    util-linux
 
 # =============================================================================
 # CUDA & PyTorch環境設定（H100最適化）

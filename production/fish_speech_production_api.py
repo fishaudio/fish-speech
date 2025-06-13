@@ -16,6 +16,7 @@ from typing import Optional
 import logging
 import tempfile
 import base64
+from functools import partial
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO)
@@ -277,12 +278,8 @@ async def generate_audio(request: AudioRequest):
             
             # 非同期実行
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                executor,
-                run_fish_speech_inference,
-                request.text,
-                **kwargs
-            )
+            func = partial(run_fish_speech_inference, request.text, **kwargs)
+            result = await loop.run_in_executor(executor, func)
             
         REQUEST_COUNT.labels(status='success').inc()
         return AudioResponse(**result)
