@@ -25,7 +25,7 @@ apt install -y \
     ffmpeg git wget curl
 
 echo "🔧 本番環境パッケージインストール..."
-apt install -y supervisor
+apt install -y supervisor vim
 
 # =============================================================================
 # Fish Speech環境構築
@@ -47,20 +47,3 @@ huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/ope
 cp production/fish-speech-supervisor.conf /etc/supervisor/conf.d/fish-speech.conf
 mkdir -p /var/log/fish-speech
 chown root:root /var/log/fish-speech
-
-supervisord
-
-# 設定を再読み込み
-supervisorctl reread
-supervisorctl update
-
-# サービスの状態確認
-supervisorctl status fish-speech
-
-# サービスの開始/停止/再起動
-supervisorctl start fish-speech
-supervisorctl stop fish-speech
-supervisorctl restart fish-speech
-
-# ログの確認
-tail -f /var/log/fish-speech/fish-speech.log
