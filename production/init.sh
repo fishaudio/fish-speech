@@ -21,6 +21,8 @@ apt install -y \
     libportaudio2 libportaudiocpp0 \
     ffmpeg git wget curl
 
+apt install -y redis-server supervisor jq
+
 # =============================================================================
 # CUDA & PyTorch環境設定（H100最適化）
 # =============================================================================
@@ -92,45 +94,91 @@ echo "📥 モデルダウンロード..."
 
 huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 
-# 251GB RAM活用 - モデル事前キャッシング
-echo "💾 モデル事前キャッシング（251GB RAM活用）..."
-python3 -c "
-import torch
-import sys
-import os
-sys.path.append('/workspace/fish-speech')
-os.chdir('/workspace/fish-speech')
+python3 /workspace/fish-speech/production/model_check.py
 
-print('🔄 Fish Speech環境確認...')
+# =============================================================================
+# Redis設定（キューイング用）
+# =============================================================================
 
-# モデルファイル確認
-model_path = './checkpoints/openaudio-s1-mini'
-if os.path.exists(model_path):
-    print(f'✅ モデルパス存在: {model_path}')
-    files = os.listdir(model_path)
-    print(f'📁 モデルファイル: {files}')
-else:
-    print(f'❌ モデルパス不存在: {model_path}')
+echo "🔴 Redis設定（高性能キューイング）..."
 
-# CUDA環境確認
-if torch.cuda.is_available():
-    print(f'✅ CUDA利用可能: {torch.cuda.get_device_name(0)}')
-    print(f'📊 VRAM容量: {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f}GB')
-    
-    # H100最適化確認
-    if 'H100' in torch.cuda.get_device_name(0):
-        print('🚀 H100検出 - 最適化適用')
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        print('✅ TF32有効化完了')
-    
-    # メモリ確保テスト（軽量）
-    test_tensor = torch.randn(1000, 1000, device='cuda')
-    print(f'📊 メモリテスト成功: {torch.cuda.memory_allocated()/1024**2:.1f}MB使用')
-    del test_tensor
-    torch.cuda.empty_cache()
-else:
-    print('❌ CUDA利用不可')
+mkdir -p /etc/redis /var/lib/redis /var/log/redis
+chown redis:redis /var/lib/redis /var/log/redis
 
-print('✅ モデル事前確認完了')
-"
+cat > /etc/redis/redis.conf << EOF
+# 基本設定
+bind 127.0.0.1
+port 6379
+timeout 0
+tcp-keepalive 300
+daemonize yes
+
+# 高性能設定
+maxmemory 8gb
+maxmemory-policy allkeys-lru
+save ""
+stop-writes-on-bgsave-error no
+
+# AOF無効化（パフォーマンス重視）
+appendonly no
+
+# ネットワーク最適化
+tcp-backlog 2048
+timeout 300
+
+# ログ設定
+loglevel notice
+logfile /var/log/redis/redis-server.log
+EOF
+
+
+echo "👥 Supervisor設定..."
+
+mkdir -p /etc/supervisor/conf.d
+
+cat > /etc/supervisor/conf.d/fish-speech-production.conf << EOF
+[program:redis-server]
+command=/usr/bin/redis-server /etc/redis/redis.conf
+autostart=true
+autorestart=true
+user=redis
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/redis.log
+
+[program:fish-speech-api]
+command=/usr/bin/python /workspace/fish-speech/production/fish_speech_production_api.py
+directory=/workspace/fish-speech
+autostart=true
+autorestart=true
+user=root
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/fish-speech-api.log
+environment=CUDA_VISIBLE_DEVICES=0,PYTHONPATH="/workspace/fish-speech"
+numprocs=1
+process_name=%(program_name)s_%(process_num)02d
+
+[group:fish-speech]
+programs=redis-server,fish-speech-api
+priority=999
+EOF
+
+# =============================================================================
+# 起動スクリプト & モニタリング
+# =============================================================================
+
+pip install \
+    huggingface_hub \
+    nvidia-ml-py3 \
+    uvicorn[standard] \
+    fastapi \
+    redis \
+    celery \
+    gunicorn \
+    prometheus-client \
+    psutil \
+    gpustat
+
+echo "🎯 起動スクリプト作成..."
+
+chmod +x /workspace/start_fish_speech_production.sh
+./production/start_fish_speech_production.sh
