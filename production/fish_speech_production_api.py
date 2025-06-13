@@ -110,8 +110,18 @@ def run_fish_speech_inference(text: str, **kwargs):
             logger.info("🎯 参照音声モード（現在未実装）")
             # TODO: 参照音声対応の実装
         
+        # 推論実行前の環境チェック
+        inference_script = f'{fish_speech_path}/fish_speech/models/text2semantic/inference.py'
+        if not os.path.exists(inference_script):
+            raise Exception(f"推論スクリプトが見つかりません: {inference_script}")
+        
+        checkpoint_path = f'{fish_speech_path}/checkpoints/openaudio-s1-mini'
+        if not os.path.exists(checkpoint_path):
+            raise Exception(f"チェックポイントが見つかりません: {checkpoint_path}")
+        
         # 推論実行
-        logger.info(f"🔄 推論実行: {' '.join(cmd[:3])}...")
+        logger.info(f"🔄 推論実行: {' '.join(cmd)}")
+        logger.info(f"📁 作業ディレクトリ: {fish_speech_path}")
         os.chdir(fish_speech_path)
         
         result = subprocess.run(
@@ -124,9 +134,11 @@ def run_fish_speech_inference(text: str, **kwargs):
         
         if result.returncode != 0:
             logger.error(f"❌ セマンティック生成エラー: {result.stderr}")
+            logger.error(f"❌ 標準出力: {result.stdout}")
             raise Exception(f"セマンティック生成失敗: {result.stderr}")
         
         logger.info("✅ セマンティック生成完了")
+        logger.info(f"📋 推論結果: {result.stdout[:200]}...")
         
         # 生成されたコードファイル確認
         codes_file = None
@@ -153,7 +165,7 @@ def run_fish_speech_inference(text: str, **kwargs):
             '--checkpoint-path', vocoder_path
         ]
         
-        logger.info("🎼 音声生成開始...")
+        logger.info(f"🎼 音声生成開始: {' '.join(audio_cmd)}")
         audio_result = subprocess.run(
             audio_cmd,
             capture_output=True,
@@ -198,9 +210,9 @@ def run_fish_speech_inference(text: str, **kwargs):
             'status': 'success'
         }
         
-    except subprocess.TimeoutExpired:
-        logger.error("⏰ 推論タイムアウト")
-        raise HTTPException(status_code=504, detail="推論タイムアウト")
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"⏰ 推論タイムアウト: コマンド={e.cmd[:50]}..., タイムアウト={e.timeout}秒")
+        raise HTTPException(status_code=504, detail=f"推論タイムアウト({e.timeout}秒)")
     except Exception as e:
         logger.error(f"💥 推論エラー: {e}")
         # スタックトレース付きでログ出力
