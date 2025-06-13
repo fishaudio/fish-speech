@@ -64,8 +64,18 @@ def run_fish_speech_inference(text: str, **kwargs):
     try:
         start_time = time.time()
         
+        # パラメータ取得（デフォルト値付き）
+        temperature = kwargs.get('temperature', 0.7)
+        top_p = kwargs.get('top_p', 0.9)
+        max_new_tokens = kwargs.get('max_new_tokens', 1024)
+        compile_enabled = kwargs.get('compile', True)
+        reference_audio = kwargs.get('reference_audio')
+        reference_text = kwargs.get('reference_text')
+        
+        logger.info(f"🎵 音声生成開始: テキスト長={len(text)}, compile={compile_enabled}")
+        
         # 一時ファイル作成
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
             f.write(text)
             text_file = f.name
         
@@ -76,31 +86,46 @@ def run_fish_speech_inference(text: str, **kwargs):
             '--text', text,
             '--checkpoint-path', f'{fish_speech_path}/checkpoints/openaudio-s1-mini',
             '--num-samples', '1',
-            '--max-new-tokens', str(kwargs.get('max_new_tokens', 1024)),
-            '--temperature', str(kwargs.get('temperature', 0.7)),
-            '--top-p', str(kwargs.get('top_p', 0.9))
+            '--max-new-tokens', str(max_new_tokens),
+            '--temperature', str(temperature),
+            '--top-p', str(top_p)
         ]
         
         # コンパイル最適化
-        if kwargs.get('compile', True):
+        if compile_enabled:
             cmd.append('--compile')
+            logger.info("✅ コンパイル最適化有効")
         
         # H100最適化
-        if torch.cuda.is_available() and 'H100' in torch.cuda.get_device_name(0):
-            cmd.extend(['--half'])  # BF16使用
+        if torch.cuda.is_available():
+            device_name = torch.cuda.get_device_name(0)
+            if 'H100' in device_name:
+                cmd.extend(['--half'])  # BF16使用
+                logger.info("🚀 H100最適化（BF16）有効")
+            logger.info(f"📊 GPU: {device_name}")
+        
+        # 参照音声がある場合の処理（今後の実装用）
+        if reference_audio and reference_text:
+            logger.info("🎯 参照音声モード（現在未実装）")
+            # TODO: 参照音声対応の実装
         
         # 推論実行
+        logger.info(f"🔄 推論実行: {' '.join(cmd[:3])}...")
         os.chdir(fish_speech_path)
+        
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=60  # 60秒タイムアウト
+            timeout=60,  # 60秒タイムアウト
+            env=dict(os.environ, PYTHONPATH=fish_speech_path)
         )
         
         if result.returncode != 0:
-            logger.error(f"Fish Speech推論エラー: {result.stderr}")
-            raise Exception(f"推論失敗: {result.stderr}")
+            logger.error(f"❌ セマンティック生成エラー: {result.stderr}")
+            raise Exception(f"セマンティック生成失敗: {result.stderr}")
+        
+        logger.info("✅ セマンティック生成完了")
         
         # 生成されたコードファイル確認
         codes_file = None
@@ -108,58 +133,85 @@ def run_fish_speech_inference(text: str, **kwargs):
             candidate = f'codes_{i}.npy'
             if os.path.exists(candidate):
                 codes_file = candidate
+                logger.info(f"📁 セマンティックファイル: {codes_file}")
                 break
         
         if not codes_file:
             raise Exception("セマンティックトークン生成に失敗")
         
         # 音声生成（VQGAN）
+        vocoder_path = f'{fish_speech_path}/checkpoints/openaudio-s1-mini/firefly-gan-vq-fsq-8x1024-21hz-generator.pth'
+        if not os.path.exists(vocoder_path):
+            # 代替パス試行
+            vocoder_path = f'{fish_speech_path}/checkpoints/openaudio-s1-mini/codec.pth'
+        
         audio_cmd = [
             'python',
             f'{fish_speech_path}/fish_speech/models/vqgan/inference.py',
             '-i', codes_file,
-            '--checkpoint-path', f'{fish_speech_path}/checkpoints/openaudio-s1-mini/firefly-gan-vq-fsq-8x1024-21hz-generator.pth'
+            '--checkpoint-path', vocoder_path
         ]
         
+        logger.info("🎼 音声生成開始...")
         audio_result = subprocess.run(
             audio_cmd,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env=dict(os.environ, PYTHONPATH=fish_speech_path)
         )
         
         if audio_result.returncode != 0:
-            logger.error(f"音声生成エラー: {audio_result.stderr}")
+            logger.error(f"❌ 音声生成エラー: {audio_result.stderr}")
             raise Exception(f"音声生成失敗: {audio_result.stderr}")
+        
+        logger.info("✅ 音声生成完了")
         
         # 生成された音声ファイル読み込み
         audio_file = 'fake.wav'
         if os.path.exists(audio_file):
             with open(audio_file, 'rb') as f:
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # ファイルサイズ確認
+            file_size = os.path.getsize(audio_file)
+            logger.info(f"🎵 音声ファイル生成: {file_size} bytes")
         else:
             raise Exception("音声ファイル生成に失敗")
         
         processing_time = time.time() - start_time
+        tokens_generated = len(text) // 4  # 推定値
+        
+        logger.info(f"🎉 音声生成成功: {processing_time:.2f}s, {tokens_generated} tokens")
         
         # 一時ファイル削除
-        for temp_file in [text_file, codes_file, audio_file]:
+        cleanup_files = [text_file, codes_file, audio_file]
+        for temp_file in cleanup_files:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
         
         return {
             'audio_data': audio_data,
             'processing_time': processing_time,
-            'tokens_generated': len(text) // 4,  # 推定
+            'tokens_generated': tokens_generated,
             'status': 'success'
         }
         
     except subprocess.TimeoutExpired:
-        logger.error("推論タイムアウト")
+        logger.error("⏰ 推論タイムアウト")
         raise HTTPException(status_code=504, detail="推論タイムアウト")
     except Exception as e:
-        logger.error(f"推論エラー: {e}")
+        logger.error(f"💥 推論エラー: {e}")
+        # スタックトレース付きでログ出力
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # 確実にワーキングディレクトリを戻す
+        try:
+            os.chdir('/workspace')
+        except:
+            pass
 
 @app.on_event("startup")
 async def startup_event():
@@ -209,13 +261,27 @@ async def generate_audio(request: AudioRequest):
     
     try:
         with REQUEST_LATENCY.time():
+            # 必要なパラメータのみ抽出
+            kwargs = {
+                'temperature': request.temperature,
+                'top_p': request.top_p,
+                'max_new_tokens': request.max_new_tokens,
+                'compile': request.compile
+            }
+            
+            # オプションパラメータ（値がある場合のみ追加）
+            if request.reference_audio:
+                kwargs['reference_audio'] = request.reference_audio
+            if request.reference_text:
+                kwargs['reference_text'] = request.reference_text
+            
             # 非同期実行
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 executor,
                 run_fish_speech_inference,
                 request.text,
-                **request.dict(exclude={'text'})
+                **kwargs
             )
             
         REQUEST_COUNT.labels(status='success').inc()
