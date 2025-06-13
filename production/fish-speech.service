@@ -1,53 +1,11 @@
 [Unit]
-Description=Fish Speech H100 Production API Server
-Documentation=https://github.com/fishaudio/fish-speech
-After=network.target
-Wants=network.target
+Description=fish-speech
+After=syslog.target network.target
 
 [Service]
-Type=exec
-User=root
-Group=root
+Type=notify
+WatchdogSec=10
 WorkingDirectory=/workspace/fish-speech
-
-# H100最適化環境変数
-Environment=CUDA_VISIBLE_DEVICES=0
-Environment=CUDA_DEVICE_ORDER=PCI_BUS_ID
-Environment=PYTORCH_CUDA_ALLOC_CONF=backend:native,max_split_size_mb:512,garbage_collection_threshold:0.8,expandable_segments:True
-Environment=CUDA_DEVICE_MAX_CONNECTIONS=32
-Environment=CUDA_MODULE_LOADING=LAZY
-Environment=CUDA_LAUNCH_BLOCKING=0
-
-# PyTorch H100最適化
-Environment=TORCH_CUDNN_V8_API_ENABLED=1
-Environment=TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1
-Environment=TORCH_CUDNN_ALLOW_TF32=1
-Environment=NVTE_ALLOW_NONDETERMINISTIC_ALGO=1
-Environment=NVTE_FUSED_ATTN=1
-Environment=NVTE_FLASH_ATTN=1
-
-# PyTorch 2.x コンパイル最適化
-Environment=TORCH_COMPILE_DEBUG=0
-Environment=TORCHINDUCTOR_CACHE_DIR=/tmp/torch_compile_cache
-Environment=TORCHINDUCTOR_FX_GRAPH_CACHE=1
-Environment=TORCH_COMPILE_MODE=max-autotune
-
-# CPU最適化（20コア）
-Environment=OMP_NUM_THREADS=20
-Environment=MKL_NUM_THREADS=20
-Environment=OPENBLAS_NUM_THREADS=20
-Environment=VECLIB_MAXIMUM_THREADS=20
-Environment=TORCH_NUM_THREADS=20
-Environment=TORCH_NUM_INTEROP_THREADS=4
-Environment=OMP_PROC_BIND=CLOSE
-Environment=OMP_PLACES=cores
-Environment=GOMP_CPU_AFFINITY=0-19
-
-# Python path
-Environment=PYTHONPATH=/workspace/fish-speech
-Environment=PYTHONUNBUFFERED=1
-
-# 公式APIサーバー実行
 ExecStart=/usr/bin/python -m tools.api_server \
     --listen 0.0.0.0:8000 \
     --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
@@ -55,35 +13,18 @@ ExecStart=/usr/bin/python -m tools.api_server \
     --decoder-config-name modded_dac_vq \
     --compile
 
-# プロセス管理
-KillMode=mixed
-KillSignal=SIGTERM
-TimeoutStopSec=30
+ExecReload=/usr/bin/kill -TSTP $MAINPID
+User=root
+Group=root
+Environment=MALLOC_ARENA_MAX=2
+# if we crash, restart
+RestartSec=1
 Restart=always
-RestartSec=10
-StartLimitInterval=60s
-StartLimitBurst=3
 
-# リソース制限（H100 + 251GB環境）
-MemoryMax=200G
-MemoryHigh=180G
-CPUQuota=2000%  # 20コア = 2000%
-TasksMax=10000
-
-# セキュリティ
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=/workspace /tmp /var/log
-PrivateTmp=yes
-
-# GPU権限
-SupplementaryGroups=video render
-
-# 標準出力をjournal経由でログ出力
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=fish-speech
+# output goes to /var/log/syslog
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=sidekiq
 
 [Install]
 WantedBy=multi-user.target
