@@ -79,7 +79,7 @@ Usamos métricas de evaluación Seed TTS para medir el rendimiento de los modelo
 OpenAudio S1 ocupa el **puesto #1** en [TTS-Arena2](https://arena.speechcolab.org/), el referente de evaluación de TTS.
 
 <div align="center">
-    <img src="docs/assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
 </div>
 
 ### **Control de voz**
@@ -165,7 +165,7 @@ Tanto S1 como S1-mini incluyen Aprendizaje por Refuerzo con Retroalimentación H
 ### Videos:
 
 <a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
-    <img src="docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
 
 ### Muestras de audio:
@@ -179,8 +179,8 @@ Tanto S1 como S1-mini incluyen Aprendizaje por Refuerzo con Retroalimentación H
 
 ## Documentación
 
-- [Configurar entorno](docs/en/install.md)
-- [Inferencia](docs/en/inference.md)
+- [Configurar entorno](en/install.md)
+- [Inferencia](en/inference.md)
 
 ## Créditos
 
