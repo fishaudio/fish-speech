@@ -47,4 +47,7 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 EXPOSE 7860
 
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+USER appuser
 CMD ["./entrypoint.sh"]
