@@ -79,7 +79,7 @@ Usamos métricas de evaluación Seed TTS para medir el rendimiento de los modelo
 OpenAudio S1 ocupa el **puesto #1** en [TTS-Arena2](https://arena.speechcolab.org/), el referente de evaluación de TTS.
 
 <div align="center">
-    <img src="docs/assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+    <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
 </div>
 
 ### **Control de voz**
