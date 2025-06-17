@@ -179,8 +179,8 @@ Tanto S1 como S1-mini incluyen Aprendizaje por Refuerzo con Retroalimentación H
 
 ## Documentación
 
-- [Configurar entorno](en/install.md)
-- [Inferencia](en/inference.md)
+- [Configurar entorno](es/install.md)
+- [Inferencia](es/inference.md)
 
 ## Créditos
 
