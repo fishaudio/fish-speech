@@ -48,8 +48,7 @@ Nos complace anunciar que ahora somos **OpenAudio**, una nueva serie de modelos 
 
 Usamos métricas de evaluación Seed TTS para medir el rendimiento del modelo. OpenAudio S1 logra **0.008 WER** y **0.004 CER** en texto en inglés, superando notablemente a versiones anteriores. (Inglés, evaluación automática basada en OpenAI gpt-4o-transcribe, distancia de locutor usando Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
 
-| Modelo | Tasa de Error de Palabra (WER) | Tasa de Error de Caracter (CER) | Distancia de Locutor
- |
+| Modelo | Tasa de Error de Palabra (WER) | Tasa de Error de Caracter (CER) | Distancia de Locutor |
 |:-----:|:--------------------:|:-------------------------:|:----------------:|
 | **S1** | **0.008** | **0.004** | **0.332** |
 | **S1-mini** | **0.011** | **0.005** | **0.380** |
