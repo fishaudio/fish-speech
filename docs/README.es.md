@@ -165,7 +165,7 @@ Tanto S1 como S1-mini incluyen Aprendizaje por Refuerzo con Retroalimentación H
 ### Videos:
 
 <a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
-    <img src="docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
 
 ### Muestras de audio:
@@ -179,8 +179,8 @@ Tanto S1 como S1-mini incluyen Aprendizaje por Refuerzo con Retroalimentación H
 
 ## Documentación
 
-- [Configurar entorno](docs/en/install.md)
-- [Inferencia](docs/en/inference.md)
+- [Configurar entorno](en/install.md)
+- [Inferencia](en/inference.md)
 
 ## Créditos
 
