@@ -96,7 +96,7 @@ class ReferenceLoader:
                 prompt_tokens.append(torch.tensor(ref.tokens, dtype=torch.int))
                 prompt_texts.append(ref.text)
                 continue
-                
+
             if use_cache == "off" or audio_hashes[i] not in self.ref_by_hash:
                 # If the references are not already loaded, encode them
                 prompt_tokens.append(
