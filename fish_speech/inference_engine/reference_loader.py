@@ -81,11 +81,22 @@ class ReferenceLoader:
     ) -> Tuple:
 
         # Load the references audio and text by hash
-        audio_hashes = [sha256(ref.audio).hexdigest() for ref in references]
+        audio_hashes = []
+        for ref in references:
+            if ref.audio is not None:
+                audio_hashes.append(sha256(ref.audio).hexdigest())
+            else:
+                audio_hashes.append(None)  # For tokens input
 
         cache_used = False
         prompt_tokens, prompt_texts = [], []
         for i, ref in enumerate(references):
+            # Handle tokens input - skip caching
+            if ref.tokens is not None:
+                prompt_tokens.append(torch.tensor(ref.tokens, dtype=torch.int))
+                prompt_texts.append(ref.text)
+                continue
+                
             if use_cache == "off" or audio_hashes[i] not in self.ref_by_hash:
                 # If the references are not already loaded, encode them
                 prompt_tokens.append(

@@ -58,13 +58,15 @@ class ServeVQGANDecodeResponse(BaseModel):
 
 
 class ServeReferenceAudio(BaseModel):
-    audio: bytes
+    audio: bytes | None = None
+    tokens: SkipValidation[list[list[int]] | None] = None
     text: str
 
     @model_validator(mode="before")
     def decode_audio(cls, values):
         audio = values.get("audio")
         if (
+            audio is not None and 
             isinstance(audio, str) and len(audio) > 255
         ):  # Check if audio is a string (Base64)
             try:
@@ -73,9 +75,21 @@ class ServeReferenceAudio(BaseModel):
                 # If the audio is not a valid base64 string, we will just ignore it and let the server handle it
                 pass
         return values
+    
+    @model_validator(mode="after")
+    def validate_audio_or_tokens(self):
+        """Ensure either 'audio' or 'tokens' is provided, but not both"""
+        if self.audio is None and self.tokens is None:
+            raise ValueError("Either 'audio' or 'tokens' must be provided")
+        if self.audio is not None and self.tokens is not None:
+            raise ValueError("Cannot provide both 'audio' and 'tokens'")
+        return self
 
     def __repr__(self) -> str:
-        return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
+        if self.audio is not None:
+            return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
+        else:
+            return f"ServeReferenceAudio(text={self.text!r}, tokens_shape=[{len(self.tokens)}x{len(self.tokens[0]) if self.tokens else 0}])"
 
 
 class ServeTTSRequest(BaseModel):
