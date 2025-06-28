@@ -106,11 +106,13 @@ class ReferenceLoader:
                     )
                 )
                 prompt_texts.append(ref.text)
-                self.ref_by_hash[audio_hashes[i]] = (prompt_tokens, prompt_texts)
+                self.ref_by_hash[audio_hashes[i]] = (prompt_tokens[-1], ref.text)
 
             else:
                 # Reuse already encoded references
-                prompt_tokens, prompt_texts = self.ref_by_hash[audio_hashes[i]]
+                cached_token, cached_text = self.ref_by_hash[audio_hashes[i]]
+                prompt_tokens.append(cached_token)
+                prompt_texts.append(cached_text)
                 cache_used = True
 
         if cache_used:
