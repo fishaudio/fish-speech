@@ -20,12 +20,10 @@ def batch_encode(model, audios_list: list[bytes]):
         sample_rate = model.spec_transform.sample_rate
     else:
         sample_rate = model.sample_rate
-        
+
     audios: list[torch.Tensor] = [
         (
-            torch.from_numpy(
-                librosa.load(io.BytesIO(audio), sr=sample_rate)[0]
-            )[None]
+            torch.from_numpy(librosa.load(io.BytesIO(audio), sr=sample_rate)[0])[None]
             if isinstance(audio, bytes)
             else audio
         )
