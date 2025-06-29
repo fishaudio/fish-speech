@@ -122,7 +122,7 @@ You can also use Ha,ha,ha to control, there's many other cases waiting to be exp
 
 | Model | Size | Availability | Features |
 |-------|------|--------------|----------|
-| **S1** | 4B parameters | Avaliable on [fish.audio](fish.audio) | Full-featured flagship model |
+| **S1** | 4B parameters | Avaliable on [fish.audio](https://fish.audio/) | Full-featured flagship model |
 | **S1-mini** | 0.5B parameters | Avaliable on huggingface [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Distilled version with core capabilities |
 
 Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedback (RLHF).
