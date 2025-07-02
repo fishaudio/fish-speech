@@ -179,6 +179,7 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 
 ## Documents
 
+- [OpenAudio S1](https://speech.fish.audio)
 - [Build Envrionment](docs/en/install.md)
 - [Inference](docs/en/inference.md)
 

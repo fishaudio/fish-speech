@@ -392,6 +392,7 @@ def generate_long(
     base_content_sequence = ContentSequence(modality="interleave")
 
     max_length = model.config.max_seq_len
+
     if use_prompt:
         for t, c in zip(prompt_text, prompt_tokens):
             base_content_sequence.append(
