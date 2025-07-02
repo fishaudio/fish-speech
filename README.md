@@ -51,15 +51,6 @@
 > **Legal Disclaimer**  
 > We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
-> [!WARNING]
-> **About Bad Performance**
->
-> We are sorry about the current model's performance, there's some existing bugs in the repo. And we are working hard to solve it (won't be long).
->
-> Current bad performance may include timbre switch and timbre decline for long sequence.
->
-> If you are willing to help us solve these problems, pull requests are welcome :)
-
 ---
 
 ## 🎉 Announcement
@@ -131,7 +122,7 @@ You can also use Ha,ha,ha to control, there's many other cases waiting to be exp
 
 | Model | Size | Availability | Features |
 |-------|------|--------------|----------|
-| **S1** | 4B parameters | Avaliable on [fish.audio](fish.audio) | Full-featured flagship model |
+| **S1** | 4B parameters | Avaliable on [fish.audio](https://fish.audio/) | Full-featured flagship model |
 | **S1-mini** | 0.5B parameters | Avaliable on huggingface [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Distilled version with core capabilities |
 
 Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedback (RLHF).
@@ -146,7 +137,7 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 
 4. **Highly Accurate:** Achieves a low CER (Character Error Rate) of around 0.4% and WER (Word Error Rate) of around 0.8% for Seed-TTS Eval.
 
-5. **Fast:** With fish-tech acceleration, the real-time factor is approximately 1:5 on an Nvidia RTX 4060 laptop and 1:15 on an Nvidia RTX 4090.
+5. **Fast:** Accelerated by torch compile, the real-time factor is approximately 1:7 on an Nvidia RTX 4090 GPU.
 
 6. **WebUI Inference:** Features an easy-to-use, Gradio-based web UI compatible with Chrome, Firefox, Edge, and other browsers.
 

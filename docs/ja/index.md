@@ -116,7 +116,7 @@ S1とS1-miniの両方にオンライン人間フィードバック強化学習�
 
 4. **高精度：** Seed-TTS Evalで低い文字誤り率（CER）約0.4%と単語誤り率（WER）約0.8%を達成します。
 
-5. **高速：** fish-tech加速により、Nvidia RTX 4060ラップトップでリアルタイム係数約1:5、Nvidia RTX 4090で約1:15を実現します。
+5. **高速：** torch compile加速により、Nvidia RTX 4090でリアルタイム係数約1:7。
 
 6. **WebUI推論：** Chrome、Firefox、Edge、その他のブラウザと互換性のあるGradioベースの使いやすいWebUIを備えています。
 

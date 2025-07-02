@@ -26,5 +26,18 @@ pip install -e .
 uv sync --python 3.12
 ```
 
+### Suporte para Intel Arc XPU
+
+```bash
+conda create -n fish-speech python=3.12
+conda activate fish-speech
+
+conda install libstdcxx -c conda-forge
+
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/xpu
+
+pip install -e .
+```
+
 !!! warning
     A opção `compile` não é suportada no Windows e macOS, se você quiser executar com compile, precisa instalar o triton por conta própria.

@@ -451,7 +451,7 @@ def quantize(checkpoint_path: Path, mode: str, groupsize: int, timestamp: str) -
         precision=precision,
         compile=False,
     )
-    vq_model = "firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+    vq_model = "codec.pth"
     now = timestamp if timestamp != "None" else generate_folder_name()
 
     if mode == "int8":

@@ -27,35 +27,6 @@ class ServeAudioPart(BaseModel):
     audio: bytes
 
 
-class ServeASRRequest(BaseModel):
-    # The audio should be an uncompressed PCM float16 audio
-    audios: list[bytes]
-    sample_rate: int = 44100
-    language: Literal["zh", "en", "ja", "auto"] = "auto"
-
-
-class ServeASRTranscription(BaseModel):
-    text: str
-    duration: float
-    huge_gap: bool
-
-
-class ServeASRSegment(BaseModel):
-    text: str
-    start: float
-    end: float
-
-
-class ServeTimedASRResponse(BaseModel):
-    text: str
-    segments: list[ServeASRSegment]
-    duration: float
-
-
-class ServeASRResponse(BaseModel):
-    transcriptions: list[ServeASRTranscription]
-
-
 class ServeRequest(BaseModel):
     # Raw content sequence dict that we can use with ContentSequence(**content)
     content: dict
@@ -84,18 +55,6 @@ class ServeVQGANDecodeRequest(BaseModel):
 class ServeVQGANDecodeResponse(BaseModel):
     # The audio here should be in PCM float16 format
     audios: list[bytes]
-
-
-class ServeStreamDelta(BaseModel):
-    role: Literal["system", "assistant", "user"] | None = None
-    part: ServeVQPart | ServeTextPart | None = None
-
-
-class ServeStreamResponse(BaseModel):
-    sample_id: int = 0
-    delta: ServeStreamDelta | None = None
-    finish_reason: Literal["stop", "error"] | None = None
-    stats: dict[str, int | float | str] | None = None
 
 
 class ServeReferenceAudio(BaseModel):

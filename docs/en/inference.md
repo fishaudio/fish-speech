@@ -40,7 +40,7 @@ python fish_speech/models/text2semantic/inference.py \
 This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
 
 !!! note
-    You may want to use `--compile` to fuse CUDA kernels for faster inference (~30 tokens/second -> ~500 tokens/second).
+    You may want to use `--compile` to fuse CUDA kernels for faster inference (~15 tokens/second -> ~150 tokens/second, on RTX 4090 GPU).
     Correspondingly, if you do not plan to use acceleration, you can comment out the `--compile` parameter.
 
 !!! info

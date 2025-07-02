@@ -21,7 +21,6 @@ from fish_speech.content_sequence import (
     TextPart,
     VQPart,
 )
-from fish_speech.text import split_text
 from fish_speech.tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -341,7 +340,8 @@ def init_model(checkpoint_path, device, precision, compile=False):
         decode_one_token = torch.compile(
             decode_one_token,
             # mode="max-autotune-no-cudagraphs",
-            mode="reduce-overhead",
+            backend="inductor" if torch.cuda.is_available() else "aot_eager",
+            mode="reduce-overhead" if torch.cuda.is_available() else None,
             fullgraph=True,
         )
 

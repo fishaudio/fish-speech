@@ -116,7 +116,7 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习 (RLHF)。
 
 4. **高度准确：** 在 Seed-TTS Eval 中实现低字符错误率 (CER) 约 0.4% 和词错误率 (WER) 约 0.8%。
 
-5. **快速：** 通过 fish-tech 加速，在 Nvidia RTX 4060 笔记本电脑上实时因子约为 1:5，在 Nvidia RTX 4090 上约为 1:15。
+5. **快速：** 通过 torch compile 加速，在 Nvidia RTX 4090 GPU 上实时因子 (RTF) 约为 1:7。
 
 6. **WebUI 推理：** 具有易于使用的基于 Gradio 的网络界面，兼容 Chrome、Firefox、Edge 和其他浏览器。
 
