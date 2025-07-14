@@ -5,7 +5,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional, Tuple, Union, Callable
+from typing import Callable, Literal, Optional, Tuple, Union
 
 import click
 import numpy as np
@@ -131,7 +131,7 @@ def decode_one_token_ar(
 
     # Only clear cache for fast_layers, avoid clearing main model cache
     for layer in model.fast_layers:
-        if hasattr(layer, 'attention') and hasattr(layer.attention, 'kv_cache'):
+        if hasattr(layer, "attention") and hasattr(layer.attention, "kv_cache"):
             layer.attention.kv_cache.k_cache.fill_(0)
             layer.attention.kv_cache.v_cache.fill_(0)
 
@@ -167,10 +167,10 @@ def decode_one_token_ar(
         codebooks.append(a)
 
     codebooks = torch.stack(codebooks, dim=1)
-    
+
     # Only delete references, let Python GC handle cleanup
     del logits, hidden_states, forward_result
-    
+
     return codebooks.T
 
 
@@ -226,7 +226,7 @@ def decode_n_tokens(
 
     # Only clean up the large tensor
     del cur_token
-    
+
     return previous_tokens[:, : i + 1]
 
 
@@ -266,9 +266,9 @@ def generate(
         max_new_tokens = T_new - T
 
     device, dtype = prompt.device, prompt.dtype
-    
+
     # Critical fix: Only set up cache on first run or when necessary
-    if not hasattr(model, '_cache_setup_done') or not model._cache_setup_done:
+    if not hasattr(model, "_cache_setup_done") or not model._cache_setup_done:
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,  # Fixed to 1, avoid dynamic changes
@@ -278,7 +278,7 @@ def generate(
         model._cache_setup_done = True
 
     codebook_dim = 1 + model.config.num_codebooks
-    
+
     # Create new tensor each time, but try to reuse memory
     input_pos = torch.arange(0, T, device=device, dtype=torch.long)
     empty = torch.empty(
@@ -288,15 +288,23 @@ def generate(
     seq = empty
 
     # Use pre-created fixed parameter tensors
-    temperature = getattr(model, 'fixed_temperature', torch.tensor(0.8, device=device, dtype=torch.float))
-    top_p = getattr(model, 'fixed_top_p', torch.tensor(0.8, device=device, dtype=torch.float))
-    repetition_penalty = getattr(model, 'fixed_repetition_penalty', torch.tensor(1.1, device=device, dtype=torch.float))
-    
+    temperature = getattr(
+        model, "fixed_temperature", torch.tensor(0.8, device=device, dtype=torch.float)
+    )
+    top_p = getattr(
+        model, "fixed_top_p", torch.tensor(0.8, device=device, dtype=torch.float)
+    )
+    repetition_penalty = getattr(
+        model,
+        "fixed_repetition_penalty",
+        torch.tensor(1.1, device=device, dtype=torch.float),
+    )
+
     # If different parameter values are needed, directly modify existing tensors
     temp_val = sampling_kwargs.get("temperature", 0.7)
     top_p_val = sampling_kwargs.get("top_p", 0.7)
     rep_val = sampling_kwargs.get("repetition_penalty", 1.5)
-    
+
     if abs(temperature.item() - temp_val) > 1e-6:
         temperature.fill_(temp_val)
     if abs(top_p.item() - top_p_val) > 1e-6:
@@ -320,7 +328,7 @@ def generate(
 
     # Recreate input_pos
     input_pos = torch.tensor([T], device=device, dtype=torch.int)
-    
+
     x = decode_n_tokens(
         model,
         first_token.view(1, codebook_dim, -1),
@@ -335,10 +343,10 @@ def generate(
     )
     seq = seq[:, : T + 1 + x.size(1)]
     seq[:, T + 1 :] = x
-    
+
     # Clean up temporary variables
     del first_token, x, prompt, empty, input_pos
-    
+
     return seq
 
 
@@ -357,9 +365,9 @@ def init_model(checkpoint_path, device, precision, compile=False):
 
     # Pre-create fixed parameter tensors to avoid runtime creation
     model.fixed_temperature = torch.tensor(0.7, device=device, dtype=torch.float)
-    model.fixed_top_p = torch.tensor(0.7, device=device, dtype=torch.float)  
+    model.fixed_top_p = torch.tensor(0.7, device=device, dtype=torch.float)
     model.fixed_repetition_penalty = torch.tensor(1.5, device=device, dtype=torch.float)
-    
+
     # Mark whether cache has been initialized
     model._cache_setup_done = False
 
@@ -409,7 +417,9 @@ def generate_long(
         prompt_tokens = [prompt_tokens]
 
     if use_prompt:
-        assert len(prompt_text) == len(prompt_tokens), "Prompt text and tokens must have the same length"
+        assert len(prompt_text) == len(
+            prompt_tokens
+        ), "Prompt text and tokens must have the same length"
 
     if prompt_tokens:
         prompt_tokens = [i.cpu() for i in prompt_tokens]
@@ -455,7 +465,7 @@ def generate_long(
         prompt_length = encoded.size(1)
 
         t0 = time.perf_counter()
-        
+
         y = generate(
             model=model,
             prompt=encoded,
@@ -495,13 +505,13 @@ def generate_long(
         decoded = y[:, prompt_length:].clone()
         global_encoded.append(decoded.cpu())
         assert (codes >= 0).all(), f"Negative code found: {codes}"
-        
+
         yield GenerateResponse(action="sample", codes=codes, text=text)
         seg_idx += 1
 
         # Force GPU memory cleanup
         del y, decoded, codes
-        
+
         yield GenerateResponse(action="next")
 
 
@@ -553,11 +563,11 @@ def launch_thread_safe_queue(
                     response_queue.put(
                         WrappedGenerateResponse(status="success", response=chunk)
                     )
-                    
+
                 # Only clear cache after complete request batch
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-                    
+
             except Exception as e:
                 logger.error(traceback.format_exc())
                 response_queue.put(WrappedGenerateResponse(status="error", response=e))
@@ -622,7 +632,11 @@ def main(
     os.makedirs(output_dir, exist_ok=True)
     precision = torch.half if half else torch.bfloat16
 
-    if prompt_text is not None and prompt_tokens is not None and len(prompt_text) != len(prompt_tokens):
+    if (
+        prompt_text is not None
+        and prompt_tokens is not None
+        and len(prompt_text) != len(prompt_tokens)
+    ):
         raise ValueError(
             f"Number of prompt text ({len(prompt_text)}) and prompt tokens ({len(prompt_tokens)}) should be the same"
         )
