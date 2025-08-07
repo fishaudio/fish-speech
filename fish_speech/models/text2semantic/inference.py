@@ -610,7 +610,7 @@ def launch_thread_safe_queue(
 @click.option("--half/--no-half", default=False)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--chunk-length", type=int, default=300)
-@click.option("--output-dir", type=Path, default="temp")
+@click.option("--output-dir", type=Path, default="./")
 def main(
     text: str,
     prompt_text: Optional[tuple[str, ...]],
