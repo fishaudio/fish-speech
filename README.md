@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-**English** | [简体中文](docs/README.zh.md) | [Portuguese](docs/README.pt-BR.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md) <br>
+**English** | [简体中文](docs/README.zh.md) | [Portuguese](docs/README.pt-BR.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md) | [العربية](docs/README.ar.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -51,7 +51,12 @@
 > **Legal Disclaimer**  
 > We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
----
+## Start Here
+
+Here are the official documents for Fish Speech, follow the instructions to get started easily.
+
+- [Installation](https://speech.fish.audio/install/)
+- [Inference](https://speech.fish.audio/inference/)
 
 ## 🎉 Announcement
 
@@ -176,11 +181,6 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 </div>
 
 ---
-
-## Documents
-
-- [Build Envrionment](docs/en/install.md)
-- [Inference](docs/en/inference.md)
 
 ## Credits
 
