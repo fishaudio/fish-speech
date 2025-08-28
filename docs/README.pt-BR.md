@@ -51,7 +51,12 @@
 > **Isenção de Responsabilidade Legal**  
 > Não assumimos qualquer responsabilidade pelo uso ilegal da base de código. Consulte as leis locais sobre DMCA e outras leis relacionadas.
 
----
+## Comece Aqui
+
+Aqui estão os documentos oficiais do Fish Speech, siga as instruções para começar facilmente.
+
+- [Instalação](https://speech.fish.audio/pt/install/)
+- [Inferência](https://speech.fish.audio/pt/inference/)
 
 ## 🎉 Anúncio
 

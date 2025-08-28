@@ -51,7 +51,12 @@
 > **법적 면책조항**  
 > 저희는 코드베이스의 불법적인 사용에 대해 어떠한 책임도 지지 않습니다. DMCA 및 기타 관련 법률에 대한 현지 법률을 참조하세요.
 
----
+## 시작하기
+
+여기는 Fish Speech의 공식 문서입니다. 지침을 따라 쉽게 시작하세요.
+
+- [설치](https://speech.fish.audio/ko/install/)
+- [추론](https://speech.fish.audio/ko/inference/)
 
 ## 🎉 발표
 

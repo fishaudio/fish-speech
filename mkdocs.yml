@@ -69,6 +69,7 @@ plugins:
         - ja
         - pt
         - ko
+        - ar
   - i18n:
       docs_structure: folder
       languages:
@@ -104,6 +105,13 @@ plugins:
             - 소개: ko/index.md
             - 설치: ko/install.md
             - 추론: ko/inference.md
+        - locale: ar
+          name: العربية
+          build: true
+          nav:
+            - مقدمة: ar/index.md
+            - التثبيت: ar/install.md
+            - الاستنتاج: ar/inference.md
 
 markdown_extensions:
   - pymdownx.highlight:

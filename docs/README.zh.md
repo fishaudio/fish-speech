@@ -51,7 +51,12 @@
 > **法律免责声明**  
 > 我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的法规。
 
----
+## 开始使用
+
+这里是 Fish Speech 的官方文档，按照说明轻松开始使用。
+
+- [安装](https://speech.fish.audio/zh/install/)
+- [推理](https://speech.fish.audio/zh/inference/)
 
 ## 🎉 公告
 
