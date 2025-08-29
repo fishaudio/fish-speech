@@ -9,7 +9,7 @@ Suportamos linha de comando, API HTTP e WebUI para inferência, você pode escol
 Primeiro você precisa baixar os pesos do modelo:
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## Inferência por Linha de Comando

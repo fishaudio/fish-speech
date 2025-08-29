@@ -9,7 +9,7 @@
 まず、モデルの重みをダウンロードする必要があります：
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## コマンドライン推論

@@ -9,7 +9,7 @@ We support command line, HTTP API and WebUI for inference, you can choose any me
 First you need to download the model weights:
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## Command Line Inference
