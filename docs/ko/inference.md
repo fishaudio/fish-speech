@@ -9,7 +9,7 @@
 먼저 모델 가중치를 다운로드해야 합니다:
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## 명령줄 추론

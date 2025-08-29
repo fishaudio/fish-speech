@@ -9,7 +9,7 @@
 أولاً تحتاج إلى تحميل أوزان النموذج:
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## استنتاج سطر الأوامر

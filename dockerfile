@@ -8,7 +8,7 @@ WORKDIR /opt/fish-speech
 
 RUN set -ex \
     && pip install huggingface_hub \
-    && HF_ENDPOINT=${HF_ENDPOINT} huggingface-cli download --resume-download fishaudio/${HUGGINGFACE_MODEL} --local-dir checkpoints/${HUGGINGFACE_MODEL}
+    && HF_ENDPOINT=${HF_ENDPOINT} hf download --resume-download fishaudio/${HUGGINGFACE_MODEL} --local-dir checkpoints/${HUGGINGFACE_MODEL}
 
 FROM python:3.12-slim-bookworm
 ARG TARGETARCH
