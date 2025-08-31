@@ -14,10 +14,10 @@ huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/ope
 
 ## Command Line Inference
 
+### 1. Get VQ tokens from reference audio
+
 !!! note
     If you plan to let the model randomly choose a voice timbre, you can skip this step.
-
-### 1. Get VQ tokens from reference audio
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -36,6 +36,8 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-tokens "fake.npy" \
     --compile
 ```
+with `--prompt-tokens "fake.npy"` and `--prompt-text "Your reference text"` from step 1.
+If you want to let the model randomly choose a voice timbre, skip the two parameters.
 
 This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
 
@@ -96,6 +98,7 @@ python -m tools.run_webui
 
 !!! note
     You can save the label file and reference audio file in advance to the `references` folder in the main directory (which you need to create yourself), so that you can directly call them in the WebUI.
+    Inside the `references` folder, put subdirectories named `<voice_id>`, and put the label file (`sample.lab`, containing the reference text) and reference audio file (`sample.wav`) in the subdirectory.
 
 !!! note
     You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
