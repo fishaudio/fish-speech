@@ -4,10 +4,9 @@ from typing import Annotated, Any
 
 import ormsgpack
 from baize.datastructures import ContentType
-from kui.asgi import HTTPException, HttpRequest
-
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.schema import ServeTTSRequest
+from kui.asgi import HTTPException, HttpRequest
 from tools.server.inference import inference_wrapper as inference
 
 
@@ -39,9 +38,7 @@ def parse_args():
 class MsgPackRequest(HttpRequest):
     async def data(
         self,
-    ) -> Annotated[
-        Any, ContentType("application/msgpack"), ContentType("application/json")
-    ]:
+    ) -> Annotated[Any, ContentType("application/msgpack"), ContentType("application/json")]:
         if self.content_type == "application/msgpack":
             return ormsgpack.unpackb(await self.body)
 
@@ -56,6 +53,7 @@ class MsgPackRequest(HttpRequest):
 
 async def inference_async(req: ServeTTSRequest, engine: TTSInferenceEngine):
     for chunk in inference(req, engine):
+        print("Got chunk")
         if isinstance(chunk, bytes):
             yield chunk
 
@@ -73,3 +71,23 @@ def get_content_type(audio_format):
         return "audio/mpeg"
     else:
         return "application/octet-stream"
+
+
+def wants_json(req):
+    """Helper method to determine if the client wants a JSON response
+
+    Parameters
+    ----------
+    req : Request
+        The request object
+
+    Returns
+    -------
+    bool
+        True if the client wants a JSON response, False otherwise
+    """
+    q = req.query_params.get("format", "").strip().lower()
+    if q in {"json", "application/json", "msgpack", "application/msgpack"}:
+        return q == "json"
+    accept = req.headers.get("Accept", "").strip().lower()
+    return "application/json" in accept and "application/msgpack" not in accept
