@@ -1,19 +1,18 @@
 import argparse
 import base64
+import time
 import wave
 
 import ormsgpack
 import pyaudio
 import requests
+from fish_speech.utils.file import audio_to_bytes, read_ref_text
+from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 from pydub import AudioSegment
 from pydub.playback import play
 
-from fish_speech.utils.file import audio_to_bytes, read_ref_text
-from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
-
 
 def parse_args():
-
     parser = argparse.ArgumentParser(
         description="Send a WAV file and text to a server and receive synthesized audio.",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -26,9 +25,7 @@ def parse_args():
         default="http://127.0.0.1:8080/v1/tts",
         help="URL of the server",
     )
-    parser.add_argument(
-        "--text", "-t", type=str, required=True, help="Text to be synthesized"
-    )
+    parser.add_argument("--text", "-t", type=str, required=True, help="Text to be synthesized")
     parser.add_argument(
         "--reference_id",
         "-id",
@@ -65,9 +62,7 @@ def parse_args():
         default=True,
         help="Whether to play audio after receiving data",
     )
-    parser.add_argument(
-        "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
-    )
+    parser.add_argument("--format", type=str, choices=["wav", "mp3", "flac"], default="wav")
     parser.add_argument(
         "--latency",
         type=str,
@@ -81,28 +76,19 @@ def parse_args():
         default=1024,
         help="Maximum new tokens to generate. \n0 means no limit.",
     )
-    parser.add_argument(
-        "--chunk_length", type=int, default=300, help="Chunk length for synthesis"
-    )
-    parser.add_argument(
-        "--top_p", type=float, default=0.8, help="Top-p sampling for synthesis"
-    )
+    parser.add_argument("--chunk_length", type=int, default=300, help="Chunk length for synthesis")
+    parser.add_argument("--top_p", type=float, default=0.8, help="Top-p sampling for synthesis")
     parser.add_argument(
         "--repetition_penalty",
         type=float,
         default=1.1,
         help="Repetition penalty for synthesis",
     )
-    parser.add_argument(
-        "--temperature", type=float, default=0.8, help="Temperature for sampling"
-    )
+    parser.add_argument("--temperature", type=float, default=0.8, help="Temperature for sampling")
 
-    parser.add_argument(
-        "--streaming", type=bool, default=False, help="Enable streaming response"
-    )
-    parser.add_argument(
-        "--channels", type=int, default=1, help="Number of audio channels"
-    )
+    # parser.add_argument("--streaming", type=bool, default=False, help="Enable streaming response")
+    parser.add_argument("--streaming", action="store_true", help="Enable streaming response")
+    parser.add_argument("--channels", type=int, default=1, help="Number of audio channels")
     parser.add_argument("--rate", type=int, default=44100, help="Sample rate for audio")
     parser.add_argument(
         "--use_memory_cache",
@@ -115,8 +101,7 @@ def parse_args():
         "--seed",
         type=int,
         default=None,
-        help="`None` means randomized inference, otherwise deterministic.\n"
-        "It can't be used for fixing a timbre.",
+        help="`None` means randomized inference, otherwise deterministic.\nIt can't be used for fixing a timbre.",
     )
     parser.add_argument(
         "--api_key",
@@ -129,7 +114,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-
     args = parse_args()
 
     idstr: str | None = args.reference_id
@@ -152,12 +136,7 @@ if __name__ == "__main__":
 
     data = {
         "text": args.text,
-        "references": [
-            ServeReferenceAudio(
-                audio=ref_audio if ref_audio is not None else b"", text=ref_text
-            )
-            for ref_text, ref_audio in zip(ref_texts, byte_audios)
-        ],
+        "references": [ServeReferenceAudio(audio=ref_audio if ref_audio is not None else b"", text=ref_text) for ref_text, ref_audio in zip(ref_texts, byte_audios)],
         "reference_id": idstr,
         "format": args.format,
         "max_new_tokens": args.max_new_tokens,
@@ -172,8 +151,11 @@ if __name__ == "__main__":
 
     pydantic_data = ServeTTSRequest(**data)
 
+    print("Sending request")
+    start_time = time.time()
     response = requests.post(
         args.url,
+        params={"format": "msgpack"},
         data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
         stream=args.streaming,
         headers={
@@ -181,14 +163,14 @@ if __name__ == "__main__":
             "content-type": "application/msgpack",
         },
     )
+    end_time = time.time()
+    print(f"Request took {end_time - start_time} seconds")
 
     if response.status_code == 200:
         if args.streaming:
             p = pyaudio.PyAudio()
             audio_format = pyaudio.paInt16  # Assuming 16-bit PCM format
-            stream = p.open(
-                format=audio_format, channels=args.channels, rate=args.rate, output=True
-            )
+            stream = p.open(format=audio_format, channels=args.channels, rate=args.rate, output=True)
 
             wf = wave.open(f"{args.output}.wav", "wb")
             wf.setnchannels(args.channels)

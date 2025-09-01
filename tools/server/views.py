@@ -1,5 +1,6 @@
 import io
 import os
+import tempfile
 import time
 from http import HTTPStatus
 
@@ -7,6 +8,16 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
+from fish_speech.utils.schema import (
+    AddReferenceRequest,
+    AddReferenceResponse,
+    ListReferencesResponse,
+    ServeTTSRequest,
+    ServeVQGANDecodeRequest,
+    ServeVQGANDecodeResponse,
+    ServeVQGANEncodeRequest,
+    ServeVQGANEncodeResponse,
+)
 from kui.asgi import (
     Body,
     HTTPException,
@@ -14,22 +25,15 @@ from kui.asgi import (
     JSONResponse,
     Routes,
     StreamResponse,
+    UploadFile,
     request,
 )
 from loguru import logger
-from typing_extensions import Annotated
-
-from fish_speech.utils.schema import (
-    ServeTTSRequest,
-    ServeVQGANDecodeRequest,
-    ServeVQGANDecodeResponse,
-    ServeVQGANEncodeRequest,
-    ServeVQGANEncodeResponse,
-)
 from tools.server.api_utils import (
     buffer_to_async_generator,
     get_content_type,
     inference_async,
+    wants_json,
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
@@ -37,6 +41,7 @@ from tools.server.model_utils import (
     batch_vqgan_decode,
     cached_vqgan_batch_encode,
 )
+from typing_extensions import Annotated
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
@@ -139,4 +144,118 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
                 "Content-Disposition": f"attachment; filename=audio.{req.format}",
             },
             content_type=get_content_type(req.format),
+        )
+
+
+@routes.http.post("/v1/references/add")
+async def add_reference(req: Annotated[AddReferenceRequest, Body(exclusive=True)]):
+    """
+    Add a new reference voice with audio file and text.
+    """
+    try:
+        # Get the model manager to access the reference loader
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        engine = model_manager.tts_inference_engine
+
+        # Create a temporary file for the audio data
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            temp_file.write(req.audio)
+            temp_file_path = temp_file.name
+
+        try:
+            # Add the reference using the engine's reference loader
+            engine.add_reference(req.id, temp_file_path, req.text)
+
+            response = AddReferenceResponse(success=True, message=f"Reference voice '{req.id}' added successfully", reference_id=req.id)
+
+            return (
+                ormsgpack.packb(
+                    response,
+                    option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+                ),
+                200,
+                {"Content-Type": "application/msgpack"},
+            )
+
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+
+    except FileExistsError as e:
+        response = AddReferenceResponse(success=False, message=str(e), reference_id=req.id)
+        return (
+            ormsgpack.packb(
+                response,
+                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+            ),
+            400,
+            {"Content-Type": "application/msgpack"},
+        )
+    except (FileNotFoundError, ValueError, OSError) as e:
+        response = AddReferenceResponse(success=False, message=str(e), reference_id=req.id)
+        return (
+            ormsgpack.packb(
+                response,
+                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+            ),
+            400,
+            {"Content-Type": "application/msgpack"},
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error adding reference: {e}")
+        response = AddReferenceResponse(success=False, message=f"Internal server error: {str(e)}", reference_id=req.id)
+        return (
+            ormsgpack.packb(
+                response,
+                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+            ),
+            500,
+            {"Content-Type": "application/msgpack"},
+        )
+
+
+@routes.http.get("/v1/references/list")
+async def list_references():
+    """
+    Get a list of all available reference voice IDs.
+    """
+    try:
+        # Get the model manager to access the reference loader
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        engine = model_manager.tts_inference_engine
+
+        # Get the list of reference IDs
+        reference_ids = engine.list_reference_ids()
+
+        response = ListReferencesResponse(success=True, reference_ids=reference_ids, message=f"Found {len(reference_ids)} reference voices")
+
+        if wants_json(request):
+            return JSONResponse(response.model_dump(mode="json"))
+
+        return (
+            ormsgpack.packb(
+                response,
+                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+            ),
+            200,
+            {"Content-Type": "application/msgpack"},
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error listing references: {e}")
+        response = ListReferencesResponse(success=False, reference_ids=[], message=f"Internal server error: {str(e)}")
+
+        if wants_json(request):
+            return JSONResponse(response.model_dump(mode="json"))
+
+        return (
+            ormsgpack.packb(
+                response,
+                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+            ),
+            500,
+            {"Content-Type": "application/msgpack"},
         )
