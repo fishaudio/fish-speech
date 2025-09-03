@@ -11,6 +11,7 @@ import torch
 from fish_speech.utils.schema import (
     AddReferenceRequest,
     AddReferenceResponse,
+    DeleteReferenceResponse,
     ListReferencesResponse,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
@@ -256,4 +257,46 @@ async def list_references():
     except Exception as e:
         logger.error(f"Unexpected error listing references: {e}", exc_info=True)
         response = ListReferencesResponse(success=False, reference_ids=[], message="Internal server error occurred")
+        return format_response(response, status_code=500)
+
+
+@routes.http.delete("/v1/references/delete")
+async def delete_reference(reference_id: str = Body(...)):
+    """
+    Delete a reference voice by ID.
+    """
+    try:
+        # Validate input parameters
+        if not reference_id or not reference_id.strip():
+            raise ValueError("Reference ID cannot be empty")
+
+        # Get the model manager to access the reference loader
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        engine = model_manager.tts_inference_engine
+
+        # Delete the reference using the engine's reference loader
+        engine.delete_reference(reference_id)
+
+        response = DeleteReferenceResponse(success=True, message=f"Reference voice '{reference_id}' deleted successfully", reference_id=reference_id)
+        return format_response(response)
+
+    except FileNotFoundError as e:
+        logger.warning(f"Reference ID '{reference_id}' not found: {e}")
+        response = DeleteReferenceResponse(success=False, message=f"Reference ID '{reference_id}' not found", reference_id=reference_id)
+        return format_response(response, status_code=404)  # Not Found
+
+    except ValueError as e:
+        logger.warning(f"Invalid input for reference '{reference_id}': {e}")
+        response = DeleteReferenceResponse(success=False, message=str(e), reference_id=reference_id)
+        return format_response(response, status_code=400)
+
+    except OSError as e:
+        logger.error(f"File system error deleting reference '{reference_id}': {e}")
+        response = DeleteReferenceResponse(success=False, message="File system error occurred", reference_id=reference_id)
+        return format_response(response, status_code=500)
+
+    except Exception as e:
+        logger.error(f"Unexpected error deleting reference '{reference_id}': {e}", exc_info=True)
+        response = DeleteReferenceResponse(success=False, message="Internal server error occurred", reference_id=reference_id)
         return format_response(response, status_code=500)

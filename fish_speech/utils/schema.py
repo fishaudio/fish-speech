@@ -118,3 +118,9 @@ class ListReferencesResponse(BaseModel):
     success: bool
     reference_ids: list[str]
     message: str = "Success"
+
+
+class DeleteReferenceResponse(BaseModel):
+    success: bool
+    message: str
+    reference_id: str
