@@ -31,9 +31,9 @@ from kui.asgi import (
 from loguru import logger
 from tools.server.api_utils import (
     buffer_to_async_generator,
+    format_response,
     get_content_type,
     inference_async,
-    wants_json,
 )
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
@@ -61,90 +61,114 @@ class Health(HttpView):
 
 @routes.http.post("/v1/vqgan/encode")
 async def vqgan_encode(req: Annotated[ServeVQGANEncodeRequest, Body(exclusive=True)]):
-    # Get the model from the app
-    model_manager: ModelManager = request.app.state.model_manager
-    decoder_model = model_manager.decoder_model
+    """
+    Encode audio using VQGAN model.
+    """
+    try:
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        decoder_model = model_manager.decoder_model
 
-    # Encode the audio
-    start_time = time.time()
-    tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
-    logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
+        # Encode the audio
+        start_time = time.time()
+        tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
+        logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
 
-    # Return the response
-    return ormsgpack.packb(
-        ServeVQGANEncodeResponse(tokens=[i.tolist() for i in tokens]),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-    )
+        # Return the response
+        return ormsgpack.packb(
+            ServeVQGANEncodeResponse(tokens=[i.tolist() for i in tokens]),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        )
+    except Exception as e:
+        logger.error(f"Error in VQGAN encode: {e}", exc_info=True)
+        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to encode audio")
 
 
 @routes.http.post("/v1/vqgan/decode")
 async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=True)]):
-    # Get the model from the app
-    model_manager: ModelManager = request.app.state.model_manager
-    decoder_model = model_manager.decoder_model
+    """
+    Decode tokens to audio using VQGAN model.
+    """
+    try:
+        # Get the model from the app
+        model_manager: ModelManager = request.app.state.model_manager
+        decoder_model = model_manager.decoder_model
 
-    # Decode the audio
-    tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
-    start_time = time.time()
-    audios = batch_vqgan_decode(decoder_model, tokens)
-    logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
-    audios = [audio.astype(np.float16).tobytes() for audio in audios]
+        # Decode the audio
+        tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
+        start_time = time.time()
+        audios = batch_vqgan_decode(decoder_model, tokens)
+        logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
+        audios = [audio.astype(np.float16).tobytes() for audio in audios]
 
-    # Return the response
-    return ormsgpack.packb(
-        ServeVQGANDecodeResponse(audios=audios),
-        option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-    )
+        # Return the response
+        return ormsgpack.packb(
+            ServeVQGANDecodeResponse(audios=audios),
+            option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
+        )
+    except Exception as e:
+        logger.error(f"Error in VQGAN decode: {e}", exc_info=True)
+        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to decode tokens to audio")
 
 
 @routes.http.post("/v1/tts")
 async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
-    # Get the model from the app
-    app_state = request.app.state
-    model_manager: ModelManager = app_state.model_manager
-    engine = model_manager.tts_inference_engine
-    sample_rate = engine.decoder_model.sample_rate
+    """
+    Generate speech from text using TTS model.
+    """
+    try:
+        # Get the model from the app
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        engine = model_manager.tts_inference_engine
+        sample_rate = engine.decoder_model.sample_rate
 
-    # Check if the text is too long
-    if app_state.max_text_length > 0 and len(req.text) > app_state.max_text_length:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            content=f"Text is too long, max length is {app_state.max_text_length}",
-        )
+        # Check if the text is too long
+        if app_state.max_text_length > 0 and len(req.text) > app_state.max_text_length:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content=f"Text is too long, max length is {app_state.max_text_length}",
+            )
 
-    # Check if streaming is enabled
-    if req.streaming and req.format != "wav":
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            content="Streaming only supports WAV format",
-        )
+        # Check if streaming is enabled
+        if req.streaming and req.format != "wav":
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content="Streaming only supports WAV format",
+            )
 
-    # Perform TTS
-    if req.streaming:
-        return StreamResponse(
-            iterable=inference_async(req, engine),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
-    else:
-        fake_audios = next(inference(req, engine))
-        buffer = io.BytesIO()
-        sf.write(
-            buffer,
-            fake_audios,
-            sample_rate,
-            format=req.format,
-        )
+        # Perform TTS
+        if req.streaming:
+            return StreamResponse(
+                iterable=inference_async(req, engine),
+                headers={
+                    "Content-Disposition": f"attachment; filename=audio.{req.format}",
+                },
+                content_type=get_content_type(req.format),
+            )
+        else:
+            fake_audios = next(inference(req, engine))
+            buffer = io.BytesIO()
+            sf.write(
+                buffer,
+                fake_audios,
+                sample_rate,
+                format=req.format,
+            )
 
-        return StreamResponse(
-            iterable=buffer_to_async_generator(buffer.getvalue()),
-            headers={
-                "Content-Disposition": f"attachment; filename=audio.{req.format}",
-            },
-            content_type=get_content_type(req.format),
-        )
+            return StreamResponse(
+                iterable=buffer_to_async_generator(buffer.getvalue()),
+                headers={
+                    "Content-Disposition": f"attachment; filename=audio.{req.format}",
+                },
+                content_type=get_content_type(req.format),
+            )
+    except HTTPException:
+        # Re-raise HTTP exceptions as they are already properly formatted
+        raise
+    except Exception as e:
+        logger.error(f"Error in TTS generation: {e}", exc_info=True)
+        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to generate speech")
 
 
 @routes.http.post("/v1/references/add")
@@ -152,95 +176,64 @@ async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text
     """
     Add a new reference voice with audio file and text.
     """
-
-    print("Adding reference request received")
-    print(f"ID: {id}, Text: {text}, Audio filename: {audio.filename}")
+    temp_file_path = None
 
     try:
+        # Validate input parameters
+        if not id or not id.strip():
+            raise ValueError("Reference ID cannot be empty")
+
+        if not text or not text.strip():
+            raise ValueError("Reference text cannot be empty")
+
         # Get the model manager to access the reference loader
         app_state = request.app.state
         model_manager: ModelManager = app_state.model_manager
         engine = model_manager.tts_inference_engine
 
         # Read the uploaded audio file
-        # audio_content = await audio.read()
         audio_content = audio.read()
+        if not audio_content:
+            raise ValueError("Audio file is empty or could not be read")
 
         # Create a temporary file for the audio data
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
             temp_file.write(audio_content)
             temp_file_path = temp_file.name
 
-        try:
-            # Add the reference using the engine's reference loader
-            engine.add_reference(id, temp_file_path, text)
+        # Add the reference using the engine's reference loader
+        engine.add_reference(id, temp_file_path, text)
 
-            response = AddReferenceResponse(success=True, message=f"Reference voice '{id}' added successfully", reference_id=id)
-
-            # Return response in the format the client prefers
-            if wants_json(request):
-                return JSONResponse(response.model_dump(mode="json"))
-
-            return (
-                ormsgpack.packb(
-                    response,
-                    option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-                ),
-                200,
-                {"Content-Type": "application/msgpack"},
-            )
-
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
+        response = AddReferenceResponse(success=True, message=f"Reference voice '{id}' added successfully", reference_id=id)
+        return format_response(response)
 
     except FileExistsError as e:
+        logger.warning(f"Reference ID '{id}' already exists: {e}")
+        response = AddReferenceResponse(success=False, message=f"Reference ID '{id}' already exists", reference_id=id)
+        return format_response(response, status_code=409)  # Conflict
+
+    except ValueError as e:
+        logger.warning(f"Invalid input for reference '{id}': {e}")
         response = AddReferenceResponse(success=False, message=str(e), reference_id=id)
+        return format_response(response, status_code=400)
 
-        # Return response in the format the client prefers
-        if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"), status_code=400)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(f"File system error for reference '{id}': {e}")
+        response = AddReferenceResponse(success=False, message="File system error occurred", reference_id=id)
+        return format_response(response, status_code=500)
 
-        return (
-            ormsgpack.packb(
-                response,
-                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-            ),
-            400,
-            {"Content-Type": "application/msgpack"},
-        )
-    except (FileNotFoundError, ValueError, OSError) as e:
-        response = AddReferenceResponse(success=False, message=str(e), reference_id=id)
-
-        # Return response in the format the client prefers
-        if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"), status_code=400)
-
-        return (
-            ormsgpack.packb(
-                response,
-                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-            ),
-            400,
-            {"Content-Type": "application/msgpack"},
-        )
     except Exception as e:
-        logger.error(f"Unexpected error adding reference: {e}")
-        response = AddReferenceResponse(success=False, message=f"Internal server error: {str(e)}", reference_id=id)
+        logger.error(f"Unexpected error adding reference '{id}': {e}", exc_info=True)
+        response = AddReferenceResponse(success=False, message="Internal server error occurred", reference_id=id)
+        return format_response(response, status_code=500)
 
-        # Return response in the format the client prefers
-        if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"), status_code=500)
-
-        return (
-            ormsgpack.packb(
-                response,
-                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-            ),
-            500,
-            {"Content-Type": "application/msgpack"},
-        )
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except OSError as e:
+                logger.warning(f"Failed to clean up temporary file {temp_file_path}: {e}")
 
 
 @routes.http.get("/v1/references/list")
@@ -258,31 +251,9 @@ async def list_references():
         reference_ids = engine.list_reference_ids()
 
         response = ListReferencesResponse(success=True, reference_ids=reference_ids, message=f"Found {len(reference_ids)} reference voices")
-
-        if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"))
-
-        return (
-            ormsgpack.packb(
-                response,
-                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-            ),
-            200,
-            {"Content-Type": "application/msgpack"},
-        )
+        return format_response(response)
 
     except Exception as e:
-        logger.error(f"Unexpected error listing references: {e}")
-        response = ListReferencesResponse(success=False, reference_ids=[], message=f"Internal server error: {str(e)}")
-
-        if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"))
-
-        return (
-            ormsgpack.packb(
-                response,
-                option=ormsgpack.OPT_SERIALIZE_PYDANTIC,
-            ),
-            500,
-            {"Content-Type": "application/msgpack"},
-        )
+        logger.error(f"Unexpected error listing references: {e}", exc_info=True)
+        response = ListReferencesResponse(success=False, reference_ids=[], message="Internal server error occurred")
+        return format_response(response, status_code=500)
