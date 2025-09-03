@@ -38,16 +38,19 @@ def parse_args():
 class MsgPackRequest(HttpRequest):
     async def data(
         self,
-    ) -> Annotated[Any, ContentType("application/msgpack"), ContentType("application/json")]:
+    ) -> Annotated[Any, ContentType("application/msgpack"), ContentType("application/json"), ContentType("multipart/form-data")]:
         if self.content_type == "application/msgpack":
             return ormsgpack.unpackb(await self.body)
 
         elif self.content_type == "application/json":
             return await self.json
 
+        elif self.content_type == "multipart/form-data":
+            return await self.form
+
         raise HTTPException(
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
-            headers={"Accept": "application/msgpack, application/json"},
+            headers={"Accept": "application/msgpack, application/json, multipart/form-data"},
         )
 
 
