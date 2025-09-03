@@ -148,26 +148,38 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
 
 
 @routes.http.post("/v1/references/add")
-async def add_reference(req: Annotated[AddReferenceRequest, Body(exclusive=True)]):
+async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text: str = Body(...)):
     """
     Add a new reference voice with audio file and text.
     """
+
+    print("Adding reference request received")
+    print(f"ID: {id}, Text: {text}, Audio filename: {audio.filename}")
+
     try:
         # Get the model manager to access the reference loader
         app_state = request.app.state
         model_manager: ModelManager = app_state.model_manager
         engine = model_manager.tts_inference_engine
 
+        # Read the uploaded audio file
+        # audio_content = await audio.read()
+        audio_content = audio.read()
+
         # Create a temporary file for the audio data
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
-            temp_file.write(req.audio)
+            temp_file.write(audio_content)
             temp_file_path = temp_file.name
 
         try:
             # Add the reference using the engine's reference loader
-            engine.add_reference(req.id, temp_file_path, req.text)
+            engine.add_reference(id, temp_file_path, text)
 
-            response = AddReferenceResponse(success=True, message=f"Reference voice '{req.id}' added successfully", reference_id=req.id)
+            response = AddReferenceResponse(success=True, message=f"Reference voice '{id}' added successfully", reference_id=id)
+
+            # Return response in the format the client prefers
+            if wants_json(request):
+                return JSONResponse(response.model_dump(mode="json"))
 
             return (
                 ormsgpack.packb(
@@ -184,7 +196,12 @@ async def add_reference(req: Annotated[AddReferenceRequest, Body(exclusive=True)
                 os.unlink(temp_file_path)
 
     except FileExistsError as e:
-        response = AddReferenceResponse(success=False, message=str(e), reference_id=req.id)
+        response = AddReferenceResponse(success=False, message=str(e), reference_id=id)
+
+        # Return response in the format the client prefers
+        if wants_json(request):
+            return JSONResponse(response.model_dump(mode="json"), status_code=400)
+
         return (
             ormsgpack.packb(
                 response,
@@ -194,7 +211,12 @@ async def add_reference(req: Annotated[AddReferenceRequest, Body(exclusive=True)
             {"Content-Type": "application/msgpack"},
         )
     except (FileNotFoundError, ValueError, OSError) as e:
-        response = AddReferenceResponse(success=False, message=str(e), reference_id=req.id)
+        response = AddReferenceResponse(success=False, message=str(e), reference_id=id)
+
+        # Return response in the format the client prefers
+        if wants_json(request):
+            return JSONResponse(response.model_dump(mode="json"), status_code=400)
+
         return (
             ormsgpack.packb(
                 response,
@@ -205,7 +227,12 @@ async def add_reference(req: Annotated[AddReferenceRequest, Body(exclusive=True)
         )
     except Exception as e:
         logger.error(f"Unexpected error adding reference: {e}")
-        response = AddReferenceResponse(success=False, message=f"Internal server error: {str(e)}", reference_id=req.id)
+        response = AddReferenceResponse(success=False, message=f"Internal server error: {str(e)}", reference_id=id)
+
+        # Return response in the format the client prefers
+        if wants_json(request):
+            return JSONResponse(response.model_dump(mode="json"), status_code=500)
+
         return (
             ormsgpack.packb(
                 response,
