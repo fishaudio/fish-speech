@@ -221,3 +221,35 @@ class ReferenceLoader:
 
                 shutil.rmtree(ref_dir)
             raise e
+
+    def delete_reference(self, id: str) -> None:
+        """
+        Delete a reference voice by removing its directory and files.
+
+        Args:
+            id: Reference ID (directory name) to delete
+
+        Raises:
+            FileNotFoundError: If the reference ID doesn't exist
+            OSError: If file operations fail
+        """
+        # Check if reference exists
+        ref_dir = Path("references") / id
+        if not ref_dir.exists():
+            raise FileNotFoundError(f"Reference ID '{id}' does not exist")
+
+        try:
+            # Remove the entire reference directory
+            import shutil
+
+            shutil.rmtree(ref_dir)
+
+            # Clear cache for this ID if it exists
+            if id in self.ref_by_id:
+                del self.ref_by_id[id]
+
+            logger.info(f"Successfully deleted reference voice with ID: {id}")
+
+        except Exception as e:
+            logger.error(f"Failed to delete reference '{id}': {e}")
+            raise OSError(f"Failed to delete reference '{id}': {e}")
