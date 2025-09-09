@@ -4,8 +4,6 @@ from typing import Annotated, Any
 
 import ormsgpack
 from baize.datastructures import ContentType
-from fish_speech.inference_engine import TTSInferenceEngine
-from fish_speech.utils.schema import ServeTTSRequest
 from kui.asgi import (
     HTTPException,
     HttpRequest,
@@ -14,6 +12,9 @@ from kui.asgi import (
 )
 from loguru import logger
 from pydantic import BaseModel
+
+from fish_speech.inference_engine import TTSInferenceEngine
+from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
 
@@ -45,7 +46,12 @@ def parse_args():
 class MsgPackRequest(HttpRequest):
     async def data(
         self,
-    ) -> Annotated[Any, ContentType("application/msgpack"), ContentType("application/json"), ContentType("multipart/form-data")]:
+    ) -> Annotated[
+        Any,
+        ContentType("application/msgpack"),
+        ContentType("application/json"),
+        ContentType("multipart/form-data"),
+    ]:
         if self.content_type == "application/msgpack":
             return ormsgpack.unpackb(await self.body)
 
@@ -57,7 +63,9 @@ class MsgPackRequest(HttpRequest):
 
         raise HTTPException(
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
-            headers={"Accept": "application/msgpack, application/json, multipart/form-data"},
+            headers={
+                "Accept": "application/msgpack, application/json, multipart/form-data"
+            },
         )
 
 
@@ -121,7 +129,9 @@ def format_response(response: BaseModel, status_code=200):
     """
     try:
         if wants_json(request):
-            return JSONResponse(response.model_dump(mode="json"), status_code=status_code)
+            return JSONResponse(
+                response.model_dump(mode="json"), status_code=status_code
+            )
 
         return (
             ormsgpack.packb(
@@ -134,4 +144,6 @@ def format_response(response: BaseModel, status_code=200):
     except Exception as e:
         logger.error(f"Error formatting response: {e}", exc_info=True)
         # Fallback to JSON response if formatting fails
-        return JSONResponse({"error": "Response formatting failed", "details": str(e)}, status_code=500)
+        return JSONResponse(
+            {"error": "Response formatting failed", "details": str(e)}, status_code=500
+        )

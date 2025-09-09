@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from fish_speech.content_sequence import TextPart, VQPart
 from pydantic import BaseModel, Field, conint, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
+
+from fish_speech.content_sequence import TextPart, VQPart
 
 
 class ServeVQPart(BaseModel):
@@ -63,7 +64,9 @@ class ServeReferenceAudio(BaseModel):
     @model_validator(mode="before")
     def decode_audio(cls, values):
         audio = values.get("audio")
-        if isinstance(audio, str) and len(audio) > 255:  # Check if audio is a string (Base64)
+        if (
+            isinstance(audio, str) and len(audio) > 255
+        ):  # Check if audio is a string (Base64)
             try:
                 values["audio"] = base64.b64decode(audio)
             except Exception:

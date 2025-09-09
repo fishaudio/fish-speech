@@ -354,7 +354,7 @@ def init_model(checkpoint_path, device, precision, compile=False):
     model = DualARTransformer.from_pretrained(checkpoint_path, load_weights=True)
 
     model = model.to(device=device, dtype=precision)
-    logger.info(f"Restored model from checkpoint")
+    logger.info("Restored model from checkpoint")
 
     if isinstance(model, DualARTransformer):
         decode_one_token = decode_one_token_ar
@@ -373,6 +373,12 @@ def init_model(checkpoint_path, device, precision, compile=False):
 
     if compile:
         logger.info("Compiling function...")
+        logger.info("GPU available: {}".format(torch.cuda.is_available()))
+        logger.info(
+            "Using backend: {}".format(
+                "inductor" if torch.cuda.is_available() else "aot_eager"
+            )
+        )
         decode_one_token = torch.compile(
             decode_one_token,
             backend="inductor" if torch.cuda.is_available() else "aot_eager",
@@ -500,7 +506,7 @@ def generate_long(
 
         # Put the generated tokens
         codes = y[1:, prompt_length:-1].clone()
-        assert (codes >= 0).all(), f"Negative code found"
+        assert (codes >= 0).all(), "Negative code found"
 
         decoded = y[:, prompt_length:].clone()
         global_encoded.append(decoded.cpu())
@@ -695,7 +701,7 @@ def main(
                 codes_npy_path = os.path.join(output_dir, f"codes_{idx}.npy")
                 np.save(codes_npy_path, torch.cat(codes, dim=1).cpu().numpy())
                 logger.info(f"Saved codes to {codes_npy_path}")
-            logger.info(f"Next sample")
+            logger.info("Next sample")
             codes = []
             idx += 1
         else:
