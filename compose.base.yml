@@ -1,0 +1,23 @@
+services:
+  app-base:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        BACKEND: ${BACKEND:-cuda}     # or cpu
+        UV_VERSION: ${UV_VERSION:-0.8.15}
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./references:/app/references
+    environment:
+      COMPILE: ${COMPILE:-0}
+    # GPU (remove this block if CPU-only):
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    tty: true
+    stdin_open: true
