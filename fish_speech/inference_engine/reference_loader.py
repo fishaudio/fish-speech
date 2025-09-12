@@ -5,6 +5,8 @@ from typing import Callable, Literal, Tuple
 
 import torch
 import torchaudio
+from loguru import logger
+
 from fish_speech.models.dac.modded_dac import DAC
 from fish_speech.utils.file import (
     AUDIO_EXTENSIONS,
@@ -13,7 +15,6 @@ from fish_speech.utils.file import (
     read_ref_text,
 )
 from fish_speech.utils.schema import ServeReferenceAudio
-from loguru import logger
 
 
 class ReferenceLoader:
@@ -44,7 +45,9 @@ class ReferenceLoader:
         # Load the references audio and text by id
         ref_folder = Path("references") / id
         ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
+        ref_audios = list_files(
+            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
+        )
 
         if use_cache == "off" or id not in self.ref_by_id:
             # If the references are not already loaded, encode them
@@ -56,7 +59,10 @@ class ReferenceLoader:
                 )
                 for ref_audio in ref_audios
             ]
-            prompt_texts = [read_ref_text(str(ref_audio.with_suffix(".lab"))) for ref_audio in ref_audios]
+            prompt_texts = [
+                read_ref_text(str(ref_audio.with_suffix(".lab")))
+                for ref_audio in ref_audios
+            ]
             self.ref_by_id[id] = (prompt_tokens, prompt_texts)
 
         else:
@@ -114,7 +120,9 @@ class ReferenceLoader:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
         if original_sr != sr:
-            resampler = torchaudio.transforms.Resample(orig_freq=original_sr, new_freq=sr)
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=original_sr, new_freq=sr
+            )
             waveform = resampler(waveform)
 
         audio = waveform.squeeze().numpy()
@@ -137,7 +145,9 @@ class ReferenceLoader:
                 continue
 
             # Check if directory contains at least one audio file and corresponding .lab file
-            audio_files = list_files(ref_dir, AUDIO_EXTENSIONS, recursive=False, sort=False)
+            audio_files = list_files(
+                ref_dir, AUDIO_EXTENSIONS, recursive=False, sort=False
+            )
             if not audio_files:
                 continue
 
@@ -172,10 +182,14 @@ class ReferenceLoader:
         import re
 
         if not re.match(r"^[a-zA-Z0-9\-_ ]+$", id):
-            raise ValueError("Reference ID contains invalid characters. Only alphanumeric, hyphens, underscores, and spaces are allowed.")
+            raise ValueError(
+                "Reference ID contains invalid characters. Only alphanumeric, hyphens, underscores, and spaces are allowed."
+            )
 
         if len(id) > 255:
-            raise ValueError("Reference ID is too long. Maximum length is 255 characters.")
+            raise ValueError(
+                "Reference ID is too long. Maximum length is 255 characters."
+            )
 
         # Check if reference already exists
         ref_dir = Path("references") / id
@@ -189,7 +203,9 @@ class ReferenceLoader:
 
         # Validate audio file extension
         if audio_path.suffix.lower() not in AUDIO_EXTENSIONS:
-            raise ValueError(f"Unsupported audio format: {audio_path.suffix}. Supported formats: {', '.join(AUDIO_EXTENSIONS)}")
+            raise ValueError(
+                f"Unsupported audio format: {audio_path.suffix}. Supported formats: {', '.join(AUDIO_EXTENSIONS)}"
+            )
 
         try:
             # Create reference directory

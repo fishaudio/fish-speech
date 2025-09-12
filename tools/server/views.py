@@ -8,17 +8,6 @@ import numpy as np
 import ormsgpack
 import soundfile as sf
 import torch
-from fish_speech.utils.schema import (
-    AddReferenceRequest,
-    AddReferenceResponse,
-    DeleteReferenceResponse,
-    ListReferencesResponse,
-    ServeTTSRequest,
-    ServeVQGANDecodeRequest,
-    ServeVQGANDecodeResponse,
-    ServeVQGANEncodeRequest,
-    ServeVQGANEncodeResponse,
-)
 from kui.asgi import (
     Body,
     HTTPException,
@@ -30,6 +19,19 @@ from kui.asgi import (
     request,
 )
 from loguru import logger
+from typing_extensions import Annotated
+
+from fish_speech.utils.schema import (
+    AddReferenceRequest,
+    AddReferenceResponse,
+    DeleteReferenceResponse,
+    ListReferencesResponse,
+    ServeTTSRequest,
+    ServeVQGANDecodeRequest,
+    ServeVQGANDecodeResponse,
+    ServeVQGANEncodeRequest,
+    ServeVQGANEncodeResponse,
+)
 from tools.server.api_utils import (
     buffer_to_async_generator,
     format_response,
@@ -42,7 +44,6 @@ from tools.server.model_utils import (
     batch_vqgan_decode,
     cached_vqgan_batch_encode,
 )
-from typing_extensions import Annotated
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
@@ -73,7 +74,9 @@ async def vqgan_encode(req: Annotated[ServeVQGANEncodeRequest, Body(exclusive=Tr
         # Encode the audio
         start_time = time.time()
         tokens = cached_vqgan_batch_encode(decoder_model, req.audios)
-        logger.info(f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms")
+        logger.info(
+            f"[EXEC] VQGAN encode time: {(time.time() - start_time) * 1000:.2f}ms"
+        )
 
         # Return the response
         return ormsgpack.packb(
@@ -82,7 +85,9 @@ async def vqgan_encode(req: Annotated[ServeVQGANEncodeRequest, Body(exclusive=Tr
         )
     except Exception as e:
         logger.error(f"Error in VQGAN encode: {e}", exc_info=True)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to encode audio")
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to encode audio"
+        )
 
 
 @routes.http.post("/v1/vqgan/decode")
@@ -99,7 +104,9 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
         tokens = [torch.tensor(token, dtype=torch.int) for token in req.tokens]
         start_time = time.time()
         audios = batch_vqgan_decode(decoder_model, tokens)
-        logger.info(f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms")
+        logger.info(
+            f"[EXEC] VQGAN decode time: {(time.time() - start_time) * 1000:.2f}ms"
+        )
         audios = [audio.astype(np.float16).tobytes() for audio in audios]
 
         # Return the response
@@ -109,7 +116,9 @@ async def vqgan_decode(req: Annotated[ServeVQGANDecodeRequest, Body(exclusive=Tr
         )
     except Exception as e:
         logger.error(f"Error in VQGAN decode: {e}", exc_info=True)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to decode tokens to audio")
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to decode tokens to audio"
+        )
 
 
 @routes.http.post("/v1/tts")
@@ -169,11 +178,15 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
         raise
     except Exception as e:
         logger.error(f"Error in TTS generation: {e}", exc_info=True)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to generate speech")
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, content="Failed to generate speech"
+        )
 
 
 @routes.http.post("/v1/references/add")
-async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text: str = Body(...)):
+async def add_reference(
+    id: str = Body(...), audio: UploadFile = Body(...), text: str = Body(...)
+):
     """
     Add a new reference voice with audio file and text.
     """
@@ -205,12 +218,20 @@ async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text
         # Add the reference using the engine's reference loader
         engine.add_reference(id, temp_file_path, text)
 
-        response = AddReferenceResponse(success=True, message=f"Reference voice '{id}' added successfully", reference_id=id)
+        response = AddReferenceResponse(
+            success=True,
+            message=f"Reference voice '{id}' added successfully",
+            reference_id=id,
+        )
         return format_response(response)
 
     except FileExistsError as e:
         logger.warning(f"Reference ID '{id}' already exists: {e}")
-        response = AddReferenceResponse(success=False, message=f"Reference ID '{id}' already exists", reference_id=id)
+        response = AddReferenceResponse(
+            success=False,
+            message=f"Reference ID '{id}' already exists",
+            reference_id=id,
+        )
         return format_response(response, status_code=409)  # Conflict
 
     except ValueError as e:
@@ -220,12 +241,16 @@ async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text
 
     except (FileNotFoundError, OSError) as e:
         logger.error(f"File system error for reference '{id}': {e}")
-        response = AddReferenceResponse(success=False, message="File system error occurred", reference_id=id)
+        response = AddReferenceResponse(
+            success=False, message="File system error occurred", reference_id=id
+        )
         return format_response(response, status_code=500)
 
     except Exception as e:
         logger.error(f"Unexpected error adding reference '{id}': {e}", exc_info=True)
-        response = AddReferenceResponse(success=False, message="Internal server error occurred", reference_id=id)
+        response = AddReferenceResponse(
+            success=False, message="Internal server error occurred", reference_id=id
+        )
         return format_response(response, status_code=500)
 
     finally:
@@ -234,7 +259,9 @@ async def add_reference(id: str = Body(...), audio: UploadFile = Body(...), text
             try:
                 os.unlink(temp_file_path)
             except OSError as e:
-                logger.warning(f"Failed to clean up temporary file {temp_file_path}: {e}")
+                logger.warning(
+                    f"Failed to clean up temporary file {temp_file_path}: {e}"
+                )
 
 
 @routes.http.get("/v1/references/list")
@@ -251,12 +278,18 @@ async def list_references():
         # Get the list of reference IDs
         reference_ids = engine.list_reference_ids()
 
-        response = ListReferencesResponse(success=True, reference_ids=reference_ids, message=f"Found {len(reference_ids)} reference voices")
+        response = ListReferencesResponse(
+            success=True,
+            reference_ids=reference_ids,
+            message=f"Found {len(reference_ids)} reference voices",
+        )
         return format_response(response)
 
     except Exception as e:
         logger.error(f"Unexpected error listing references: {e}", exc_info=True)
-        response = ListReferencesResponse(success=False, reference_ids=[], message="Internal server error occurred")
+        response = ListReferencesResponse(
+            success=False, reference_ids=[], message="Internal server error occurred"
+        )
         return format_response(response, status_code=500)
 
 
@@ -278,25 +311,45 @@ async def delete_reference(reference_id: str = Body(...)):
         # Delete the reference using the engine's reference loader
         engine.delete_reference(reference_id)
 
-        response = DeleteReferenceResponse(success=True, message=f"Reference voice '{reference_id}' deleted successfully", reference_id=reference_id)
+        response = DeleteReferenceResponse(
+            success=True,
+            message=f"Reference voice '{reference_id}' deleted successfully",
+            reference_id=reference_id,
+        )
         return format_response(response)
 
     except FileNotFoundError as e:
         logger.warning(f"Reference ID '{reference_id}' not found: {e}")
-        response = DeleteReferenceResponse(success=False, message=f"Reference ID '{reference_id}' not found", reference_id=reference_id)
+        response = DeleteReferenceResponse(
+            success=False,
+            message=f"Reference ID '{reference_id}' not found",
+            reference_id=reference_id,
+        )
         return format_response(response, status_code=404)  # Not Found
 
     except ValueError as e:
         logger.warning(f"Invalid input for reference '{reference_id}': {e}")
-        response = DeleteReferenceResponse(success=False, message=str(e), reference_id=reference_id)
+        response = DeleteReferenceResponse(
+            success=False, message=str(e), reference_id=reference_id
+        )
         return format_response(response, status_code=400)
 
     except OSError as e:
         logger.error(f"File system error deleting reference '{reference_id}': {e}")
-        response = DeleteReferenceResponse(success=False, message="File system error occurred", reference_id=reference_id)
+        response = DeleteReferenceResponse(
+            success=False,
+            message="File system error occurred",
+            reference_id=reference_id,
+        )
         return format_response(response, status_code=500)
 
     except Exception as e:
-        logger.error(f"Unexpected error deleting reference '{reference_id}': {e}", exc_info=True)
-        response = DeleteReferenceResponse(success=False, message="Internal server error occurred", reference_id=reference_id)
+        logger.error(
+            f"Unexpected error deleting reference '{reference_id}': {e}", exc_info=True
+        )
+        response = DeleteReferenceResponse(
+            success=False,
+            message="Internal server error occurred",
+            reference_id=reference_id,
+        )
         return format_response(response, status_code=500)
