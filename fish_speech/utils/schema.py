@@ -127,3 +127,10 @@ class DeleteReferenceResponse(BaseModel):
     success: bool
     message: str
     reference_id: str
+
+
+class UpdateReferenceResponse(BaseModel):
+    success: bool
+    message: str
+    old_reference_id: str
+    new_reference_id: str

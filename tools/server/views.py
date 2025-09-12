@@ -1,8 +1,11 @@
 import io
 import os
+import re
+import shutil
 import tempfile
 import time
 from http import HTTPStatus
+from pathlib import Path
 
 import numpy as np
 import ormsgpack
@@ -31,6 +34,7 @@ from fish_speech.utils.schema import (
     ServeVQGANDecodeResponse,
     ServeVQGANEncodeRequest,
     ServeVQGANEncodeResponse,
+    UpdateReferenceResponse,
 )
 from tools.server.api_utils import (
     buffer_to_async_generator,
@@ -351,5 +355,108 @@ async def delete_reference(reference_id: str = Body(...)):
             success=False,
             message="Internal server error occurred",
             reference_id=reference_id,
+        )
+        return format_response(response, status_code=500)
+
+
+@routes.http.post("/v1/references/update")
+async def update_reference(
+    old_reference_id: str = Body(...), new_reference_id: str = Body(...)
+):
+    """
+    Rename a reference voice directory from old_reference_id to new_reference_id.
+    """
+    try:
+        # Validate input parameters
+        if not old_reference_id or not old_reference_id.strip():
+            raise ValueError("Old reference ID cannot be empty")
+        if not new_reference_id or not new_reference_id.strip():
+            raise ValueError("New reference ID cannot be empty")
+        if old_reference_id == new_reference_id:
+            raise ValueError("New reference ID must be different from old reference ID")
+
+        # Validate ID format per ReferenceLoader rules
+        id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
+        if not re.match(id_pattern, new_reference_id) or len(new_reference_id) > 255:
+            raise ValueError(
+                "New reference ID contains invalid characters or is too long"
+            )
+
+        # Access engine to update caches after renaming
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        engine = model_manager.tts_inference_engine
+
+        refs_base = Path("references")
+        old_dir = refs_base / old_reference_id
+        new_dir = refs_base / new_reference_id
+
+        # Existence checks
+        if not old_dir.exists() or not old_dir.is_dir():
+            raise FileNotFoundError(f"Reference ID '{old_reference_id}' not found")
+        if new_dir.exists():
+            # Conflict: destination already exists
+            response = UpdateReferenceResponse(
+                success=False,
+                message=f"Reference ID '{new_reference_id}' already exists",
+                old_reference_id=old_reference_id,
+                new_reference_id=new_reference_id,
+            )
+            return format_response(response, status_code=409)
+
+        # Perform rename
+        old_dir.rename(new_dir)
+
+        # Update in-memory cache key if present
+        if old_reference_id in engine.ref_by_id:
+            engine.ref_by_id[new_reference_id] = engine.ref_by_id.pop(old_reference_id)
+
+        response = UpdateReferenceResponse(
+            success=True,
+            message=(
+                f"Reference voice renamed from '{old_reference_id}' to '{new_reference_id}' successfully"
+            ),
+            old_reference_id=old_reference_id,
+            new_reference_id=new_reference_id,
+        )
+        return format_response(response)
+
+    except FileNotFoundError as e:
+        logger.warning(str(e))
+        response = UpdateReferenceResponse(
+            success=False,
+            message=str(e),
+            old_reference_id=old_reference_id,
+            new_reference_id=new_reference_id,
+        )
+        return format_response(response, status_code=404)
+
+    except ValueError as e:
+        logger.warning(f"Invalid input for update reference: {e}")
+        response = UpdateReferenceResponse(
+            success=False,
+            message=str(e),
+            old_reference_id=old_reference_id if "old_reference_id" in locals() else "",
+            new_reference_id=new_reference_id if "new_reference_id" in locals() else "",
+        )
+        return format_response(response, status_code=400)
+
+    except OSError as e:
+        logger.error(f"File system error renaming reference: {e}")
+        response = UpdateReferenceResponse(
+            success=False,
+            message="File system error occurred",
+            old_reference_id=old_reference_id,
+            new_reference_id=new_reference_id,
+        )
+        return format_response(response, status_code=500)
+
+    except Exception as e:
+        logger.error(f"Unexpected error updating reference: {e}", exc_info=True)
+        response = UpdateReferenceResponse(
+            success=False,
+            message="Internal server error occurred",
+            old_reference_id=old_reference_id if "old_reference_id" in locals() else "",
+            new_reference_id=new_reference_id if "new_reference_id" in locals() else "",
         )
         return format_response(response, status_code=500)
