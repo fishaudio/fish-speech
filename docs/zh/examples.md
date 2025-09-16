@@ -46,6 +46,12 @@
   - **Prompt**: (laughing)haha(laughing), though many people say that homeless cats need our help, (laughing)haha(laughing), but seldom do they really do something that is useful to the cats, (laughing)haha(laughing) sorry, but this is very interesting.
   - **Audio**: <audio controls preload="auto" src="../assets/audio/en/laugh.wav" />
 
+### 战吼 (shouting)
+
+- **Example (EN)**
+  - **Prompt**: (shouting)oh my god !!!(shouting)(shouting)(shouting), baby(shouting)you (shouting)are (shouting)a piece of sweet, soft(shouting), delicious cake!!!
+  - **Audio**: <audio controls preload="auto" src="../assets/audio/en/shout.wav" />
+
 ## 长文本稳定性测试
 
 ### 中文句子 
