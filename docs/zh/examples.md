@@ -21,8 +21,8 @@
 
 
 #### 惊讶
-- 输入音频：<audio controls preload="auto" src="../assets/audio/zh/surprise_ref.wav" />
-- 合成音频：<audio controls preload="auto" src="../assets/audio/zh/surprise_gen.wav" />
+- 输入音频：<audio controls preload="auto" src="../assets/audio/zh/ref1.wav" />
+- 合成音频：<audio controls preload="auto" src="../assets/audio/zh/surprised.wav" />
 - Prompt：(surprised)今天你过生日？既然这样的话，我就勉为其难祝你生日快乐吧。(surprised)要不要看看你的桌子底下？
 
 #### 悲伤
@@ -32,7 +32,19 @@
 
 ## 副语言效果（*新特性）
 
+### 笑声
 
+- **样例 1**
+  - **提示词**：大家好啊，(笑声)哈哈，我是从来不带节奏的血狼破军，今天来点大家想看的东西。
+  - **音频**：<audio controls preload="auto" src="../assets/audio/zh/laugh1.wav" />
+
+- **样例 2**
+  - **提示词**：(笑声)哈哈(笑声)，虽然说"三角洲行动"的策划说他们没有暗改(笑声)哈哈(笑声)，但是我相信，大家心里都有数。对不起，实在是太搞笑了，忍不住笑了出来。(笑声)哈哈(笑声)
+  - **音频**：<audio controls preload="auto" src="../assets/audio/zh/laugh2.wav" />
+
+- **Example 3 (EN)**
+  - **Prompt**: (laughing)haha(laughing), though many people say that homeless cats need our help, (laughing)haha(laughing), but seldom do they really do something that is useful to the cats, (laughing)haha(laughing) sorry, but this is very interesting.
+  - **Audio**: <audio controls preload="auto" src="../assets/audio/en/laugh.wav" />
 
 ## 长文本稳定性测试
 
@@ -48,18 +60,11 @@
 #### 夕（明日方舟）
 - 输入音频：<audio controls preload="auto" src="../assets/audio/zh/ref1.wav" />
 - 合成音频：<audio controls preload="auto" src="../assets/audio/zh/audio.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
+
 
 #### 随机说话人（音量警告）
 - 输入音频：无
 - 合成音频：<audio controls preload="auto" src="../assets/audio/zh/audio2.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
 
 ## 英文句子 
 
@@ -73,18 +78,11 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
 #### 随机说话人 1
 - 输入音频：无
 - 合成音频：<audio controls preload="auto" src="../assets/audio/en/audio.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
 
 #### 随机说话人 2
 - 输入音频：无
 - 合成音频：<audio controls preload="auto" src="../assets/audio/en/audio2.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
+
 
 ## 日文句子 1
 
@@ -101,15 +99,8 @@ patterns to driving cars autonomously, AI's applications are vast and diverse.
 #### 丰川祥子
 - 输入音频：<audio controls preload="auto" src="../assets/audio/ja/ref.wav" />
 - 合成音频：<audio controls preload="auto" src="../assets/audio/ja/audio.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
+
 
 #### 随机说话人 2
 - 输入音频：无
 - 合成音频：<audio controls preload="auto" src="../assets/audio/ja/audio2.wav" />
-- Prompt：
-```
-在此处填写 Prompt
-```
