@@ -60,13 +60,14 @@
 #       -it fish-speech-server:cuda
 
 
+# Select the specific cuda version (see https://hub.docker.com/r/nvidia/cuda/)
+ARG CUDA_VER=12.6.0
+# Adapt the uv extra to fit the cuda version (one of [cu126, cu128, cu129])
+ARG UV_EXTRA=cu126
+ARG BACKEND=cuda
 
-
-# Build arguments with defaults
-ARG CUDA_VER=12.9.1
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
-ARG BACKEND=cpu
 ARG UV_VERSION=0.8.15
 
 # Create non-root user early for security
@@ -81,7 +82,6 @@ ARG USER_GID=1000
 # --- CUDA (x86_64) ---
 FROM nvidia/cuda:${CUDA_VER}-cudnn-runtime-ubuntu${UBUNTU_VER} AS base-cuda
 ENV DEBIAN_FRONTEND=noninteractive
-ENV UV_EXTRA=cu129
 
 # Install system dependencies in a single layer with cleanup
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -131,17 +131,18 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
 
 FROM base-${BACKEND} AS app-base
 
-ENV BACKEND=${BACKEND} \
-    DEBIAN_FRONTEND=noninteractive \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
 ARG PY_VER
 ARG BACKEND
 ARG USERNAME
 ARG USER_UID
 ARG USER_GID
 ARG UV_VERSION
+ARG UV_EXTRA
+
+ENV BACKEND=${BACKEND} \
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # System dependencies for audio processing
 ARG DEPENDENCIES=" \
