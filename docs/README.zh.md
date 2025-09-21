@@ -1,3 +1,4 @@
+
 <div align="center">
 <h1>Fish Speech</h1>
 
@@ -144,11 +145,9 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
 
 5. **快速：** 通过 fish-tech 加速，在 Nvidia RTX 4060 笔记本电脑上实时因子约为 1:5，在 Nvidia RTX 4090 上为 1:15。
 
-6. **WebUI 推理：** 具有易于使用的基于 Gradio 的 Web UI，兼容 Chrome、Firefox、Edge 和其他浏览器。
+6. **WebUI 推理：** 提供简单易用的、基于 Gradio 的 Web UI，兼容 Chrome、Firefox、Edge 等浏览器。
 
-7. **GUI 推理：** 提供与 API 服务器无缝配合的 PyQt6 图形界面。支持 Linux、Windows 和 macOS。[查看 GUI](https://github.com/AnyaCoder/fish-speech-gui)。
-
-8. **部署友好：** 通过对 Linux、Windows（macOS 即将推出）的原生支持，轻松设置推理服务器，最小化速度损失。
+7. **易于部署：** 轻松设置推理服务器，原生支持 Linux 和 Windows（即将支持 macOS），最大限度地减少性能损失。
 
 ## **媒体和演示**
 

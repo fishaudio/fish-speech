@@ -4,15 +4,7 @@
 
 <div align="center">
 
-<img src="../assets/opena### **두 가지 모델 유형**
-
-다양한 요구 사항에 맞는 두 가지 모델 변형을 제공합니다：
-
-- **OpenAudio S1 (40억 매개변수)**：[fish.audio](https://fish.audio)에서 이용 가능한 모든 기능을 갖춘 플래그십 모델로, 모든 고급 기능을 갖춘 최고 품질의 음성 합성을 제공합니다.
-
-- **OpenAudio S1-mini (5억 매개변수)**：핵심 기능을 갖춘 경량화 버전으로, [Hugging Face Space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini)에서 이용 가능하며, 우수한 품질을 유지하면서 더 빠른 추론을 위해 최적화되었습니다.
-
-S1과 S1-mini 모두 온라인 인간 피드백 강화 학습(RLHF)이 통합되어 있습니다。t="OpenAudio" style="display: block; margin: 0 auto; width: 35%;"/>
+<img src="../assets/openaudio.jpg" alt="OpenAudio" style="display: block; margin: 0 auto; width: 35%;"/>
 
 </div>
 
@@ -36,8 +28,8 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화 학습(RLHF)이 통합되
 
 ---
 
-!!! note "라이선스 안내"
-    이 코드베이스는 **Apache 라이선스** 하에 배포되며, 모든 모델 가중치는 **CC-BY-NC-SA-4.0 라이선스** 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE)를 참조하세요.
+!!! note "라이선스 공지"
+    이 코드베이스는 **Apache 라이선스**에 따라 배포되며, 모든 모델 가중치는 **CC-BY-NC-SA-4.0 라이선스**에 따라 배포됩니다. 자세한 내용은 [코드 라이선스](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) 및 [모델 라이선스](https://spdx.org/licenses/CC-BY-NC-SA-4.0)를 참조하십시오.
 
 !!! warning "법적 면책조항"
     코드베이스의 불법적인 사용에 대해서는 일체 책임을 지지 않습니다. 귀하의 지역의 DMCA 및 기타 관련 법률을 참고하시기 바랍니다.

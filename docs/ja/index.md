@@ -28,8 +28,8 @@
 
 ---
 
-!!! note "ライセンス通知"
-    このコードベースは **Apacheライセンス** の下でリリースされ、すべてのモデル重みは **CC-BY-NC-SA-4.0ライセンス** の下でリリースされています。詳細は [LICENSE](LICENSE) を参照してください。
+!!! note "ライセンスに関するお知らせ"
+    このコードベースは **Apache ライセンス** の下でリリースされ、すべてのモデルウェイトは **CC-BY-NC-SA-4.0 ライセンス** の下でリリースされています。詳細については、[コードライセンス](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) と [モデルライセンス](https://spdx.org/licenses/CC-BY-NC-SA-4.0) を参照してください。
 
 !!! warning "法的免責事項"
     コードベースの違法な使用について、当方は一切の責任を負いません。お住まいの地域のDMCAおよびその他の関連法規をご参照ください。
@@ -158,3 +158,9 @@ S1とS1-miniの両方にオンライン人間フィードバック強化学習�
 - **Discord：** [Discordコミュニティ](https://discord.gg/Es5qTB9BcN)に参加
 - **ウェブサイト：** 最新アップデートは[OpenAudio.com](https://openaudio.com)をご覧ください
 - **オンライン試用：** [Fish Audio Playground](https://fish.audio)
+
+このコードベースは **Apache ライセンス** の下でリリースされ、すべてのモデルウェイトは **CC-BY-NC-SA-4.0 ライセンス** の下でリリースされています。詳細については、[コードライセンス](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) と [モデルライセンス](https://spdx.org/licenses/CC-BY-NC-SA-4.0) を参照してください。
+
+## モデル
+
+OpenAudio S1 は OpenAudio シリーズの最初のモデルです。これは、VQ コードからオーディオを再構築できるデュアルデコーダ VQ-GAN ボコーダです。

@@ -24,12 +24,12 @@
 
 <strong>جربه الآن:</strong> <a href="https://fish.audio">Fish Audio Playground</a> | <strong>تعلم المزيد:</strong> <a href="https://openaudio.com">موقع OpenAudio</a>
 
-</div>
+</div>·
 
 ---
 
 !!! note "إشعار الترخيص"
-    يتم إصدار قاعدة الكود هذه تحت **رخصة Apache** ويتم إصدار جميع أوزان النماذج تحت **رخصة CC-BY-NC-SA-4.0**. يرجى الرجوع إلى [LICENSE](LICENSE) لمزيد من التفاصيل.
+    يتم إصدار قاعدة الكود هذه تحت **رخصة Apache** ويتم إصدار جميع أوزان النماذج تحت **رخصة CC-BY-NC-SA-4.0**. يرجى الرجوع إلى [رخصة الكود](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) و [رخصة النموذج](https://spdx.org/licenses/CC-BY-NC-SA-4.0) لمزيد من التفاصيل.
 
 !!! warning "إخلاء المسؤولية القانونية"
     نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لقاعدة الكود. يرجى الرجوع إلى القوانين المحلية حول DMCA والقوانين الأخرى ذات الصلة.
@@ -158,3 +158,17 @@
 - **Discord:** انضم إلى [مجتمع Discord](https://discord.gg/Es5qTB9BcN) الخاص بنا
 - **الموقع:** قم بزيارة [OpenAudio.com](https://openaudio.com) للحصول على آخر التحديثات
 - **جرب عبر الإنترنت:** [Fish Audio Playground](https://fish.audio)
+
+- تحويل النص إلى كلام (TTS)
+- توليف صوت الغناء (SVS)
+- تحويل الصوت من أي إلى أي (Any-to-any voice conversion)
+- استنساخ الصوت بدون أو بالقليل من العينات (Zero or few-shot voice cloning)
+- استنساخ الصوت عبر اللغات (Cross-lingual voice cloning)
+- إنشاء المحتوى (Content creation)
+
+!!! note "ملاحظة الترخيص"
+    يتم إصدار هذا الكود المصدري بموجب **رخصة أباتشي** ويتم إصدار جميع أوزان النماذج بموجب **رخصة CC-BY-NC-SA-4.0**. يرجى الرجوع إلى [رخصة الكود](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) و [رخصة النموذج](https://spdx.org/licenses/CC-BY-NC-SA-4.0) لمزيد من التفاصيل.
+
+## النماذج
+
+OpenAudio S1 هو النموذج الأول في سلسلة OpenAudio. وهو مُرمِّز صوتي VQ-GAN مزدوج المُ解码 يمكنه إعادة بناء الصوت من أكواد VQ.

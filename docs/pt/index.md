@@ -29,7 +29,7 @@
 ---
 
 !!! note "Aviso de Licença"
-    Esta base de código é lançada sob **Licença Apache** e todos os pesos do modelo são lançados sob **Licença CC-BY-NC-SA-4.0**. Consulte [LICENSE](LICENSE) para mais detalhes.
+    Esta base de código é lançada sob a **Licença Apache** e todos os pesos dos modelos são lançados sob a **Licença CC-BY-NC-SA-4.0**. Consulte a [LICENÇA DO CÓDIGO](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) e a [LICENÇA DO MODELO](https://spdx.org/licenses/CC-BY-NC-SA-4.0) para mais detalhes.
 
 !!! warning "Aviso Legal"
     Não assumimos nenhuma responsabilidade pelo uso ilegal da base de código. Consulte as leis locais sobre DMCA e outras leis relevantes.
@@ -158,3 +158,7 @@ Tanto o S1 quanto o S1-mini incorporam Aprendizado por Reforço Online com Feedb
 - **Discord:** Junte-se à nossa [comunidade Discord](https://discord.gg/Es5qTB9BcN)
 - **Site:** Visite [OpenAudio.com](https://openaudio.com) para as últimas atualizações
 - **Experimente Online:** [Fish Audio Playground](https://fish.audio)
+
+## Modelos
+
+O OpenAudio S1 é o primeiro modelo da série OpenAudio. É um vocoder VQ-GAN de descodificador duplo que pode reconstruir áudio a partir de códigos VQ.

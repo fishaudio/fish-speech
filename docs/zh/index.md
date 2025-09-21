@@ -28,8 +28,8 @@
 
 ---
 
-!!! note "许可证声明"
-    此代码库在 **Apache 许可证** 下发布，所有模型权重在 **CC-BY-NC-SA-4.0 许可证** 下发布。更多详情请参阅 [LICENSE](LICENSE)。
+!!! note "许可声明"
+    本代码库在 **Apache 许可证**下发布，所有模型权重在 **CC-BY-NC-SA-4.0 许可证**下发布。更多详情请参阅 [代码许可证](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) 和 [模型许可证](https://spdx.org/licenses/CC-BY-NC-SA-4.0)。
 
 !!! warning "法律免责声明"
     我们不对代码库的任何非法使用承担责任。请参考您所在地区有关 DMCA 和其他相关法律的规定。
@@ -158,3 +158,7 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习 (RLHF)。
 - **Discord：** 加入我们的 [Discord 社区](https://discord.gg/Es5qTB9BcN)
 - **网站：** 访问 [OpenAudio.com](https://openaudio.com) 获取最新更新
 - **在线试用：** [Fish Audio Playground](https://fish.audio)
+
+## 模型
+
+OpenAudio S1 是 OpenAudio 系列的第一个模型。它是一个双解码器 VQ-GAN 声码器，可以从 VQ 码元重建音频。

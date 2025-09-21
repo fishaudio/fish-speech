@@ -116,35 +116,23 @@ python -m tools.run_webui
 !!! note
     You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
 
-Enjoy!
+## Docker Inference
 
+OpenAudio provides Docker containers for both WebUI and API server inference. You can directly use `docker run` to start the container.
 
-## Using Docker
-You can use docker to start the web ui or the server:
-
-### Using Docker Compose
-```bash
-# To start the server
-docker compose --profile server up
-# Or with compile
-COMPILE=1 docker compose --profile server up
-
-# To start the web ui
-docker compose --profile webui up
-# Or with compile
-COMPILE=1 docker compose --profile webui up
-```
+You need to prepare the following:
+- Docker installed with NVIDIA Docker runtime (for GPU support)
+- Model weights downloaded (see [Download Weights](#download-weights) section)
+- Reference audio files (optional, for voice cloning)
 
 ```bash
-# Select the target, either `webui` or `server`
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --target [webui, server] \
-    -t fish-speech-[webui, server]:cuda .
+# Create directories for model weights and reference audio
+mkdir -p checkpoints references
 
-# Starting the web ui
+# Download model weights (if not already done)
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# Start WebUI with CUDA support (recommended for best performance)
 docker run -d \
     --name fish-speech-webui \
     --gpus all \
@@ -152,9 +140,19 @@ docker run -d \
     -v ./checkpoints:/app/checkpoints \
     -v ./references:/app/references \
     -e COMPILE=1 \
-    --rm fish-speech-webui:cuda
+    fishaudio/fish-speech:latest-webui-cuda
 
-# Starting the server
+# For CPU-only inference (slower, but works without GPU)
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# Start API server with CUDA support
 docker run -d \
     --name fish-speech-server \
     --gpus all \
@@ -162,5 +160,29 @@ docker run -d \
     -v ./checkpoints:/app/checkpoints \
     -v ./references:/app/references \
     -e COMPILE=1 \
-    --rm fish-speech-server:cuda
+    fishaudio/fish-speech:latest-server-cuda
+
+# For CPU-only inference
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
 ```
+
+You can customize the Docker containers using these environment variables:
+
+- `COMPILE=1` - Enable torch.compile for ~10x faster inference (CUDA only)
+- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI server host (default: 0.0.0.0)
+- `GRADIO_SERVER_PORT=7860` - WebUI server port (default: 7860)
+- `API_SERVER_NAME=0.0.0.0` - API server host (default: 0.0.0.0)
+- `API_SERVER_PORT=8080` - API server port (default: 8080)
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - Path to model weights
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - Path to decoder weights
+- `DECODER_CONFIG_NAME=modded_dac_vq` - Decoder configuration name
+```
+
+The usage of webui and api server is the same as the webui and api server guide above.
+
+Enjoy

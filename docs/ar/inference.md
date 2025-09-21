@@ -100,3 +100,74 @@ python -m tools.run_webui
     يمكنك استخدام متغيرات بيئة Gradio، مثل `GRADIO_SHARE`، `GRADIO_SERVER_PORT`، `GRADIO_SERVER_NAME` لتكوين WebUI.
 
 استمتع!
+
+## الاستدلال باستخدام Docker
+
+يوفر OpenAudio حاويات Docker للاستدلال لكل من واجهة المستخدم الرسومية (WebUI) وخادم API. يمكنك استخدام أمر `docker run` مباشرة لبدء تشغيل الحاوية.
+
+تحتاج إلى تحضير ما يلي:
+- تثبيت Docker و NVIDIA Docker runtime (لدعم GPU)
+- تنزيل أوزان النموذج (راجع قسم [تحميل الأوزان](#تحميل-الأوزان))
+- ملفات الصوت المرجعية (اختياري، لاستنساخ الصوت)
+
+```bash
+# إنشاء مجلدات لأوزان النموذج والصوت المرجعي
+mkdir -p checkpoints references
+
+# تنزيل أوزان النموذج (إذا لم يتم ذلك بعد)
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# بدء واجهة المستخدم الرسومية (WebUI) مع دعم CUDA (موصى به للحصول على أفضل أداء)
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-webui-cuda
+
+# الاستدلال باستخدام CPU فقط (أبطأ، ولكنه يعمل بدون GPU)
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# بدء خادم API مع دعم CUDA
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-server-cuda
+
+# الاستدلال باستخدام CPU فقط
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
+```
+
+يمكنك تخصيص حاويات Docker باستخدام متغيرات البيئة هذه:
+
+- `COMPILE=1` - تمكين `torch.compile` لتسريع الاستدلال (حوالي 10 أضعاف، CUDA فقط)
+- `GRADIO_SERVER_NAME=0.0.0.0` - مضيف خادم واجهة المستخدم الرسومية (WebUI) (الافتراضي: 0.0.0.0)
+- `GRADIO_SERVER_PORT=7860` - منفذ خادم واجهة المستخدم الرسومية (WebUI) (الافتراضي: 7860)
+- `API_SERVER_NAME=0.0.0.0` - مضيف خادم API (الافتراضي: 0.0.0.0)
+- `API_SERVER_PORT=8080` - منفذ خادم API (الافتراضي: 8080)
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - مسار أوزان النموذج
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - مسار أوزان وحدة فك التشفير
+- `DECODER_CONFIG_NAME=modded_dac_vq` - اسم تكوين وحدة فك التشفير
+```
+
+استخدام واجهة المستخدم الرسومية (WebUI) وخادم API هو نفسه الموضح في الدليل أعلاه.
+
+استمتع!

@@ -98,3 +98,74 @@ python -m tools.run_webui
 
 !!! note
     Você pode usar variáveis de ambiente do Gradio, como `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` para configurar o WebUI.
+
+## Inferência com Docker
+
+O OpenAudio fornece contentores Docker para inferência tanto na WebUI como no servidor API. Pode usar diretamente o comando `docker run` para iniciar o contentor.
+
+É necessário preparar o seguinte:
+- Docker e NVIDIA Docker runtime instalados (para suporte de GPU)
+- Pesos do modelo descarregados (consulte a secção [Baixar Pesos](#baixar-pesos))
+- Ficheiros de áudio de referência (opcional, para clonagem de voz)
+
+```bash
+# Criar diretórios para os pesos do modelo e áudios de referência
+mkdir -p checkpoints references
+
+# Descarregar os pesos do modelo (se ainda não o fez)
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# Iniciar a WebUI com suporte CUDA (recomendado para melhor desempenho)
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-webui-cuda
+
+# Inferência apenas com CPU (mais lento, mas funciona sem GPU)
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# Iniciar o servidor API com suporte CUDA
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-server-cuda
+
+# Inferência apenas com CPU
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
+```
+
+Pode personalizar os contentores Docker usando estas variáveis de ambiente:
+
+- `COMPILE=1` - Ativa o `torch.compile` para uma inferência mais rápida (cerca de 10x, apenas com CUDA)
+- `GRADIO_SERVER_NAME=0.0.0.0` - Anfitrião do servidor WebUI (padrão: 0.0.0.0)
+- `GRADIO_SERVER_PORT=7860` - Porta do servidor WebUI (padrão: 7860)
+- `API_SERVER_NAME=0.0.0.0` - Anfitrião do servidor API (padrão: 0.0.0.0)
+- `API_SERVER_PORT=8080` - Porta do servidor API (padrão: 8080)
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - Caminho para os pesos do modelo
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - Caminho para os pesos do descodificador
+- `DECODER_CONFIG_NAME=modded_dac_vq` - Nome da configuração do descodificador
+```
+
+O uso da WebUI e do servidor API é o mesmo que o descrito no guia acima.
+
+Divirta-se!

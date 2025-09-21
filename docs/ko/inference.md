@@ -98,3 +98,74 @@ python -m tools.run_webui
 
 !!! note
     `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME`과 같은 Gradio 환경 변수를 사용하여 WebUI를 구성할 수 있습니다.
+
+## Docker 추론
+
+OpenAudio는 WebUI 및 API 서버 추론을 위한 Docker 컨테이너를 제공합니다. `docker run` 명령을 직접 사용하여 컨테이너를 시작할 수 있습니다.
+
+다음 사항을 준비해야 합니다:
+- Docker 및 NVIDIA Docker 런타임 설치 (GPU 지원용)
+- 모델 가중치 다운로드 ([가중치 다운로드](#가중치-다운로드) 섹션 참조)
+- 참조 오디오 파일 (선택 사항, 음성 복제용)
+
+```bash
+# 모델 가중치 및 참조 오디오용 디렉토리 생성
+mkdir -p checkpoints references
+
+# 모델 가중치 다운로드 (아직 다운로드하지 않은 경우)
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# CUDA 지원으로 WebUI 시작 (권장, 최상의 성능)
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-webui-cuda
+
+# CPU 전용 추론 (느리지만 GPU 없이 작동)
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# CUDA 지원으로 API 서버 시작
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-server-cuda
+
+# CPU 전용 추론
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
+```
+
+다음 환경 변수를 사용하여 Docker 컨테이너를 사용자 정의할 수 있습니다:
+
+- `COMPILE=1` - `torch.compile`을 활성화하여 추론 속도 향상 (약 10배, CUDA 전용)
+- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI 서버 호스트 (기본값: 0.0.0.0)
+- `GRADIO_SERVER_PORT=7860` - WebUI 서버 포트 (기본값: 7860)
+- `API_SERVER_NAME=0.0.0.0` - API 서버 호스트 (기본값: 0.0.0.0)
+- `API_SERVER_PORT=8080` - API 서버 포트 (기본값: 8080)
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - 모델 가중치 경로
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - 디코더 가중치 경로
+- `DECODER_CONFIG_NAME=modded_dac_vq` - 디코더 구성 이름
+```
+
+WebUI 및 API 서버의 사용법은 위 가이드와 동일합니다.
+
+즐기세요!
