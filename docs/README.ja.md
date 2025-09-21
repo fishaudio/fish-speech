@@ -57,6 +57,7 @@
 
 - [インストール](https://speech.fish.audio/ja/install/)
 - [推論](https://speech.fish.audio/ja/inference/)
+- [サンプル](https://speech.fish.audio/examples)
 
 ## 🎉 発表
 
