@@ -57,7 +57,7 @@
 
 - [التثبيت](https://speech.fish.audio/ar/install/)
 - [الاستنتاج](https://speech.fish.audio/ar/inference/)
-- [العينات](https://speech.fish.audio/samples)
+- [العينات](https://speech.fish.audio/examples)
 
 ## 🎉 الإعلان
 
