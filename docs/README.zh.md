@@ -57,6 +57,7 @@
 
 - [安装](https://speech.fish.audio/zh/install/)
 - [推理](https://speech.fish.audio/zh/inference/)
+- [示例](https://speech.fish.audio/samples)
 
 ## 🎉 公告
 
