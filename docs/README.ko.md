@@ -57,7 +57,7 @@
 
 - [설치](https://speech.fish.audio/ko/install/)
 - [추론](https://speech.fish.audio/ko/inference/)
-- [샘플](https://speech.fish.audio/samples)
+- [샘플](https://speech.fish.audio/examples)
 
 ## 🎉 발표
 
