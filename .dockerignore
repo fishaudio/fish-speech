@@ -1,7 +1,166 @@
+# .dockerignore
+
+# Git and version control
 .git
-.github
-results
-data
-*.filelist
-/data_server/target
-checkpoints
+.gitignore
+.gitattributes
+.gitmodules
+
+# Documentation
+*.md
+docs/
+!README*
+LICENSE*
+CHANGELOG*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files (except the one being used)
+docker/
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Checkpoints and models (should be mounted)
+checkpoints/
+models/
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Reference voices (should be mounted)
+references/
+
+# Generated audio files
+*.wav
+*.mp3
+*.flac
+*.ogg
+generated_audio.wav
+fake.wav
+fake.npy
+
+# Cache directories
+.cache/
+cache/
+.uv_cache/
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Monitoring and profiling
+.prof
+*.prof
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Large data files
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.h5
+*.hdf5
+
+# Audio processing temporary files
+*.tmp.wav
+*.temp.wav
+
+# OLD:
+# .github
+# results
+# data
+# *.filelist
+# /data_server/target
+# checkpoints
+# .venv

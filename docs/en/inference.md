@@ -9,7 +9,13 @@ We support command line, HTTP API and WebUI for inference, you can choose any me
 First you need to download the model weights:
 
 ```bash
-huggingface-cli download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# Requires "huggingface_hub[cli]" to be installed
+# pip install huggingface_hub[cli]
+# or 
+# uv tool install huggingface_hub[cli]
+
+hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
 ```
 
 ## Command Line Inference
@@ -68,6 +74,13 @@ python -m tools.api_server \
     --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
     --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
     --decoder-config-name modded_dac_vq
+
+# or with uv
+uv run tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path "checkpoints/openaudio-s1-mini" \
+    --decoder-checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth" \
+    --decoder-config-name modded_dac_vq
 ```
 
 > If you want to speed up inference, you can add the `--compile` parameter.
@@ -104,3 +117,50 @@ python -m tools.run_webui
     You can use Gradio environment variables, such as `GRADIO_SHARE`, `GRADIO_SERVER_PORT`, `GRADIO_SERVER_NAME` to configure WebUI.
 
 Enjoy!
+
+
+## Using Docker
+You can use docker to start the web ui or the server:
+
+### Using Docker Compose
+```bash
+# To start the server
+docker compose --profile server up
+# Or with compile
+COMPILE=1 docker compose --profile server up
+
+# To start the web ui
+docker compose --profile webui up
+# Or with compile
+COMPILE=1 docker compose --profile webui up
+```
+
+```bash
+# Select the target, either `webui` or `server`
+docker build \
+    --platform linux/amd64 \
+    -f docker/Dockerfile \
+    --build-arg BACKEND=cuda \
+    --target [webui, server] \
+    -t fish-speech-[webui, server]:cuda .
+
+# Starting the web ui
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    --rm fish-speech-webui:cuda
+
+# Starting the server
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    --rm fish-speech-server:cuda
+```

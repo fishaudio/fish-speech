@@ -8,7 +8,7 @@ description = "Fish Speech"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["TTS", "Speech"]
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
@@ -52,6 +52,68 @@ stable = [
     "torch>=2.5.1",
     "torchaudio",
 ]
+cpu = [
+  "torch>=2.5.1",
+  "torchaudio",
+]
+cu126 = [
+  "torch>=2.5.1",
+  "torchaudio",
+]
+cu128 = [
+  "torch>=2.5.1",
+  "torchaudio",
+]
+cu129 = [
+  "torch>=2.5.1",
+  "torchaudio",
+]
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu126" },
+    { extra = "cu128" },
+    { extra = "cu129" },
+  ],
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu129", extra = "cu129" },
+]
+torchaudio = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu129", extra = "cu129" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+
 
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
@@ -59,3 +121,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["fish_speech", "tools"]
+
+[tool.setuptools_scm]
