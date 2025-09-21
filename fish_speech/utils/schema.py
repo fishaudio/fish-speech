@@ -69,7 +69,7 @@ class ServeReferenceAudio(BaseModel):
         ):  # Check if audio is a string (Base64)
             try:
                 values["audio"] = base64.b64decode(audio)
-            except Exception as e:
+            except Exception:
                 # If the audio is not a valid base64 string, we will just ignore it and let the server handle it
                 pass
         return values
@@ -103,3 +103,34 @@ class ServeTTSRequest(BaseModel):
     class Config:
         # Allow arbitrary types for pytorch related types
         arbitrary_types_allowed = True
+
+
+class AddReferenceRequest(BaseModel):
+    id: str = Field(..., min_length=1, max_length=255, pattern=r"^[a-zA-Z0-9\-_ ]+$")
+    audio: bytes
+    text: str = Field(..., min_length=1)
+
+
+class AddReferenceResponse(BaseModel):
+    success: bool
+    message: str
+    reference_id: str
+
+
+class ListReferencesResponse(BaseModel):
+    success: bool
+    reference_ids: list[str]
+    message: str = "Success"
+
+
+class DeleteReferenceResponse(BaseModel):
+    success: bool
+    message: str
+    reference_id: str
+
+
+class UpdateReferenceResponse(BaseModel):
+    success: bool
+    message: str
+    old_reference_id: str
+    new_reference_id: str
