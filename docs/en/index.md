@@ -29,7 +29,7 @@
 ---
 
 !!! note "License Notice"
-    This codebase is released under **Apache License** and all model weights are released under **CC-BY-NC-SA-4.0 License**. Please refer to [LICENSE](LICENSE) for more details.
+    This codebase is released under **Apache License** and all model weights are released under **CC-BY-NC-SA-4.0 License**. Please refer to [CODE LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) and [MODEL LICENSE](https://spdx.org/licenses/CC-BY-NC-SA-4.0) for more details.
 
 !!! warning "Legal Disclaimer"
     We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.

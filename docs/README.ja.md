@@ -144,11 +144,9 @@ S1とS1-miniの両方がオンライン人間フィードバック強化学習�
 
 5. **高速：** fish-tech加速により、Nvidia RTX 4060ラップトップで約1:5、Nvidia RTX 4090で約1:15のリアルタイム係数を実現します。
 
-6. **WebUI推論：** Chrome、Firefox、Edge、その他のブラウザと互換性のある使いやすいGradioベースのWeb UIを提供します。
+6. **WebUI推論：** 使いやすいGradioベースのWeb UIを搭載し、Chrome、Firefox、Edgeなどのブラウザと互換性があります。
 
-7. **GUI推論：** APIサーバーとシームレスに動作するPyQt6グラフィカルインターフェースを提供します。Linux、Windows、macOSをサポートします。[GUIを見る](https://github.com/AnyaCoder/fish-speech-gui)。
-
-8. **デプロイフレンドリー：** Linux、Windows（macOSは近日公開予定）のネイティブサポートで推論サーバーを簡単にセットアップし、速度損失を最小限に抑えます。
+7. **デプロイフレンドリー：** Linux と Windows をネイティブサポートし（macOS サポートも近日対応予定）、パフォーマンスの低下を最小限に抑えながら、推論サーバーを簡単にセットアップできます。
 
 ## **メディア・デモ**
 

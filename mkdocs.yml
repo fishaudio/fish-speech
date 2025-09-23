@@ -58,7 +58,7 @@ nav:
   - Introduction: en/index.md
   - Installation: en/install.md
   - Inference: en/inference.md
-  - Samples: en/examples.md
+  - Samples: en/samples.md
 
 # Plugins
 plugins:
@@ -85,7 +85,7 @@ plugins:
             - 介绍: zh/index.md
             - 安装: zh/install.md
             - 推理: zh/inference.md
-            - 示例: zh/examples.md
+            - 示例: zh/samples.md
         - locale: ja
           name: 日本語
           build: true
@@ -93,7 +93,7 @@ plugins:
             - はじめに: ja/index.md
             - インストール: ja/install.md
             - 推論: ja/inference.md
-            - サンプル: ja/examples.md
+            - サンプル: ja/samples.md
         - locale: pt
           name: Português (Brasil)
           build: true
@@ -101,7 +101,7 @@ plugins:
             - Introdução: pt/index.md
             - Instalação: pt/install.md
             - Inferência: pt/inference.md
-            - Amostras: pt/examples.md
+            - Amostras: pt/samples.md
         - locale: ko
           name: 한국어
           build: true
@@ -109,7 +109,7 @@ plugins:
             - 소개: ko/index.md
             - 설치: ko/install.md
             - 추론: ko/inference.md
-            - 샘플: ko/examples.md
+            - 샘플: ko/samples.md
         - locale: ar
           name: العربية
           build: true
@@ -117,7 +117,7 @@ plugins:
             - مقدمة: ar/index.md
             - التثبيت: ar/install.md
             - الاستنتاج: ar/inference.md
-            - العينات: ar/examples.md
+            - العينات: ar/samples.md
 
 markdown_extensions:
   - pymdownx.highlight:

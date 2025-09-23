@@ -98,3 +98,74 @@ python -m tools.run_webui
 
 !!! note
     `GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME` などのGradio環境変数を使用してWebUIを設定できます。
+
+## Dockerでの推論
+
+OpenAudioは、WebUIとAPIサーバーの両方でDockerコンテナを提供しています。`docker run`コマンドを直接使用してコンテナを起動できます。
+
+以下の準備が必要です:
+- DockerとNVIDIA Dockerランタイムがインストール済みであること（GPUサポート用）
+- モデルの重みがダウンロード済みであること（[重みのダウンロード](#重みのダウンロード)セクションを参照）
+- 参照音声ファイル（オプション、声のクローニング用）
+
+```bash
+# モデルの重みと参照音声用のディレクトリを作成
+mkdir -p checkpoints references
+
+# モデルの重みをダウンロード（まだの場合）
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# CUDAサポート付きでWebUIを起動（推奨、最高のパフォーマンス）
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-webui-cuda
+
+# CPUのみでの推論（低速ですが、GPUなしで動作します）
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# CUDAサポート付きでAPIサーバーを起動
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-server-cuda
+
+# CPUのみでの推論
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
+```
+
+以下の環境変数を使用してDockerコンテナをカスタマイズできます:
+
+- `COMPILE=1` - `torch.compile`を有効にして推論を高速化（約10倍、CUDAのみ）
+- `GRADIO_SERVER_NAME=0.0.0.0` - WebUIサーバーのホスト（デフォルト: 0.0.0.0）
+- `GRADIO_SERVER_PORT=7860` - WebUIサーバーのポート（デフォルト: 7860）
+- `API_SERVER_NAME=0.0.0.0` - APIサーバーのホスト（デフォルト: 0.0.0.0）
+- `API_SERVER_PORT=8080` - APIサーバーのポート（デフォルト: 8080）
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - モデルの重みへのパス
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - デコーダーの重みへのパス
+- `DECODER_CONFIG_NAME=modded_dac_vq` - デコーダーの設定名
+```
+
+WebUIとAPIサーバーの使い方は、上記のガイドと同じです。
+
+お楽しみください！

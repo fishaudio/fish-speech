@@ -99,4 +99,73 @@ python -m tools.run_webui
 !!! note
     您可以使用Gradio环境变量，如 `GRADIO_SHARE`、`GRADIO_SERVER_PORT`、`GRADIO_SERVER_NAME` 来配置WebUI。
 
+## Docker 推理
+
+OpenAudio 为 WebUI 和 API 服务器推理提供了 Docker 容器。您可以直接使用 `docker run` 命令来启动容器。
+
+您需要准备以下内容：
+- 已安装 Docker 和 NVIDIA Docker 运行时 (用于 GPU 支持)
+- 已下载模型权重 (参见 [下载权重](#下载权重) 部分)
+- 参考音频文件 (可选, 用于声音克隆)
+
+```bash
+# 为模型权重和参考音频创建目录
+mkdir -p checkpoints references
+
+# 下载模型权重 (如果尚未下载)
+# hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-mini
+
+# 启动支持 CUDA 的 WebUI (推荐, 性能最佳)
+docker run -d \
+    --name fish-speech-webui \
+    --gpus all \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-webui-cuda
+
+# 仅 CPU 推理 (较慢, 但无需 GPU)
+docker run -d \
+    --name fish-speech-webui-cpu \
+    -p 7860:7860 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-webui-cpu
+```
+
+```bash
+# 启动支持 CUDA 的 API 服务器
+docker run -d \
+    --name fish-speech-server \
+    --gpus all \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    -e COMPILE=1 \
+    fishaudio/fish-speech:latest-server-cuda
+
+# 仅 CPU 推理
+docker run -d \
+    --name fish-speech-server-cpu \
+    -p 8080:8080 \
+    -v ./checkpoints:/app/checkpoints \
+    -v ./references:/app/references \
+    fishaudio/fish-speech:latest-server-cpu
+```
+
+您可以使用以下环境变量自定义 Docker 容器：
+
+- `COMPILE=1` - 启用 `torch.compile` 以加速推理 (约提速10倍, 仅限 CUDA)
+- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI 服务器主机 (默认: 0.0.0.0)
+- `GRADIO_SERVER_PORT=7860` - WebUI 服务器端口 (默认: 7860)
+- `API_SERVER_NAME=0.0.0.0` - API 服务器主机 (默认: 0.0.0.0)
+- `API_SERVER_PORT=8080` - API 服务器端口 (默认: 8080)
+- `LLAMA_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini` - 模型权重路径
+- `DECODER_CHECKPOINT_PATH=checkpoints/openaudio-s1-mini/codec.pth` - 解码器权重路径
+- `DECODER_CONFIG_NAME=modded_dac_vq` - 解码器配置名称
+```
+
+WebUI 和 API 服务器的用法与上文指南中的说明相同。
+
 尽情享受吧！

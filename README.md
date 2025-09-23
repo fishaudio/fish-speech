@@ -147,9 +147,7 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 
 6. **WebUI Inference:** Features an easy-to-use, Gradio-based web UI compatible with Chrome, Firefox, Edge, and other browsers.
 
-7. **GUI Inference:** Offers a PyQt6 graphical interface that works seamlessly with the API server. Supports Linux, Windows, and macOS. [See GUI](https://github.com/AnyaCoder/fish-speech-gui).
-
-8. **Deploy-Friendly:** Easily set up an inference server with native support for Linux, Windows (MacOS comming soon), minimizing speed loss.
+7. **Deploy-Friendly:** Easily set up an inference server with native support for Linux and Windows (macOS support coming soon), minimizing performance loss.
 
 ## **Media & Demos**
 

@@ -144,11 +144,9 @@ Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback 
 
 5. **Rápido:** Com aceleração fish-tech, o fator de tempo real é aproximadamente 1:5 em um laptop Nvidia RTX 4060 e 1:15 em um Nvidia RTX 4090.
 
-6. **Inferência WebUI:** Apresenta uma UI web baseada em Gradio fácil de usar, compatível com Chrome, Firefox, Edge e outros navegadores.
+6. **Inferência via WebUI:** Apresenta uma interface de usuário baseada em Gradio, fácil de usar e compatível com Chrome, Firefox, Edge e outros navegadores.
 
-7. **Inferência GUI:** Oferece uma interface gráfica PyQt6 que funciona perfeitamente com o servidor de API. Suporta Linux, Windows e macOS. [Ver GUI](https://github.com/AnyaCoder/fish-speech-gui).
-
-8. **Amigável para Deploy:** Configure facilmente um servidor de inferência com suporte nativo para Linux, Windows (MacOS em breve), minimizando perda de velocidade.
+7. **Amigável para Implantação:** Configure facilmente um servidor de inferência com suporte nativo para Linux e Windows (suporte para macOS em breve), minimizando a perda de desempenho.
 
 ## **Mídia e Demos**
 
