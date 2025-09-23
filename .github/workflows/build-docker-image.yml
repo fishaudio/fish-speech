@@ -1,4 +1,4 @@
-name: Build Image
+name: Build Docker Images
 
 on:
   push:
@@ -10,10 +10,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest-16c64g
+    strategy:
+      matrix:
+        target: [webui, server]
+        backend: [cuda, cpu]
     steps:
       - uses: actions/checkout@v4
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      
       - name: Get Version
         run: |
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
@@ -21,7 +27,6 @@ jobs:
           else
             version=nightly
           fi
-
           echo "version=${version}" >> $GITHUB_ENV
           echo "Current version: ${version}"
 
@@ -31,37 +36,38 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PAT }}
 
-      - name: Build and Push Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            fishaudio/fish-speech:${{ env.version }}
-            fishaudio/fish-speech:latest
-          outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-          cache-from: type=registry,ref=fishaudio/fish-speech:latest
-          cache-to: type=inline
+      - name: Set platform for CPU builds
+        id: platform
+        run: |
+          if [ "${{ matrix.backend }}" = "cpu" ]; then
+            echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+          else
+            echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Build and Push Dev Image
+      - name: Build and Push ${{ matrix.target }}-${{ matrix.backend }} Image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfile.dev
-          platforms: linux/amd64
+          file: docker/Dockerfile
+          platforms: ${{ steps.platform.outputs.platforms }}
           push: true
+          target: ${{ matrix.target }}
           build-args: |
-            VERSION=${{ env.version }}
-            BASE_IMAGE=fishaudio/fish-speech:${{ env.version }}
+            BACKEND=${{ matrix.backend }}
+            UV_EXTRA=${{ matrix.backend == 'cuda' && 'cu126' || 'cpu' }}
           tags: |
-            fishaudio/fish-speech:${{ env.version }}-dev
-            fishaudio/fish-speech:latest-dev
+            fishaudio/fish-speech-${{ matrix.target }}:${{ env.version }}-${{ matrix.backend }}
+            fishaudio/fish-speech-${{ matrix.target }}:latest-${{ matrix.backend }}
           outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-          cache-from: type=registry,ref=fishaudio/fish-speech:latest-dev
+          cache-from: type=registry,ref=fishaudio/fish-speech-${{ matrix.target }}:latest-${{ matrix.backend }}
           cache-to: type=inline
 
+  update-readme:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
       - name: Push README to Dockerhub
         uses: peter-evans/dockerhub-description@v4
         with:
