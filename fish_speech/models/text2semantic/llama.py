@@ -497,7 +497,6 @@ class BaseTransformer(nn.Module):
             setup_lora(model, lora_config)
             logger.info(f"LoRA setup: {lora_config}")
 
-
         return model
 
     def save_pretrained(self, path: str, drop_lora: bool = False):
