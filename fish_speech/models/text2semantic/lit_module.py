@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
+
 CODEBOOK_PAD_TOKEN_ID = 0
 from fish_speech.models.text2semantic.llama import NaiveTransformer
 

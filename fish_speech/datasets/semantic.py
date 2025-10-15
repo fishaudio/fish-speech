@@ -16,6 +16,7 @@ from torch.distributed import get_rank, get_world_size, is_initialized
 from torch.utils.data import DataLoader, Dataset, IterableDataset, get_worker_info
 
 from fish_speech.content_sequence import ContentSequence, TextPart, VQPart
+
 CODEBOOK_PAD_TOKEN_ID = 0
 
 from fish_speech.datasets.protos.text_data_pb2 import SampledData
@@ -182,74 +183,71 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         )
 
     def pack_sentences(
-            self,
-            sentences: list[str],
-            semantics: list,
-            # speaker: Optional[str] = None, # speaker is now handled by tokens
-            skip_text: bool = False,
-        ):
+        self,
+        sentences: list[str],
+        semantics: list,
+        # speaker: Optional[str] = None, # speaker is now handled by tokens
+        skip_text: bool = False,
+    ):
 
-            seq = ContentSequence()
+        seq = ContentSequence()
 
-            seq.append(TextPart(text="Speak out the provided text."))
+        seq.append(TextPart(text="Speak out the provided text."))
 
-            # User's turn
-            cated_sentences = " ".join(sentences)
-            if skip_text:
-                cated_sentences = "<|skip_text|>"
-            
-            seq.append(
-                TextPart(text=f"<|speaker:user|> {cated_sentences}"),
-                add_end=True,
-            )
+        # User's turn
+        cated_sentences = " ".join(sentences)
+        if skip_text:
+            cated_sentences = "<|skip_text|>"
 
-            # Assistant's turn
-            vq_codes = [x.values for x in semantics[0]]
-            vq_codes_tensor = torch.tensor(vq_codes).to(torch.int32)
-            
-            # 将 cal_loss=True 直接关联到 VQPart 上，这比之前更精确
-            vq_part = VQPart(codes=vq_codes_tensor, cal_loss=True)
-            
-            # 将多个 parts 一起添加，最后也加上 <|im_end|>
-            seq.append(
-                [
-                    TextPart(text="<|speaker:assistant|> <|voice|>"),
-                    vq_part
-                ],
-                add_end=True,
-            )
+        seq.append(
+            TextPart(text=f"<|speaker:user|> {cated_sentences}"),
+            add_end=True,
+        )
 
-            encoded = seq.encode(
-                tokenizer=self.tokenizer,
-            )
+        # Assistant's turn
+        vq_codes = [x.values for x in semantics[0]]
+        vq_codes_tensor = torch.tensor(vq_codes).to(torch.int32)
 
-            num_codebooks = (
-                len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
-            )
+        # 将 cal_loss=True 直接关联到 VQPart 上，这比之前更精确
+        vq_part = VQPart(codes=vq_codes_tensor, cal_loss=True)
 
-            tokens_raw = encoded.tokens
-            tokens = torch.zeros((num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
-            tokens[0] = tokens_raw
+        # 将多个 parts 一起添加，最后也加上 <|im_end|>
+        seq.append(
+            [TextPart(text="<|speaker:assistant|> <|voice|>"), vq_part],
+            add_end=True,
+        )
 
-            vq_parts = encoded.vq_parts
-            vq_parts = [part.to(tokens.device) for part in vq_parts]
-            vq_parts = torch.cat(vq_parts, dim=1)
-            tokens[1:, encoded.vq_mask_tokens] = vq_parts
+        encoded = seq.encode(
+            tokenizer=self.tokenizer,
+        )
 
-            labels_raw = encoded.labels
-            labels = torch.full((num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
-            labels[0, :] = labels_raw
-            labels[1:, encoded.vq_mask_labels] = vq_parts
-            labels[1:, -1:] = CODEBOOK_PAD_TOKEN_ID
+        num_codebooks = (
+            len(semantics[0]) if self.num_codebooks is None else self.num_codebooks
+        )
 
-            tokens = tokens.long()
-            labels = labels.long()
+        tokens_raw = encoded.tokens
+        tokens = torch.zeros((num_codebooks + 1, len(tokens_raw)), dtype=torch.int)
+        tokens[0] = tokens_raw
 
-            # Verify the padding is correct, and the last token is eos
-            assert (tokens[1:, ~(encoded.vq_mask_tokens)] == CODEBOOK_PAD_TOKEN_ID).all()
-            assert (labels[1:, -1:] == CODEBOOK_PAD_TOKEN_ID).all()
+        vq_parts = encoded.vq_parts
+        vq_parts = [part.to(tokens.device) for part in vq_parts]
+        vq_parts = torch.cat(vq_parts, dim=1)
+        tokens[1:, encoded.vq_mask_tokens] = vq_parts
 
-            return tokens, labels
+        labels_raw = encoded.labels
+        labels = torch.full((num_codebooks + 1, len(labels_raw)), -100, dtype=torch.int)
+        labels[0, :] = labels_raw
+        labels[1:, encoded.vq_mask_labels] = vq_parts
+        labels[1:, -1:] = CODEBOOK_PAD_TOKEN_ID
+
+        tokens = tokens.long()
+        labels = labels.long()
+
+        # Verify the padding is correct, and the last token is eos
+        assert (tokens[1:, ~(encoded.vq_mask_tokens)] == CODEBOOK_PAD_TOKEN_ID).all()
+        assert (labels[1:, -1:] == CODEBOOK_PAD_TOKEN_ID).all()
+
+        return tokens, labels
 
     def augment(self):
         response = self.sample_data()
