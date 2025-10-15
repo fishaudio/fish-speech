@@ -497,6 +497,7 @@ class BaseTransformer(nn.Module):
             setup_lora(model, lora_config)
             logger.info(f"LoRA setup: {lora_config}")
 
+
         return model
 
     def save_pretrained(self, path: str, drop_lora: bool = False):
@@ -640,12 +641,8 @@ class DualARTransformer(BaseTransformer):
         mel_masks: Optional[Tensor] = None,
     ) -> TransformerForwardResult:
         parent_result = super().forward(
-            inp=inp,
-            key_padding_mask=key_padding_mask,
-            vq_parts=vq_parts,
-            vq_masks=vq_masks,
-            mel_parts=mel_parts,
-            mel_masks=mel_masks,
+        inp=inp,
+        key_padding_mask=key_padding_mask,
         )
         token_logits = parent_result.logits
         x = parent_result.hidden_states
@@ -658,7 +655,9 @@ class DualARTransformer(BaseTransformer):
         fast_freqs_cis = self.fast_freqs_cis[:fast_seq_len]
 
         # Extract corresponding parts with labels
-        codebook_mask = labels == self.semantic_token_id
+        token_labels = labels[:,0]
+        codebook_mask = (token_labels >= self.tokenizer.semantic_begin_id) & \
+                (token_labels <= self.tokenizer.semantic_end_id)
         # This gives where input token is <|semantic|>
         x = x[codebook_mask]
 
@@ -675,10 +674,11 @@ class DualARTransformer(BaseTransformer):
                 dtype=torch.int,
             )
         else:
-            codebooks = vq_parts[..., :-1][vq_require_losses][
-                vq_masks[vq_require_losses]
-            ]
-
+            all_codebooks = labels[:, 1:, :]
+            all_codebooks_permuted = all_codebooks.permute(0, 2, 1)
+            semantic_codebooks = all_codebooks_permuted[codebook_mask]
+            codebooks = semantic_codebooks[:, :-1]
+            
         x = self.fast_project_in(x)
         codebook_embeddings = self.fast_embeddings(codebooks)
         x = torch.cat([x[:, None], codebook_embeddings], dim=1)

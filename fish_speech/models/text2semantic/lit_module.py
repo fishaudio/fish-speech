@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
-
 CODEBOOK_PAD_TOKEN_ID = 0
 from fish_speech.models.text2semantic.llama import NaiveTransformer
 
@@ -119,6 +118,7 @@ class TextToSemantic(L.LightningModule):
         outputs = self.model(
             inp=batch["inputs"],
             key_padding_mask=batch["attention_masks"],
+            labels=batch["labels"],
         )
         token_logits = outputs.token_logits
         codebook_logits = outputs.codebook_logits
@@ -129,13 +129,18 @@ class TextToSemantic(L.LightningModule):
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
-
-        codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks].mT
+        
+        token_ids = labels[:, 0]
+        semantic_mask = (token_ids >= self.model.tokenizer.semantic_begin_id) & \
+                        (token_ids <= self.model.tokenizer.semantic_end_id)
+        all_codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks]
+        all_codebook_labels_permuted = all_codebook_labels.permute(0, 2, 1)
+        filtered_codebook_labels = all_codebook_labels_permuted[semantic_mask]
         semantic_loss = F.cross_entropy(
-            codebook_logits.view(-1, codebook_logits.size(-1)),
-            codebook_labels.reshape(-1),
-            ignore_index=-100,
-        )
+        codebook_logits.reshape(-1, codebook_logits.size(-1)),
+        filtered_codebook_labels.reshape(-1),
+        ignore_index=-100,
+    )
 
         loss = base_loss + semantic_loss
 
@@ -170,7 +175,7 @@ class TextToSemantic(L.LightningModule):
         )
 
         # Top-5 accuracy
-        accuracy = self.get_accuracy(codebook_logits, codebook_labels)
+        accuracy = self.get_accuracy(codebook_logits, filtered_codebook_labels)
         self.log(
             f"{stage}/top_5_accuracy",
             accuracy,
