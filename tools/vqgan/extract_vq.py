@@ -96,9 +96,9 @@ def process_batch(files: list[Path], model) -> float:
             wav = wav.mean(dim=0, keepdim=True)
 
         wav = torchaudio.functional.resample(
-            wav.cuda(), sr, model.spec_transform.sample_rate
+            wav.cuda(), sr, model.sample_rate
         )[0]
-        total_time += len(wav) / model.spec_transform.sample_rate
+        total_time += len(wav) / model.sample_rate
         max_length = max(max_length, len(wav))
 
         wavs.append(wav)
