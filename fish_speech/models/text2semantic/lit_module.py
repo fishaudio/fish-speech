@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 import fish_speech.utils as utils
+
 CODEBOOK_PAD_TOKEN_ID = 0
 from fish_speech.models.text2semantic.llama import NaiveTransformer
 
@@ -129,18 +130,19 @@ class TextToSemantic(L.LightningModule):
             labels[:, 0].reshape(-1),
             ignore_index=-100,
         )
-        
+
         token_ids = labels[:, 0]
-        semantic_mask = (token_ids >= self.model.tokenizer.semantic_begin_id) & \
-                        (token_ids <= self.model.tokenizer.semantic_end_id)
+        semantic_mask = (token_ids >= self.model.tokenizer.semantic_begin_id) & (
+            token_ids <= self.model.tokenizer.semantic_end_id
+        )
         all_codebook_labels = labels[:, 1 : 1 + self.model.config.num_codebooks]
         all_codebook_labels_permuted = all_codebook_labels.permute(0, 2, 1)
         filtered_codebook_labels = all_codebook_labels_permuted[semantic_mask]
         semantic_loss = F.cross_entropy(
-        codebook_logits.reshape(-1, codebook_logits.size(-1)),
-        filtered_codebook_labels.reshape(-1),
-        ignore_index=-100,
-    )
+            codebook_logits.reshape(-1, codebook_logits.size(-1)),
+            filtered_codebook_labels.reshape(-1),
+            ignore_index=-100,
+        )
 
         loss = base_loss + semantic_loss
 
