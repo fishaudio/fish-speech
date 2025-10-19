@@ -49,7 +49,7 @@ dependencies = [
 
 [project.optional-dependencies]
 stable = [
-    "torch>=2.5.1",
+    "torch<2.9.0",
     "torchaudio",
 ]
 cpu = [
