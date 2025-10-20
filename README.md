@@ -56,6 +56,7 @@
 Here are the official documents for Fish Speech, follow the instructions to get started easily.
 
 - [Installation](https://speech.fish.audio/install/)
+- [Finetune](https://speech.fish.audio/finetune/)
 - [Inference](https://speech.fish.audio/inference/)
 - [Samples](https://speech.fish.audio/examples)
 
@@ -171,11 +172,6 @@ Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedbac
 <a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
     <img src="docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
-
-### **Audio Samples**
-<div style="margin: 20px 0;">
-    <em> High-quality audio samples will be available soon, demonstrating our multilingual TTS capabilities across different languages and emotions.</em>
-</div>
 
 </div>
 

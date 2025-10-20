@@ -46,7 +46,7 @@ MODALITY_TOKENS = {
 }
 
 SEMANTIC_TOKEN_TEMPLATE = "<|semantic:{i}|>"
-SEMANTIC_TOKENS = [SEMANTIC_TOKEN_TEMPLATE.format(i=i) for i in range(1024)]
+SEMANTIC_TOKENS = [SEMANTIC_TOKEN_TEMPLATE.format(i=i) for i in range(4096)]
 
 # Warning: when you add a new special token, you should only add it to the end of the list.
 ALL_SPECIAL_TOKENS = [

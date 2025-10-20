@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | **简体中文** | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) <br>
+[English](../README.md) | **简体中文** | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [العربية](README.ar.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -56,6 +56,7 @@
 这里是 Fish Speech 的官方文档，按照说明轻松开始使用。
 
 - [安装](https://speech.fish.audio/zh/install/)
+- [微调](https://speech.fish.audio/zh/finetune/)
 - [推理](https://speech.fish.audio/zh/inference/)
 - [示例](https://speech.fish.audio/examples)
 
@@ -85,10 +86,11 @@ OpenAudio-S1 提供两个版本：**OpenAudio-S1** 和 **OpenAudio-S1-mini**。�
 OpenAudio S1 在 [TTS-Arena2](https://arena.speechcolab.org/) 上取得了 **第一名**，这是文本转语音评估的基准：
 
 <div align="center">
-    <img src="assets/Elo.jpg" alt="TTS-Arena2 排名" style="width: 75%;" />
+    <img src="../docs/assets/Elo.jpg" alt="TTS-Arena2 排名" style="width: 75%;" />
 </div>
 
 ### **语音控制**
+
 OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合成：
 
 - **基础情感**：
@@ -131,10 +133,10 @@ OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合�
 | **S1-mini** | 0.5B 参数 | 在 Hugging Face [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) 上可用 | 具有核心功能的精简版本 |
 
 S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
-   
-   ## **功能**
 
-1. **零样本和少样本 TTS：** 输入 10 到 30 秒的语音样本以生成高质量的 TTS 输出。**详细指南请参见 [语音克隆最佳实践](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)。**
+## **功能**
+
+1. **零样本和少样本 TTS：** 输入 10 到 30 秒的语音样本以生成高质量的 TTS 输出。**详细指南请参见 [语音克隆最佳实践](https://docs.fish.audio/resources/best-practices/voice-cloning)。**
 
 2. **多语言和跨语言支持：** 只需将多语言文本复制并粘贴到输入框中——无需担心语言问题。目前支持英语、日语、韩语、中文、法语、德语、阿拉伯语和西班牙语。
 
@@ -142,7 +144,7 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
 
 4. **高准确性：** 在 Seed-TTS Eval 上实现约 0.4% 的低 CER（字符错误率）和约 0.8% 的 WER（词错误率）。
 
-5. **快速：** 通过 fish-tech 加速，在 Nvidia RTX 4060 笔记本电脑上实时因子约为 1:5，在 Nvidia RTX 4090 上为 1:15。
+5. **快速：** 通过 torch compile 加速，在 Nvidia RTX 4090 GPU 上的实时因子约为 1:7。
 
 6. **WebUI 推理：** 提供简单易用的、基于 Gradio 的 Web UI，兼容 Chrome、Firefox、Edge 等浏览器。
 
@@ -154,15 +156,15 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
 
 ### **社交媒体**
 <a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
-    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="X 上的最新演示" />
+    <img src="https://img.shields.io/badge/𝕏-最新演示-black?style=for-the-badge&logo=x&logoColor=white" alt="X 上的最新演示" />
 </a>
 
 ### **交互式演示**
 <a href="https://fish.audio" target="_blank">
-    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="试用 OpenAudio S1" />
+    <img src="https://img.shields.io/badge/Fish_Audio-试用_OpenAudio_S1-blue?style=for-the-badge" alt="试用 OpenAudio S1" />
 </a>
 <a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
-    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="试用 S1 Mini" />
+    <img src="https://img.shields.io/badge/Hugging_Face-试用_S1_Mini-yellow?style=for-the-badge" alt="试用 S1 Mini" />
 </a>
 
 ### **视频展示**
@@ -171,19 +173,9 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
     <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
 
-### **音频样本**
-<div style="margin: 20px 0;">
-    <em> 展示我们跨不同语言和情感的多语言 TTS 功能的高质量音频样本即将推出。</em>
-</div>
-
 </div>
 
 ---
-
-## 文档
-
-- [构建环境](zh/install.md)
-- [推理](zh/inference.md)
 
 ## 致谢
 

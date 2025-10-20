@@ -57,6 +57,7 @@ theme:
 nav:
   - Introduction: en/index.md
   - Installation: en/install.md
+  - Finetune: en/finetune.md
   - Inference: en/inference.md
   - Samples: en/samples.md
 
@@ -84,6 +85,7 @@ plugins:
           nav:
             - 介绍: zh/index.md
             - 安装: zh/install.md
+            - 微调: zh/finetune.md
             - 推理: zh/inference.md
             - 示例: zh/samples.md
         - locale: ja
@@ -92,6 +94,7 @@ plugins:
           nav:
             - はじめに: ja/index.md
             - インストール: ja/install.md
+            - ファインチューニング: ja/finetune.md
             - 推論: ja/inference.md
             - サンプル: ja/samples.md
         - locale: pt
@@ -100,6 +103,7 @@ plugins:
           nav:
             - Introdução: pt/index.md
             - Instalação: pt/install.md
+            - Ajuste Fino: pt/finetune.md
             - Inferência: pt/inference.md
             - Amostras: pt/samples.md
         - locale: ko
@@ -108,6 +112,7 @@ plugins:
           nav:
             - 소개: ko/index.md
             - 설치: ko/install.md
+            - 파인튜닝: ko/finetune.md
             - 추론: ko/inference.md
             - 샘플: ko/samples.md
         - locale: ar
@@ -116,6 +121,7 @@ plugins:
           nav:
             - مقدمة: ar/index.md
             - التثبيت: ar/install.md
+            - الضبط الدقيق: ar/finetune.md
             - الاستنتاج: ar/inference.md
             - العينات: ar/samples.md
 

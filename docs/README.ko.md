@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | **한국어** <br>
+[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | **한국어** | [العربية](README.ar.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -56,6 +56,7 @@
 여기는 Fish Speech의 공식 문서입니다. 지침을 따라 쉽게 시작하세요.
 
 - [설치](https://speech.fish.audio/ko/install/)
+- [파인튜닝](https://speech.fish.audio/ko/finetune/)
 - [추론](https://speech.fish.audio/ko/inference/)
 - [샘플](https://speech.fish.audio/examples)
 
@@ -85,7 +86,7 @@ OpenAudio-S1은 두 가지 버전으로 제공됩니다: **OpenAudio-S1**과 **O
 OpenAudio S1은 텍스트 음성 변환 평가의 벤치마크인 [TTS-Arena2](https://arena.speechcolab.org/)에서 **1위**를 달성했습니다:
 
 <div align="center">
-    <img src="assets/Elo.jpg" alt="TTS-Arena2 순위" style="width: 75%;" />
+    <img src="../docs/assets/Elo.jpg" alt="TTS-Arena2 순위" style="width: 75%;" />
 </div>
 
 ### **음성 제어**
@@ -134,7 +135,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화학습(RLHF)을 통합하�
 
 ## **기능**
 
-1. **제로샷 및 퓨샷 TTS:** 10~30초의 음성 샘플을 입력하여 고품질 TTS 출력을 생성합니다. **자세한 가이드라인은 [음성 복제 모범 사례](https://docs.fish.audio/text-to-speech/voice-clone-best-practices)를 참조하세요.**
+1. **제로샷 및 퓨샷 TTS:** 10~30초의 음성 샘플을 입력하여 고품질 TTS 출력을 생성합니다. **자세한 가이드라인은 [음성 복제 모범 사례](https://docs.fish.audio/resources/best-practices/voice-cloning)를 참조하세요.**
 
 2. **다국어 및 교차 언어 지원:** 다국어 텍스트를 입력 상자에 복사하여 붙여넣기만 하면 됩니다. 언어를 걱정할 필요가 없습니다. 현재 영어, 일본어, 한국어, 중국어, 프랑스어, 독일어, 아랍어, 스페인어를 지원합니다.
 
@@ -142,7 +143,7 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화학습(RLHF)을 통합하�
 
 4. **높은 정확도:** Seed-TTS Eval에서 약 0.4%의 낮은 CER(문자 오류율)과 약 0.8%의 WER(단어 오류율)을 달성합니다.
 
-5. **빠른 속도:** fish-tech 가속화로 Nvidia RTX 4060 노트북에서 실시간 팩터가 약 1:5, Nvidia RTX 4090에서 1:15입니다.
+5. **빠른 속도:** torch compile로 가속화되어 Nvidia RTX 4090 GPU에서 실시간 팩터가 약 1:7입니다.
 
 6. **WebUI 추론:** 사용하기 쉬운 Gradio 기반 웹 UI를 제공하며 Chrome, Firefox, Edge 등 다른 브라우저와 호환됩니다.
 
@@ -171,19 +172,9 @@ S1과 S1-mini 모두 온라인 인간 피드백 강화학습(RLHF)을 통합하�
     <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
 
-### **오디오 샘플**
-<div style="margin: 20px 0;">
-    <em> 다양한 언어와 감정에 걸친 다국어 TTS 기능을 보여주는 고품질 오디오 샘플이 곧 제공될 예정입니다.</em>
-</div>
-
 </div>
 
 ---
-
-## 문서
-
-- [환경 구축](ko/install.md)
-- [추론](ko/inference.md)
 
 ## 크레딧
 

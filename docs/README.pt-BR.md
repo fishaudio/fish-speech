@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](README.zh.md) | **Portuguese** | [日本語](README.ja.md) | [한국어](README.ko.md) <br>
+[English](../README.md) | [简体中文](README.zh.md) | **Portuguese** | [日本語](README.ja.md) | [한국어](README.ko.md) | [العربية](README.ar.md) <br>
 
 <a href="https://www.producthunt.com/posts/fish-speech-1-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-fish&#0045;speech&#0045;1&#0045;4" target="_blank">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=488440&theme=light" alt="Fish&#0032;Speech&#0032;1&#0046;4 - Open&#0045;Source&#0032;Multilingual&#0032;Text&#0045;to&#0045;Speech&#0032;with&#0032;Voice&#0032;Cloning | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
@@ -55,8 +55,9 @@
 
 Aqui estão os documentos oficiais do Fish Speech, siga as instruções para começar facilmente.
 
-- [Instalação](https://speech.fish.audio/pt/install/)
-- [Inferência](https://speech.fish.audio/pt/inference/)
+- [Instalação](https://speech.fish.audio/install/)
+- [Fine-tune](https://speech.fish.audio/finetune/)
+- [Inferência](https://speech.fish.audio/inference/)
 - [Amostras](https://speech.fish.audio/examples)
 
 ## 🎉 Anúncio
@@ -89,6 +90,7 @@ O OpenAudio S1 alcançou a **classificação #1** no [TTS-Arena2](https://arena.
 </div>
 
 ### **Controle de Fala**
+
 O OpenAudio S1 **suporta uma variedade de marcadores emocionais, de tom e especiais** para aprimorar a síntese de fala:
 
 - **Emoções básicas**:
@@ -127,14 +129,14 @@ Você também pode usar Ha,ha,ha para controlar, há muitos outros casos esperan
 
 | Modelo | Tamanho | Disponibilidade | Recursos |
 |-------|------|--------------|----------|
-| **S1** | 4B parâmetros | Disponível em [fish.audio](https://fish.audio) | Modelo flagship com recursos completos |
+| **S1** | 4B parâmetros | Disponível em [fish.audio](https://fish.audio/) | Modelo flagship com recursos completos |
 | **S1-mini** | 0.5B parâmetros | Disponível no Hugging Face [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Versão destilada com capacidades principais |
 
 Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback Humano (RLHF).
-   
-   ## **Recursos**
 
-1. **TTS Zero-shot e Few-shot:** Insira uma amostra vocal de 10 a 30 segundos para gerar saída TTS de alta qualidade. **Para diretrizes detalhadas, veja [Melhores Práticas de Clonagem de Voz](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
+## **Recursos**
+
+1. **TTS Zero-shot e Few-shot:** Insira uma amostra vocal de 10 a 30 segundos para gerar saída TTS de alta qualidade. **Para diretrizes detalhadas, veja [Melhores Práticas de Clonagem de Voz](https://docs.fish.audio/resources/best-practices/voice-cloning).**
 
 2. **Suporte Multilíngue e Cross-lingual:** Simplesmente copie e cole texto multilíngue na caixa de entrada—não precisa se preocupar com o idioma. Atualmente suporta inglês, japonês, coreano, chinês, francês, alemão, árabe e espanhol.
 
@@ -142,7 +144,7 @@ Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback 
 
 4. **Altamente Preciso:** Alcança um baixo CER (Taxa de Erro de Caractere) de cerca de 0.4% e WER (Taxa de Erro de Palavra) de cerca de 0.8% para Seed-TTS Eval.
 
-5. **Rápido:** Com aceleração fish-tech, o fator de tempo real é aproximadamente 1:5 em um laptop Nvidia RTX 4060 e 1:15 em um Nvidia RTX 4090.
+5. **Rápido:** Com aceleração por torch compile, o fator de tempo real é aproximadamente 1:7 em uma GPU Nvidia RTX 4090.
 
 6. **Inferência via WebUI:** Apresenta uma interface de usuário baseada em Gradio, fácil de usar e compatível com Chrome, Firefox, Edge e outros navegadores.
 
@@ -168,22 +170,12 @@ Tanto S1 quanto S1-mini incorporam Aprendizado por Reforço online com Feedback 
 ### **Vitrines de Vídeo**
 
 <a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
-    <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
 </a>
-
-### **Amostras de Áudio**
-<div style="margin: 20px 0;">
-    <em> Amostras de áudio de alta qualidade estarão disponíveis em breve, demonstrando nossas capacidades TTS multilíngues em diferentes idiomas e emoções.</em>
-</div>
 
 </div>
 
 ---
-
-## Documentos
-
-- [Construir Ambiente](pt/install.md)
-- [Inferência](pt/inference.md)
 
 ## Créditos
 
