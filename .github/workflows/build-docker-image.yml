@@ -57,10 +57,12 @@ jobs:
             BACKEND=${{ matrix.backend }}
             UV_EXTRA=${{ matrix.backend == 'cuda' && 'cu126' || 'cpu' }}
           tags: |
-            fishaudio/fish-speech-${{ matrix.target }}:${{ env.version }}-${{ matrix.backend }}
-            fishaudio/fish-speech-${{ matrix.target }}:latest-${{ matrix.backend }}
+            fishaudio/fish-speech:${{ matrix.target }}-${{ matrix.backend }}-${{ env.version }}
+            fishaudio/fish-speech:${{ matrix.target }}-${{ matrix.backend }}
+            ${{ (matrix.target == 'webui' && matrix.backend == 'cuda') && format('fishaudio/fish-speech:{0}', env.version) || '' }}
+            ${{ (matrix.target == 'webui' && matrix.backend == 'cuda') && 'fishaudio/fish-speech:latest' || '' }}
           outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-          cache-from: type=registry,ref=fishaudio/fish-speech-${{ matrix.target }}:latest-${{ matrix.backend }}
+          cache-from: type=registry,ref=fishaudio/fish-speech:${{ matrix.target }}-${{ matrix.backend }}
           cache-to: type=inline
 
   update-readme:
