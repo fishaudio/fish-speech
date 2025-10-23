@@ -6,13 +6,6 @@
 .gitattributes
 .gitmodules
 
-# Documentation
-*.md
-docs/
-!README*
-LICENSE*
-CHANGELOG*
-
 # IDE and editor files
 .vscode/
 .idea/
