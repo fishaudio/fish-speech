@@ -491,7 +491,7 @@ class BaseTransformer(nn.Module):
                     )
 
             err = model.load_state_dict(weights, strict=False, assign=True)
-            logger.info(f"Loaded weights with error: {err}")
+            logger.info(f"Model weights loaded - Status: {err}")
 
         if lora_config is not None:
             setup_lora(model, lora_config)
