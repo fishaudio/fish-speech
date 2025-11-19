@@ -23,6 +23,8 @@ hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-min
 python fish_speech/models/dac/inference.py \
     -i "ref_audio_name.wav" \
     --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 `fake.npy` と `fake.wav` が得られるはずです。
@@ -35,6 +37,8 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-text "参照テキスト" \
     --prompt-tokens "fake.npy" \
     --compile
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 このコマンドは、作業ディレクトリに `codes_N` ファイルを作成します（Nは0から始まる整数）。
@@ -54,6 +58,8 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 ## HTTP API推論
