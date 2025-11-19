@@ -10,6 +10,10 @@ OpenAudioは複数のインストール方法をサポートしています。�
 **前提条件**: 音声処理のためのシステム依存関係をインストールします:
 ``` bash
 apt install portaudio19-dev libsox-dev ffmpeg
+
+# For Apple Silicon
+brew install portaudio libsoxr ffmpeg
+export DYLD_LIBRARY_PATH="/opt/homebrew/opt/ffmpeg/lib:$DYLD_LIBRARY_PATH"
 ```
 
 ### Conda

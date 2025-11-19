@@ -10,6 +10,10 @@ OpenAudio 支持多种安装方式，请选择最适合您开发环境的方法�
 **先决条件**：安装用于音频处理的系统依赖项：
 ``` bash
 apt install portaudio19-dev libsox-dev ffmpeg
+
+# 对于苹果芯片的macOS
+brew install portaudio libsoxr ffmpeg
+export DYLD_LIBRARY_PATH="/opt/homebrew/opt/ffmpeg/lib:$DYLD_LIBRARY_PATH"
 ```
 
 ### Conda

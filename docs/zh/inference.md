@@ -23,6 +23,8 @@ hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-min
 python fish_speech/models/dac/inference.py \
     -i "ref_audio_name.wav" \
     --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
+
+# 添加参数 --device mps 如果使用苹果芯片的macOS
 ```
 
 您应该会得到一个 `fake.npy` 和一个 `fake.wav`。
@@ -35,6 +37,8 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-text "您的参考文本" \
     --prompt-tokens "fake.npy" \
     --compile
+
+# 添加参数 --device mps 如果使用苹果芯片的macOS
 ```
 
 此命令将在工作目录中创建一个 `codes_N` 文件，其中 N 是从 0 开始的整数。
@@ -54,6 +58,8 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy" \
+
+# 添加参数 --device mps 如果使用苹果芯片的macOS
 ```
 
 ## HTTP API 推理

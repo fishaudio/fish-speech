@@ -23,6 +23,8 @@ hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-min
 python fish_speech/models/dac/inference.py \
     -i "ref_audio_name.wav" \
     --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 يجب أن تحصل على `fake.npy` و `fake.wav`.
@@ -35,6 +37,8 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-text "النص المرجعي الخاص بك" \
     --prompt-tokens "fake.npy" \
     --compile
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 هذا الأمر سينشئ ملف `codes_N` في دليل العمل، حيث N هو عدد صحيح يبدأ من 0.
@@ -54,6 +58,8 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 ## استنتاج HTTP API
