@@ -57,7 +57,7 @@ Here are the official documents for Fish Speech, follow the instructions to get 
 - [Installation](https://speech.fish.audio/install/)
 - [Finetune](https://speech.fish.audio/finetune/)
 - [Inference](https://speech.fish.audio/inference/)
-- [Samples](https://speech.fish.audio/examples)
+- [Samples](https://speech.fish.audio/samples/)
 
 ## 🎉 Announcement
 
