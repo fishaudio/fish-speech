@@ -43,58 +43,79 @@
 </div>
 
 > [!IMPORTANT]
-> **许可证声明**  
+> **许可证声明**
 > 此代码库在 **Apache License** 下发布，所有模型权重在 **CC-BY-NC-SA-4.0 License** 下发布。更多详情请参考 [LICENSE](../LICENSE)。
 
 > [!WARNING]
-> **法律免责声明**  
+> **法律免责声明**
 > 我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的法规。
 
-## 开始使用
+## FishAudio-S1
+**真人级语音生成 & 声音克隆**
+
+FishAudio-S1 是由 [Fish Audio](https://fish.audio/) 开发的富有表现力的文本转语音 (TTS) 和语音克隆模型，旨在生成听起来自然、真实且情感丰富的语音——不机械、不平淡，也不局限于录音室风格的朗读。
+
+FishAudio-S1 专注于人类真实的说话方式：带有情感、变化、停顿和意图。
+
+### 公告 🎉
+
+我们很高兴地宣布，我们已将品牌重塑为 **Fish Audio** —— 推出基于 Fish-Speech 基础构建的革命性新一代高级文本转语音模型系列。
+
+我们自豪地发布 **FishAudio-S1**（也称为 OpenAudio S1）作为该系列的第一个模型，在质量、性能和功能方面都有显著改进。
+
+FishAudio-S1 提供两个版本：**FishAudio-S1** 和 **FishAudio-S1-mini**。两个模型现在都可以在 [Fish Audio Playground](https://fish.audio)（**FishAudio-S1**）和 [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**FishAudio-S1-mini**）上使用。
+
+请访问 [Fish Audio 网站](https://fish.audio/) 获取实时 playground 和技术报告。
+
+### 模型版本
+
+| 模型 | 大小 | 可用性 | 描述 |
+|------|------|-------------|-------------|
+| FishAudio-S1 | 4B 参数 | [fish.audio](https://fish.audio/) | 功能齐全的旗舰模型，具有最高质量和稳定性 |
+| FishAudio-S1-mini | 0.5B 参数 | [huggingface](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | 开源精简模型，具有核心功能 |
+
+S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
+
+### 开始使用
 
 这里是 Fish Speech 的官方文档，按照说明轻松开始使用。
 
 - [安装](https://speech.fish.audio/zh/install/)
 - [微调](https://speech.fish.audio/zh/finetune/)
 - [推理](https://speech.fish.audio/zh/inference/)
-- [示例](https://speech.fish.audio/examples)
+- [示例](https://speech.fish.audio/samples/)
 
-## 🎉 公告
-
-我们很高兴地宣布，我们已将品牌重塑为 **OpenAudio** —— 推出基于 Fish-Speech 基础构建的革命性新一代高级文本转语音模型系列。
-
-我们自豪地发布 **OpenAudio-S1** 作为该系列的第一个模型，在质量、性能和功能方面都有显著改进。
-
-OpenAudio-S1 提供两个版本：**OpenAudio-S1** 和 **OpenAudio-S1-mini**。两个模型现在都可以在 [Fish Audio Playground](https://fish.audio)（**OpenAudio-S1**）和 [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**OpenAudio-S1-mini**）上使用。
-
-请访问 [OpenAudio 网站](https://openaudio.com/blogs/s1) 获取博客和技术报告。
-
-## 亮点 ✨
+## 亮点
 
 ### **出色的 TTS 质量**
 
-我们使用 Seed TTS 评估指标来评估模型性能，结果显示 OpenAudio S1 在英语文本上达到了 **0.008 WER** 和 **0.004 CER**，这比以前的模型显著更好。（英语，自动评估，基于 OpenAI gpt-4o-transcribe，使用 Revai/pyannote-wespeaker-voxceleb-resnet34-LM 进行说话人距离计算）
+我们使用 Seed TTS 评估指标来评估模型性能，结果显示 FishAudio S1 在英语文本上达到了 **0.008 WER** 和 **0.004 CER**，这比以前的模型显著更好。（英语，自动评估，基于 OpenAI gpt-4o-transcribe，使用 Revai/pyannote-wespeaker-voxceleb-resnet34-LM 进行说话人距离计算）
 
 | 模型 | 词错误率 (WER) | 字符错误率 (CER) | 说话人距离 |
 |-------|----------------------|---------------------------|------------------|
 | **S1** | **0.008**  | **0.004**  | **0.332** |
 | **S1-mini** | **0.011** | **0.005** | **0.380** |
 
+
 ### **TTS-Arena2 最佳模型** 🏆
 
-OpenAudio S1 在 [TTS-Arena2](https://arena.speechcolab.org/) 上取得了 **第一名**，这是文本转语音评估的基准：
+FishAudio S1 在 [TTS-Arena2](https://arena.speechcolab.org/) 上取得了 **第一名**，这是文本转语音评估的基准：
 
 <div align="center">
     <img src="../docs/assets/Elo.jpg" alt="TTS-Arena2 排名" style="width: 75%;" />
 </div>
 
-### **语音控制**
+### 真正类人的语音
 
-OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合成：
+FishAudio-S1 生成的语音听起来自然且具有对话感，而不是机械或过度修饰。模型捕捉了时间、重音和韵律的细微变化，避免了传统 TTS 系统常见的"录音室录音"效果。
+
+### **情感控制与表现力**
+
+FishAudio S1 是首个支持通过显式情感和语调标记进行**开放领域细粒度情感控制**的 TTS 模型。我们现在可以精确控制语音的情感表达：
 
 - **基础情感**：
 ```
-(生气) (伤心) (兴奋) (惊讶) (满意) (高兴) 
+(生气) (伤心) (兴奋) (惊讶) (满意) (高兴)
 (害怕) (担心) (沮丧) (紧张) (挫败) (郁闷)
 (同情) (尴尬) (厌恶) (感动) (自豪) (放松)
 (感激) (自信) (感兴趣) (好奇) (困惑) (快乐)
@@ -102,7 +123,7 @@ OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合�
 
 - **高级情感**：
 ```
-(鄙视) (不开心) (焦虑) (歇斯底里) (冷漠) 
+(鄙视) (不开心) (焦虑) (歇斯底里) (冷漠)
 (不耐烦) (内疚) (轻蔑) (恐慌) (愤怒) (不情愿)
 (热衷) (不赞成) (消极) (否认) (震惊) (严肃)
 (讽刺) (安抚) (安慰) (真诚) (冷笑)
@@ -122,16 +143,18 @@ OpenAudio S1 **支持多种情感、语调和特殊标记** 来增强语音合�
 
 您也可以使用 哈,哈,哈 来控制，还有许多其他情况等待您自己探索。
 
-(目前支持英语、中文和日语，更多语言即将推出！)
+### 多语言支持
 
-### **两种类型的模型**
+FishAudio-S1 支持高质量的多语言文本转语音，无需音素或语言特定的预处理。
 
-| 模型 | 大小 | 可用性 | 特性 |
-|-------|------|--------------|----------|
-| **S1** | 4B 参数 | 在 [fish.audio](https://fish.audio) 上可用 | 功能齐全的旗舰模型 |
-| **S1-mini** | 0.5B 参数 | 在 Hugging Face [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) 上可用 | 具有核心功能的精简版本 |
+**支持情感标记的语言包括：**
+英语、中文、日语、德语、法语、西班牙语、韩语、阿拉伯语、俄语、荷兰语、意大利语、波兰语和葡萄牙语。
 
-S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
+语言列表持续扩展中，请访问 [Fish Audio](https://fish.audio/) 获取最新版本。
+
+### 快速语音克隆
+
+FishAudio-S1 支持使用短参考样本（通常 10-30 秒）进行准确的语音克隆。模型可以捕捉音色、说话风格和情感倾向，无需额外微调即可生成逼真且一致的克隆语音。
 
 ## **功能**
 
@@ -154,22 +177,22 @@ S1 和 S1-mini 都集成了在线人类反馈强化学习（RLHF）。
 <div align="center">
 
 ### **社交媒体**
-<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+<a href="https://x.com/hehe6z/status/1980303682932744439" target="_blank">
     <img src="https://img.shields.io/badge/𝕏-最新演示-black?style=for-the-badge&logo=x&logoColor=white" alt="X 上的最新演示" />
 </a>
 
 ### **交互式演示**
 <a href="https://fish.audio" target="_blank">
-    <img src="https://img.shields.io/badge/Fish_Audio-试用_OpenAudio_S1-blue?style=for-the-badge" alt="试用 OpenAudio S1" />
+    <img src="https://img.shields.io/badge/Fish.Audio-试用_FishAudio_S1-blue?style=for-the-badge" alt="试用 FishAudio S1" />
 </a>
 <a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
-    <img src="https://img.shields.io/badge/Hugging_Face-试用_S1_Mini-yellow?style=for-the-badge" alt="试用 S1 Mini" />
+    <img src="https://img.shields.io/badge/Hugging_Face-使用_S1_Mini-yellow?style=for-the-badge" alt="使用 S1 Mini" />
 </a>
 
 ### **视频展示**
 
-<a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
-    <img src="../docs/assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+<a href="https://www.youtube.com/watch?v=WR1FY32Lhps" target="_blank">
+    <img src="../docs/assets/Thumbnail.jpg" alt="FishAudio S1 Video" style="width: 50%;" />
 </a>
 
 </div>

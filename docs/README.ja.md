@@ -43,58 +43,79 @@
 </div>
 
 > [!IMPORTANT]
-> **ライセンス注意事項**  
+> **ライセンス注意事項**
 > このコードベースは**Apache License**の下でリリースされ、すべてのモデルウェイトは**CC-BY-NC-SA-4.0 License**の下でリリースされています。詳細については[LICENSE](../LICENSE)をご参照ください。
 
 > [!WARNING]
-> **法的免責事項**  
+> **法的免責事項**
 > 私たちはコードベースの不法な使用について一切の責任を負いません。DMCA及びその他の関連法律について、現地の法律をご参照ください。
 
-## はじめに
+## FishAudio-S1
+**人間のように自然な音声合成と音声クローニング**
+
+FishAudio-S1は、[Fish Audio](https://fish.audio/)が開発した表現力豊かなtext-to-speech (TTS) と音声クローニングモデルです。自然で、リアルで、感情豊かな音声を生成するように設計されています——ロボット的でなく、平坦でなく、スタジオ風のナレーションに制限されません。
+
+FishAudio-S1は、人間が実際に話す方法に焦点を当てています：感情、変化、間、意図を持って。
+
+### 発表 🎉
+
+**Fish Audio**へのリブランドを発表できることを嬉しく思います。Fish-Speechの基盤を元に構築された、革新的な新しい高度Text-to-Speechモデルシリーズを紹介します。
+
+このシリーズの最初のモデルとして**FishAudio-S1**（OpenAudio S1としても知られる）をリリースできることを誇りに思います。品質、性能、機能において大幅な改善を実現しました。
+
+FishAudio-S1には2つのバージョンがあります：**FishAudio-S1**と**FishAudio-S1-mini**。両モデルとも[Fish Audio Playground](https://fish.audio)（**FishAudio-S1**用）と[Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**FishAudio-S1-mini**用）で利用可能です。
+
+ライブplaygroundと技術レポートについては[Fish Audioウェブサイト](https://fish.audio/)をご覧ください。
+
+### モデルバリアント
+
+| モデル | サイズ | 利用可能性 | 説明 |
+|------|------|-------------|-------------|
+| FishAudio-S1 | 4Bパラメータ | [fish.audio](https://fish.audio/) | 最高品質と安定性を備えたフル機能のフラッグシップモデル |
+| FishAudio-S1-mini | 0.5Bパラメータ | [huggingface](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | コア機能を持つオープンソース蒸留モデル |
+
+S1とS1-miniの両方がオンライン人間フィードバック強化学習（RLHF）を組み込んでいます。
+
+### はじめに
 
 こちらは Fish Speech の公式ドキュメントです。手順に従って簡単に始めることができます。
 
 - [インストール](https://speech.fish.audio/ja/install/)
 - [ファインチューニング](https://speech.fish.audio/ja/finetune/)
 - [推論](https://speech.fish.audio/ja/inference/)
-- [サンプル](https://speech.fish.audio/examples)
+- [サンプル](https://speech.fish.audio/samples/)
 
-## 🎉 発表
-
-**OpenAudio**へのリブランドを発表できることを嬉しく思います。Fish-Speechの基盤を元に構築された、革新的な新しい高度Text-to-Speechモデルシリーズを紹介します。
-
-このシリーズの最初のモデルとして**OpenAudio-S1**をリリースできることを誇りに思います。品質、性能、機能において大幅な改善を実現しました。
-
-OpenAudio-S1には2つのバージョンがあります：**OpenAudio-S1**と**OpenAudio-S1-mini**。両モデルとも[Fish Audio Playground](https://fish.audio)（**OpenAudio-S1**用）と[Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini)（**OpenAudio-S1-mini**用）で利用可能です。
-
-ブログと技術レポートについては[OpenAudioウェブサイト](https://openaudio.com/blogs/s1)をご覧ください。
-
-## ハイライト ✨
+## ハイライト
 
 ### **優秀なTTS品質**
 
-Seed TTS Eval Metricsを使用してモデル性能を評価した結果、OpenAudio S1は英語テキストで**0.008 WER**と**0.004 CER**を達成し、これは従来のモデルより大幅に優れています。（英語、自動評価、OpenAI gpt-4o-transcribeベース、Revai/pyannote-wespeaker-voxceleb-resnet34-LMを使用した話者距離）
+Seed TTS Eval Metricsを使用してモデル性能を評価した結果、FishAudio S1は英語テキストで**0.008 WER**と**0.004 CER**を達成し、これは従来のモデルより大幅に優れています。（英語、自動評価、OpenAI gpt-4o-transcribeベース、Revai/pyannote-wespeaker-voxceleb-resnet34-LMを使用した話者距離）
 
 | モデル | 単語誤り率 (WER) | 文字誤り率 (CER) | 話者距離 |
 |-------|------------------|------------------|----------|
 | **S1** | **0.008** | **0.004** | **0.332** |
 | **S1-mini** | **0.011** | **0.005** | **0.380** |
 
+
 ### **TTS-Arena2でのベストモデル** 🏆
 
-OpenAudio S1は、テキスト音声変換評価のベンチマークである[TTS-Arena2](https://arena.speechcolab.org/)で**1位**を獲得しました：
+FishAudio S1は、テキスト音声変換評価のベンチマークである[TTS-Arena2](https://arena.speechcolab.org/)で**1位**を獲得しました：
 
 <div align="center">
     <img src="assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
 </div>
 
-### **音声制御**
+### 真に人間らしい音声
 
-OpenAudio S1は**音声合成を強化するための様々な感情、トーン、特別なマーカーをサポート**しています：
+FishAudio-S1は、ロボット的または過度に洗練されたものではなく、自然で会話的な音声を生成します。モデルはタイミング、強調、韻律の微妙な変化を捉え、従来のTTSシステムに共通する「スタジオ録音」効果を回避します。
+
+### **感情制御と表現力**
+
+FishAudio S1は、明示的な感情とトーンマーカーを通じて**オープンドメインの細粒度感情制御**をサポートする最初のTTSモデルです。音声の響き方を正確に制御できるようになりました：
 
 - **基本感情**:
 ```
-(怒った) (悲しい) (興奮した) (驚いた) (満足した) (喜んだ) 
+(怒った) (悲しい) (興奮した) (驚いた) (満足した) (喜んだ)
 (恐れた) (心配した) (動揺した) (緊張した) (イライラした) (憂鬱な)
 (共感的な) (恥ずかしい) (嫌悪した) (感動した) (誇らしい) (リラックスした)
 (感謝する) (自信のある) (興味のある) (好奇心のある) (混乱した) (喜びに満ちた)
@@ -102,7 +123,7 @@ OpenAudio S1は**音声合成を強化するための様々な感情、トーン
 
 - **高度な感情**:
 ```
-(軽蔑的な) (不幸な) (不安な) (ヒステリックな) (無関心な) 
+(軽蔑的な) (不幸な) (不安な) (ヒステリックな) (無関心な)
 (せっかちな) (罪悪感のある) (軽蔑した) (パニックした) (激怒した) (しぶしぶの)
 (熱心な) (不賛成の) (否定的な) (否認する) (驚愕した) (真剣な)
 (皮肉な) (宥める) (慰める) (誠実な) (冷笑する)
@@ -122,16 +143,18 @@ OpenAudio S1は**音声合成を強化するための様々な感情、トーン
 
 また、「ハ、ハ、ハ」を使って制御することもでき、あなた自身が探索できる多くの他のケースがあります。
 
-（現在、英語、中国語、日本語をサポートしており、より多くの言語が近日公開予定です！）
+### 多言語サポート
 
-### **2種類のモデル**
+FishAudio-S1は、音素や言語固有の前処理を必要とせずに、高品質な多言語text-to-speechをサポートしています。
 
-| モデル | サイズ | 利用可能性 | 機能 |
-|-------|------|--------------|----------|
-| **S1** | 4Bパラメータ | [fish.audio](https://fish.audio/)で利用可能 | フル機能のフラッグシップモデル |
-| **S1-mini** | 0.5Bパラメータ | huggingface [hf space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini)で利用可能 | コア機能を持つ蒸留版 |
+**感情マーカーをサポートする言語：**
+英語、中国語、日本語、ドイツ語、フランス語、スペイン語、韓国語、アラビア語、ロシア語、オランダ語、イタリア語、ポーランド語、ポルトガル語。
 
-S1とS1-miniの両方がオンライン人間フィードバック強化学習（RLHF）を組み込んでいます。
+リストは常に拡大しています。最新リリースについては[Fish Audio](https://fish.audio/)をご確認ください。
+
+### 高速音声クローニング
+
+FishAudio-S1は、短い参照サンプル（通常10〜30秒）を使用した正確な音声クローニングをサポートしています。モデルは音色、話し方、感情傾向を捉え、追加のファインチューニングなしでリアルで一貫したクローン音声を生成します。
 
 ## **機能**
 
@@ -154,22 +177,22 @@ S1とS1-miniの両方がオンライン人間フィードバック強化学習�
 <div align="center">
 
 ### **ソーシャルメディア**
-<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
+<a href="https://x.com/hehe6z/status/1980303682932744439" target="_blank">
     <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="Latest Demo on X" />
 </a>
 
 ### **インタラクティブデモ**
 <a href="https://fish.audio" target="_blank">
-    <img src="https://img.shields.io/badge/Fish_Audio-Try_OpenAudio_S1-blue?style=for-the-badge" alt="Try OpenAudio S1" />
+    <img src="https://img.shields.io/badge/Fish.Audio-Try_FishAudio_S1-blue?style=for-the-badge" alt="Try FishAudio S1" />
 </a>
 <a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
-    <img src="https://img.shields.io/badge/Hugging_Face-Try_S1_Mini-yellow?style=for-the-badge" alt="Try S1 Mini" />
+    <img src="https://img.shields.io/badge/Hugging_Face-Use_S1_Mini-yellow?style=for-the-badge" alt="Use S1 Mini" />
 </a>
 
 ### **ビデオショーケース**
 
-<a href="https://www.youtube.com/watch?v=SYuPvd7m06A" target="_blank">
-    <img src="assets/Thumbnail.jpg" alt="OpenAudio S1 Video" style="width: 50%;" />
+<a href="https://www.youtube.com/watch?v=WR1FY32Lhps" target="_blank">
+    <img src="assets/Thumbnail.jpg" alt="FishAudio S1 Video" style="width: 50%;" />
 </a>
 
 </div>
