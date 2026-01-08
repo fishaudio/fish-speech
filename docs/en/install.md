@@ -10,6 +10,10 @@ OpenAudio supports multiple installation methods. Choose the one that best fits 
 **Prerequisites**: Install system dependencies for audio processing:
 ``` bash
 apt install portaudio19-dev libsox-dev ffmpeg
+
+# For Apple Silicon
+brew install portaudio libsoxr ffmpeg
+export DYLD_LIBRARY_PATH="/opt/homebrew/opt/ffmpeg/lib:$DYLD_LIBRARY_PATH"
 ```
 
 ### Conda

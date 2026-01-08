@@ -10,6 +10,10 @@
 **المتطلبات الأساسية**: قم بتثبيت تبعيات النظام لمعالجة الصوت:
 ``` bash
 apt install portaudio19-dev libsox-dev ffmpeg
+
+# For Apple Silicon
+brew install portaudio libsoxr ffmpeg
+export DYLD_LIBRARY_PATH="/opt/homebrew/opt/ffmpeg/lib:$DYLD_LIBRARY_PATH"
 ```
 
 ### Conda

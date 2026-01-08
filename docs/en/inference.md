@@ -29,6 +29,8 @@ hf download fishaudio/openaudio-s1-mini --local-dir checkpoints/openaudio-s1-min
 python fish_speech/models/dac/inference.py \
     -i "ref_audio_name.wav" \
     --checkpoint-path "checkpoints/openaudio-s1-mini/codec.pth"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 You should get a `fake.npy` and a `fake.wav`.
@@ -41,6 +43,8 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
     --compile
+
+# add parameters --device mps if use Apple Silicon
 ```
 with `--prompt-tokens "fake.npy"` and `--prompt-text "Your reference text"` from step 1.
 If you want to let the model randomly choose a voice timbre, skip the two parameters.
@@ -61,7 +65,9 @@ This command will create a `codes_N` file in the working directory, where N is a
 
 ```bash
 python fish_speech/models/dac/inference.py \
-    -i "codes_0.npy" \
+    -i "codes_0.npy"
+
+# add parameters --device mps if use Apple Silicon
 ```
 
 ## HTTP API Inference

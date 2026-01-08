@@ -10,6 +10,10 @@ OpenAudio는 다양한 설치 방법을 지원합니다. 자신의 개발 환경
 **사전 요구사항**: 오디오 처리를 위한 시스템 의존성을 설치합니다:
 ``` bash
 apt install portaudio19-dev libsox-dev ffmpeg
+
+# For Apple Silicon
+brew install portaudio libsoxr ffmpeg
+export DYLD_LIBRARY_PATH="/opt/homebrew/opt/ffmpeg/lib:$DYLD_LIBRARY_PATH"
 ```
 
 ### Conda
