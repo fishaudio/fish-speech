@@ -1,8 +1,8 @@
 import json
 import os
 import re
-from threading import Lock
 from argparse import Namespace
+from threading import Lock
 
 import pyrootutils
 import uvicorn
