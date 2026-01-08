@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://speech.fish.audio/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/zh/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ja/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/pt/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ko/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/README.ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ar/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ar/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/README.ja/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ja/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/README.ko/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.ko/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.ko/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/README.pt-BR/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.pt-BR/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.pt-BR/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/README.zh/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/README.zh/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/README.zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/finetune/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/finetune/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/finetune/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/inference/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/inference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/inference/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/inference/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/inference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/inference/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/install/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/install/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/install/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/install/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/install/"/>
+    </url>
+    <url>
+        <loc>https://speech.fish.audio/ar/samples/</loc>
+        <lastmod>2026-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ar" href="https://speech.fish.audio/ar/samples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://speech.fish.audio/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://speech.fish.audio/ja/samples/"/>
+        <xhtml:link rel="alternate" hreflang="ko" href="https://speech.fish.audio/ko/samples/"/>
+        <xhtml:link rel="alternate" hreflang="pt" href="https://speech.fish.audio/pt/samples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://speech.fish.audio/zh/samples/"/>
+    </url>
+</urlset>

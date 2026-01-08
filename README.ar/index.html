@@ -1,0 +1,1038 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Targeting SOTA TTS solutions.">
+      
+      
+      
+        <link rel="canonical" href="https://speech.fish.audio/README.ar/">
+      
+      
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../zh/README.ar/" hreflang="zh">
+        
+          <link rel="alternate" href="../ja/README.ar/" hreflang="ja">
+        
+          <link rel="alternate" href="../pt/README.ar/" hreflang="pt">
+        
+          <link rel="alternate" href="../ko/README.ar/" hreflang="ko">
+        
+          <link rel="alternate" href="../ar/README.ar/" hreflang="ar">
+        
+      
+      
+      <link rel="icon" href="../assets/openaudio.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>README.ar - OpenAudio</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#fishaudio-s1" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://speech.fish.audio" title="OpenAudio" class="md-header__button md-logo" aria-label="OpenAudio" data-md-component="logo">
+      
+  <img src="../assets/openaudio.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            OpenAudio
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              README.ar
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../zh/README.ar/" hreflang="zh" class="md-select__link">
+              简体中文
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../ja/README.ar/" hreflang="ja" class="md-select__link">
+              日本語
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../pt/README.ar/" hreflang="pt" class="md-select__link">
+              Português (Brasil)
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../ko/README.ar/" hreflang="ko" class="md-select__link">
+              한국어
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../ar/README.ar/" hreflang="ar" class="md-select__link">
+              العربية
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/fishaudio/fish-speech" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    fishaudio/fish-speech
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://speech.fish.audio" title="OpenAudio" class="md-nav__button md-logo" aria-label="OpenAudio" data-md-component="logo">
+      
+  <img src="../assets/openaudio.png" alt="logo">
+
+    </a>
+    OpenAudio
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/fishaudio/fish-speech" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    fishaudio/fish-speech
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../finetune/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Finetune
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Samples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fishaudio-s1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FishAudio-S1
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FishAudio-S1">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        إعلان 🎉
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        متغيرات النموذج
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ابدأ هنا
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        أبرز المميزات
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="أبرز المميزات">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        جودة TTS ممتازة
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tts-arena2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        أفضل نموذج في TTS-Arena2 🏆
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        كلام يشبه الإنسان حقًا
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        التحكم في العواطف والتعبيرية
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        دعم متعدد اللغات
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        استنساخ الصوت السريع
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        الميزات
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        وسائل الإعلام والعروض التوضيحية
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        الاعتمادات
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        التقرير التقني (V1.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/fishaudio/fish-speech/blob/main/docs/README.ar.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/fishaudio/fish-speech/raw/main/docs/README.ar.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<div align="center">
+<h1>Fish Speech</h1>
+
+[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | **العربية** <br>
+
+<a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Expressive&#0032;Voice&#0032;Cloning&#0032;and&#0032;Text&#0045;to&#0045;Speech | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+</a>
+<a href="https://trendshift.io/repositories/7014" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
+</a>
+<br>
+</div>
+<p><br></p>
+<div align="center">
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
+</div>
+
+<p><br></p>
+<div align="center">
+    <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
+        <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
+    </a>
+    <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
+        <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+    </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
+</div>
+
+<div align="center">
+    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
+      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
+    </a>
+    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
+        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
+    </a>
+    <a target="_blank" href="https://huggingface.co/fishaudio/openaudio-s1-mini">
+        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+</div>
+
+<blockquote>
+<p>[!IMPORTANT]
+<strong>إشعار الترخيص</strong>
+تم إصدار قاعدة الكود هذه بموجب <strong>ترخيص Apache</strong> وتم إصدار جميع أوزان النموذج بموجب <strong>ترخيص CC-BY-NC-SA-4.0</strong>. يرجى الرجوع إلى <a href="../LICENSE">LICENSE</a> لمزيد من التفاصيل.</p>
+<p>[!WARNING]
+<strong>إخلاء المسؤولية القانوني</strong>
+نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لقاعدة الكود. يرجى الرجوع إلى القوانين المحلية الخاصة بك فيما يتعلق بقانون الألفية الجديدة لحقوق طبع ونشر المواد الرقمية والقوانين الأخرى ذات الصلة.</p>
+</blockquote>
+<h2 id="fishaudio-s1">FishAudio-S1</h2>
+<p><strong>تحويل النص إلى كلام واستنساخ الصوت بجودة تحاكي الإنسان</strong></p>
+<p>FishAudio-S1 هو نموذج معبر لتحويل النص إلى كلام (TTS) واستنساخ الصوت طورته <a href="https://fish.audio/">Fish Audio</a>، مصمم لتوليد كلام يبدو طبيعيًا وواقعيًا وغنيًا عاطفيًا — ليس آليًا، وليس مسطحًا، وغير مقيد بأسلوب السرد الاستوديو.</p>
+<p>يركز FishAudio-S1 على كيفية تحدث البشر فعليًا: بعاطفة وتنوع وتوقفات ونية.</p>
+<h3 id="_1">إعلان 🎉</h3>
+<p>يسعدنا أن نعلن أننا قمنا بإعادة تسمية العلامة التجارية إلى <strong>Fish Audio</strong> — تقديم سلسلة جديدة ثورية من نماذج تحويل النص إلى كلام المتقدمة التي تبني على أساس Fish-Speech.</p>
+<p>نحن فخورون بإصدار <strong>FishAudio-S1</strong> (المعروف أيضًا باسم OpenAudio S1) كنموذج أول في هذه السلسلة، حيث يوفر تحسينات كبيرة في الجودة والأداء والقدرات.</p>
+<p>يأتي FishAudio-S1 في نسختين: <strong>FishAudio-S1</strong> و <strong>FishAudio-S1-mini</strong>. كلا النموذجين متاحان الآن على <a href="https://fish.audio">Fish Audio Playground</a> (لـ <strong>FishAudio-S1</strong>) و <a href="https://huggingface.co/fishaudio/openaudio-s1-mini">Hugging Face</a> (لـ <strong>FishAudio-S1-mini</strong>).</p>
+<p>قم بزيارة <a href="https://fish.audio/">موقع Fish Audio</a> للـ playground المباشر والتقرير التقني.</p>
+<h3 id="_2">متغيرات النموذج</h3>
+<table>
+<thead>
+<tr>
+<th>النموذج</th>
+<th>الحجم</th>
+<th>التوفر</th>
+<th>الوصف</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FishAudio-S1</td>
+<td>4B معامل</td>
+<td><a href="https://fish.audio/">fish.audio</a></td>
+<td>النموذج الرئيسي كامل الميزات مع أقصى جودة واستقرار</td>
+</tr>
+<tr>
+<td>FishAudio-S1-mini</td>
+<td>0.5B معامل</td>
+<td><a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini">huggingface</a></td>
+<td>نموذج مقطر مفتوح المصدر بالقدرات الأساسية</td>
+</tr>
+</tbody>
+</table>
+<p>كلا النموذجين S1 و S1-mini يتضمنان التعلم المعزز من التغذية الراجعة البشرية (RLHF) عبر الإنترنت.</p>
+<h3 id="_3">ابدأ هنا</h3>
+<p>فيما يلي المستندات الرسمية لـ Fish Speech، اتبع التعليمات للبدء بسهولة.</p>
+<ul>
+<li><a href="https://speech.fish.audio/install/">التثبيت</a></li>
+<li><a href="https://speech.fish.audio/finetune/">الضبط الدقيق</a></li>
+<li><a href="https://speech.fish.audio/inference/">الاستدلال</a></li>
+<li><a href="https://speech.fish.audio/samples/">العينات</a></li>
+</ul>
+<h2 id="_4">أبرز المميزات</h2>
+<h3 id="tts"><strong>جودة TTS ممتازة</strong></h3>
+<p>نستخدم مقاييس تقييم Seed TTS لتقييم أداء النموذج، وتظهر النتائج أن FishAudio S1 يحقق <strong>0.008 WER</strong> و <strong>0.004 CER</strong> على النص الإنجليزي، وهو أفضل بشكل ملحوظ من النماذج السابقة. (الإنجليزية، التقييم التلقائي، بناءً على OpenAI gpt-4o-transcribe، مسافة المتحدث باستخدام Revai/pyannote-wespeaker-voxceleb-resnet34-LM)</p>
+<table>
+<thead>
+<tr>
+<th>النموذج</th>
+<th>معدل الخطأ في الكلمات (WER)</th>
+<th>معدل الخطأ في الأحرف (CER)</th>
+<th>مسافة المتحدث</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S1</strong></td>
+<td><strong>0.008</strong></td>
+<td><strong>0.004</strong></td>
+<td><strong>0.332</strong></td>
+</tr>
+<tr>
+<td><strong>S1-mini</strong></td>
+<td><strong>0.011</strong></td>
+<td><strong>0.005</strong></td>
+<td><strong>0.380</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tts-arena2"><strong>أفضل نموذج في TTS-Arena2</strong> 🏆</h3>
+<p>حقق FishAudio S1 <strong>المركز الأول</strong> على <a href="https://arena.speechcolab.org/">TTS-Arena2</a>، المعيار لتقييم تحويل النص إلى كلام:</p>
+<div align="center">
+    <img src="../docs/assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
+</div>
+
+<h3 id="_5">كلام يشبه الإنسان حقًا</h3>
+<p>يولد FishAudio-S1 كلامًا يبدو طبيعيًا ومحادثيًا بدلاً من الآلي أو المصقول بشكل مفرط. يلتقط النموذج التنوعات الدقيقة في التوقيت والتأكيد والنبرة، متجنبًا تأثير "التسجيل الاستوديو" الشائع في أنظمة TTS التقليدية.</p>
+<h3 id="_6"><strong>التحكم في العواطف والتعبيرية</strong></h3>
+<p>FishAudio S1 هو أول نموذج TTS يدعم <strong>التحكم الدقيق في العواطف في المجال المفتوح</strong> من خلال علامات العاطفة والنبرة الصريحة. يمكننا الآن توجيه كيفية صوت الصوت بدقة:</p>
+<ul>
+<li>
+<p><strong>العواطف الأساسية</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>(غاضب) (حزين) (متحمس) (مندهش) (راضي) (مسرور)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>(خائف) (قلق) (منزعج) (متوتر) (محبط) (مكتئب)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>(متعاطف) (محرج) (مشمئز) (متحرك) (فخور) (مرتاح)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>(ممتن) (واثق) (مهتم) (فضولي) (مرتبك) (مبتهج)
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>العواطف المتقدمة</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>(محتقر) (غير سعيد) (قلق) (هستيري) (غير مبال)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>(غير صبور) (مذنب) (ساخر) (ذعر) (غاضب) (متردد)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>(متحمس) (غير موافق) (سلبي) (نافي) (مندهش) (جاد)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>(ساخر) (مصالح) (مريح) (صادق) (ساخر)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>(متردد) (مستسلم) (مؤلم) (محرج) (مسلي)
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>علامات النبرة</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>(بنبرة مستعجلة) (يصرخ) (يصرخ) (يهمهم) (بنبرة ناعمة)
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>تأثيرات صوتية خاصة</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>(يضحك) (يقهقه) (ينتحب) (يبكي بصوت عال) (يتنهد) (يلهث)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>(يئن) (ضحك الجمهور) (ضحك في الخلفية) (ضحك الجمهور)
+</span></code></pre></div></p>
+</li>
+</ul>
+<p>يمكنك أيضًا استخدام Ha,ha,ha للتحكم، وهناك العديد من الحالات الأخرى التي تنتظر استكشافها بنفسك.</p>
+<h3 id="_7">دعم متعدد اللغات</h3>
+<p>يدعم FishAudio-S1 تحويل النص إلى كلام متعدد اللغات عالي الجودة دون الحاجة إلى الفونيمات أو المعالجة المسبقة الخاصة باللغة.</p>
+<p><strong>اللغات التي تدعم علامات العاطفة تشمل:</strong>
+الإنجليزية، الصينية، اليابانية، الألمانية، الفرنسية، الإسبانية، الكورية، العربية، الروسية، الهولندية، الإيطالية، البولندية، والبرتغالية.</p>
+<p>القائمة في توسع مستمر، تحقق من <a href="https://fish.audio/">Fish Audio</a> لأحدث الإصدارات.</p>
+<h3 id="_8">استنساخ الصوت السريع</h3>
+<p>يدعم FishAudio-S1 استنساخ الصوت الدقيق باستخدام عينة مرجعية قصيرة (عادة 10-30 ثانية). يلتقط النموذج الجرس وأسلوب الكلام والميول العاطفية، مما ينتج أصواتًا مستنسخة واقعية ومتسقة دون ضبط دقيق إضافي.</p>
+<h2 id="_9"><strong>الميزات</strong></h2>
+<ol>
+<li>
+<p><strong>TTS بدون عينات وقليل العينات:</strong> أدخل عينة صوتية مدتها 10 إلى 30 ثانية لتوليد مخرجات TTS عالية الجودة. <strong>للحصول على إرشادات مفصلة، راجع <a href="https://docs.fish.audio/resources/best-practices/voice-cloning">أفضل ممارسات استنساخ الصوت</a>.</strong></p>
+</li>
+<li>
+<p><strong>الدعم متعدد اللغات وعبر اللغات:</strong> ما عليك سوى نسخ ولصق النص متعدد اللغات في مربع الإدخال — لا داعي للقلق بشأن اللغة. يدعم حاليًا الإنجليزية واليابانية والكورية والصينية والفرنسية والألمانية والعربية والإسبانية.</p>
+</li>
+<li>
+<p><strong>لا يعتمد على الفونيمات:</strong> يتمتع النموذج بقدرات تعميم قوية ولا يعتمد على الفونيمات لـ TTS. يمكنه التعامل مع النص بأي لغة نصية.</p>
+</li>
+<li>
+<p><strong>دقيق للغاية:</strong> يحقق معدل خطأ في الأحرف (CER) حوالي 0.4٪ ومعدل خطأ في الكلمات (WER) حوالي 0.8٪ لـ Seed-TTS Eval.</p>
+</li>
+<li>
+<p><strong>سريع:</strong> مع التسريع بواسطة torch compile، فإن عامل الوقت الحقيقي هو حوالي 1:7 على بطاقة Nvidia RTX 4090 GPU.</p>
+</li>
+<li>
+<p><strong>استدلال WebUI:</strong> يتميز بواجهة ويب سهلة الاستخدام تعتمد على Gradio متوافقة مع Chrome و Firefox و Edge والمتصفحات الأخرى.</p>
+</li>
+<li>
+<p><strong>سهولة النشر:</strong> يمكنك إعداد خادم استدلال بسهولة مع دعم أصلي لأنظمة Linux و Windows (دعم macOS قريبًا)، مما يقلل من فقدان الأداء.</p>
+</li>
+</ol>
+<h2 id="_10"><strong>وسائل الإعلام والعروض التوضيحية</strong></h2>
+<div align="center">
+
+### **وسائل التواصل الاجتماعي**
+<a href="https://x.com/hehe6z/status/1980303682932744439" target="_blank">
+    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="أحدث عرض توضيحي على X" />
+</a>
+
+### **العروض التوضيحية التفاعلية**
+<a href="https://fish.audio" target="_blank">
+    <img src="https://img.shields.io/badge/Fish.Audio-Try_FishAudio_S1-blue?style=for-the-badge" alt="جرب FishAudio S1" />
+</a>
+<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
+    <img src="https://img.shields.io/badge/Hugging_Face-Use_S1_Mini-yellow?style=for-the-badge" alt="استخدم S1 Mini" />
+</a>
+
+### **عروض الفيديو**
+
+<a href="https://www.youtube.com/watch?v=WR1FY32Lhps" target="_blank">
+    <img src="../docs/assets/Thumbnail.jpg" alt="فيديو FishAudio S1" style="width: 50%;" />
+</a>
+
+</div>
+
+<hr />
+<h2 id="_11">الاعتمادات</h2>
+<ul>
+<li><a href="https://github.com/daniilrobnikov/vits2">VITS2 (daniilrobnikov)</a></li>
+<li><a href="https://github.com/fishaudio/Bert-VITS2">Bert-VITS2</a></li>
+<li><a href="https://github.com/innnky/gpt-vits">GPT VITS</a></li>
+<li><a href="https://github.com/b04901014/MQTTS">MQTTS</a></li>
+<li><a href="https://github.com/pytorch-labs/gpt-fast">GPT Fast</a></li>
+<li><a href="https://github.com/RVC-Boss/GPT-SoVITS">GPT-SoVITS</a></li>
+<li><a href="https://github.com/QwenLM/Qwen3">Qwen3</a></li>
+</ul>
+<h2 id="v14">التقرير التقني (V1.4)</h2>
+<div class="language-bibtex highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nc">@misc</span><span class="p">{</span><span class="nl">fish-speech-v1.4</span><span class="p">,</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">      </span><span class="na">title</span><span class="p">=</span><span class="s">{Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis}</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">      </span><span class="na">author</span><span class="p">=</span><span class="s">{Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing}</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">      </span><span class="na">year</span><span class="p">=</span><span class="s">{2024}</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">      </span><span class="na">eprint</span><span class="p">=</span><span class="s">{2411.01156}</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">      </span><span class="na">archivePrefix</span><span class="p">=</span><span class="s">{arXiv}</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">      </span><span class="na">primaryClass</span><span class="p">=</span><span class="s">{cs.SD}</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">      </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/2411.01156}</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2023-2025 by Fish Audio
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://discord.gg/Es5qTB9BcN" target="_blank" rel="noopener" title="discord.gg" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://hub.docker.com/r/fishaudio/fish-speech" target="_blank" rel="noopener" title="hub.docker.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093" target="_blank" rel="noopener" title="qm.qq.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M434.1 420.4c-11.5 1.4-44.9-52.7-44.9-52.7 0 31.3-16.1 72.2-51 101.8 16.8 5.2 54.8 19.2 45.8 34.4-7.3 12.3-125.5 7.9-159.6 4-34.1 3.8-152.3 8.3-159.6-4-9-15.2 28.9-29.2 45.8-34.4-34.9-29.5-51.1-70.4-51.1-101.8 0 0-33.3 54.1-44.9 52.7-5.4-.6-12.4-29.6 9.3-99.7 10.3-33 22-60.5 40.1-105.8C60.9 98 109.2-.1 224.3-.1 338-.1 387.5 96 384.6 214.9c18.1 45.2 29.9 72.9 40.1 105.8 21.8 70.1 14.7 99.1 9.3 99.7z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit", "content.action.view", "navigation.tracking", "navigation.footer", "search", "search.suggest", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
