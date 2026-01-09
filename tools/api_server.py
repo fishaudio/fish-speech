@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import re
 from argparse import Namespace
@@ -121,6 +122,9 @@ def create_app():
 # Instead, it's better to use multiprocessing or independent models per thread.
 
 if __name__ == "__main__":
+
+    multiprocessing.set_start_method("spawn", force=True)
+
     args = parse_args()
     os.environ[ENV_ARGS_KEY] = json.dumps(vars(args))
 
