@@ -67,7 +67,7 @@ def logits_to_probs(
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
     sorted_indices_to_remove = cum_probs > top_p
-    sorted_indices_to_remove[0] = False  # keep at least one option
+    sorted_indices_to_remove[..., 0] = False  # keep at least one option
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
     )
