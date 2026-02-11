@@ -63,6 +63,9 @@ def logits_to_probs(
         )
         logits.scatter_(dim=-1, index=previous_tokens, src=score)
 
+    # Apply temperature scaling before top-p filtering
+    logits = logits / torch.clip(temperature, min=1e-5)
+
     # Apply top-p sampling
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
@@ -72,7 +75,6 @@ def logits_to_probs(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
     )
     logits = logits.masked_fill(indices_to_remove, -float("Inf"))
-    logits = logits / torch.clip(temperature, min=1e-5)
 
     probs = torch.nn.functional.softmax(logits, dim=-1)
     return probs
