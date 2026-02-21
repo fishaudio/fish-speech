@@ -102,9 +102,11 @@ class API(ExceptionHandler):
 # outputs if multiple threads access the same buffers simultaneously.
 # Instead, it's better to use multiprocessing or independent models per thread.
 
-if __name__ == "__main__":
-    api = API()
+# Module-level app instance for uvicorn import string support (required for workers > 1)
+api = API()
+app = api.app
 
+if __name__ == "__main__":
     # IPv6 address format is [xxxx:xxxx::xxxx]:port
     match = re.search(r"\[([^\]]+)\]:(\d+)$", api.args.listen)
     if match:
@@ -112,8 +114,11 @@ if __name__ == "__main__":
     else:
         host, port = api.args.listen.split(":")  # IPv4
 
+    # Uvicorn requires an import string (not an app instance) when workers > 1
+    app_target = "tools.api_server:app" if api.args.workers > 1 else app
+
     uvicorn.run(
-        api.app,
+        app_target,
         host=host,
         port=int(port),
         workers=api.args.workers,
