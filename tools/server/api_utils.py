@@ -1,3 +1,5 @@
+import asyncio
+import threading
 from argparse import ArgumentParser
 from http import HTTPStatus
 from typing import Annotated, Any
@@ -16,31 +18,6 @@ from pydantic import BaseModel
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
-
-
-def parse_args():
-    parser = ArgumentParser()
-    parser.add_argument("--mode", type=str, choices=["tts"], default="tts")
-    parser.add_argument(
-        "--llama-checkpoint-path",
-        type=str,
-        default="checkpoints/openaudio-s1-mini",
-    )
-    parser.add_argument(
-        "--decoder-checkpoint-path",
-        type=str,
-        default="checkpoints/openaudio-s1-mini/codec.pth",
-    )
-    parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--half", action="store_true")
-    parser.add_argument("--compile", action="store_true")
-    parser.add_argument("--max-text-length", type=int, default=0)
-    parser.add_argument("--listen", type=str, default="127.0.0.1:8080")
-    parser.add_argument("--workers", type=int, default=1)
-    parser.add_argument("--api-key", type=str, default=None)
-
-    return parser.parse_args()
 
 
 class MsgPackRequest(HttpRequest):
@@ -70,10 +47,34 @@ class MsgPackRequest(HttpRequest):
 
 
 async def inference_async(req: ServeTTSRequest, engine: TTSInferenceEngine):
-    for chunk in inference(req, engine):
-        print("Got chunk")
-        if isinstance(chunk, bytes):
-            yield chunk
+    """
+    Async generator that runs the blocking synchronous inference in a background
+    thread so the event loop is not blocked between audio chunks, enabling true
+    HTTP streaming instead of buffering all chunks before sending.
+    """
+    loop = asyncio.get_event_loop()
+    chunk_queue: asyncio.Queue = asyncio.Queue()
+
+    def run_inference():
+        try:
+            for chunk in inference(req, engine):
+                if isinstance(chunk, bytes):
+                    loop.call_soon_threadsafe(chunk_queue.put_nowait, chunk)
+        except Exception as exc:
+            loop.call_soon_threadsafe(chunk_queue.put_nowait, exc)
+        finally:
+            loop.call_soon_threadsafe(chunk_queue.put_nowait, None)  # sentinel
+
+    thread = threading.Thread(target=run_inference, daemon=True)
+    thread.start()
+
+    while True:
+        item = await chunk_queue.get()
+        if item is None:
+            break
+        if isinstance(item, Exception):
+            raise item
+        yield item
 
 
 async def buffer_to_async_generator(buffer):
@@ -147,3 +148,28 @@ def format_response(response: BaseModel, status_code=200):
         return JSONResponse(
             {"error": "Response formatting failed", "details": str(e)}, status_code=500
         )
+
+
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument("--mode", type=str, choices=["tts"], default="tts")
+    parser.add_argument(
+        "--llama-checkpoint-path",
+        type=str,
+        default="checkpoints/openaudio-s1-mini",
+    )
+    parser.add_argument(
+        "--decoder-checkpoint-path",
+        type=str,
+        default="checkpoints/openaudio-s1-mini/codec.pth",
+    )
+    parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
+    parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--half", action="store_true")
+    parser.add_argument("--compile", action="store_true")
+    parser.add_argument("--max-text-length", type=int, default=0)
+    parser.add_argument("--listen", type=str, default="127.0.0.1:8080")
+    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--api-key", type=str, default=None)
+
+    return parser.parse_args()
