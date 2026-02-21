@@ -432,6 +432,10 @@ class BaseTransformer(nn.Module):
         logger.info(f"Loading model from {path}, config: {config}")
         model = model_cls(config, tokenizer=tokenizer)
 
+        if lora_config is not None:
+            setup_lora(model, lora_config)
+            logger.info(f"LoRA setup: {lora_config}")
+
         if load_weights is False:
             logger.info("Randomly initialized model")
         else:
@@ -492,10 +496,6 @@ class BaseTransformer(nn.Module):
 
             err = model.load_state_dict(weights, strict=False, assign=True)
             logger.info(f"Model weights loaded - Status: {err}")
-
-        if lora_config is not None:
-            setup_lora(model, lora_config)
-            logger.info(f"LoRA setup: {lora_config}")
 
         return model
 
