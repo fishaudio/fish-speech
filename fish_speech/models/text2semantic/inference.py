@@ -506,8 +506,15 @@ def generate_long(
         global_encoded.append(decoded.cpu())
         assert (codes >= 0).all(), f"Negative code found: {codes}"
 
-        yield GenerateResponse(action="sample", codes=codes, text=text)
-        seg_idx += 1
+        # Yield codes in chunks of chunk_length to support streaming
+        if chunk_length > 0 and codes.shape[1] > chunk_length:
+            for i in range(0, codes.shape[1], chunk_length):
+                chunk = codes[:, i : i + chunk_length]
+                yield GenerateResponse(action="sample", codes=chunk, text=text)
+                seg_idx += 1
+        else:
+            yield GenerateResponse(action="sample", codes=codes, text=text)
+            seg_idx += 1
 
         # Force GPU memory cleanup
         del y, decoded, codes
