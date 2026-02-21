@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 SYMBOLS_MAPPING = {
     "‘": "'",
@@ -25,6 +26,13 @@ def clean_text(text):
     # Clean the text
     text = text.strip()
 
+    # Apply NFC Unicode normalization to ensure consistent character representation
+    # across all languages, including Arabic and other Unicode-based scripts.
+    # Without this, the same word can appear with different Unicode encodings
+    # (e.g., composed vs. decomposed forms), causing the tokenizer to produce
+    # different tokens for visually identical text and hurting model accuracy.
+    text = unicodedata.normalize("NFC", text)
+
     # Replace all chinese symbols with their english counterparts
     text = REPLACE_SYMBOL_REGEX.sub(lambda x: SYMBOLS_MAPPING[x.group()], text)
 
@@ -32,6 +40,7 @@ def clean_text(text):
     text = EMOJI_REGEX.sub(r"", text)
 
     # Remove continuous periods (...) and commas (,,,)
-    text = re.sub(r"[,]{2,}", lambda m: m.group()[0], text)
+    # Also handle the Arabic comma (،) to avoid repeated punctuation
+    text = re.sub(r"[,،]{2,}", lambda m: m.group()[0], text)
 
     return text
