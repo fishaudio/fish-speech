@@ -25,6 +25,11 @@ from fish_speech.tokenizer import IM_END_TOKEN
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
 torch._inductor.config.triton.unique_kernel_names = True
+# Use "spawn" so that Inductor compilation workers do not inherit the parent
+# process state (e.g. an asyncio event loop started by uvicorn), which would
+# otherwise cause them to deadlock when compile=True is used. See #834.
+if hasattr(torch._inductor.config, "worker_start_method"):
+    torch._inductor.config.worker_start_method = "spawn"
 
 if hasattr(torch._inductor.config, "fx_graph_cache"):
     # Experimental feature to reduce compilation times, will be on by default in future
