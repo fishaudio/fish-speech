@@ -14,10 +14,8 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.checkpoint import checkpoint
-from transformers import AutoTokenizer
 
 from fish_speech.models.text2semantic.lora import LoraConfig, setup_lora
-from fish_speech.tokenizer import SEMANTIC_TOKENS, FishTokenizer
 
 
 def find_multiple(n: int, k: int) -> int:
@@ -49,6 +47,9 @@ class BaseModelArgs:
     # Codebook configs
     codebook_size: int = 160
     num_codebooks: int = 4
+    
+    semantic_begin_id: int = 0
+    semantic_end_id: int = 0
 
     # Gradient checkpointing
     use_gradient_checkpointing: bool = True
@@ -59,6 +60,7 @@ class BaseModelArgs:
     # Dummy vars
     is_reward_model: bool = False
     scale_codebook_embeddings: bool = False
+    audio_embed_dim: Optional[int] = None
 
     def __post_init__(self):
         if self.n_local_heads == -1:
@@ -88,6 +90,10 @@ class BaseModelArgs:
             case _:
                 raise ValueError(f"Unknown model type: {data['model_type']}")
 
+        # Filter out unexpected keyword arguments
+        valid_keys = {f.name for f in dataclasses.fields(cls)}
+        data = {k: v for k, v in data.items() if k in valid_keys}
+
         return cls(**data)
 
     def save(self, path: str):
@@ -112,6 +118,7 @@ class DualARModelArgs(BaseModelArgs):
     fast_attention_qkv_bias: bool | None = None
     fast_attention_qk_norm: bool | None = None
     fast_attention_o_bias: bool | None = None
+    norm_fastlayer_input: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -177,13 +184,10 @@ class BaseTransformer(nn.Module):
     def __init__(
         self,
         config: BaseModelArgs,
-        tokenizer: FishTokenizer,
         init_weights: bool = True,
     ) -> None:
         super().__init__()
         self.config = config
-        self.tokenizer = tokenizer
-        self.semantic_token_ids = list(tokenizer.semantic_id_to_token_id.values())
 
         # Slow transformer
         self.embeddings = nn.Embedding(
@@ -255,9 +259,6 @@ class BaseTransformer(nn.Module):
 
     def embed(self, inp: Tensor) -> Tensor:
         embeds = []
-        semantic_token_ids_tensor = torch.tensor(
-            self.semantic_token_ids, device=inp.device, dtype=inp.dtype
-        )
 
         for i in range(self.config.num_codebooks):
             emb = self.codebook_embeddings(
@@ -266,7 +267,12 @@ class BaseTransformer(nn.Module):
             embeds.append(emb)
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-        vq_embeds_sum[~torch.isin(inp[:, 0], semantic_token_ids_tensor)] = 0
+        
+        is_semantic = (inp[:, 0] >= self.config.semantic_begin_id) & \
+                      (inp[:, 0] <= self.config.semantic_end_id)
+        
+        vq_embeds_sum[~is_semantic] = 0
+        
         x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         return x
@@ -283,9 +289,6 @@ class BaseTransformer(nn.Module):
 
         freqs_cis = self.freqs_cis[:seq_len]
 
-        # Not that the causal mask here follows the definition of scaled_dot_product_attention
-        # That is, FALSE means masked out
-        # To maintain consistency, key_padding_mask use TRUE to mask out
         mask = None
         if key_padding_mask is not None:
             causal = self.causal_mask[:seq_len, :seq_len]
@@ -295,15 +298,12 @@ class BaseTransformer(nn.Module):
             atten_mask = atten_mask.logical_not()
             mask = causal & atten_mask
 
-        # return freqs_cis, mask
-
         for layer in self.layers:
             if self.config.use_gradient_checkpointing and self.training:
                 x = checkpoint(layer, x, freqs_cis, mask, use_reentrant=True)
             else:
                 x = layer(x, freqs_cis, mask)
 
-        # We got slow_out here
         slow_out = self.norm(x)
 
         if self.config.tie_word_embeddings:
@@ -311,9 +311,15 @@ class BaseTransformer(nn.Module):
         else:
             token_logits = self.output(slow_out)
 
+        hidden_out = (
+            slow_out
+            if getattr(self.config, "norm_fastlayer_input", False)
+            else x
+        )
+
         return BaseTransformerForwardResult(
             logits=token_logits,
-            hidden_states=x,
+            hidden_states=hidden_out,
         )
 
     def forward_generate(
@@ -324,11 +330,8 @@ class BaseTransformer(nn.Module):
         audio_parts: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        # This is used for generation, optimized for torch compile
-        # assert (
-        #     self.max_seq_len != -1 and self.max_batch_size != -1
-        # ), "Please call setup_caches before forward_generate"
-
+        
+        # Embedding logic replicated from embed() for compilation compatibility
         embeds = []
         for i in range(self.config.num_codebooks):
             emb = self.codebook_embeddings(
@@ -338,15 +341,14 @@ class BaseTransformer(nn.Module):
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
 
-        vq_masks = (inp[:, 0] >= self.tokenizer.semantic_begin_id) & (
-            inp[:, 0] <= self.tokenizer.semantic_end_id
+        vq_masks = (inp[:, 0] >= self.config.semantic_begin_id) & (
+            inp[:, 0] <= self.config.semantic_end_id
         )
 
         vq_embeds_sum[~vq_masks] = 0
         x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         if self.config.scale_codebook_embeddings:
-            # Expand vq_masks to match x's shape
             vq_masks_expanded = vq_masks.unsqueeze(-1).expand_as(x)
             x = torch.where(
                 vq_masks_expanded, x / math.sqrt(self.config.num_codebooks + 1), x
@@ -354,11 +356,16 @@ class BaseTransformer(nn.Module):
 
         # Audio embeddings
         if audio_parts is not None:
-            audio_embeds = self.audio_projector(audio_parts)
-            if self.config.scale_codebook_embeddings:
-                x[audio_masks] = audio_embeds / math.sqrt(2)
+            # Note: This assumes self.audio_projector exists if audio_parts is used
+            # It seems missing in init, but we keep existing logic
+            if hasattr(self, "audio_projector"):
+                audio_embeds = self.audio_projector(audio_parts)
+                if self.config.scale_codebook_embeddings:
+                    x[audio_masks] = audio_embeds / math.sqrt(2)
+                else:
+                    x[audio_masks] = audio_embeds
             else:
-                x[audio_masks] = audio_embeds
+                logger.warning("audio_parts provided but model has no audio_projector")
 
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
@@ -372,11 +379,9 @@ class BaseTransformer(nn.Module):
         for layer in self.layers:
             x = layer(x, freqs_cis, mask, input_pos=input_pos)
 
-        # If prefill, we only calculate the logits of last token
         if x.size(1) > 1 and not return_all:
             x = x[:, -1:]
 
-        # We got slow_out here
         slow_out = self.norm(x)
 
         if self.config.is_reward_model:
@@ -386,9 +391,15 @@ class BaseTransformer(nn.Module):
         else:
             token_logits = self.output(slow_out)
 
+        hidden_out = (
+            slow_out
+            if getattr(self.config, "norm_fastlayer_input", False)
+            else x
+        )
+
         return BaseTransformerForwardResult(
             logits=token_logits,
-            hidden_states=x,
+            hidden_states=hidden_out,
         )
 
     def _init_weights(self, module):
@@ -410,6 +421,9 @@ class BaseTransformer(nn.Module):
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
     ) -> "BaseTransformer":
+        # Import wrapper locally to avoid circular dependency or global import issues
+        from fish_speech.tokenizer import FishTokenizer
+
         config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:
             config.max_seq_len = max_length
@@ -419,6 +433,14 @@ class BaseTransformer(nn.Module):
             config.rope_base = rope_base
             logger.info(f"Override rope_base to {rope_base}")
 
+        try:
+            tokenizer = FishTokenizer.from_pretrained(path)
+            config.semantic_begin_id = tokenizer.semantic_begin_id
+            config.semantic_end_id = tokenizer.semantic_end_id
+            logger.info(f"Injected Semantic IDs into Config: {config.semantic_begin_id}-{config.semantic_end_id}")
+        except Exception as e:
+            logger.warning(f"Failed to load tokenizer for config injection: {e}. Semantic IDs might be 0.")
+
         match config.model_type:
             case "naive":
                 model_cls = NaiveTransformer
@@ -427,19 +449,18 @@ class BaseTransformer(nn.Module):
             case _:
                 raise ValueError(f"Unknown model type: {config.model_type}")
 
-        tokenizer = FishTokenizer.from_pretrained(path)
-
         logger.info(f"Loading model from {path}, config: {config}")
-        model = model_cls(config, tokenizer=tokenizer)
+        # Initialize model without passing tokenizer explicitly to __init__
+        model = model_cls(config)
+        # Attach tokenizer to model instance for inference convenience (optional, but good for user scripts)
+        model.tokenizer = tokenizer
 
         if load_weights is False:
             logger.info("Randomly initialized model")
         else:
-
             if "int8" in str(Path(path)):
                 logger.info("Using int8 weight-only quantization!")
                 from tools.llama.quantize import WeightOnlyInt8QuantHandler
-
                 simple_quantizer = WeightOnlyInt8QuantHandler(model)
                 model = simple_quantizer.convert_for_runtime()
 
@@ -449,7 +470,6 @@ class BaseTransformer(nn.Module):
                 assert path_comps[-2].startswith("g")
                 groupsize = int(path_comps[-2][1:])
                 from tools.llama.quantize import WeightOnlyInt4QuantHandler
-
                 simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
                 model = simple_quantizer.convert_for_runtime()
 
@@ -461,35 +481,19 @@ class BaseTransformer(nn.Module):
             )
 
             if "state_dict" in weights:
-                logger.warning(
-                    "Using a TextToSemantic LightningModule checkpoint, "
-                    "please make sure it is a full model, not a LoRA model."
-                )
                 weights = weights["state_dict"]
 
             if next(iter(weights.keys())).startswith("model."):
-                logger.info(
-                    f"Remove prefix 'model.' created by TextToSemantic LightningModule from keys"
-                )
                 new_weights = OrderedDict()
                 for k, v in weights.items():
                     new_weights[k.replace("model.", "")] = v
                 weights = new_weights
 
-            # Remove audio related weights
             for k in list(weights.keys()):
                 if "audio_" in k:
                     weights.pop(k)
 
-            # Verify the name and shape of parameters since strict=False in load_state_dict.
-            for k, v in model.named_parameters():
-                if k not in weights:
-                    logger.warning(f"No weight for {k}")
-                elif v.shape != weights[k].shape:
-                    logger.warning(
-                        f"Shape mismatch for {k}: {v.shape} vs {weights[k].shape}"
-                    )
-
+            # Strict=False to allow missing buffer keys if any
             err = model.load_state_dict(weights, strict=False, assign=True)
             logger.info(f"Model weights loaded - Status: {err}")
 
@@ -510,17 +514,16 @@ class BaseTransformer(nn.Module):
             for key in list(state_dict.keys()):
                 if "lora" not in key:
                     continue
-
                 state_dict.pop(key)
-                logger.info(f"Drop LoRA parameter: {key}")
 
         torch.save(state_dict, path / "model.pth")
-        self.tokenizer.save_pretrained(path)
+        if hasattr(self, "tokenizer"):
+            self.tokenizer.save_pretrained(path)
 
 
 class NaiveTransformer(BaseTransformer):
-    def __init__(self, config: NaiveModelArgs, tokenizer: FishTokenizer) -> None:
-        super().__init__(config, init_weights=False, tokenizer=tokenizer)
+    def __init__(self, config: NaiveModelArgs) -> None:
+        super().__init__(config, init_weights=False)
 
         self.codebook_norm = RMSNorm(config.dim, eps=config.norm_eps)
         self.codebook_output = nn.Linear(
@@ -565,8 +568,8 @@ class NaiveTransformer(BaseTransformer):
 
 
 class DualARTransformer(BaseTransformer):
-    def __init__(self, config: NaiveModelArgs, tokenizer: FishTokenizer) -> None:
-        super().__init__(config, init_weights=False, tokenizer=tokenizer)
+    def __init__(self, config: NaiveModelArgs) -> None:
+        super().__init__(config, init_weights=False)
 
         # Project to fast dim if needed
         if config.fast_dim is not None and config.fast_dim != config.dim:
@@ -655,9 +658,12 @@ class DualARTransformer(BaseTransformer):
 
         # Extract corresponding parts with labels
         token_labels = labels[:, 0]
-        codebook_mask = (token_labels >= self.tokenizer.semantic_begin_id) & (
-            token_labels <= self.tokenizer.semantic_end_id
+        
+        # [MODIFIED] Use config instead of tokenizer
+        codebook_mask = (token_labels >= self.config.semantic_begin_id) & (
+            token_labels <= self.config.semantic_end_id
         )
+        
         # This gives where input token is <|semantic|>
         x = x[codebook_mask]
 

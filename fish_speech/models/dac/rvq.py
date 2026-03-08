@@ -351,19 +351,15 @@ class DownsampleResidualVectorQuantize(nn.Module):
     #
     def decode(self, indices: torch.Tensor):
         # indices = rearrange(indices, "b (g r) l -> g b l r", g=self.residual_fsq.groups)
-
-        # print(f"indices: {indices.shape}, semantic_quantizer.codebook_size: {self.semantic_quantizer.codebook_size}, quantizer.codebook_size: {self.quantizer.codebook_size}, semantic min: {indices[:, 0].min()}, max: {indices[:, 0].max()}, quantizer min: {indices[:, 1:].min()}, max: {indices[:, 1:].max()}")
-
-        new_indices = torch.zeros_like(indices)
-        new_indices[:, 0] = torch.clamp(
+        indices[:, 0] = torch.clamp(
             indices[:, 0], max=self.semantic_quantizer.codebook_size - 1
         )
-        new_indices[:, 1:] = torch.clamp(
+        indices[:, 1:] = torch.clamp(
             indices[:, 1:], max=self.quantizer.codebook_size - 1
         )
 
-        z_q_semantic = self.semantic_quantizer.from_codes(new_indices[:, :1])[0]
-        z_q_residual = self.quantizer.from_codes(new_indices[:, 1:])[0]
+        z_q_semantic = self.semantic_quantizer.from_codes(indices[:, :1])[0]
+        z_q_residual = self.quantizer.from_codes(indices[:, 1:])[0]
         z_q = z_q_semantic + z_q_residual
         z_q = self.post_module(z_q)
         z_q = self.upsample(z_q)

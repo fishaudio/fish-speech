@@ -24,12 +24,12 @@ def parse_args():
     parser.add_argument(
         "--llama-checkpoint-path",
         type=Path,
-        default="checkpoints/openaudio-s1-mini",
+        default="checkpoints/s2-pro",
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=Path,
-        default="checkpoints/openaudio-s1-mini/codec.pth",
+        default="checkpoints/s2-pro/codec.pth",
     )
     parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
     parser.add_argument("--device", type=str, default="cuda")
