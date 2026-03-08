@@ -526,6 +526,7 @@ def generate_long(
     max_new_tokens: int = 0,
     top_p: float = 0.9,
     top_k: int = 30,
+    repetition_penalty: float = 1.1,
     temperature: float = 1.0,
     compile: bool = False,
     iterative_prompt: bool = True,
@@ -536,7 +537,7 @@ def generate_long(
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
 
-    use_prompt = prompt_text is not None and prompt_tokens is not None
+    use_prompt = bool(prompt_text) and bool(prompt_tokens)
     if use_prompt and isinstance(prompt_text, str):
         prompt_text = [prompt_text]
         prompt_tokens = [prompt_tokens]

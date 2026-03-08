@@ -14,16 +14,10 @@ class VQManager:
         self.load_audio: Callable
 
     def decode_vq_tokens(self, codes):
-        feature_lengths = torch.tensor(
-            [codes.shape[1]], device=self.decoder_model.device
-        )
         logger.info(f"VQ features: {codes.shape}")
 
         if isinstance(self.decoder_model, DAC):
-            return self.decoder_model.decode(
-                indices=codes[None],
-                feature_lengths=feature_lengths,
-            )[0].squeeze()
+            return self.decoder_model.from_indices(codes[None])[0].squeeze()
 
         raise ValueError(f"Unknown model type: {type(self.decoder_model)}")
 
