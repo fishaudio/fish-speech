@@ -126,13 +126,13 @@ def decode_one_token_ar(
     # Use high-temp sample if: token is semantic AND token is in previous window
     if previous_tokens is not None:
         in_window = (previous_tokens[0] == main_token_normal).any()
-        # [MODIFIED] Access config instead of tokenizer for torch.compile compatibility
+        # Use tensor ops (&, torch.where) instead of Python (and, if) — torch.compile requires no data-dependent branching
         is_semantic = (
-            main_token_normal >= model.config.semantic_begin_id
-        ) and (main_token_normal <= model.config.semantic_end_id)
-        
-        if in_window and is_semantic:
-            main_token_normal = main_token_high
+            (main_token_normal >= model.config.semantic_begin_id)
+            & (main_token_normal <= model.config.semantic_end_id)
+        )
+        should_use_high = in_window & is_semantic
+        main_token_normal = torch.where(should_use_high, main_token_high, main_token_normal)
 
     codebooks = [main_token_normal]
 

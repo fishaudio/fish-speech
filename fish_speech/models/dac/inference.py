@@ -87,7 +87,7 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
 
         # VQ Encoder
         audio_lengths = torch.tensor([audios.shape[2]], device=device, dtype=torch.long)
-        indices, indices_lens = model.encode(audios, audio_lengths)
+        indices, _ = model.encode(audios, audio_lengths)
 
         if indices.ndim == 3:
             indices = indices[0]
@@ -101,12 +101,15 @@ def main(input_path, output_path, config_name, checkpoint_path, device):
         indices = np.load(input_path)
         indices = torch.from_numpy(indices).to(device).long()
         assert indices.ndim == 2, f"Expected 2D indices, got {indices.ndim}"
-        indices_lens = torch.tensor([indices.shape[1]], device=device, dtype=torch.long)
+        # indices_lens = torch.tensor([indices.shape[1]], device=device, dtype=torch.long)
     else:
         raise ValueError(f"Unknown input type: {input_path}")
 
     # Restore
-    fake_audios, audio_lengths = model.decode(indices, indices_lens)
+    if indices.ndim == 2:
+        indices = indices.unsqueeze(0)
+
+    fake_audios = model.from_indices(indices)
     audio_time = fake_audios.shape[-1] / model.sample_rate
 
     logger.info(
