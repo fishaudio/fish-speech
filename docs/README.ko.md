@@ -41,7 +41,7 @@
 
 > [!IMPORTANT]
 > **라이선스 고지사항**
-> 이 코드베이스는 **Apache License** 하에 릴리스되며, 모든 모델 가중치는 **CC-BY-NC-SA-4.0 License** 하에 릴리스됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하세요.
+> 이 코드베이스 및 관련 모델 가중치는 **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** 하에 릴리스됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하세요.
 
 > [!WARNING]
 > **법적 면책조항**

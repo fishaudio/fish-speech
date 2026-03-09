@@ -42,7 +42,7 @@
 </div>
 
 !!! info "许可声明"
-    此代码库在 **Apache License** 下发布，所有模型权重在 **CC-BY-NC-SA-4.0 License** 下发布。更多详情请参考 [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE)。
+    此代码库及其相关的模型权重均在 **FISH AUDIO RESEARCH LICENSE** 下发布。更多详情请参考 [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE)。
 
 !!! warning "法律免责声明"
     我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的法规。

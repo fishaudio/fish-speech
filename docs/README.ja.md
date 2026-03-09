@@ -41,7 +41,7 @@
 
 > [!IMPORTANT]
 > **ライセンス注意事項**
-> このコードベースは **Apache License** の下でリリースされ、すべてのモデルウェイトは **CC-BY-NC-SA-4.0 License** の下でリリースされています。詳細については [LICENSE](../LICENSE) をご参照ください。
+> このコードベースおよび関連するモデルウェイトは **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** の下でリリースされています。詳細については [LICENSE](../LICENSE) をご参照ください。
 
 > [!WARNING]
 > **法的免責事項**

@@ -42,7 +42,7 @@
 </div>
 
 !!! info "ライセンス通知"
-    このコードベースは **Apache License** の下でリリースされており、すべてのモデルの重みは **CC-BY-NC-SA-4.0 License** の下でリリースされています。詳細は [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) を参照してください。
+    このコードベースおよび関連するモデルの重みは **FISH AUDIO RESEARCH LICENSE** の下でリリースされています。詳細は [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) を参照してください。
 
 !!! warning "法的免責事項"
     私たちは、コードベースのいかなる違法な使用に対しても責任を負いません。DMCA およびその他の関連法に関する現地の規制を参照してください。

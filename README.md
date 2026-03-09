@@ -41,7 +41,7 @@
 
 > [!IMPORTANT]
 > **License Notice**  
-> This codebase is released under **Apache License** and all model weights are released under **CC-BY-NC-SA-4.0 License**. Please refer to [LICENSE](LICENSE) for more details.
+> This codebase and its associated model weights are released under **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Please refer to [LICENSE](LICENSE) for more details.
 
 > [!WARNING]
 > **Legal Disclaimer**  

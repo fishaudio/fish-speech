@@ -41,7 +41,7 @@
 
 > [!IMPORTANT]
 > **Aviso de Licença**
-> Este repositório é lançado sob a **Apache License** e todos os pesos do modelo são lançados sob a **CC-BY-NC-SA-4.0 License**. Consulte [LICENSE](../LICENSE) para obter mais detalhes.
+> Este repositório e os pesos de modelo associados são lançados sob a **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. Consulte [LICENSE](../LICENSE) para obter mais detalhes.
 
 > [!WARNING]
 > **Isenção de Responsabilidade Legal**

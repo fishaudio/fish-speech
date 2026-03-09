@@ -42,7 +42,7 @@
 </div>
 
 !!! info "라이선스 공지"
-    이 코드베이스는 **Apache License** 하에 릴리스되었으며, 모든 모델 가중치는 **CC-BY-NC-SA-4.0 License** 하에 릴리스되었습니다. 자세한 내용은 [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE)를 참조하십시오.
+    이 코드베이스 및 관련 모델 가중치는 **FISH AUDIO RESEARCH LICENSE** 하에 릴리스되었습니다. 자세한 내용은 [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE)를 참조하십시오.
 
 !!! warning "법적 면책 조항"
     코드베이스의 불법적인 사용에 대해 당사는 어떠한 책임도 지지 않습니다. DMCA 및 기타 관련 법률에 관한 현지 규정을 참조하십시오.

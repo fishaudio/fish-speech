@@ -42,7 +42,7 @@
 </div>
 
 !!! info "Aviso de Licença"
-    Este repositório é lançado sob a **Licença Apache** e todos os pesos do modelo são lançados sob a **Licença CC-BY-NC-SA-4.0**. Consulte [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para mais detalhes.
+    Este repositório e todos os pesos de modelo associados são lançados sob a **FISH AUDIO RESEARCH LICENSE**. Consulte [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para mais detalhes.
 
 !!! warning "Isenção de Responsabilidade Legal"
     Não nos responsabilizamos por qualquer uso ilegal da base de códigos. Consulte as regulamentações locais sobre DMCA e outras leis relacionadas.
