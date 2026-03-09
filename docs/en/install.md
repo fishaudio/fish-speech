@@ -1,11 +1,11 @@
 ## Requirements
 
-- GPU Memory: 12GB (Inference)
+- GPU Memory: 24GB (Inference)
 - System: Linux, WSL
 
 ## System Setup
 
-OpenAudio supports multiple installation methods. Choose the one that best fits your development environment.
+Fish Audio S2 supports multiple installation methods. Choose the one that best fits your development environment.
 
 **Prerequisites**: Install system dependencies for audio processing:
 ``` bash
@@ -26,6 +26,10 @@ pip install -e .[cpu]
 
 # Default installation (uses PyTorch default index)
 pip install -e .
+
+# If you encounter an error during installation due to pyaudio, consider using the following command:
+# conda install pyaudio
+# Then run pip install -e . again
 ```
 
 ### UV
@@ -63,7 +67,7 @@ pip install -e .
 
 ## Docker Setup
 
-OpenAudio S1 series model provides multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
+Fish Audio S2 series model provides multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
 
 We provided Docker images for both WebUI and API server on both GPU(CUDA126 for default) and CPU. You can use the pre-built images from Docker Hub, or build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you just want to use the pre-built images, follow [inference guide](en/inference.md) to use directly.
 
@@ -71,7 +75,7 @@ We provided Docker images for both WebUI and API server on both GPU(CUDA126 for 
 
 - Docker and Docker Compose installed
 - NVIDIA Docker runtime (for GPU support)
-- At least 12GB GPU memory for CUDA inference
+- At least 24GB GPU memory for CUDA inference
 
 # Use docker compose
 

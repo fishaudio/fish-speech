@@ -13,8 +13,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "numpy<=1.26.4",
-    "transformers>=4.45.2",
+    "numpy",
+    "transformers<=4.57.3",
     "datasets==2.18.0",
     "lightning>=2.1.0",
     "hydra-core>=1.3.2",
@@ -44,28 +44,29 @@ dependencies = [
     "pydantic==2.9.2",
     "cachetools",
     "descript-audio-codec",
-    "descript-audiotools"
+    "descript-audiotools",
+    "liger_kernel"
 ]
 
 [project.optional-dependencies]
 stable = [
-    "torch<2.9.0",
+    "torch==2.8.0",
     "torchaudio",
 ]
 cpu = [
-  "torch>=2.5.1",
+  "torch==2.8.0",
   "torchaudio",
 ]
 cu126 = [
-  "torch>=2.5.1",
+  "torch==2.8.0",
   "torchaudio",
 ]
 cu128 = [
-  "torch>=2.5.1",
+  "torch==2.8.0",
   "torchaudio",
 ]
 cu129 = [
-  "torch>=2.5.1",
+  "torch==2.8.0",
   "torchaudio",
 ]
 

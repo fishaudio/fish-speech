@@ -1,11 +1,11 @@
 ## Requisitos
 
-- Memória da GPU: 12GB (Inferência)
+- Memória da GPU: 24GB (Inferência)
 - Sistema: Linux, WSL
 
 ## Configuração do Sistema
 
-O OpenAudio suporta múltiplos métodos de instalação. Escolha o que melhor se adapta ao seu ambiente de desenvolvimento.
+O Fish Audio S2 suporta múltiplos métodos de instalação. Escolha o que melhor se adapta ao seu ambiente de desenvolvimento.
 
 **Pré-requisitos**: Instale as dependências de sistema para processamento de áudio:
 ``` bash
@@ -26,6 +26,10 @@ pip install -e .[cpu]
 
 # Instalação padrão (usa o índice padrão do PyTorch)
 pip install -e .
+
+# Se encontrar um erro durante a instalação devido ao pyaudio, considere usar o seguinte comando:
+# conda install pyaudio
+# De seguida, execute pip install -e . novamente
 ```
 
 ### UV
@@ -63,7 +67,7 @@ pip install -e .
 
 ## Configuração do Docker
 
-O modelo da série OpenAudio S1 oferece múltiplas opções de implementação com Docker para satisfazer diferentes necessidades. Pode usar imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas.
+O modelo da série Fish Audio S2 oferece múltiplas opções de implementação com Docker para satisfazer diferentes necessidades. Pode usar imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas.
 
 Fornecemos imagens Docker para a WebUI e o servidor API, tanto para GPU (CUDA 12.6 por defeito) como para CPU. Pode usar as imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas. Se quiser construir localmente, siga as instruções abaixo. Se apenas quiser usar as imagens pré-construídas, siga diretamente o [guia de inferência](inference.md).
 
@@ -71,7 +75,7 @@ Fornecemos imagens Docker para a WebUI e o servidor API, tanto para GPU (CUDA 12
 
 - Docker e Docker Compose instalados
 - NVIDIA Docker runtime instalado (para suporte de GPU)
-- Pelo menos 12GB de memória de GPU para inferência com CUDA
+- Pelo menos 24GB de memória de GPU para inferência com CUDA
 
 ### Usar o Docker Compose
 

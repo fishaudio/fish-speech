@@ -1,11 +1,11 @@
 ## 요구 사양
 
-- GPU 메모리: 12GB (추론 시)
+- GPU 메모리: 24GB (추론 시)
 - 시스템: Linux, WSL
 
 ## 시스템 설정
 
-OpenAudio는 다양한 설치 방법을 지원합니다. 자신의 개발 환경에 가장 적합한 방법을 선택하세요.
+Fish Audio S2는 다양한 설치 방법을 지원합니다. 자신의 개발 환경에 가장 적합한 방법을 선택하세요.
 
 **사전 요구사항**: 오디오 처리를 위한 시스템 의존성을 설치합니다:
 ``` bash
@@ -26,6 +26,10 @@ pip install -e .[cpu]
 
 # 기본 설치 (PyTorch 기본 인덱스 사용)
 pip install -e .
+
+# pyaudio 설치 중 오류가 발생하면 다음 명령을 사용해 보세요:
+# conda install pyaudio
+# 그런 다음 pip install -e . 를 다시 실행하세요
 ```
 
 ### UV
@@ -63,7 +67,7 @@ pip install -e .
 
 ## Docker 설정
 
-OpenAudio S1 시리즈 모델은 다양한 요구에 부응하기 위해 여러 Docker 배포 옵션을 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다.
+Fish Audio S2 시리즈 모델은 다양한 요구에 부응하기 위해 여러 Docker 배포 옵션을 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다.
 
 WebUI와 API 서버 모두에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 Docker 이미지를 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다. 로컬에서 빌드하려면 아래 지침을 따르세요. 사전 빌드된 이미지를 사용하려면 [추론 가이드](inference.md)를 직접 참조하세요.
 
@@ -71,7 +75,7 @@ WebUI와 API 서버 모두에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 
 
 - Docker 및 Docker Compose 설치
 - NVIDIA Docker 런타임 설치 (GPU 지원용)
-- CUDA 추론을 위한 최소 12GB의 GPU 메모리
+- CUDA 추론을 위한 최소 24GB의 GPU 메모리
 
 ### Docker Compose 사용
 
