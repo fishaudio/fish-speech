@@ -641,7 +641,7 @@ def generate_long(
                     role="assistant",
                     parts=[],
                     cal_loss=False,
-                    modality=None,
+                    modality="voice",
                     add_im_start=True,
                     add_im_end=False,
                 )

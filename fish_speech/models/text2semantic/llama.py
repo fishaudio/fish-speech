@@ -87,6 +87,8 @@ class BaseModelArgs:
                 cls = NaiveModelArgs
             case "dual_ar":
                 cls = DualARModelArgs
+            case "fish_qwen3_omni":
+                return BaseModelArgs._from_fish_qwen3_omni(data)
             case _:
                 raise ValueError(f"Unknown model type: {data['model_type']}")
 
@@ -95,6 +97,50 @@ class BaseModelArgs:
         data = {k: v for k, v in data.items() if k in valid_keys}
 
         return cls(**data)
+
+    @staticmethod
+    def _from_fish_qwen3_omni(data: dict) -> "DualARModelArgs":
+        tc = data["text_config"]
+        adc = data["audio_decoder_config"]
+        flat = dict(
+            model_type="dual_ar",
+            vocab_size=tc["vocab_size"],
+            n_layer=tc["n_layer"],
+            n_head=tc["n_head"],
+            n_local_heads=tc.get("n_local_heads", -1),
+            head_dim=tc.get("head_dim"),
+            dim=tc["dim"],
+            intermediate_size=tc.get("intermediate_size"),
+            rope_base=tc.get("rope_base", 10000),
+            norm_eps=tc.get("norm_eps", 1e-5),
+            max_seq_len=tc.get("max_seq_len", 2048),
+            dropout=tc.get("dropout", 0.0),
+            tie_word_embeddings=tc.get("tie_word_embeddings", True),
+            attention_qkv_bias=tc.get("attention_qkv_bias", False),
+            attention_o_bias=tc.get("attention_o_bias", False),
+            attention_qk_norm=tc.get("attention_qk_norm", False),
+            use_gradient_checkpointing=tc.get("use_gradient_checkpointing", True),
+            initializer_range=tc.get("initializer_range", 0.02),
+            semantic_begin_id=data.get("semantic_start_token_id", 0),
+            semantic_end_id=data.get("semantic_end_token_id", 0),
+            scale_codebook_embeddings=True,
+            norm_fastlayer_input=True,
+            audio_embed_dim=adc.get("text_dim", tc["dim"]),
+            codebook_size=adc["vocab_size"],
+            num_codebooks=adc["num_codebooks"],
+            n_fast_layer=adc["n_layer"],
+            fast_dim=adc.get("dim"),
+            fast_n_head=adc.get("n_head"),
+            fast_n_local_heads=adc.get("n_local_heads"),
+            fast_head_dim=adc.get("head_dim"),
+            fast_intermediate_size=adc.get("intermediate_size"),
+            fast_attention_qkv_bias=adc.get("attention_qkv_bias"),
+            fast_attention_qk_norm=adc.get("attention_qk_norm"),
+            fast_attention_o_bias=adc.get("attention_o_bias"),
+        )
+        valid_keys = {f.name for f in dataclasses.fields(DualARModelArgs)}
+        flat = {k: v for k, v in flat.items() if k in valid_keys and v is not None}
+        return DualARModelArgs(**flat)
 
     def save(self, path: str):
         with open(path, "w") as f:
@@ -178,6 +224,22 @@ class TransformerForwardResult:
 class BaseTransformerForwardResult:
     logits: Tensor
     hidden_states: Tensor
+
+
+def _remap_fish_qwen3_omni_keys(weights: OrderedDict) -> OrderedDict:
+    if not any(k.startswith(("text_model.", "audio_decoder.")) for k in weights):
+        return weights
+    new_weights = OrderedDict()
+    for k, v in weights.items():
+        if k.startswith("text_model.model."):
+            new_key = k[len("text_model.model."):]
+        elif k.startswith("audio_decoder."):
+            suffix = k[len("audio_decoder."):]
+            new_key = suffix if suffix.startswith("codebook_embeddings.") else "fast_" + suffix
+        else:
+            new_key = k
+        new_weights[new_key] = v
+    return new_weights
 
 
 class BaseTransformer(nn.Module):
@@ -473,27 +535,45 @@ class BaseTransformer(nn.Module):
                 simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
                 model = simple_quantizer.convert_for_runtime()
 
-            weights = torch.load(
-                Path(path) / "model.pth",
-                map_location="cpu",
-                mmap=True,
-                weights_only=True,
-            )
+            path_obj = Path(path)
+            index_json = path_obj / "model.safetensors.index.json"
+            single_st = path_obj / "model.safetensors"
+            pth_file = path_obj / "model.pth"
 
-            if "state_dict" in weights:
-                weights = weights["state_dict"]
+            if index_json.exists():
+                logger.info("Loading sharded safetensors weights")
+                from safetensors.torch import load_file as st_load_file
+                with open(index_json) as f:
+                    st_index = json.load(f)
+                shard_files = sorted(set(st_index["weight_map"].values()))
+                weights = OrderedDict()
+                for shard in shard_files:
+                    weights.update(st_load_file(str(path_obj / shard), device="cpu"))
+                weights = _remap_fish_qwen3_omni_keys(weights)
+            elif single_st.exists():
+                logger.info("Loading single safetensors weights")
+                from safetensors.torch import load_file as st_load_file
+                weights = OrderedDict(st_load_file(str(single_st), device="cpu"))
+                weights = _remap_fish_qwen3_omni_keys(weights)
+            elif pth_file.exists():
+                weights = torch.load(
+                    pth_file,
+                    map_location="cpu",
+                    mmap=True,
+                    weights_only=True,
+                )
+                if "state_dict" in weights:
+                    weights = weights["state_dict"]
+                if weights and next(iter(weights.keys())).startswith("model."):
+                    weights = OrderedDict(
+                        (k.replace("model.", ""), v) for k, v in weights.items()
+                    )
+                for k in list(weights.keys()):
+                    if "audio_" in k:
+                        weights.pop(k)
+            else:
+                raise FileNotFoundError(f"No model weights found in {path_obj}")
 
-            if next(iter(weights.keys())).startswith("model."):
-                new_weights = OrderedDict()
-                for k, v in weights.items():
-                    new_weights[k.replace("model.", "")] = v
-                weights = new_weights
-
-            for k in list(weights.keys()):
-                if "audio_" in k:
-                    weights.pop(k)
-
-            # Strict=False to allow missing buffer keys if any
             err = model.load_state_dict(weights, strict=False, assign=True)
             logger.info(f"Model weights loaded - Status: {err}")
 
