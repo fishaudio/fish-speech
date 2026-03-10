@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | **简体中文** | [Portuguese](../README.pt-BR.md) | [日本語](../README.ja.md) | [한국어](../README.ko.md) | [العربية](../README.ar.md) <br>
+<p><a href="../en/">English</a> | <strong>简体中文</strong> | <a href="../pt/">Portuguese</a> | <a href="../ja/">日本語</a> | <a href="../ko/">한국어</a> | <a href="../ar/">العربية</a></p>
 
 <a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Expressive&#0032;Voice&#0032;Cloning&#0032;and&#0032;Text&#0045;to&#0045;Speech | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 <a href="https://trendshift.io/repositories/7014" target="_blank">
@@ -30,14 +30,14 @@
 </div>
 
 <div align="center">
-    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
-      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
-    </a>
-    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
-        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
-    </a>
-    <a target="_blank" href="https://huggingface.co/fishaudio/openaudio-s1-mini">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+    <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
+        <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
+    </a>
+    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
+        <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Tecnical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
@@ -47,51 +47,89 @@
 !!! warning "法律免责声明"
     我们不对代码库的任何非法使用承担责任。请参考您当地关于 DMCA 和其他相关法律的法规。
 
-## 从这里开始
+## 快速开始
 
-这里是 Fish Speech 的官方文档，请按照说明轻松入门。
+### 文档入口
 
-- [安装](install.md)
-- [命令行推理](inference.md)
-- [WebUI 推理](inference.md)
-- [服务端推理](server.md)
-- [Docker 部署](install.md)
+这里是 Fish Audio S2 的官方文档，请按照说明轻松入门。
 
-!!! note
-    如需 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。
+- [安装](https://speech.fish.audio/zh/install/)
+- [命令行推理](https://speech.fish.audio/zh/inference/)
+- [WebUI 推理](https://speech.fish.audio/zh/inference/)
+- [服务端推理](https://speech.fish.audio/zh/server/)
+- [Docker 部署](https://speech.fish.audio/zh/install/)
+
+> [!IMPORTANT]
+> **如需使用 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。**
 
 ### LLM Agent 指南
 
-```text
+```
 请先阅读 https://speech.fish.audio/zh/install/ ，并按文档安装和配置 Fish Audio S2。
 ```
 
 ## Fish Audio S2
-**开源和闭源中最出色的文本转语音系统**
+**在开源与闭源方案中都处于领先水平的文本转语音系统**
 
-Fish Audio S2 是由 [Fish Audio](https://fish.audio/) 开发的最新模型，旨在生成听起来自然、真实且情感丰富的语音——不机械、不平淡，也不局限于录音室风格的朗读。
+Fish Audio S2 是由 [Fish Audio](https://fish.audio/) 开发的最新模型。S2 在约 50 种语言、超过 1000 万小时音频数据上完成训练，并结合强化学习对齐与双自回归架构，能够生成自然、真实且情感丰富的语音。
 
-Fish Audio S2 专注于日常对话，支持原生多说话人和多轮生成。同时支持指令控制。
+S2 支持通过自然语言标签（如 `[laugh]`、`[whispers]`、`[super happy]`）对韵律和情绪进行细粒度行内控制，同时原生支持多说话人和多轮生成。
 
-S2 系列包含多个模型，开源模型为 S2-Pro，是该系列中性能最强的模型。
-
-请访问 [Fish Audio 网站](https://fish.audio/) 以获取实时体验。
+请访问 [Fish Audio 网站](https://fish.audio/) 体验在线演示，并阅读[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)了解更多细节。
 
 ### 模型变体
 
 | 模型 | 大小 | 可用性 | 描述 |
 |------|------|-------------|-------------|
-| S2-Pro | 4B 参数 | [huggingface](https://huggingface.co/fishaudio/s2-pro) | 功能齐全的旗舰模型，具有最高质量和稳定性 |
+| S2-Pro | 4B 参数 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 功能齐全的旗舰模型，具有最高质量和稳定性 |
 
-有关模型的更多详情，请参见技术报告。
+有关模型的更多详情，请参见[技术报告](https://arxiv.org/abs/2411.01156)。
+
+## 基准测试结果
+
+| 基准 | Fish Audio S2 |
+|------|------|
+| Seed-TTS Eval — WER（中文） | **0.54%**（总体最佳） |
+| Seed-TTS Eval — WER（英文） | **0.99%**（总体最佳） |
+| Audio Turing Test（含指令） | **0.515** 后验均值 |
+| EmergentTTS-Eval — 胜率 | **81.88%**（总体最高） |
+| Fish Instruction Benchmark — TAR | **93.3%** |
+| Fish Instruction Benchmark — 质量 | **4.51 / 5.0** |
+| 多语言（MiniMax Testset）— 最佳 WER | **24** 种语言中的 **11** 种 |
+| 多语言（MiniMax Testset）— 最佳 SIM | **24** 种语言中的 **17** 种 |
+
+在 Seed-TTS Eval 上，S2 在所有已评估模型（包括闭源系统）中实现了最低 WER：Qwen3-TTS（0.77/1.24）、MiniMax Speech-02（0.99/1.90）、Seed-TTS（1.12/2.25）。在 Audio Turing Test 上，S2 的 0.515 相比 Seed-TTS（0.417）提升 24%，相比 MiniMax-Speech（0.387）提升 33%。在 EmergentTTS-Eval 中，S2 在副语言学（91.61% 胜率）、疑问句（84.41%）和句法复杂度（83.39%）等维度表现尤为突出。
 
 ## 亮点
 
 <img src="../assets/totalability.png" width=200%>
 
-### 自然语言控制
+### 通过自然语言进行细粒度行内控制
 
-Fish Audio S2 允许用户使用自然语言去控制每一句内容的表现，副语言信息，情绪以及更多语音特征，而不单单局限于使用简短的标签去模糊地控制模型的表现，这极大的提高了生成内容整体的质量。
+Fish Audio S2 支持在文本中的特定词或短语位置直接嵌入自然语言指令，从而对语音生成进行局部控制。与依赖固定预设标签不同，S2 接受自由形式的文本描述，例如 [whisper in small voice]、[professional broadcast tone] 或 [pitch up]，实现词级别的开放式表达控制。
+
+### 双自回归架构（Dual-Autoregressive）
+
+S2 基于仅解码器 Transformer，并结合 RVQ 音频编解码器（10 个码本，约 21 Hz 帧率）。Dual-AR 架构将生成拆分为两个阶段：
+
+- **Slow AR** 沿时间轴运行，预测主语义码本。
+- **Fast AR** 在每个时间步生成剩余 9 个残差码本，用于重建细粒度声学细节。
+
+这种非对称设计（时间轴 4B 参数、深度轴 400M 参数）在保持音频保真度的同时，提高了推理效率。
+
+### 强化学习对齐
+
+S2 使用 Group Relative Policy Optimization（GRPO）进行后训练对齐。用于过滤和标注训练数据的同一批模型被直接复用为 RL 的奖励模型，从而避免了预训练数据分布与后训练目标之间的不匹配。奖励信号综合了语义准确性、指令遵循、声学偏好评分与音色相似度。
+
+### 基于 SGLang 的生产级流式推理
+
+由于 Dual-AR 架构在结构上与标准自回归 LLM 同构，S2 可以直接继承 SGLang 提供的 LLM 原生服务优化能力，包括连续批处理、分页 KV Cache、CUDA Graph Replay 与基于 RadixAttention 的前缀缓存。
+
+在单张 NVIDIA H200 GPU 上：
+
+- **实时因子（RTF）：** 0.195
+- **首音频延迟：** 约 100 ms
+- **吞吐：** 在 RTF 低于 0.5 的情况下达到 3,000+ acoustic tokens/s
 
 ### 多语言支持
 

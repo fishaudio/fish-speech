@@ -96,6 +96,7 @@ filelists/
 .pgx.*
 *log
 *.log
+site/
 
 # External Tools
 # --------------

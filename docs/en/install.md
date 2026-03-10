@@ -62,14 +62,14 @@ pip install -e .
 ```
 
 !!! warning
-    The `compile` option is not supported on windows and macOS, if you want to run with compile, you need to install trition by yourself.
+    The `compile` option is not supported on Windows and macOS. If you want to run with compile, you need to install Triton manually.
 
 
 ## Docker Setup
 
 Fish Audio S2 series model provides multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
 
-We provided Docker images for both WebUI and API server on both GPU(CUDA126 for default) and CPU. You can use the pre-built images from Docker Hub, or build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you just want to use the pre-built images, follow [inference guide](en/inference.md) to use directly.
+We provide Docker images for both WebUI and API server on both GPU (CUDA126 by default) and CPU. You can use the pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you only want to use pre-built images, follow the [inference guide](inference.md).
 
 ### Prerequisites
 
@@ -115,7 +115,7 @@ API_PORT=8080            # API server port
 UV_VERSION=0.8.15        # UV package manager version
 ```
 
-The comand will build the image and run the container. You can access the WebUI at `http://localhost:7860` and the API server at `http://localhost:8080`.
+The command will build the image and run the container. You can access the WebUI at `http://localhost:7860` and the API server at `http://localhost:8080`.
 
 ### Manual Docker Build
 
