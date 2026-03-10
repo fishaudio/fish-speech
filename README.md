@@ -81,6 +81,7 @@ Visit the [Fish Audio website](https://fish.audio/) for live playground. Read th
 | Model | Size | Availability | Description |
 |------|------|-------------|-------------|
 | S2-Pro | 4B parameters | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability | 
+
 More details of the model can be found in the [technical report](https://arxiv.org/abs/2411.01156).
 
 ## Benchmark Results
