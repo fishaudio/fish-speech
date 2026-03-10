@@ -64,8 +64,7 @@ SGLang 서버는 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni
 ### LLM Agent 가이드
 
 ```
-Fish Audio S2 설치 전 https://speech.fish.audio/ko/install/ 문서를 먼저 읽고 conda 환경을 준비하세요.
-추론은 https://speech.fish.audio/ko/inference/ 문서를 참고하세요.
+https://speech.fish.audio/ko/install/ 문서를 따라 Fish Audio S2를 설치하고 구성하세요.
 ```
 
 ## Fish Audio S2
@@ -82,7 +81,6 @@ S2는 `[laugh]`, `[whispers]`, `[super happy]` 같은 자연어 태그를 사용
 | 모델 | 크기 | 가용성 | 설명 |
 |------|------|-------------|-------------|
 | S2-Pro | 4B 매개변수 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 최고 수준의 품질과 안정성을 제공하는 풀기능 플래그십 모델 |
-| S2-Flash | — | [fish.audio](https://fish.audio/) | 더 빠른 속도와 낮은 지연 시간의 클로즈드 소스 모델 |
 
 모델 상세는 [기술 보고서](https://arxiv.org/abs/2411.01156)를 참고하세요.
 
@@ -155,6 +153,7 @@ Fish Audio S2는 사용자가 여러 화자가 포함된 참조 오디오를 업
 ### 빠른 음성 복제
 
 Fish Audio S2는 짧은 참조 샘플(일반적으로 10-30초)을 사용하여 정확한 음성 복제를 지원합니다. 모델은 음색, 말하기 스타일 및 감정적 경향을 캡처하여 추가 미세 조정 없이 사실적이고 일관된 복제 음성을 생성합니다.
+SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 를 참고하세요.
 
 ---
 

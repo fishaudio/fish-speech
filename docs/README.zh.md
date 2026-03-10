@@ -65,8 +65,7 @@
 ### LLM Agent 指南
 
 ```
-安装 Fish Audio S2 请先阅读 https://speech.fish.audio/zh/install/ 并创建 conda 环境。
-推理请阅读 https://speech.fish.audio/zh/inference/ 。
+请先阅读 https://speech.fish.audio/zh/install/ ，并按文档安装和配置 Fish Audio S2。
 ```
 
 ## Fish Audio S2
@@ -83,7 +82,6 @@ S2 支持通过自然语言标签（如 `[laugh]`、`[whispers]`、`[super happy
 | 模型 | 大小 | 可用性 | 描述 |
 |------|------|-------------|-------------|
 | S2-Pro | 4B 参数 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 功能齐全的旗舰模型，具有最高质量和稳定性 |
-| S2-Flash | — | [fish.audio](https://fish.audio/) | 我们的闭源模型，速度更快、延迟更低 |
 
 有关模型的更多详情，请参见[技术报告](https://arxiv.org/abs/2411.01156)。
 
@@ -156,6 +154,7 @@ Fish Audio S2 允许用户上传包含多个说话人的参考音频，模型将
 ### 快速语音克隆
 
 Fish Audio S2 支持使用短参考样本（通常为 10-30 秒）进行准确的语音克隆。模型可以捕捉音色、说话风格和情感倾向，无需额外微调即可生成逼真且一致的克隆语音。
+如需使用 SGLang Server，请参考 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 。
 
 ---
 
