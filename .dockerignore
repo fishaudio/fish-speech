@@ -139,7 +139,6 @@ azure-pipelines.yml
 
 # Large data files
 *.csv
-*.json
 *.jsonl
 *.parquet
 *.h5

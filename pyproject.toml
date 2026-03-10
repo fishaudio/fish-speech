@@ -14,6 +14,8 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
     "transformers<=4.57.3",
     "datasets==2.18.0",
     "lightning>=2.1.0",
@@ -45,7 +47,7 @@ dependencies = [
     "cachetools",
     "descript-audio-codec",
     "descript-audiotools",
-    "liger_kernel"
+    "safetensors"
 ]
 
 [project.optional-dependencies]

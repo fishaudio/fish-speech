@@ -78,9 +78,9 @@ More details of the model can be found in the technical report.
 
 <img src="./docs/assets/totalability.png" width=200%>
 
-### Natural language control
+### Fine-Grained Inline Control via Natural Language
 
-Fish Audio S2 allows users to use natural language to control the performance, paralinguistic information, emotions, and more voice features of each sentence, rather than just being limited to using short tags to vaguely control the model's performance. This greatly improves the overall quality of the generated content.
+Fish Audio S2 enables localized control over speech generation by embedding natural-language instructions directly at specific word or phrase positions within the text. Rather than relying on a fixed set of predefined tags, S2 accepts free-form textual descriptions — such as [whisper in small voice], [professional broadcast tone], or [pitch up] — allowing open-ended expression control at the word level.
 
 ### Multilingual Support
 

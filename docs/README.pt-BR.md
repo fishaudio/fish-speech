@@ -78,9 +78,9 @@ Mais detalhes do modelo podem ser encontrados no relatório técnico.
 
 <img src="./assets/totalability.png" width=200%>
 
-### Controle de Linguagem Natural
+### Controle Inline Refinado via Linguagem Natural
 
-O Fish Audio S2 permite que os usuários usem linguagem natural para controlar a expressão de cada frase, informações paralinguísticas, emoções e outras características de voz. Em vez de simplesmente usar etiquetas curtas para controlar vagamente o desempenho do modelo, isso melhora significativamente a qualidade geral do conteúdo gerado.
+O Fish Audio S2 permite controle localizado da geração de fala ao incorporar instruções em linguagem natural diretamente em posições específicas de palavras ou frases no texto. Em vez de depender de um conjunto fixo de tags predefinidas, o S2 aceita descrições textuais livres, como [whisper in small voice], [professional broadcast tone] ou [pitch up], permitindo controle de expressão aberto no nível da palavra.
 
 ### Suporte Multilíngue
 
