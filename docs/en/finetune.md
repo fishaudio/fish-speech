@@ -1,6 +1,7 @@
 # Fine-tuning
 
-Obviously, when you opened this page, you were not satisfied with the performance of the zero-shot pre-trained model. You want to fine-tune a model to improve its performance on your dataset.
+!!! warning 
+    We highly do note recoomand users to do fine-tuning on an RL trained model. Fine-tuning a model after RL can shift the model distribution, which may lead to degraded performance.
 
 In the current version, you only need to finetune the 'LLAMA' part.
 

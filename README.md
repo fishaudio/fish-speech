@@ -4,7 +4,6 @@
 **English** | [简体中文](docs/README.zh.md) | [Portuguese](docs/README.pt-BR.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md) | [العربية](docs/README.ar.md) <br>
 
 <a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Expressive&#0032;Voice&#0032;Cloning&#0032;and&#0032;Text&#0045;to&#0045;Speech | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-</a>
 <a href="https://trendshift.io/repositories/7014" target="_blank">
     <img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
 </a>
@@ -31,11 +30,14 @@
 </div>
 
 <div align="center">
-    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
-      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
-    </a>
     <a target="_blank" href="https://huggingface.co/fishaudio/s2">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+    <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
+        <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
+    </a>
+    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
+        <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Tecnical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
@@ -75,7 +77,7 @@ Fish Audio S2 is the latest model developed by [Fish Audio](https://fish.audio/)
 
 S2 supports fine-grained inline control of prosody and emotion using natural-language tags like `[laugh]`, `[whispers]`, and `[super happy]`, as well as native multi-speaker and multi-turn generation.
 
-Visit the [Fish Audio website](https://fish.audio/) for live playground. Read the [blog post](https://fish.audio/blog/fish-audio-open-sources-s2/) for more details.
+Visit the [Fish Audio website](https://fish.audio/) for live playground. Read the [blog post](https://fish.audio/blog/fish-audio-open-sources-s2/) and [tecnical report](https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf) for more details.
 
 ### Model Variants
 

@@ -30,14 +30,14 @@
 </div>
 
 <div align="center">
-    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
-      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
-    </a>
-    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
-        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
-    </a>
-    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+    <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
+        <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
+    </a>
+    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
+        <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Tecnical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
@@ -47,80 +47,118 @@
 !!! warning "Isenção de Responsabilidade Legal"
     Não nos responsabilizamos por qualquer uso ilegal da base de códigos. Consulte as regulamentações locais sobre DMCA e outras leis relacionadas.
 
-## Começar
+## Início Rápido
 
-Esta é a documentação oficial do Fish Speech. Siga as instruções para começar facilmente.
+### Comece pela documentação
 
-- [Instalação](install.md)
-- [Inferência por Linha de Comando](inference.md)
-- [Inferência WebUI](inference.md)
-- [Inferência via Servidor](server.md)
-- [Configuração Docker](install.md)
+Esta é a documentação oficial do Fish Audio S2. Você pode começar por aqui:
 
-!!! note
-    Para servidor com SGLang, consulte o [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
+- [Instalação](https://speech.fish.audio/pt/install/)
+- [Inferência por Linha de Comando](https://speech.fish.audio/pt/inference/)
+- [Inferência WebUI](https://speech.fish.audio/pt/inference/)
+- [Inferência via Servidor](https://speech.fish.audio/pt/server/)
+- [Configuração Docker](https://speech.fish.audio/pt/install/)
+
+> [!IMPORTANT]
+> **Para servidor com SGLang, consulte o [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 
 ### Guia para agentes LLM
 
-```text
+```
 Instale e configure o Fish Audio S2 seguindo as instruções em https://speech.fish.audio/pt/install/ .
 ```
 
 ## Fish Audio S2
-**O melhor sistema de texto para fala em código aberto e código fechado**
+**O melhor sistema de conversão de texto em fala entre código aberto e código fechado**
 
-O Fish Audio S2 é o modelo mais recente desenvolvido pela [Fish Audio](https://fish.audio/), projetado para gerar fala que soe natural, autêntica e emocionalmente rica — não mecânica, monótona ou confinada à leitura em estúdio.
+O Fish Audio S2 é o modelo mais recente da [Fish Audio](https://fish.audio/). Treinado com mais de 10 milhões de horas de áudio em cerca de 50 idiomas, o S2 combina alinhamento por reforço com uma arquitetura Dual-Autoregressive para gerar fala natural, realista e emocionalmente expressiva.
 
-O Fish Audio S2 foca em conversas cotidianas, suportando geração nativa de múltiplos locutores e múltiplos turnos. Também suporta controle por instruções.
+O S2 permite controle fino de prosódia e emoção dentro da própria frase com tags em linguagem natural, como `[laugh]`, `[whispers]` e `[super happy]`, além de oferecer suporte nativo a múltiplos falantes e múltiplos turnos.
 
-A série S2 inclui vários modelos. O modelo de código aberto é o S2-Pro, que é o modelo mais poderoso da série.
-
-Visite o [site da Fish Audio](https://fish.audio/) para uma experiência em tempo real.
+Acesse o [site da Fish Audio](https://fish.audio/) para testar ao vivo e leia o [post no blog](https://fish.audio/blog/fish-audio-open-sources-s2/) para mais detalhes.
 
 ### Variantes do Modelo
 
 | Modelo | Tamanho | Disponibilidade | Descrição |
 |------|------|-------------|-------------|
-| S2-Pro | 4B Parâmetros | [huggingface](https://huggingface.co/fishaudio/s2-pro) | Modelo emblemático completo com a mais alta qualidade e estabilidade |
+| S2-Pro | 4B parâmetros | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Modelo carro-chefe completo com máxima qualidade e estabilidade |
 
-Para mais detalhes sobre os modelos, consulte o relatório técnico.
+Mais detalhes podem ser encontrados no [relatório técnico](https://arxiv.org/abs/2411.01156).
+
+## Resultados de Benchmark
+
+| Benchmark | Fish Audio S2 |
+|------|------|
+| Seed-TTS Eval — WER (Chinês) | **0.54%** (melhor geral) |
+| Seed-TTS Eval — WER (Inglês) | **0.99%** (melhor geral) |
+| Audio Turing Test (com instrução) | **0.515** média a posteriori |
+| EmergentTTS-Eval — Taxa de vitória | **81.88%** (maior geral) |
+| Fish Instruction Benchmark — TAR | **93.3%** |
+| Fish Instruction Benchmark — Qualidade | **4.51 / 5.0** |
+| Multilíngue (MiniMax Testset) — Melhor WER | **11 de 24** idiomas |
+| Multilíngue (MiniMax Testset) — Melhor SIM | **17 de 24** idiomas |
+
+No Seed-TTS Eval, o S2 obteve o menor WER entre todos os modelos avaliados, incluindo sistemas fechados: Qwen3-TTS (0.77/1.24), MiniMax Speech-02 (0.99/1.90) e Seed-TTS (1.12/2.25). No Audio Turing Test, o valor 0.515 supera o Seed-TTS (0.417) em 24% e o MiniMax-Speech (0.387) em 33%. No EmergentTTS-Eval, o S2 se destacou especialmente em paralinguística (91.61%), perguntas (84.41%) e complexidade sintática (83.39%).
 
 ## Destaques
 
 <img src="../assets/totalability.png" width=200%>
 
-### Controle por Linguagem Natural
+### Controle Inline Refinado via Linguagem Natural
 
-O Fish Audio S2 permite que os usuários usem linguagem natural para controlar o desempenho, informações paralinguísticas, emoções e outras características de voz de cada frase, em vez de usar apenas tags curtas para controlar vagamente o desempenho do modelo. Isso aumenta muito a qualidade geral do conteúdo gerado.
+O Fish Audio S2 permite controle localizado da geração de fala ao incorporar instruções em linguagem natural diretamente em posições específicas de palavras ou frases no texto. Em vez de depender de um conjunto fixo de tags predefinidas, o S2 aceita descrições textuais livres, como [whisper in small voice], [professional broadcast tone] ou [pitch up], permitindo controle de expressão aberto no nível da palavra.
+
+### Arquitetura Dual-Autoregressive
+
+O S2 é baseado em um transformer apenas decodificador, combinado com um codec de áudio RVQ (10 codebooks, ~21 Hz de taxa de quadros). A arquitetura Dual-AR divide a geração em duas etapas:
+
+- **Slow AR** opera no eixo temporal e prevê o codebook semântico principal.
+- **Fast AR** gera os 9 codebooks residuais restantes em cada passo de tempo, reconstruindo detalhes acústicos finos.
+
+Esse desenho assimétrico (4B parâmetros no eixo temporal e 400M no eixo de profundidade) mantém a inferência eficiente sem sacrificar fidelidade de áudio.
+
+### Alinhamento por Reforço
+
+O S2 usa Group Relative Policy Optimization (GRPO) no pós-treinamento. Os mesmos modelos usados para filtrar e anotar dados de treino são reutilizados diretamente como modelos de recompensa no RL, eliminando o desalinhamento de distribuição entre os dados de pré-treinamento e os objetivos de pós-treinamento. O sinal de recompensa combina precisão semântica, aderência à instrução, preferência acústica e similaridade de timbre.
+
+### Streaming em Produção com SGLang
+
+Como a arquitetura Dual-AR é estruturalmente isomórfica a LLMs autoregressivos padrão, o S2 herda diretamente as otimizações nativas de serving do SGLang, incluindo continuous batching, paged KV cache, CUDA graph replay e prefix caching com RadixAttention.
+
+Em uma única NVIDIA H200:
+
+- **RTF (Real-Time Factor):** 0.195
+- **Tempo até o primeiro áudio:** ~100 ms
+- **Throughput:** mais de 3.000 acoustic tokens/s mantendo RTF abaixo de 0.5
 
 ### Suporte Multilíngue
 
-O Fish Audio S2 suporta conversão de texto em fala multilíngue de alta qualidade sem a necessidade de fonemas ou pré-processamento específico por idioma. Incluindo:
+O Fish Audio S2 oferece suporte a conversão de texto em fala multilíngue de alta qualidade sem a necessidade de fonemas ou processamento específico de idioma. Incluindo:
 
 **Inglês, Chinês, Japonês, Coreano, Árabe, Alemão, Francês...**
 
-**E muito mais!**
+**E MUITO MAIS!**
 
-A lista está em constante expansão. Verifique a [Fish Audio](https://fish.audio/) para os lançamentos mais recentes.
+A lista está em constante expansão, verifique o [Fish Audio](https://fish.audio/) para os lançamentos mais recentes.
 
-### Geração Nativa de Múltiplos Locutores
+### Geração Nativa de Múltiplos Falantes
 
 <img src="../assets/chattemplate.png" width=200%>
 
-O Fish Audio S2 permite que os usuários carreguem áudio de referência contendo múltiplos locutores, e o modelo processará as características de cada locutor por meio do token `<|speaker:i|>`. Você pode então controlar o desempenho do modelo por meio de tokens de ID de locutor, alcançando múltiplos locutores em uma única geração. Não há mais necessidade de carregar áudio de referência e gerar fala para cada locutor individualmente.
+O Fish Audio S2 permite enviar um áudio de referência com vários falantes; o modelo processa as características de cada voz por meio do token `<|speaker:i|>`. Depois, você controla o comportamento do modelo com o token de ID do falante, permitindo incluir várias vozes em uma única geração. Assim, não é mais necessário subir um áudio de referência separado para cada falante.
 
-### Geração de Diálogos em Múltiplos Turnos
+### Geração de Múltiplos Turnos
 
-Graças à expansão do contexto do modelo, nosso modelo agora pode usar as informações das partes anteriores do diálogo para melhorar a expressividade do conteúdo gerado subsequentemente, aumentando assim a naturalidade do conteúdo.
+Graças à extensão do contexto do modelo, nosso modelo agora pode usar informações anteriores para melhorar a expressividade e a naturalidade dos conteúdos gerados subsequentemente.
 
 ### Clonagem de Voz Rápida
 
-O Fish Audio S2 suporta clonagem de voz precisa usando amostras de referência curtas (geralmente de 10 a 30 segundos). O modelo pode capturar timbre, estilo de fala e tendência emocional, gerando vozes clonadas realistas e consistentes sem ajuste fino adicional.
+O Fish Audio S2 suporta clonagem de voz precisa usando uma pequena amostra de referência (tipicamente de 10 a 30 segundos). O modelo captura o timbre, o estilo de fala e as tendências emocionais, produzindo vozes clonadas realistas e consistentes sem ajuste fino adicional.
 Para usar o servidor SGLang, consulte https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md .
 
 ---
 
-## Agradecimentos
+## Créditos
 
 - [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
 - [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
@@ -131,7 +169,6 @@ Para usar o servidor SGLang, consulte https://github.com/sgl-project/sglang-omni
 - [Qwen3](https://github.com/QwenLM/Qwen3)
 
 ## Relatório Técnico
-
 ```bibtex
 @misc{fish-speech-v1.4,
       title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
