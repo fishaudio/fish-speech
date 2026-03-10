@@ -47,7 +47,7 @@ class BaseModelArgs:
     # Codebook configs
     codebook_size: int = 160
     num_codebooks: int = 4
-    
+
     semantic_begin_id: int = 0
     semantic_end_id: int = 0
 
@@ -232,10 +232,14 @@ def _remap_fish_qwen3_omni_keys(weights: OrderedDict) -> OrderedDict:
     new_weights = OrderedDict()
     for k, v in weights.items():
         if k.startswith("text_model.model."):
-            new_key = k[len("text_model.model."):]
+            new_key = k[len("text_model.model.") :]
         elif k.startswith("audio_decoder."):
-            suffix = k[len("audio_decoder."):]
-            new_key = suffix if suffix.startswith("codebook_embeddings.") else "fast_" + suffix
+            suffix = k[len("audio_decoder.") :]
+            new_key = (
+                suffix
+                if suffix.startswith("codebook_embeddings.")
+                else "fast_" + suffix
+            )
         else:
             new_key = k
         new_weights[new_key] = v
@@ -329,12 +333,13 @@ class BaseTransformer(nn.Module):
             embeds.append(emb)
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-        
-        is_semantic = (inp[:, 0] >= self.config.semantic_begin_id) & \
-                      (inp[:, 0] <= self.config.semantic_end_id)
-        
+
+        is_semantic = (inp[:, 0] >= self.config.semantic_begin_id) & (
+            inp[:, 0] <= self.config.semantic_end_id
+        )
+
         vq_embeds_sum[~is_semantic] = 0
-        
+
         x = self.embeddings(inp[:, 0]) + vq_embeds_sum
 
         return x
@@ -374,9 +379,7 @@ class BaseTransformer(nn.Module):
             token_logits = self.output(slow_out)
 
         hidden_out = (
-            slow_out
-            if getattr(self.config, "norm_fastlayer_input", False)
-            else x
+            slow_out if getattr(self.config, "norm_fastlayer_input", False) else x
         )
 
         return BaseTransformerForwardResult(
@@ -392,7 +395,7 @@ class BaseTransformer(nn.Module):
         audio_parts: Optional[Tensor] = None,
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
-        
+
         # Embedding logic replicated from embed() for compilation compatibility
         embeds = []
         for i in range(self.config.num_codebooks):
@@ -454,9 +457,7 @@ class BaseTransformer(nn.Module):
             token_logits = self.output(slow_out)
 
         hidden_out = (
-            slow_out
-            if getattr(self.config, "norm_fastlayer_input", False)
-            else x
+            slow_out if getattr(self.config, "norm_fastlayer_input", False) else x
         )
 
         return BaseTransformerForwardResult(
@@ -499,9 +500,13 @@ class BaseTransformer(nn.Module):
             tokenizer = FishTokenizer.from_pretrained(path)
             config.semantic_begin_id = tokenizer.semantic_begin_id
             config.semantic_end_id = tokenizer.semantic_end_id
-            logger.info(f"Injected Semantic IDs into Config: {config.semantic_begin_id}-{config.semantic_end_id}")
+            logger.info(
+                f"Injected Semantic IDs into Config: {config.semantic_begin_id}-{config.semantic_end_id}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to load tokenizer for config injection: {e}. Semantic IDs might be 0.")
+            logger.warning(
+                f"Failed to load tokenizer for config injection: {e}. Semantic IDs might be 0."
+            )
 
         match config.model_type:
             case "naive":
@@ -523,6 +528,7 @@ class BaseTransformer(nn.Module):
             if "int8" in str(Path(path)):
                 logger.info("Using int8 weight-only quantization!")
                 from tools.llama.quantize import WeightOnlyInt8QuantHandler
+
                 simple_quantizer = WeightOnlyInt8QuantHandler(model)
                 model = simple_quantizer.convert_for_runtime()
 
@@ -532,6 +538,7 @@ class BaseTransformer(nn.Module):
                 assert path_comps[-2].startswith("g")
                 groupsize = int(path_comps[-2][1:])
                 from tools.llama.quantize import WeightOnlyInt4QuantHandler
+
                 simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
                 model = simple_quantizer.convert_for_runtime()
 
@@ -543,6 +550,7 @@ class BaseTransformer(nn.Module):
             if index_json.exists():
                 logger.info("Loading sharded safetensors weights")
                 from safetensors.torch import load_file as st_load_file
+
                 with open(index_json) as f:
                     st_index = json.load(f)
                 shard_files = sorted(set(st_index["weight_map"].values()))
@@ -553,6 +561,7 @@ class BaseTransformer(nn.Module):
             elif single_st.exists():
                 logger.info("Loading single safetensors weights")
                 from safetensors.torch import load_file as st_load_file
+
                 weights = OrderedDict(st_load_file(str(single_st), device="cpu"))
                 weights = _remap_fish_qwen3_omni_keys(weights)
             elif pth_file.exists():
@@ -738,12 +747,12 @@ class DualARTransformer(BaseTransformer):
 
         # Extract corresponding parts with labels
         token_labels = labels[:, 0]
-        
+
         # [MODIFIED] Use config instead of tokenizer
         codebook_mask = (token_labels >= self.config.semantic_begin_id) & (
             token_labels <= self.config.semantic_end_id
         )
-        
+
         # This gives where input token is <|semantic|>
         x = x[codebook_mask]
 

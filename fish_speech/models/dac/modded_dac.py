@@ -994,9 +994,9 @@ class DAC(BaseModel, CodecMixin):
 
 if __name__ == "__main__":
     import hydra
-    import torch
     import numpy as np
     import soundfile as sf
+    import torch
     from omegaconf import OmegaConf
 
     # 配置路径
@@ -1004,7 +1004,7 @@ if __name__ == "__main__":
     checkpoint_path = "checkpoints/s2-pro/codec.pth"
     codes_path = "./output/codes_0.npy"  # 你的 codes 文件路径
     output_path = "reconstructed_from_codes.wav"
-    sample_rate = 44100 # 请确保采样率与模型训练时一致
+    sample_rate = 44100  # 请确保采样率与模型训练时一致
 
     with torch.inference_mode():
         # 1. 初始化模型
@@ -1028,11 +1028,11 @@ if __name__ == "__main__":
         # 3. 直接从 codes 重建音频 (Decoding)
         # 注意：fish_speech 的 model.from_indices 通常接受的输入是 LongTensor
         fake_audio = model.from_indices(codes_tensor)
-        
+
         # 4. 后处理与保存
         # fake_audio 形状通常为 [B, C, T]
         audio_np = fake_audio.squeeze().cpu().numpy()
-        
+
         # 如果是多声道，转置为 soundfile 要求的 (samples, channels)
         if len(audio_np.shape) == 2:
             audio_np = audio_np.T
