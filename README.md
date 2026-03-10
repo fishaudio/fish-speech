@@ -41,7 +41,7 @@
 
 > [!IMPORTANT]
 > **License Notice**  
-> This codebase and its associated model weights are released under **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Please refer to [LICENSE](LICENSE) for more details.
+> This codebase and its associated model weights are released under **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Please refer to [LICENSE](LICENSE) for more details. We will take action against any violation of the license.
 
 > [!WARNING]
 > **Legal Disclaimer**  
@@ -65,7 +65,7 @@ Here are the official documents for Fish Audio S2, follow the instructions to ge
 ### For LLM Agent
 
 ```
-Install and configure Fish-Audio S2 by following the instructions here:https://speech.fish.audio/install/
+Install and configure Fish-Audio S2 by following the instructions here: https://speech.fish.audio/install/
 ```
 
 ## Fish Audio S2  
@@ -81,7 +81,7 @@ Visit the [Fish Audio website](https://fish.audio/) for live playground. Read th
 
 | Model | Size | Availability | Description |
 |------|------|-------------|-------------|
-| S2-Pro | 4B parameters | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability | 
+| S2-Pro | 4B parameters | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability |
 
 More details of the model can be found in the [technical report](https://arxiv.org/abs/2411.01156).
 
@@ -153,8 +153,8 @@ Thanks to the expansion of the model context, our model can now use previous inf
 
 ### Rapid Voice Cloning
 
-Fish Audio S2 supports accurate voice cloning using a short reference sample (typically 10–30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning. Please refer to https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md to use the sglang server.
-
+Fish Audio S2 supports accurate voice cloning using a short reference sample (typically 10–30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning.
+Please refer to https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md to use the SGLang server.
 ---
 
 ## Credits

@@ -1,4 +1,4 @@
-site_name: OpenAudio
+site_name: Fish Audio
 site_description: Targeting SOTA TTS solutions.
 site_url: https://speech.fish.audio
 
@@ -12,7 +12,7 @@ copyright: Copyright &copy; 2023-2025 by Fish Audio
 
 theme:
   name: material
-  favicon: assets/openaudio.png
+  favicon: assets/logo.svg
   language: en
   features:
     - content.action.edit
@@ -25,7 +25,7 @@ theme:
     - search.highlight
     - search.share
     - content.code.copy
-  logo: assets/openaudio.png
+  logo: assets/logo.svg
 
   palette:
     # Palette toggle for automatic mode
