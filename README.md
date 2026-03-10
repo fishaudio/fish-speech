@@ -47,12 +47,21 @@
 > **Legal Disclaimer**  
 > We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
-## Start Here
+## Quick Start
 
-Here are the official documents for Fish Speech, follow the instructions to get started easily.
+### For Human
+
+Here are the official documents for Fish Audio S2, follow the instructions to get started easily.
 
 - [Installation](https://speech.fish.audio/install/)
 - [Inference](https://speech.fish.audio/inference/)
+- [Server](https://speech.fish.audio/server/)
+
+### For LLM Agent
+
+```
+    
+```
 
 ## Fish Audio S2  
 **Best Text-to-speech system among both open source and closed source**
@@ -70,7 +79,6 @@ Visit the [Fish Audio website](https://fish.audio/) for live playground.
 | Model | Size | Availability | Description |
 |------|------|-------------|-------------|
 | S2-Pro | 4B parameters | [huggingface](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | Our closed source model with faster speed and lower latency |
 
 More details of the model can be found in the technical report.
 
