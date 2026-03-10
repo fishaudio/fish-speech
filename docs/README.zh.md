@@ -60,7 +60,8 @@
 - [服务端推理](https://speech.fish.audio/zh/server/)
 - [Docker 部署](https://speech.fish.audio/zh/install/)
 
-如需 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.)。
+> [!IMPORTANT]
+> **如需使用 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。**
 
 ### LLM Agent 指南
 

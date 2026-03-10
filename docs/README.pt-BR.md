@@ -59,7 +59,8 @@ Esta é a documentação oficial do Fish Audio S2. Você pode começar por aqui:
 - [Inferência via Servidor](https://speech.fish.audio/pt/server/)
 - [Configuração Docker](https://speech.fish.audio/pt/install/)
 
-Para servidor com SGLang, consulte o [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.).
+> [!IMPORTANT]
+> **Para servidor com SGLang, consulte o [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 
 ### Guia para agentes LLM
 
