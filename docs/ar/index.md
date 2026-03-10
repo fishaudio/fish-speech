@@ -1,174 +1,133 @@
-# OpenAudio (سابقاً Fish-Speech)
-
 <div align="center">
+<h1>Fish Speech</h1>
 
-<div align="center">
+[English](../en/) | [简体中文](../zh/) | [Portuguese](../pt/) | [日本語](../ja/) | [한국어](../ko/) | **العربية** <br>
 
-<img src="../assets/openaudio.jpg" alt="OpenAudio" style="display: block; margin: 0 auto; width: 35%;"/>
-
-</div>
-
-<strong>سلسلة نماذج تحويل النص إلى كلام المتقدمة</strong>
-
-<div>
-<a target="_blank" href="https://discord.gg/Es5qTB9BcN">
-<img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
-</a>
-<a target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=jCKlUP7QgSm9kh95UlBoYv6s1I-Apl1M&authKey=xI5ttVAp3do68IpEYEalwXSYZFdfxZSkah%2BctF5FIMyN2NqAa003vFtLqJyAVRfF&noverify=0&group_code=593946093">
-<img alt="QQ" src="https://img.shields.io/badge/QQ Group-%2312B7F5?logo=tencent-qq&logoColor=white&style=flat-square"/>
-</a>
-<a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
-<img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+<a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Expressive&#0032;Voice&#0032;Cloning&#0032;and&#0032;Text&#0045;to&#0045;Speech | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<a href="https://trendshift.io/repositories/7014" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
 </a>
 </div>
 
-<strong>جربه الآن:</strong> <a href="https://fish.audio">Fish Audio Playground</a> | <strong>تعلم المزيد:</strong> <a href="https://openaudio.com">موقع OpenAudio</a>
+<br>
 
-</div>·
+<div align="center">
+    <img src="https://count.getloli.com/get/@fish-speech?theme=asoul" /><br>
+</div>
+
+<br>
+
+<div align="center">
+    <a target="_blank" href="https://discord.gg/Es5qTB9BcN">
+        <img alt="Discord" src="https://img.shields.io/discord/1214047546020728892?color=%23738ADB&label=Discord&logo=discord&logoColor=white&style=flat-square"/>
+    </a>
+    <a target="_blank" href="https://hub.docker.com/r/fishaudio/fish-speech">
+        <img alt="Docker" src="https://img.shields.io/docker/pulls/fishaudio/fish-speech?style=flat-square&logo=docker"/>
+    </a>
+    <a target="_blank" href="https://pd.qq.com/s/bwxia254o">
+      <img alt="QQ Channel" src="https://img.shields.io/badge/QQ-blue?logo=tencentqq">
+    </a>
+</div>
+
+<div align="center">
+    <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
+      <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
+    </a>
+    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
+        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
+    </a>
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
+        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    </a>
+</div>
+
+!!! info "تنبيه الترخيص"
+    يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها بموجب رخصة **FISH AUDIO RESEARCH LICENSE**. يرجى الرجوع إلى [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) لمزيد من التفاصيل.
+
+!!! warning "إخلاء المسؤولية القانونية"
+    نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لقاعدة الأكواد. يرجى مراجعة القوانين المحلية المتعلقة بـ DMCA والقوانين الأخرى ذات الصلة.
+
+## ابدأ من هنا
+
+هذا هو الوثائق الرسمية لـ Fish Speech. يرجى اتباع التعليمات للبدء بسهولة.
+
+- [التثبيت](install.md)
+- [الاستنتاج](inference.md)
+
+## Fish Audio S2
+**أفضل نظام لتحويل النص إلى كلام في كل من المصادر المفتوحة والمغلقة**
+
+Fish Audio S2 هو أحدث نموذج تم تطويره بواسطة [Fish Audio](https://fish.audio/)، وهو مصمم لتوليد كلام يبدو طبيعيًا وأصليًا وغنيًا بالعاطفة — غير ميكانيكي أو مسطح أو مقتصر على القراءة بأسلوب الاستوديو.
+
+يركز Fish Audio S2 على المحادثات اليومية، ويدعم توليد المتحدثين المتعددين الأصليين وتوليد الحوارات متعددة الأدوار. كما يدعم التحكم التعليمي.
+
+تتضمن سلسلة S2 نماذج متعددة. النموذج المفتوح المصدر هو S2-Pro، وهو أقوى نموذج في السلسلة.
+
+يرجى زيارة [موقع Fish Audio](https://fish.audio/) لتجربة فورية.
+
+### متغيرات النموذج
+
+| النموذج | الحجم | التوفر | الوصف |
+|------|------|-------------|-------------|
+| S2-Pro | 4B معاملات | [huggingface](https://huggingface.co/fishaudio/s2-pro) | نموذج رائد بكامل الميزات مع أعلى جودة واستقرار |
+| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | نموذجنا المغلق المصدر بسرعات أعلى وزمن وصول أقل |
+
+لمزيد من التفاصيل حول النماذج ، يرجى مراجعة التقرير الفني.
+
+## أبرز المميزات
+
+<img src="../assets/totalability.png" width=200%>
+
+### التحكم باللغة الطبيعية
+
+يسمح Fish Audio S2 للمستخدمين باستخدام اللغة الطبيعية للتحكم في أداء كل جملة ، والمعلومات غير اللفظية ، والعواطف ، والمزيد من خصائص الصوت ، بدلاً من مجرد استخدام علامات قصيرة للتحكم بشكل غامض في أداء النموذج. يؤدي ذلك إلى تحسين الجودة الإجمالية للمحتوى المولّد بشكل كبير.
+
+### دعم لغات متعددة
+
+يدعم Fish Audio S2 تحويل النص إلى كلام متعدد اللغات بجودة عالية دون الحاجة إلى وحدات صوتية أو معالجة مسبقة خاصة باللغة. يشمل ذلك:
+
+**الإنجليزية ، الصينية ، اليابانية ، الكورية ، العربية ، الألمانية ، الفرنسية ...**
+
+**والمزيد في المستقبل!**
+
+القائمة تتوسع باستمرار ، يرجى التحقق من [Fish Audio](https://fish.audio/) للحصول على أحدث الإصدارات.
+
+### توليد المتحدثين المتعددين الأصليين
+
+<img src="../assets/chattemplate.png" width=200%>
+
+يسمح Fish Audio S2 للمستخدمين بتحميل عينات صوتية مرجعية تحتوي على متحدثين متعددين ، وسيقوم النموذج بمعالجة خصائص كل متحدث من خلال رمز `<|speaker:i|>`. بعد ذلك ، يمكنك التحكم في أداء النموذج عبر رموز معرف المتحدث ، مما يحقق تعدد المتحدثين في عملية توليد واحدة. لا داعي بعد الآن لتحميل أصوات مرجعية وتوليد كلام لكل متحدث على حدة.
+
+### توليد الحوارات متعددة الأدوار
+
+بفضل توسيع سياق النموذج ، يمكن لنموذجنا الآن استخدام معلومات السياق السابق لتحسين التعبير عن المحتوى المولّد لاحقًا ، وبالتالي زيادة طبيعية المحتوى.
+
+### استنساخ الصوت السريع
+
+يدعم Fish Audio S2 استنساخ الصوت الدقيق باستخدام عينات مرجعية قصيرة (عادة 10-30 ثانية). يمكن للنموذج التقاط نبرة الصوت وأسلوب التحدث والميل العاطفي ، وتوليد أصوات مستنسخة واقعية ومتسقة دون ضبط دقيق إضافي.
 
 ---
 
-!!! note "إشعار الترخيص"
-    يتم إصدار قاعدة الكود هذه تحت **رخصة Apache** ويتم إصدار جميع أوزان النماذج تحت **رخصة CC-BY-NC-SA-4.0**. يرجى الرجوع إلى [رخصة الكود](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) و [رخصة النموذج](https://spdx.org/licenses/CC-BY-NC-SA-4.0) لمزيد من التفاصيل.
+## شكر وتقدير
 
-!!! warning "إخلاء المسؤولية القانونية"
-    نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لقاعدة الكود. يرجى الرجوع إلى القوانين المحلية حول DMCA والقوانين الأخرى ذات الصلة.
+- [VITS2 (daniilrobnikov)](https://github.com/daniilrobnikov/vits2)
+- [Bert-VITS2](https://github.com/fishaudio/Bert-VITS2)
+- [GPT VITS](https://github.com/innnky/gpt-vits)
+- [MQTTS](https://github.com/b04901014/MQTTS)
+- [GPT Fast](https://github.com/pytorch-labs/gpt-fast)
+- [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [Qwen3](https://github.com/QwenLM/Qwen3)
 
-## **المقدمة**
+## التقرير الفني
 
-نحن متحمسون للإعلان عن إعادة تسمية علامتنا التجارية إلى **OpenAudio** - تقديم سلسلة جديدة من نماذج تحويل النص إلى كلام المتقدمة التي تبني على أساس Fish-Speech مع تحسينات كبيرة وقدرات جديدة.
-
-**Openaudio-S1-mini**: [المدونة](https://openaudio.com/blogs/s1); [الفيديو](https://www.youtube.com/watch?v=SYuPvd7m06A); [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini);
-
-**Fish-Speech v1.5**: [الفيديو](https://www.bilibili.com/video/BV1EKiDYBE4o/); [Hugging Face](https://huggingface.co/fishaudio/fish-speech-1.5);
-
-## **النقاط البارزة**
-
-### **جودة TTS ممتازة**
-
-نستخدم مقاييس تقييم Seed TTS لتقييم أداء النموذج، وتظهر النتائج أن OpenAudio S1 يحقق **0.008 WER** و **0.004 CER** على النص الإنجليزي، وهو أفضل بكثير من النماذج السابقة. (الإنجليزية، التقييم التلقائي، بناءً على OpenAI gpt-4o-transcribe، مسافة المتحدث باستخدام Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
-
-| النموذج | معدل خطأ الكلمات (WER) | معدل خطأ الأحرف (CER) | مسافة المتحدث |
-|:-----:|:--------------------:|:-------------------------:|:----------------:|
-| **S1** | **0.008** | **0.004** | **0.332** |
-| **S1-mini** | **0.011** | **0.005** | **0.380** |
-
-### **أفضل نموذج في TTS-Arena2**
-
-حقق OpenAudio S1 **المرتبة الأولى** في [TTS-Arena2](https://arena.speechcolab.org/)، المعيار لتقييم تحويل النص إلى كلام:
-
-<div align="center">
-    <img src="../assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
-</div>
-
-### **التحكم في الكلام**
-يدعم OpenAudio S1 **مجموعة متنوعة من العلامات العاطفية والنبرة والخاصة** لتعزيز تركيب الكلام:
-
-- **المشاعر الأساسية**:
+```bibtex
+@misc{fish-speech-v1.4,
+      title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
+      author={Shijia Liao and Yuxuan Wang and Tianyu Li and Yifan Cheng and Ruoyi Zhang and Rongzhi Zhou and Yijin Xing},
+      year={2024},
+      eprint={2411.01156},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2411.01156},
+}
 ```
-(غاضب) (حزين) (متحمس) (مندهش) (راضي) (مسرور) 
-(خائف) (قلق) (منزعج) (عصبي) (محبط) (مكتئب)
-(متعاطف) (محرج) (مشمئز) (متأثر) (فخور) (مسترخي)
-(ممتن) (واثق) (مهتم) (فضولي) (مرتبك) (مبتهج)
-```
-
-- **المشاعر المتقدمة**:
-```
-(محتقر) (غير سعيد) (قلق) (هستيري) (غير مبال) 
-(نافد الصبر) (مذنب) (ازدرائي) (مذعور) (غاضب) (مترد)
-(متحمس) (غير موافق) (سلبي) (منكر) (مندهش) (جدي)
-(ساخر) (مصالح) (مواسي) (صادق) (ساخر)
-(متردد) (مستسلم) (مؤلم) (محرج) (مسلي)
-```
-
-(الدعم للإنجليزية والصينية واليابانية الآن، والمزيد من اللغات قادم قريبًا!)
-
-- **علامات النبرة**:
-```
-(بنبرة مستعجلة) (صراخ) (صراخ) (همس) (نبرة ناعمة)
-```
-
-- **تأثيرات صوتية خاصة**:
-```
-(ضحك) (قهقهة) (نشيج) (بكاء بصوت عالٍ) (تنهد) (لهاث)
-(أنين) (ضحك الجمهور) (ضحك الخلفية) (ضحك الجمهور)
-```
-
-يمكنك أيضًا استخدام ها،ها،ها للتحكم، هناك العديد من الحالات الأخرى في انتظار استكشافك بنفسك.
-
-### **نوعان من النماذج**
-
-نقدم متغيرين من النماذج لتناسب الاحتياجات المختلفة:
-
-- **OpenAudio S1 (4 مليار معامل)**: نموذجنا الرئيسي كامل الميزات المتاح على [fish.audio](https://fish.audio)، يقدم أعلى جودة لتركيب الكلام مع جميع الميزات المتقدمة.
-
-- **OpenAudio S1-mini (0.5 مليار معامل)**: إصدار مقطر بالقدرات الأساسية، متاح على [Hugging Face Space](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini)، محسن للاستنتاج الأسرع مع الحفاظ على الجودة الممتازة.
-
-كل من S1 و S1-mini يدمجان التعلم المعزز عبر الإنترنت من ردود الفعل البشرية (RLHF).
-
-## **الميزات**
-
-1. **TTS بدون عينات وبعينات قليلة:** أدخل عينة صوتية من 10 إلى 30 ثانية لإنتاج مخرجات TTS عالية الجودة. **للإرشادات التفصيلية، راجع [أفضل ممارسات استنساخ الصوت](https://docs.fish.audio/text-to-speech/voice-clone-best-practices).**
-
-2. **الدعم متعدد اللغات وعبر اللغات:** ببساطة انسخ والصق النص متعدد اللغات في مربع الإدخال—لا حاجة للقلق بشأن اللغة. يدعم حاليًا الإنجليزية واليابانية والكورية والصينية والفرنسية والألمانية والعربية والإسبانية.
-
-3. **لا يعتمد على الصوتيات:** النموذج لديه قدرات تعميم قوية ولا يعتمد على الصوتيات لـ TTS. يمكنه التعامل مع النص في أي نص لغوي.
-
-4. **دقيق للغاية:** يحقق معدل خطأ أحرف منخفض (CER) حوالي 0.4% ومعدل خطأ كلمات (WER) حوالي 0.8% لـ Seed-TTS Eval.
-
-5. **سريع:** مع تسريع torch compile، عامل الوقت الحقيقي حوالي 1:7 على GPU Nvidia RTX 4090.
-
-6. **استنتاج WebUI:** يتميز بواجهة ويب سهلة الاستخدام قائمة على Gradio متوافقة مع Chrome وFirefox وEdge والمتصفحات الأخرى.
-
-7. **استنتاج GUI:** يوفر واجهة رسومية PyQt6 تعمل بسلاسة مع خادم API. يدعم Linux وWindows وmacOS. [راجع GUI](https://github.com/AnyaCoder/fish-speech-gui).
-
-8. **صديق للنشر:** قم بإعداد خادم استنتاج بسهولة مع دعم أصلي لـ Linux وWindows (MacOS قادم قريبًا)، مما يقلل من فقدان السرعة.
-
-## **الوسائط والعروض التوضيحية**
-
-<!-- <div align="center"> -->
-
-<h3><strong>وسائل التواصل الاجتماعي</strong></h3>
-<a href="https://x.com/FishAudio/status/1929915992299450398" target="_blank">
-    <img src="https://img.shields.io/badge/𝕏-أحدث_عرض_توضيحي-black?style=for-the-badge&logo=x&logoColor=white" alt="أحدث عرض توضيحي على X" />
-</a>
-
-<h3><strong>العروض التوضيحية التفاعلية</strong></h3>
-
-<a href="https://fish.audio" target="_blank">
-    <img src="https://img.shields.io/badge/Fish_Audio-جرب_OpenAudio_S1-blue?style=for-the-badge" alt="جرب OpenAudio S1" />
-</a>
-<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
-    <img src="https://img.shields.io/badge/Hugging_Face-جرب_S1_Mini-yellow?style=for-the-badge" alt="جرب S1 Mini" />
-</a>
-
-<h3><strong>عروض الفيديو</strong></h3>
-<div align="center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/SYuPvd7m06A" title="OpenAudio S1 Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
-
-## **الوثائق**
-
-### البداية السريعة
-- [بناء البيئة](install.md) - إعداد بيئة التطوير الخاصة بك
-- [دليل الاستنتاج](inference.md) - تشغيل النموذج وإنتاج الكلام
-
-## **المجتمع والدعم**
-
-- **Discord:** انضم إلى [مجتمع Discord](https://discord.gg/Es5qTB9BcN) الخاص بنا
-- **الموقع:** قم بزيارة [OpenAudio.com](https://openaudio.com) للحصول على آخر التحديثات
-- **جرب عبر الإنترنت:** [Fish Audio Playground](https://fish.audio)
-
-- تحويل النص إلى كلام (TTS)
-- توليف صوت الغناء (SVS)
-- تحويل الصوت من أي إلى أي (Any-to-any voice conversion)
-- استنساخ الصوت بدون أو بالقليل من العينات (Zero or few-shot voice cloning)
-- استنساخ الصوت عبر اللغات (Cross-lingual voice cloning)
-- إنشاء المحتوى (Content creation)
-
-!!! note "ملاحظة الترخيص"
-    يتم إصدار هذا الكود المصدري بموجب **رخصة أباتشي** ويتم إصدار جميع أوزان النماذج بموجب **رخصة CC-BY-NC-SA-4.0**. يرجى الرجوع إلى [رخصة الكود](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) و [رخصة النموذج](https://spdx.org/licenses/CC-BY-NC-SA-4.0) لمزيد من التفاصيل.
-
-## النماذج
-
-OpenAudio S1 هو النموذج الأول في سلسلة OpenAudio. وهو مُرمِّز صوتي VQ-GAN مزدوج المُ解码 يمكنه إعادة بناء الصوت من أكواد VQ.

@@ -10,7 +10,7 @@ decoder_transformer_layers: [4, 0, 0, 0]
 transformer_general_config:
   _target_: fish_speech.models.dac.modded_dac.ModelArgs
   _partial_: true
-  block_size: 16384
+  block_size: 8192
   n_local_heads: -1
   head_dim: 64
   rope_base: 10000
@@ -34,7 +34,7 @@ quantizer:
     input_dim: 1024
     config: &transformer_config
       _target_: fish_speech.models.dac.modded_dac.ModelArgs
-      block_size: 4096
+      block_size: 2048
       n_layer: 8
       n_head: 16
       dim: 1024

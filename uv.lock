@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu126' and extra != 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129'",
@@ -1064,6 +1064,7 @@ dependencies = [
     { name = "hydra-core" },
     { name = "kui" },
     { name = "librosa" },
+    { name = "liger-kernel" },
     { name = "lightning" },
     { name = "loguru" },
     { name = "loralib" },
@@ -1078,6 +1079,7 @@ dependencies = [
     { name = "pyrootutils" },
     { name = "resampy" },
     { name = "rich" },
+    { name = "safetensors" },
     { name = "silero-vad" },
     { name = "tensorboard" },
     { name = "tiktoken" },
@@ -1136,12 +1138,13 @@ requires-dist = [
     { name = "hydra-core", specifier = ">=1.3.2" },
     { name = "kui", specifier = ">=1.6.0" },
     { name = "librosa", specifier = ">=0.10.1" },
+    { name = "liger-kernel" },
     { name = "lightning", specifier = ">=2.1.0" },
     { name = "loguru", specifier = ">=0.6.0" },
     { name = "loralib", specifier = ">=0.1.2" },
     { name = "modelscope", specifier = "==1.17.1" },
     { name = "natsort", specifier = ">=8.4.0" },
-    { name = "numpy", specifier = "<=1.26.4" },
+    { name = "numpy" },
     { name = "opencc-python-reimplemented", specifier = "==0.1.7" },
     { name = "ormsgpack" },
     { name = "pyaudio" },
@@ -1150,20 +1153,21 @@ requires-dist = [
     { name = "pyrootutils", specifier = ">=1.0.4" },
     { name = "resampy", specifier = ">=0.4.3" },
     { name = "rich", specifier = ">=13.5.3" },
+    { name = "safetensors" },
     { name = "silero-vad" },
     { name = "tensorboard", specifier = ">=2.14.1" },
     { name = "tiktoken", specifier = ">=0.8.0" },
-    { name = "torch", marker = "extra == 'cpu'", specifier = ">=2.5.1", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "fish-speech", extra = "cpu" } },
-    { name = "torch", marker = "extra == 'cu126'", specifier = ">=2.5.1", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "fish-speech", extra = "cu126" } },
-    { name = "torch", marker = "extra == 'cu128'", specifier = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "fish-speech", extra = "cu128" } },
-    { name = "torch", marker = "extra == 'cu129'", specifier = ">=2.5.1", index = "https://download.pytorch.org/whl/cu129", conflict = { package = "fish-speech", extra = "cu129" } },
-    { name = "torch", marker = "extra == 'stable'", specifier = ">=2.5.1" },
+    { name = "torch", marker = "extra == 'cpu'", specifier = "==2.8.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "fish-speech", extra = "cpu" } },
+    { name = "torch", marker = "extra == 'cu126'", specifier = "==2.8.0", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "fish-speech", extra = "cu126" } },
+    { name = "torch", marker = "extra == 'cu128'", specifier = "==2.8.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "fish-speech", extra = "cu128" } },
+    { name = "torch", marker = "extra == 'cu129'", specifier = "==2.8.0", index = "https://download.pytorch.org/whl/cu129", conflict = { package = "fish-speech", extra = "cu129" } },
+    { name = "torch", marker = "extra == 'stable'", specifier = "==2.8.0" },
     { name = "torchaudio", marker = "extra == 'cpu'", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "fish-speech", extra = "cpu" } },
     { name = "torchaudio", marker = "extra == 'cu126'", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "fish-speech", extra = "cu126" } },
     { name = "torchaudio", marker = "extra == 'cu128'", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "fish-speech", extra = "cu128" } },
     { name = "torchaudio", marker = "extra == 'cu129'", index = "https://download.pytorch.org/whl/cu129", conflict = { package = "fish-speech", extra = "cu129" } },
     { name = "torchaudio", marker = "extra == 'stable'" },
-    { name = "transformers", specifier = ">=4.45.2" },
+    { name = "transformers", specifier = "<=4.57.3" },
     { name = "uvicorn", specifier = ">=0.30.0" },
     { name = "wandb", specifier = ">=0.15.11" },
     { name = "zstandard", specifier = ">=0.22.0" },
@@ -1956,6 +1960,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/64/36/360b5aafa0238e29758729e9486c6ed92a6f37fa403b7875e06c115cdf4a/librosa-0.11.0.tar.gz", hash = "sha256:f5ed951ca189b375bbe2e33b2abd7e040ceeee302b9bbaeeffdfddb8d0ace908", size = 327001, upload-time = "2025-03-11T15:09:54.884Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/ba/c63c5786dfee4c3417094c4b00966e61e4a63efecee22cb7b4c0387dda83/librosa-0.11.0-py3-none-any.whl", hash = "sha256:0b6415c4fd68bff4c29288abe67c6d80b587e0e1e2cfb0aad23e4559504a7fa1", size = 260749, upload-time = "2025-03-11T15:09:52.982Z" },
+]
+
+[[package]]
+name = "liger-kernel"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "torch", version = "2.8.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-11-fish-speech-cpu') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "torch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra != 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu126' and extra != 'extra-11-fish-speech-cu128' and extra != 'extra-11-fish-speech-cu129')" },
+    { name = "torch", version = "2.8.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-11-fish-speech-cpu') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "torch", version = "2.8.0+cu126", source = { registry = "https://download.pytorch.org/whl/cu126" }, marker = "extra == 'extra-11-fish-speech-cu126' or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "torch", version = "2.8.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "extra == 'extra-11-fish-speech-cu128' or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "torch", version = "2.8.0+cu129", source = { registry = "https://download.pytorch.org/whl/cu129" }, marker = "(extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra != 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra != 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "triton" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/f8/a25ab6549dd80c5055e84f0ee9be6ecf4a7c85ade448110607f4807ab2ef/liger_kernel-0.7.0.tar.gz", hash = "sha256:48c25648974c7d07d47591117b94188d1059999b7fb652e89e8ba50b21183cb3", size = 3780796, upload-time = "2026-02-12T22:01:00.101Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/c6/66c6a3c59b53f4cfbfa0c9e8c573c8843fb1d83cf3c2eb79e39109b76c17/liger_kernel-0.7.0-py3-none-any.whl", hash = "sha256:d2185d94362c069f508eb8aff5e7016c6669613265d5702733d674af4c616a56", size = 276512, upload-time = "2026-02-12T22:00:58.565Z" },
 ]
 
 [[package]]
@@ -2771,7 +2793,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nvidia-cublas-cu12", version = "12.6.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
     { name = "nvidia-cublas-cu12", version = "12.8.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
-    { name = "nvidia-cublas-cu12", version = "12.9.1.4", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-cublas-cu12", version = "12.9.1.4", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/41/e79269ce215c857c935fd86bcfe91a451a584dfc27f1e068f568b9ad1ab7/nvidia_cudnn_cu12-9.10.2.21-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:c9132cc3f8958447b4910a1720036d9eff5928cc3179b0a51fb6d167c6cc87d8", size = 705026878, upload-time = "2025-06-06T21:52:51.348Z" },
@@ -2830,7 +2852,7 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9b/2b/76445b0af890da61b501fde30650a1a4bd910607261b209cccb5235d3daa/nvidia_cufft_cu12-11.4.1.4-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1a28c9b12260a1aa7a8fd12f5ebd82d027963d635ba82ff39a1acfa7c4c0fbcf", size = 200822453, upload-time = "2025-06-05T20:05:27.889Z" },
@@ -2988,9 +3010,9 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "nvidia-cublas-cu12", version = "12.9.1.4", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
-    { name = "nvidia-cusparse-cu12", version = "12.5.10.65", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
-    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-cublas-cu12", version = "12.9.1.4", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-cusparse-cu12", version = "12.5.10.65", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/99/686ff9bf3a82a531c62b1a5c614476e8dfa24a9d89067aeedf3592ee4538/nvidia_cusolver_cu12-11.7.5.82-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:62efa83e4ace59a4c734d052bb72158e888aa7b770e1a5f601682f16fe5b4fd2", size = 337869834, upload-time = "2025-06-05T20:06:53.125Z" },
@@ -3049,7 +3071,7 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "nvidia-nvjitlink-cu12", version = "12.9.86", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (platform_machine == 'aarch64' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (sys_platform != 'linux' and extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/6f/8710fbd17cdd1d0fc3fea7d36d5b65ce1933611c31e1861da330206b253a/nvidia_cusparse_cu12-12.5.10.65-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:221c73e7482dd93eda44e65ce567c031c07e2f93f6fa0ecd3ba876a195023e83", size = 366359408, upload-time = "2025-06-05T20:07:42.501Z" },
@@ -4794,11 +4816,11 @@ dependencies = [
     { name = "typing-extensions", marker = "(sys_platform == 'darwin' and extra == 'extra-11-fish-speech-cpu') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp310-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp311-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp312-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp313-cp313t-macosx_14_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp313-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp310-none-macosx_11_0_arm64.whl", hash = "sha256:a467b49fe893a6a6cce89e3aee556edfdc64a722d7195fdfdd75cec9dea13779" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:3d05017d19bc99741288e458888283a44b0ee881d53f05f72f8b1cfea8998122" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:a47b7986bee3f61ad217d8a8ce24605809ab425baf349f97de758815edd2ef54" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:fbe2e149c5174ef90d29a5f84a554dfaf28e003cb4f61fa2c8c024c17ec7ca58" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:057efd30a6778d2ee5e2374cd63a63f63311aa6f33321e627c655df60abdd390" },
 ]
 
 [[package]]
@@ -4877,28 +4899,28 @@ dependencies = [
     { name = "typing-extensions", marker = "(sys_platform != 'darwin' and extra == 'extra-11-fish-speech-cpu') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-linux_s390x.whl", hash = "sha256:5d255d259fbc65439b671580e40fdb8faea4644761b64fed90d6904ffe71bbc1" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:b2149858b8340aeeb1f3056e0bff5b82b96e43b596fe49a9dba3184522261213" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:16d75fa4e96ea28a785dfd66083ca55eb1058b6d6c5413f01656ca965ee2077e" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-win_amd64.whl", hash = "sha256:7cc4af6ba954f36c2163eab98cf113c137fc25aa8bbf1b06ef155968627beed2" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-linux_s390x.whl", hash = "sha256:2bfc013dd6efdc8f8223a0241d3529af9f315dffefb53ffa3bf14d3f10127da6" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:680129efdeeec3db5da3f88ee5d28c1b1e103b774aef40f9d638e2cce8f8d8d8" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:cb06175284673a581dd91fb1965662ae4ecaba6e5c357aa0ea7bb8b84b6b7eeb" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:7631ef49fbd38d382909525b83696dc12a55d68492ade4ace3883c62b9fc140f" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-win_arm64.whl", hash = "sha256:41e6fc5ec0914fcdce44ccf338b1d19a441b55cafdd741fd0bf1af3f9e4cfd14" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-linux_s390x.whl", hash = "sha256:0e34e276722ab7dd0dffa9e12fe2135a9b34a0e300c456ed7ad6430229404eb5" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:610f600c102386e581327d5efc18c0d6edecb9820b4140d26163354a99cd800d" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:cb9a8ba8137ab24e36bf1742cb79a1294bd374db570f09fc15a5e1318160db4e" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_amd64.whl", hash = "sha256:2be20b2c05a0cce10430cc25f32b689259640d273232b2de357c35729132256d" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_arm64.whl", hash = "sha256:99fc421a5d234580e45957a7b02effbf3e1c884a5dd077afc85352c77bf41434" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-linux_s390x.whl", hash = "sha256:8b5882276633cf91fe3d2d7246c743b94d44a7e660b27f1308007fdb1bb89f7d" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:a5064b5e23772c8d164068cc7c12e01a75faf7b948ecd95a0d4007d7487e5f25" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:8f81dedb4c6076ec325acc3b47525f9c550e5284a18eae1d9061c543f7b6e7de" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-win_amd64.whl", hash = "sha256:e1ee1b2346ade3ea90306dfbec7e8ff17bc220d344109d189ae09078333b0856" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-win_arm64.whl", hash = "sha256:64c187345509f2b1bb334feed4666e2c781ca381874bde589182f81247e61f88" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:af81283ac671f434b1b25c95ba295f270e72db1fad48831eb5e4748ff9840041" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:a9dbb6f64f63258bc811e2c0c99640a81e5af93c531ad96e95c5ec777ea46dab" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313t-win_amd64.whl", hash = "sha256:6d93a7165419bc4b2b907e859ccab0dea5deeab261448ae9a5ec5431f14c0e64" },
 ]
 
 [[package]]
@@ -4941,16 +4963,16 @@ dependencies = [
     { name = "typing-extensions", marker = "extra == 'extra-11-fish-speech-cu126' or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:6bf3c0085af4176137f216c39995dede9beda9af1307fd1dee2305f4f351eb42" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp310-cp310-win_amd64.whl", hash = "sha256:3b43acaa40ac87495d858bb1dbe574aaaff4e60e9da6221825ece694fd1d2b80" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:542cdbf042aaf5d6ddbed43cb8cd8c4df1e586bebb1338f5dcba14fa52830d3c" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp311-cp311-win_amd64.whl", hash = "sha256:cfb2c640a8955fbd8686c056802f53a512b610c098960d6dad5800cbc16c02b6" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:ce6e6a1f4803ad62d1fe51cec3fe5ca14bcd8bc7cace7b09d5590f8147fa16ad" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp312-cp312-win_amd64.whl", hash = "sha256:f6c79eac0018f9d131479ee1b7a68edb030619a316bfbc69275043aa4f338e4c" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:d08144011e410b9d15914e7256e1b1708a90484cb2c03712199e0291856d4177" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313-win_amd64.whl", hash = "sha256:3aa7da5cc6b7df0e8c0754dea339bd31cd21b5620e84f53b2ac4be47e8bb2179" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:637bdbd510920abce9370c4ff8b44bce6ace48dc1672e1ed42ff14e1e67497b9" },
+    { url = "https://download.pytorch.org/whl/cu126/torch-2.8.0%2Bcu126-cp313-cp313t-win_amd64.whl", hash = "sha256:6b6a2baf405f6c7069f38658bd6f70dced6a06ee044102d05e0bd7310611fce3" },
 ]
 
 [[package]]
@@ -4993,16 +5015,16 @@ dependencies = [
     { name = "typing-extensions", marker = "extra == 'extra-11-fish-speech-cu128' or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:0c96999d15cf1f13dd7c913e0b21a9a355538e6cfc10861a17158320292f5954" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp310-cp310-win_amd64.whl", hash = "sha256:43938e9a174c90e5eb9e906532b2f1e21532bbfa5a61b65193b4f54714d34f9e" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:039b9dcdd6bdbaa10a8a5cd6be22c4cb3e3589a341e5f904cbb571ca28f55bed" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp311-cp311-win_amd64.whl", hash = "sha256:34c55443aafd31046a7963b63d30bc3b628ee4a704f826796c865fdfd05bb596" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:4354fc05bb79b208d6995a04ca1ceef6a9547b1c4334435574353d381c55087c" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl", hash = "sha256:0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:3a852369a38dec343d45ecd0bc3660f79b88a23e0c878d18707f7c13bf49538f" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313-win_amd64.whl", hash = "sha256:9e20646802b7fc295c1f8b45fefcfc9fb2e4ec9cbe8593443cd2b9cc307c8405" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:4295a22d69408e93d25f51e8d5d579345b6b802383e9414b0f3853ed433d53ae" },
+    { url = "https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp313-cp313t-win_amd64.whl", hash = "sha256:970b4f4661fa7b44f6a7e6df65de7fc4a6fff2af610dc415c1d695ca5f1f37d2" },
 ]
 
 [[package]]
@@ -5049,21 +5071,21 @@ dependencies = [
     { name = "typing-extensions", marker = "(extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra != 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129') or (extra != 'extra-11-fish-speech-cpu' and extra != 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:72156354c39c08f3451acb50a6ecd4178d745670ad8651b5c796eaace558ff0f" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:54d240b5d3b1f9075d4ee6179675a22c1974f7bef1885d134c582678d5180cd3" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-win_amd64.whl", hash = "sha256:e4adcc3d44089d4a696e6a2ca4233d1ddad7614adc1d48ec8a8cfb95ba235ea1" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:d5a210e351ab0c3acbac18c7397bc66ffd897d5000351e8ce9a21badf7f56b85" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:da19696fd75c4a2d5bc945242619143dfc4cbc3e3deead407f2946d1395c3608" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp311-cp311-win_amd64.whl", hash = "sha256:8a92b6ac49be932a8e4f70282d0d396a95a0fc877a9fbe0bd36be5f765707c84" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:692fe6e513b667f789a543fa9b1baba58e77a46d5c8629764ca0c00a56823e1f" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:02c7258e917f3043c978b53acf6f02b818db0d0d85db0e58ae578af333b9b4e2" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp312-cp312-win_amd64.whl", hash = "sha256:2bc729898e422b9f3da54349eed98f2f0b5dd415434508ee2ab2a13fb021815d" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:ad2d64316635e7ab06f6c973a252526d59a92a2045825c102f876914a72304d0" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:563740167be2189b71530b503f0c8a8d7a8267dd49d4de6f9c5f1d23fbe237df" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313-win_amd64.whl", hash = "sha256:2cef066f9759ff4d7868a8c3695aa60d9a878598acb3685bb1ef2fdac29dcd68" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:2982bf34249cbb38f1090e71ad7097a214a21023ccdc0413961986ab7d0396e6" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:6344260959ebcfa6dae458e1c4365195bcfdf00f4f1f1ad438cbaf50756829ed" },
+    { url = "https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp313-cp313t-win_amd64.whl", hash = "sha256:9c0cd89e54ce44ce3208c5cf4163773b9cda0067e4b48cfcac56a4e04af52040" },
 ]
 
 [[package]]
@@ -5371,7 +5393,7 @@ name = "triton"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "setuptools", marker = "(sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu126') or (sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu128') or (sys_platform == 'linux' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu126') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cpu' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu128') or (extra == 'extra-11-fish-speech-cu126' and extra == 'extra-11-fish-speech-cu129') or (extra == 'extra-11-fish-speech-cu128' and extra == 'extra-11-fish-speech-cu129')" },
+    { name = "setuptools" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/ee/0ee5f64a87eeda19bbad9bc54ae5ca5b98186ed00055281fd40fb4beb10e/triton-3.4.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7ff2785de9bc02f500e085420273bb5cc9c9bb767584a4aa28d6e360cec70128", size = 155430069, upload-time = "2025-07-30T19:58:21.715Z" },

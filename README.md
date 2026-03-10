@@ -34,168 +34,77 @@
     <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
       <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
     </a>
-    <a target="_blank" href="https://huggingface.co/spaces/fishaudio/fish-speech-1">
-        <img alt="Huggingface" src="https://img.shields.io/badge/🤗%20-space%20demo-yellow"/>
-    </a>
-    <a target="_blank" href="https://huggingface.co/fishaudio/openaudio-s1-mini">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
     </a>
 </div>
 
 > [!IMPORTANT]
 > **License Notice**  
-> This codebase is released under **Apache License** and all model weights are released under **CC-BY-NC-SA-4.0 License**. Please refer to [LICENSE](LICENSE) for more details.
+> This codebase and its associated model weights are released under **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Please refer to [LICENSE](LICENSE) for more details.
 
 > [!WARNING]
 > **Legal Disclaimer**  
 > We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 
-## FishAudio-S1  
-**True human-like Text-to-Speech and Voice Cloning**
+## Start Here
 
-FishAudio-S1 is an expressive text-to-speech (TTS) and voice cloning model developed by [Fish Audio](https://fish.audio/), designed to generate speech that sounds natural, realistic, and emotionally rich — not robotic, not flat, and not constrained to studio-style narration.
+Here are the official documents for Fish Speech, follow the instructions to get started easily.
 
-FishAudio-S1 focuses on how humans actually speak: with emotion, variation, pauses, and intent.
+- [Installation](https://speech.fish.audio/install/)
+- [Inference](https://speech.fish.audio/inference/)
 
-### Announcement 🎉
+## Fish Audio S2  
+**Best Text-to-speech system among both open source and closed source**
 
-We are excited to announce that we have rebranded to **Fish Audio** — introducing a revolutionary new series of advanced Text-to-Speech models that builds upon the foundation of Fish-Speech.
+Fish Audio S2 is the latest model developed by [Fish Audio](https://fish.audio/), designed to generate speech that sounds natural, realistic, and emotionally rich — not robotic, not flat, and not constrained to studio-style narration.
 
-We are proud to release **FishAudio-S1** (also known as OpenAudio S1) as the first model in this series, delivering significant improvements in quality, performance, and capabilities.
+Fish Audio S2 focuses on daily conversation and dialogue, which enables native multi-speaker and multi-turn generation. Also supports instruction control.
 
-FishAudio-S1 comes in two versions: **FishAudio-S1** and **FishAudio-S1-mini**. Both models are now available on [Fish Audio Playground](https://fish.audio) (for **FishAudio-S1**) and [Hugging Face](https://huggingface.co/fishaudio/openaudio-s1-mini) (for **FishAudio-S1-mini**).
+The S2 series contains several models, the open-sourced model is S2-Pro, which is best model in the collection. 
 
-Visit the [Fish Audio website](https://fish.audio/) for live playground tech report.
+Visit the [Fish Audio website](https://fish.audio/) for live playground.
 
 ### Model Variants
 
 | Model | Size | Availability | Description |
 |------|------|-------------|-------------|
-| FishAudio-S1 | 4B parameters | [fish.audio](https://fish.audio/) | Full-featured flagship model with maximum quality and stability |
-| FishAudio-S1-mini | 0.5B parameters | [huggingface](https://huggingface.co/spaces/fishaudio/openaudio-s1-mini) | Open-source distilled model with core capabilities |
+| S2-Pro | 4B parameters | [huggingface](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability |
+| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | Our closed source model with faster speed and lower latency |
 
-Both S1 and S1-mini incorporate online Reinforcement Learning from Human Feedback (RLHF).
-
-### Start Here
-
-Here are the official documents for Fish Speech, follow the instructions to get started easily.
-
-- [Installation](https://speech.fish.audio/install/)
-- [Finetune](https://speech.fish.audio/finetune/)
-- [Inference](https://speech.fish.audio/inference/)
-- [Samples](https://speech.fish.audio/samples/)
+More details of the model can be found in the technical report.
 
 ## Highlights
 
-### **Excellent TTS quality**
+<img src="./docs/assets/totalability.png" width=200%>
 
-We use Seed TTS Eval Metrics to evaluate the model performance, and the results show that FishAudio S1 achieves **0.008 WER** and **0.004 CER** on English text, which is significantly better than previous models. (English, auto eval, based on OpenAI gpt-4o-transcribe, speaker distance using Revai/pyannote-wespeaker-voxceleb-resnet34-LM)
+### Fine-Grained Inline Control via Natural Language
 
-| Model | Word Error Rate (WER) | Character Error Rate (CER) | Speaker Distance |
-|-------|----------------------|---------------------------|------------------|
-| **S1** | **0.008**  | **0.004**  | **0.332** |
-| **S1-mini** | **0.011** | **0.005** | **0.380** |
-
-
-### **Best Model in TTS-Arena2** 🏆
-
-FishAudio S1 has achieved the **#1 ranking** on [TTS-Arena2](https://arena.speechcolab.org/), the benchmark for text-to-speech evaluation:
-
-<div align="center">
-    <img src="docs/assets/Elo.jpg" alt="TTS-Arena2 Ranking" style="width: 75%;" />
-</div>
-
-### True Human-Like Speech
-
-FishAudio-S1 generates speech that sounds natural and conversational rather than robotic or overly polished. The model captures subtle variations in timing, emphasis, and prosody, avoiding the “studio recording” effect common in traditional TTS systems.
-
-### **Emotion Control and Expressiveness**
-
-FishAudio S1 is the first TTS model to support **open-domain fine-grained emotion control** through explicit emotion and tone markers. We can now precisely steer how a voice sounds:
-
-- **Basic emotions**:
-```
-(angry) (sad) (excited) (surprised) (satisfied) (delighted) 
-(scared) (worried) (upset) (nervous) (frustrated) (depressed)
-(empathetic) (embarrassed) (disgusted) (moved) (proud) (relaxed)
-(grateful) (confident) (interested) (curious) (confused) (joyful)
-```
-
-- **Advanced emotions**:
-```
-(disdainful) (unhappy) (anxious) (hysterical) (indifferent) 
-(impatient) (guilty) (scornful) (panicked) (furious) (reluctant)
-(keen) (disapproving) (negative) (denying) (astonished) (serious)
-(sarcastic) (conciliative) (comforting) (sincere) (sneering)
-(hesitating) (yielding) (painful) (awkward) (amused)
-```
-
-- **Tone markers**:
-```
-(in a hurry tone) (shouting) (screaming) (whispering) (soft tone)
-```
-
-- **Special audio effects**:
-```
-(laughing) (chuckling) (sobbing) (crying loudly) (sighing) (panting)
-(groaning) (crowd laughing) (background laughter) (audience laughing)
-```
-
-You can also use Ha,ha,ha to control, there's many other cases waiting to be explored by yourself.
+Fish Audio S2 enables localized control over speech generation by embedding natural-language instructions directly at specific word or phrase positions within the text. Rather than relying on a fixed set of predefined tags, S2 accepts free-form textual descriptions — such as [whisper in small voice], [professional broadcast tone], or [pitch up] — allowing open-ended expression control at the word level.
 
 ### Multilingual Support
 
-FishAudio-S1 supports high-quality multilingual text-to-speech without requiring phonemes or language-specific preprocessing.
+Fish Audio S2 supports high-quality multilingual text-to-speech without requiring phonemes or language-specific preprocessing. Including:
 
-**Languages supporting emotion markers include:**
-English, Chinese, Japanese, German, French, Spanish, Korean, Arabic, Russian, Dutch, Italian, Polish, and Portuguese.
+**English, Chinese, Japanese, Korean, Arabics, German, French...**
+
+**AND MORE!**
 
 The list is constantly expanding, check [Fish Audio](https://fish.audio/) for the latest releases.
 
+### Native multi-speaker generation
+
+<img src="./docs/assets/chattemplate.png" width=200%>
+
+Fish Audio S2 allows users to upload reference audio with multi-speaker, the model will deal with every speaker's feature via `<|speaker:i|>` token. Then you can control the model's performance with the speaker id token, allowing a single generation to include multiple speakers. You no longer need to upload reference audio separately for each speaker.
+
+### Multi-turn generation
+
+Thanks to the expansion of the model context, our model can now use previous information to improve the expressiveness of subsequent generated content, thereby increasing the naturalness of the content.
+
 ### Rapid Voice Cloning
 
-FishAudio-S1 supports accurate voice cloning using a short reference sample (typically 10–30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning.
-
-## **Features**
-
-1. **Zero-shot & Few-shot TTS:** Input a 10 to 30-second vocal sample to generate high-quality TTS output. **For detailed guidelines, see [Voice Cloning Best Practices](https://docs.fish.audio/resources/best-practices/voice-cloning).**
-
-2. **Multilingual & Cross-lingual Support:** Simply copy and paste multilingual text into the input box—no need to worry about the language. Currently supports English, Japanese, Korean, Chinese, French, German, Arabic, and Spanish.
-
-3. **No Phoneme Dependency:** The model has strong generalization capabilities and does not rely on phonemes for TTS. It can handle text in any language script.
-
-4. **Highly Accurate:** Achieves a low CER (Character Error Rate) of around 0.4% and WER (Word Error Rate) of around 0.8% for Seed-TTS Eval.
-
-5. **Fast:** Accelerated by torch compile, the real-time factor is approximately 1:7 on an Nvidia RTX 4090 GPU.
-
-6. **WebUI Inference:** Features an easy-to-use, Gradio-based web UI compatible with Chrome, Firefox, Edge, and other browsers.
-
-7. **Deploy-Friendly:** Easily set up an inference server with native support for Linux and Windows (macOS support coming soon), minimizing performance loss.
-
-## **Media & Demos**
-
-<div align="center">
-
-### **Social Media**
-<a href="https://x.com/hehe6z/status/1980303682932744439" target="_blank">
-    <img src="https://img.shields.io/badge/𝕏-Latest_Demo-black?style=for-the-badge&logo=x&logoColor=white" alt="Latest Demo on X" />
-</a>
-
-### **Interactive Demos**
-<a href="https://fish.audio" target="_blank">
-    <img src="https://img.shields.io/badge/Fish.Audio-Try_FishAudio_S1-blue?style=for-the-badge" alt="Try FishAudio S1" />
-</a>
-<a href="https://huggingface.co/spaces/fishaudio/openaudio-s1-mini" target="_blank">
-    <img src="https://img.shields.io/badge/Hugging_Face-Use_S1_Mini-yellow?style=for-the-badge" alt="Try S1 Mini" />
-</a>
-
-### **Video Showcases**
-
-<a href="https://www.youtube.com/watch?v=WR1FY32Lhps" target="_blank">
-    <img src="docs/assets/Thumbnail.jpg" alt="FishAudio S1 Video" style="width: 50%;" />
-</a>
-
-</div>
+Fish Audio S2 supports accurate voice cloning using a short reference sample (typically 10–30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning.
 
 ---
 
@@ -209,7 +118,7 @@ FishAudio-S1 supports accurate voice cloning using a short reference sample (typ
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
 - [Qwen3](https://github.com/QwenLM/Qwen3)
 
-## Tech Report (V1.4)
+## Tech Report
 ```bibtex
 @misc{fish-speech-v1.4,
       title={Fish-Speech: Leveraging Large Language Models for Advanced Multilingual Text-to-Speech Synthesis},
