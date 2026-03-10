@@ -57,6 +57,15 @@ This is the official documentation for Fish Speech. Please follow the instructio
 - [Server Inference](server.md)
 - [Docker Setup](install.md#docker-setup)
 
+!!! note
+    For SGLang server, please read [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
+
+### For LLM Agent
+
+```text
+Install and configure Fish-Audio S2 by following the instructions here: https://speech.fish.audio/install/
+```
+
 ## Fish Audio S2
 **The best text-to-speech system in both open-source and closed-source**
 
@@ -73,7 +82,6 @@ Please visit the [Fish Audio website](https://fish.audio/) for a real-time exper
 | Model | Size | Availability | Description |
 |------|------|-------------|-------------|
 | S2-Pro | 4B Parameters | [huggingface](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with the highest quality and stability |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | Our closed-source model with faster speed and lower latency |
 
 For more details on the models, please see the technical report.
 
@@ -108,6 +116,7 @@ Thanks to the expansion of the model's context, our model can now use the inform
 ### Fast Voice Cloning
 
 Fish Audio S2 supports accurate voice cloning using short reference samples (typically 10-30 seconds). The model can capture timbre, speaking style, and emotional tendency, generating realistic and consistent cloned voices without additional fine-tuning.
+Please refer to https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md to use the SGLang server.
 
 ---
 

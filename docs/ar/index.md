@@ -52,7 +52,19 @@
 هذا هو الوثائق الرسمية لـ Fish Speech. يرجى اتباع التعليمات للبدء بسهولة.
 
 - [التثبيت](install.md)
-- [الاستنتاج](inference.md)
+- [الاستدلال عبر سطر الأوامر](inference.md)
+- [استدلال WebUI](inference.md)
+- [الاستدلال عبر الخادم](server.md)
+- [إعداد Docker](install.md)
+
+!!! note
+    بالنسبة لخادم SGLang، راجع [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
+
+### دليل وكلاء LLM
+
+```text
+قم بتثبيت وإعداد Fish Audio S2 باتباع التعليمات في https://speech.fish.audio/ar/install/ .
+```
 
 ## Fish Audio S2
 **أفضل نظام لتحويل النص إلى كلام في كل من المصادر المفتوحة والمغلقة**
@@ -70,7 +82,6 @@ Fish Audio S2 هو أحدث نموذج تم تطويره بواسطة [Fish Audi
 | النموذج | الحجم | التوفر | الوصف |
 |------|------|-------------|-------------|
 | S2-Pro | 4B معاملات | [huggingface](https://huggingface.co/fishaudio/s2-pro) | نموذج رائد بكامل الميزات مع أعلى جودة واستقرار |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | نموذجنا المغلق المصدر بسرعات أعلى وزمن وصول أقل |
 
 لمزيد من التفاصيل حول النماذج ، يرجى مراجعة التقرير الفني.
 
@@ -105,6 +116,7 @@ Fish Audio S2 هو أحدث نموذج تم تطويره بواسطة [Fish Audi
 ### استنساخ الصوت السريع
 
 يدعم Fish Audio S2 استنساخ الصوت الدقيق باستخدام عينات مرجعية قصيرة (عادة 10-30 ثانية). يمكن للنموذج التقاط نبرة الصوت وأسلوب التحدث والميل العاطفي ، وتوليد أصوات مستنسخة واقعية ومتسقة دون ضبط دقيق إضافي.
+لاستخدام خادم SGLang، راجع https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md .
 
 ---
 

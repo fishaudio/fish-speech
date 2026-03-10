@@ -52,7 +52,19 @@
 Fish Speech의 공식 문서입니다. 지침에 따라 쉽게 시작할 수 있습니다.
 
 - [설치](install.md)
-- [추론](inference.md)
+- [커맨드라인 추론](inference.md)
+- [WebUI 추론](inference.md)
+- [서버 추론](server.md)
+- [Docker 설정](install.md)
+
+!!! note
+    SGLang 서버는 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)를 참고하세요.
+
+### LLM Agent 가이드
+
+```text
+https://speech.fish.audio/ko/install/ 문서를 따라 Fish Audio S2를 설치하고 구성하세요.
+```
 
 ## Fish Audio S2
 **오픈 소스 및 클로즈드 소스 중 최고봉의 텍스트 음성 변환 시스템**
@@ -70,7 +82,6 @@ S2 시리즈에는 여러 모델이 포함되어 있으며, 오픈 소스 모델
 | 모델 | 크기 | 가용성 | 설명 |
 |------|------|-------------|-------------|
 | S2-Pro | 4B 매개변수 | [huggingface](https://huggingface.co/fishaudio/s2-pro) | 최고의 품질과 안정성을 갖춘 풀 기능 플래그십 모델 |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | 더 빠른 속도와 짧은 지연 시간을 갖춘 클로즈드 소스 모델 |
 
 모델에 대한 자세한 내용은 기술 보고서를 참조하십시오.
 
@@ -105,6 +116,7 @@ Fish Audio S2를 사용하면 사용자가 여러 화자가 포함된 참조 오
 ### 빠른 음성 클로닝
 
 Fish Audio S2는 짧은 참조 샘플(보통 10~30초)을 사용한 정확한 음성 클로닝을 지원합니다. 모델은 음색, 말하기 스타일 및 감정적 경향을 포착할 수 있으며, 추가 미세 조정 없이도 사실적이고 일관된 클로닝 음성을 생성할 수 있습니다.
+SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 를 참고하세요.
 
 ---
 

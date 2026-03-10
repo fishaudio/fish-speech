@@ -52,7 +52,19 @@
 Esta é a documentação oficial do Fish Speech. Siga as instruções para começar facilmente.
 
 - [Instalação](install.md)
-- [Inferência](inference.md)
+- [Inferência por Linha de Comando](inference.md)
+- [Inferência WebUI](inference.md)
+- [Inferência via Servidor](server.md)
+- [Configuração Docker](install.md)
+
+!!! note
+    Para servidor com SGLang, consulte o [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
+
+### Guia para agentes LLM
+
+```text
+Instale e configure o Fish Audio S2 seguindo as instruções em https://speech.fish.audio/pt/install/ .
+```
 
 ## Fish Audio S2
 **O melhor sistema de texto para fala em código aberto e código fechado**
@@ -70,7 +82,6 @@ Visite o [site da Fish Audio](https://fish.audio/) para uma experiência em temp
 | Modelo | Tamanho | Disponibilidade | Descrição |
 |------|------|-------------|-------------|
 | S2-Pro | 4B Parâmetros | [huggingface](https://huggingface.co/fishaudio/s2-pro) | Modelo emblemático completo com a mais alta qualidade e estabilidade |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | Nosso modelo de código fechado com maior velocidade e menor latência |
 
 Para mais detalhes sobre os modelos, consulte o relatório técnico.
 
@@ -105,6 +116,7 @@ Graças à expansão do contexto do modelo, nosso modelo agora pode usar as info
 ### Clonagem de Voz Rápida
 
 O Fish Audio S2 suporta clonagem de voz precisa usando amostras de referência curtas (geralmente de 10 a 30 segundos). O modelo pode capturar timbre, estilo de fala e tendência emocional, gerando vozes clonadas realistas e consistentes sem ajuste fino adicional.
+Para usar o servidor SGLang, consulte https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md .
 
 ---
 
