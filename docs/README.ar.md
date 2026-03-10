@@ -59,7 +59,8 @@
 - [الاستدلال عبر الخادم](https://speech.fish.audio/ar/server/)
 - [إعداد Docker](https://speech.fish.audio/ar/install/)
 
-بالنسبة لخادم SGLang، راجع [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.).
+> [!IMPORTANT]
+> **بالنسبة لخادم SGLang، راجع [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 
 ### دليل وكلاء LLM
 

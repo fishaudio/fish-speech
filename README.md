@@ -59,7 +59,8 @@ Here are the official documents for Fish Audio S2, follow the instructions to ge
 - [Server Inference](https://speech.fish.audio/server/)
 - [Docker Setup](https://speech.fish.audio/install/#docker-setup)
 
-For SGLang server, please read [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.)
+> [!IMPORTANT]
+> **For SGLang server, please read [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 
 ### For LLM Agent
 

@@ -59,7 +59,8 @@ Fish Audio S2 の公式ドキュメントです。以下からすぐに始めら
 - [サーバー推論](https://speech.fish.audio/ja/server/)
 - [Docker セットアップ](https://speech.fish.audio/ja/install/)
 
-SGLang サーバーについては [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.) を参照してください。
+> [!IMPORTANT]
+> **SGLang サーバーについては [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) を参照してください。**
 
 ### LLM Agent 向け
 
