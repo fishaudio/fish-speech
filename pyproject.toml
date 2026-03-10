@@ -1,8 +1,8 @@
 [project]
 name = "fish-speech"
-version = "0.1.0"
+version = "2.0.0"
 authors = [
-    {name = "Lengyue", email = "lengyue@lengyue.me"},
+    {name = "Fish Audio", email = "oss@fish.audio"},
 ]
 description = "Fish Speech"
 readme = "README.md"
@@ -115,8 +115,6 @@ explicit = true
 name = "pytorch-cu129"
 url = "https://download.pytorch.org/whl/cu129"
 explicit = true
-
-
 
 [build-system]
 requires = ["setuptools", "setuptools-scm"]

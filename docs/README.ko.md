@@ -34,7 +34,7 @@
     <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
       <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
     </a>
-    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
     </a>
 </div>
@@ -47,32 +47,57 @@
 > **법적 면책조항**
 > 저희는 코드베이스의 불법적인 사용에 대해 어떠한 책임도 지지 않습니다. DMCA 및 기타 관련 법률에 대한 현지 법률을 참조하세요.
 
-## 여기서 시작하세요
+## 빠른 시작
 
-여기는 Fish Speech의 공식 문서입니다. 지침을 따라 쉽게 시작하세요.
+### 문서로 바로 시작하기
+
+Fish Audio S2 공식 문서입니다. 아래 링크에서 바로 시작할 수 있습니다.
 
 - [설치](https://speech.fish.audio/ko/install/)
-- [추론](https://speech.fish.audio/ko/inference/)
+- [커맨드라인 추론](https://speech.fish.audio/ko/inference/)
+- [WebUI 추론](https://speech.fish.audio/ko/inference/)
+- [서버 추론](https://speech.fish.audio/ko/server/)
+- [Docker 설정](https://speech.fish.audio/ko/install/)
+
+SGLang 서버는 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.)를 참고하세요.
+
+### LLM Agent 가이드
+
+```
+https://speech.fish.audio/ko/install/ 문서를 따라 Fish Audio S2를 설치하고 구성하세요.
+```
 
 ## Fish Audio S2
 **오픈 소스와 클로즈드 소스 모두에서 가장 뛰어난 텍스트 음성 변환 시스템**
 
-Fish Audio S2는 [Fish Audio](https://fish.audio/)가 개발한 최신 모델로, 자연스럽고 사실적이며 감정적으로 풍부한 음성을 생성하도록 설계되었습니다. 로봇 같지 않고, 평평하지 않으며, 스튜디오 스타일의 내레이션에 제한되지 않습니다.
+Fish Audio S2는 [Fish Audio](https://fish.audio/)가 개발한 최신 모델입니다. 약 50개 언어, 1,000만 시간 이상의 오디오 데이터로 학습되었고, 강화학습 정렬과 Dual-Autoregressive 아키텍처를 결합해 자연스럽고 사실적이며 감정 표현이 풍부한 음성을 생성합니다.
 
-Fish Audio S2는 일상적인 대화와 대화에 집중하여 네이티브 멀티 화자 및 멀티 턴 생성을 가능하게 합니다. 또한 명령 제어도 지원합니다.
+S2는 `[laugh]`, `[whispers]`, `[super happy]` 같은 자연어 태그를 사용해 운율과 감정을 문장 내부에서 세밀하게 제어할 수 있으며, 멀티 화자/멀티 턴 생성도 네이티브로 지원합니다.
 
-S2 시리즈에는 여러 모델이 포함되어 있으며, 오픈 소스 모델은 S2-Pro로 컬렉션 중 최고의 모델입니다.
-
-실시간 체험을 위해 [Fish Audio 웹사이트](https://fish.audio/)를 방문하세요.
+실시간 데모는 [Fish Audio 웹사이트](https://fish.audio/)에서, 자세한 내용은 [블로그 글](https://fish.audio/blog/fish-audio-open-sources-s2/)에서 확인할 수 있습니다.
 
 ### 모델 변형
 
 | 모델 | 크기 | 가용성 | 설명 |
 |------|------|-------------|-------------|
-| S2-Pro | 4B 매개변수 | [huggingface](https://huggingface.co/fishaudio/s2-pro) | 최고의 품질과 안정성을 갖춘 전체 기능 플래그십 모델 |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | 더 빠른 속도와 더 낮은 지연 시간을 가진 클로즈드 소스 모델 |
+| S2-Pro | 4B 매개변수 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 최고 수준의 품질과 안정성을 제공하는 풀기능 플래그십 모델 |
 
-모델에 대한 자세한 내용은 기술 보고서를 참조하십시오.
+모델 상세는 [기술 보고서](https://arxiv.org/abs/2411.01156)를 참고하세요.
+
+## 벤치마크 결과
+
+| 벤치마크 | Fish Audio S2 |
+|------|------|
+| Seed-TTS Eval — WER (중국어) | **0.54%** (전체 최고) |
+| Seed-TTS Eval — WER (영어) | **0.99%** (전체 최고) |
+| Audio Turing Test (지시 포함) | **0.515** 사후 평균 |
+| EmergentTTS-Eval — 승률 | **81.88%** (전체 최고) |
+| Fish Instruction Benchmark — TAR | **93.3%** |
+| Fish Instruction Benchmark — 품질 | **4.51 / 5.0** |
+| 다국어 (MiniMax Testset) — 최고 WER | **24개 언어 중 11개** |
+| 다국어 (MiniMax Testset) — 최고 SIM | **24개 언어 중 17개** |
+
+Seed-TTS Eval에서 S2는 클로즈드 소스 시스템을 포함한 전체 비교 모델 중 가장 낮은 WER를 기록했습니다: Qwen3-TTS (0.77/1.24), MiniMax Speech-02 (0.99/1.90), Seed-TTS (1.12/2.25). Audio Turing Test에서는 0.515를 기록해 Seed-TTS (0.417) 대비 24%, MiniMax-Speech (0.387) 대비 33% 높았습니다. EmergentTTS-Eval에서는 파라언어 표현(91.61%), 의문문(84.41%), 구문 복잡도(83.39%)에서 특히 강한 성능을 보였습니다.
 
 ## 주요 특징
 
@@ -81,6 +106,29 @@ S2 시리즈에는 여러 모델이 포함되어 있으며, 오픈 소스 모델
 ### 자연어 기반 세밀한 인라인 제어
 
 Fish Audio S2는 텍스트의 특정 단어 또는 구문 위치에 자연어 지시를 직접 삽입해 음성 생성을 국소적으로 제어할 수 있습니다. 고정된 사전 정의 태그에 의존하는 대신, S2는 [whisper in small voice], [professional broadcast tone], [pitch up] 같은 자유 형식 텍스트 설명을 받아 단어 수준의 개방형 표현 제어를 지원합니다.
+
+### Dual-Autoregressive 아키텍처
+
+S2는 decoder-only Transformer와 RVQ 기반 오디오 코덱(10 codebooks, 약 21 Hz 프레임레이트)을 결합합니다. Dual-AR은 생성 과정을 두 단계로 나눕니다.
+
+- **Slow AR**: 시간축을 따라 동작하며 주 semantic codebook을 예측
+- **Fast AR**: 각 시점에서 나머지 9개 residual codebook을 생성해 세밀한 음향 디테일을 복원
+
+이 비대칭 설계(시간축 4B 파라미터, 깊이축 400M 파라미터)는 음질을 유지하면서 추론 효율을 높입니다.
+
+### 강화학습 정렬
+
+S2는 후학습 정렬을 위해 Group Relative Policy Optimization(GRPO)을 사용합니다. 학습 데이터 필터링/라벨링에 쓰인 동일한 모델을 RL 보상 모델로 재사용해, 사전학습 데이터 분포와 후학습 목표 간의 분포 불일치를 줄였습니다. 보상 신호는 의미 정확도, 지시 준수도, 음향 선호 점수, 음색 유사도를 함께 반영합니다.
+
+### SGLang 기반 프로덕션 스트리밍
+
+Dual-AR 구조는 표준 자기회귀 LLM과 구조적으로 동형이기 때문에, S2는 SGLang의 LLM 서빙 최적화를 그대로 활용합니다. 예: continuous batching, paged KV cache, CUDA graph replay, RadixAttention 기반 prefix caching.
+
+NVIDIA H200 단일 GPU 기준:
+
+- **실시간 계수(RTF):** 0.195
+- **첫 오디오 출력까지 시간:** 약 100 ms
+- **처리량:** RTF 0.5 미만 유지 시 3,000+ acoustic tokens/s
 
 ### 다국어 지원
 
@@ -105,6 +153,7 @@ Fish Audio S2는 사용자가 여러 화자가 포함된 참조 오디오를 업
 ### 빠른 음성 복제
 
 Fish Audio S2는 짧은 참조 샘플(일반적으로 10-30초)을 사용하여 정확한 음성 복제를 지원합니다. 모델은 음색, 말하기 스타일 및 감정적 경향을 캡처하여 추가 미세 조정 없이 사실적이고 일관된 복제 음성을 생성합니다.
+SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 를 참고하세요.
 
 ---
 

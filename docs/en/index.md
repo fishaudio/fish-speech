@@ -52,7 +52,10 @@
 This is the official documentation for Fish Speech. Please follow the instructions to get started easily.
 
 - [Installation](install.md)
-- [Inference](inference.md)
+- [Command Line Inference](inference.md#command-line-inference)
+- [WebUI Inference](inference.md#webui-inference)
+- [Server Inference](server.md)
+- [Docker Setup](install.md#docker-setup)
 
 ## Fish Audio S2
 **The best text-to-speech system in both open-source and closed-source**

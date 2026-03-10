@@ -59,6 +59,7 @@ nav:
   - Installation: en/install.md
   - Finetune: en/finetune.md
   - Inference: en/inference.md
+  - Server: en/server.md
   - Samples: en/samples.md
 
 # Plugins

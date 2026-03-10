@@ -182,14 +182,16 @@ class ContentSequence:
         # Optimization: Batch conversion for ignore tokens
         ignore_loss_token_ids = []
         if ignore_loss_tokens:
-             # Use the wrapper method which uses convert_tokens_to_ids
-            ignore_loss_token_ids = [tokenizer.get_token_id(i) for i in ignore_loss_tokens]
+            # Use the wrapper method which uses convert_tokens_to_ids
+            ignore_loss_token_ids = [
+                tokenizer.get_token_id(i) for i in ignore_loss_tokens
+            ]
 
         for part in self.parts:
             if isinstance(part, TextPart):
                 if part.tokens is None:
                     assert part.text is not None
-                    # Optimization: Explicitly disable special tokens (BOS/EOS) 
+                    # Optimization: Explicitly disable special tokens (BOS/EOS)
                     # because we are constructing the sequence manually
                     tokens = tokenizer.encode(part.text, add_special_tokens=False)
                 else:
@@ -202,10 +204,10 @@ class ContentSequence:
                 # We use arithmetic offset: code + semantic_begin_id
                 # This assumes semantic tokens are contiguous in the vocab (DualAR requirement)
                 curr_codes = part.codes.clone().to(torch.int)
-                
+
                 # Use int64 (long) for token IDs to avoid overflow or type mismatch in embedding
                 tokens = (curr_codes[0] + tokenizer.semantic_begin_id).to(torch.long)
-                
+
                 vq_parts.append(curr_codes)
                 vq_require_losses.append(part.cal_loss)
             else:
@@ -235,17 +237,17 @@ class ContentSequence:
 
         # Concatenate all tensors
         if not all_tokens:
-             # Handle empty case safely
-             tokens = torch.empty(0, dtype=torch.long)
-             labels = torch.empty(0, dtype=torch.long)
-             vq_masks = torch.empty(0, dtype=torch.bool)
-             audio_masks = torch.empty(0, dtype=torch.bool)
+            # Handle empty case safely
+            tokens = torch.empty(0, dtype=torch.long)
+            labels = torch.empty(0, dtype=torch.long)
+            vq_masks = torch.empty(0, dtype=torch.bool)
+            audio_masks = torch.empty(0, dtype=torch.bool)
         else:
             tokens = torch.cat(all_tokens, dim=0)
             labels = torch.cat(all_labels, dim=0)
             vq_masks = torch.cat(vq_masks, dim=0)
             audio_masks = torch.cat(audio_masks, dim=0)
-        
+
         vq_require_losses = torch.tensor(vq_require_losses, dtype=torch.bool)
 
         # Apply shift if needed for next-token prediction
@@ -294,9 +296,9 @@ class ContentSequence:
         ):
             return values, None, None
 
-        audio_parts = None 
+        audio_parts = None
         audio_masks = None
-        
+
         if encoded.vq_parts is not None and len(encoded.vq_parts) > 0:
             vq_parts = encoded.vq_parts
             # List[Tensor(1, T)] -> Tensor(1, Total_T) -> Tensor(1, Total_T)
@@ -305,10 +307,12 @@ class ContentSequence:
                 # We need to be careful here: vq_parts is a list of tensors from different VQPart segments
                 # They correspond to encoded.vq_mask_tokens
                 # Since we just want to fill the 'values' tensor at the right positions:
-                all_vq_codes = torch.cat(vq_parts, dim=1) # Shape: (C, Total_Semantic_Tokens)
+                all_vq_codes = torch.cat(
+                    vq_parts, dim=1
+                )  # Shape: (C, Total_Semantic_Tokens)
             else:
                 all_vq_codes = vq_parts[0]
-                
+
             # Values[0] is already the Main Token ID (Semantic Begin + Code)
             # Values[1:] should be the codes themselves
             values[1:, encoded.vq_mask_tokens] = all_vq_codes.to(dtype=torch.long)
@@ -383,10 +387,10 @@ class ContentSequence:
 
             # Use HF decode
             val = tokenizer.decode([token_id])
-            
+
             # Simple fallback for visualization if decode returns empty or weird stuff for special tokens
             if not val:
-                 val = f"<{token_id}>"
+                val = f"<{token_id}>"
 
             if lab == -100:
                 print_in_green(val)

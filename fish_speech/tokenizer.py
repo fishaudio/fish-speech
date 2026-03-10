@@ -33,32 +33,44 @@ MODALITY_TOKENS = {
 }
 
 SEMANTIC_TOKEN_TEMPLATE = "<|semantic:{i}|>"
-SEMANTIC_TOKENS =[SEMANTIC_TOKEN_TEMPLATE.format(i=i) for i in range(4096)]
+SEMANTIC_TOKENS = [SEMANTIC_TOKEN_TEMPLATE.format(i=i) for i in range(4096)]
 
-ALL_SPECIAL_TOKENS =[
-    EOS_TOKEN, PAD_TOKEN, IM_START_TOKEN, IM_END_TOKEN,
-    PHONEME_START_TOKEN, PHONEME_END_TOKEN, MODALITY_TEXT_TOKEN,
-    MODALITY_VOICE_TOKEN, MODALITY_INTERLEAVE_TOKEN, AUDIO_START_TOKEN,
-    AUDIO_END_TOKEN, AUDIO_EMBED_TOKEN, *SEMANTIC_TOKENS,
+ALL_SPECIAL_TOKENS = [
+    EOS_TOKEN,
+    PAD_TOKEN,
+    IM_START_TOKEN,
+    IM_END_TOKEN,
+    PHONEME_START_TOKEN,
+    PHONEME_END_TOKEN,
+    MODALITY_TEXT_TOKEN,
+    MODALITY_VOICE_TOKEN,
+    MODALITY_INTERLEAVE_TOKEN,
+    AUDIO_START_TOKEN,
+    AUDIO_END_TOKEN,
+    AUDIO_EMBED_TOKEN,
+    *SEMANTIC_TOKENS,
 ]
+
 
 class FishTokenizer:
     def __init__(self, model_path: str):
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.semantic_id_to_token_id = {}
-        
+
         vocab = self._tokenizer.get_vocab()
-        valid_ids =[]
-        
+        valid_ids = []
+
         for code_idx in range(4096):
             token = SEMANTIC_TOKEN_TEMPLATE.format(i=code_idx)
             if token in vocab:
                 token_id = vocab[token]
                 self.semantic_id_to_token_id[code_idx] = token_id
                 valid_ids.append(token_id)
-        
+
         if not valid_ids:
-            logger.error("CRITICAL ERROR: No semantic tokens found in vocab! Audio cannot be synthesized.")
+            logger.error(
+                "CRITICAL ERROR: No semantic tokens found in vocab! Audio cannot be synthesized."
+            )
             self.semantic_begin_id = 0
             self.semantic_end_id = 0
             # Dummy tensor to prevent crash, though generation will fail
@@ -71,7 +83,9 @@ class FishTokenizer:
             for k, v in self.semantic_id_to_token_id.items():
                 self.semantic_map_tensor[k] = v
 
-        logger.info(f"Loaded Tokenizer. Semantic Range: {self.semantic_begin_id} -> {self.semantic_end_id}")
+        logger.info(
+            f"Loaded Tokenizer. Semantic Range: {self.semantic_begin_id} -> {self.semantic_end_id}"
+        )
 
     @property
     def vocab_size(self):
@@ -88,13 +102,18 @@ class FishTokenizer:
     def get_token_id(self, token: str) -> int:
         return self._tokenizer.convert_tokens_to_ids(token)
 
-    def encode(self, text: str, add_special_tokens: bool = False, **kwargs) -> List[int]:
+    def encode(
+        self, text: str, add_special_tokens: bool = False, **kwargs
+    ) -> List[int]:
         # [FIX] Force Qwen/Tiktoken backends to parse special tokens inline
         import inspect
+
         sig = inspect.signature(self._tokenizer.encode)
         if "allowed_special" in sig.parameters and "allowed_special" not in kwargs:
             kwargs["allowed_special"] = "all"
-        return self._tokenizer.encode(text, add_special_tokens=add_special_tokens, **kwargs)
+        return self._tokenizer.encode(
+            text, add_special_tokens=add_special_tokens, **kwargs
+        )
 
     def decode(self, tokens: Union[List[int], int], **kwargs) -> str:
         return self._tokenizer.decode(tokens, **kwargs)
