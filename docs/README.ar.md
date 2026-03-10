@@ -34,7 +34,7 @@
     <a target="_blank" href="https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2">
       <img alt="TTS-Arena2 Score" src="https://img.shields.io/badge/TTS_Arena2-Rank_%231-gold?style=flat-square&logo=trophy&logoColor=white">
     </a>
-    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
     </a>
 </div>
@@ -47,32 +47,59 @@
 > **إخلاء المسؤولية القانونية**
 > نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لهذا المشروع. يرجى الرجوع إلى القوانين المحلية المتعلقة بحقوق الطبع والنشر الرقمية (DMCA) والقوانين الأخرى ذات الصلة.
 
-## ابدأ من هنا
+## البدء السريع
 
-هذه الوثائق الرسمية لـ Fish Speech، اتبع التعليمات للبدء بسهولة.
+### ابدأ من الوثائق
+
+هذه هي الوثائق الرسمية لـ Fish Audio S2، ويمكنك البدء مباشرة عبر الروابط التالية:
 
 - [التثبيت](https://speech.fish.audio/ar/install/)
-- [الاستنتاج](https://speech.fish.audio/ar/inference/)
+- [الاستدلال عبر سطر الأوامر](https://speech.fish.audio/ar/inference/)
+- [استدلال WebUI](https://speech.fish.audio/ar/inference/)
+- [الاستدلال عبر الخادم](https://speech.fish.audio/ar/server/)
+- [إعداد Docker](https://speech.fish.audio/ar/install/)
+
+بالنسبة لخادم SGLang، راجع [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md.).
+
+### دليل وكلاء LLM
+
+```
+لتثبيت Fish Audio S2، اقرأ أولاً https://speech.fish.audio/ar/install/ ثم أنشئ بيئة conda.
+وللاستدلال، راجع https://speech.fish.audio/ar/inference/.
+```
 
 ## Fish Audio S2
 **أفضل نظام لتحويل النص إلى كلام بين الأنظمة مفتوحة المصدر ومغلقة المصدر**
 
-Fish Audio S2 هو أحدث نموذج طورته [Fish Audio](https://fish.audio/)، صُمم لإنتاج كلام يبدو طبيعياً وواقعياً وغنياً بالعواطف — ليس آلياً، ولا مسطحاً، ولا يقتصر على أسلوب السرد في الاستوديوهات.
+Fish Audio S2 هو أحدث نموذج من [Fish Audio](https://fish.audio/). تم تدريبه على أكثر من 10 ملايين ساعة صوتية عبر نحو 50 لغة، ويجمع بين المواءمة بالتعلم المعزز وبنية Dual-Autoregressive لإنتاج كلام طبيعي وواقعي وغني بالتعبير العاطفي.
 
-يركز Fish Audio S2 على المحادثات والحوارات اليومية، مما يتيح توليد أصوات لمتحدثين متعددين وجلسات حوارية متعددة الأدوار بشكل أصلي. كما يدعم التحكم عبر التعليمات.
+يدعم S2 التحكم الدقيق في النبرة والعاطفة داخل النص نفسه باستخدام وسوم باللغة الطبيعية مثل `[laugh]` و`[whispers]` و`[super happy]`، كما يدعم بشكل أصيل توليد متحدثين متعددين وحوارات متعددة الأدوار.
 
-تحتوي سلسلة S2 على نماذج متعددة، النموذج مفتوح المصدر هو S2-Pro، وهو الأفضل في المجموعة.
-
-تفضل بزيارة [موقع Fish Audio](https://fish.audio/) لتجربة مباشرة.
+يمكنك تجربة النموذج مباشرة عبر [موقع Fish Audio](https://fish.audio/)، وقراءة المزيد في [منشور المدونة](https://fish.audio/blog/fish-audio-open-sources-s2/).
 
 ### إصدارات النموذج
 
 | النموذج | الحجم | التوفر | الوصف |
 |------|------|-------------|-------------|
-| S2-Pro | 4B معايير | [huggingface](https://huggingface.co/fishaudio/s2-pro) | نموذج رائد كامل الميزات بأعلى جودة واستقرار |
-| S2-Flash | - - - - | [fish.audio](https://fish.audio/) | نموذجنا مغلق المصدر بسرعة أكبر وتأخير أقل |
+| S2-Pro | 4B معلمة | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | نموذج رائد كامل الميزات بأعلى مستوى من الجودة والاستقرار |
+| S2-Flash | — | [fish.audio](https://fish.audio/) | نموذج مغلق المصدر أسرع وأقل زمناً للاستجابة |
 
-يمكن العثور على مزيد من التفاصيل حول النموذج في التقرير التقني.
+يمكن العثور على مزيد من التفاصيل في [التقرير التقني](https://arxiv.org/abs/2411.01156).
+
+## نتائج القياس المعياري
+
+| المعيار | Fish Audio S2 |
+|------|------|
+| Seed-TTS Eval — WER (الصينية) | **0.54%** (الأفضل إجمالاً) |
+| Seed-TTS Eval — WER (الإنجليزية) | **0.99%** (الأفضل إجمالاً) |
+| Audio Turing Test (مع التعليمات) | **0.515** المتوسط البعدي |
+| EmergentTTS-Eval — معدل الفوز | **81.88%** (الأعلى إجمالاً) |
+| Fish Instruction Benchmark — TAR | **93.3%** |
+| Fish Instruction Benchmark — الجودة | **4.51 / 5.0** |
+| متعدد اللغات (MiniMax Testset) — أفضل WER | **11 من 24** لغة |
+| متعدد اللغات (MiniMax Testset) — أفضل SIM | **17 من 24** لغة |
+
+في Seed-TTS Eval، حقق S2 أقل WER بين جميع النماذج التي تم تقييمها، بما في ذلك الأنظمة المغلقة: Qwen3-TTS ‏(0.77/1.24)، وMiniMax Speech-02 ‏(0.99/1.90)، وSeed-TTS ‏(1.12/2.25). وفي Audio Turing Test، تفوقت قيمة 0.515 على Seed-TTS ‏(0.417) بنسبة 24% وعلى MiniMax-Speech ‏(0.387) بنسبة 33%. وفي EmergentTTS-Eval، حقق S2 نتائج قوية بشكل خاص في الخصائص شبه اللغوية (91.61%)، والأسئلة (84.41%)، والتعقيد النحوي (83.39%).
 
 ## أبرز المميزات
 
@@ -81,6 +108,29 @@ Fish Audio S2 هو أحدث نموذج طورته [Fish Audio](https://fish.audi
 ### تحكم مضمّن دقيق عبر اللغة الطبيعية
 
 يتيح Fish Audio S2 تحكمًا موضعيًا في توليد الكلام من خلال تضمين تعليمات باللغة الطبيعية مباشرة عند مواقع كلمات أو عبارات محددة داخل النص. وبدلًا من الاعتماد على مجموعة ثابتة من الوسوم المُعرّفة مسبقًا، يقبل S2 أوصافًا نصية حرة مثل [whisper in small voice] أو [professional broadcast tone] أو [pitch up]، مما يتيح تحكمًا مفتوحًا في التعبير على مستوى الكلمة.
+
+### بنية Dual-Autoregressive
+
+يعتمد S2 على Transformer أحادي الاتجاه (Decoder-only) مع مُرمّز صوتي قائم على RVQ (عدد 10 codebooks وبمعدل إطارات يقارب 21 هرتز). وتُقسّم بنية Dual-AR عملية التوليد إلى مرحلتين:
+
+- **Slow AR** يعمل على المحور الزمني ويتنبأ بالـ semantic codebook الأساسي.
+- **Fast AR** يولّد الـ 9 residual codebooks المتبقية في كل خطوة زمنية لإعادة بناء التفاصيل الصوتية الدقيقة.
+
+هذا التصميم غير المتماثل (4B معلمة على المحور الزمني و400M على محور العمق) يرفع كفاءة الاستدلال مع الحفاظ على جودة الصوت.
+
+### المواءمة بالتعلم المعزز
+
+يستخدم S2 خوارزمية Group Relative Policy Optimization (GRPO) للمواءمة بعد التدريب. ويتم إعادة استخدام نفس النماذج التي استُخدمت لتصفية بيانات التدريب وتعليقها كنماذج مكافأة في التعلم المعزز مباشرة، مما يلغي عدم تطابق التوزيع بين بيانات ما قبل التدريب وأهداف ما بعد التدريب. وتجمع إشارة المكافأة بين الدقة الدلالية، والالتزام بالتعليمات، وتقييم التفضيل الصوتي، وتشابه النبرة.
+
+### البث الإنتاجي عبر SGLang
+
+لأن بنية Dual-AR متماثلة بنيويًا مع نماذج LLM autoregressive القياسية، فإن S2 يرث مباشرة تحسينات الخدمة الأصلية في SGLang، بما في ذلك: continuous batching، وpaged KV cache، وCUDA graph replay، وprefix caching المعتمد على RadixAttention.
+
+على بطاقة NVIDIA H200 واحدة:
+
+- **عامل الزمن الحقيقي (RTF):** 0.195
+- **الزمن حتى أول مقطع صوتي:** حوالي 100 مللي ثانية
+- **معدل المعالجة:** أكثر من 3,000 acoustic tokens/s مع الحفاظ على RTF أقل من 0.5
 
 ### دعم لغات متعددة
 
