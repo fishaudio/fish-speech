@@ -387,10 +387,24 @@ def init_model(checkpoint_path, device, precision, compile=False):
 
     if compile:
         logger.info("Compiling function...")
+        # Check if triton is available; the inductor backend requires it.
+        # Fall back to aot_eager if triton cannot be imported (e.g. broken install).
+        _use_inductor = False
+        if torch.cuda.is_available():
+            try:
+                import triton  # noqa: F401
+
+                _use_inductor = True
+            except Exception:
+                logger.warning(
+                    "Triton is not available; falling back to aot_eager backend for "
+                    "torch.compile. Install a compatible triton version to use the "
+                    "faster inductor backend."
+                )
         decode_one_token = torch.compile(
             decode_one_token,
-            backend="inductor" if torch.cuda.is_available() else "aot_eager",
-            mode="reduce-overhead" if torch.cuda.is_available() else None,
+            backend="inductor" if _use_inductor else "aot_eager",
+            mode="reduce-overhead" if _use_inductor else None,
             fullgraph=True,
         )
 
