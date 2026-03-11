@@ -484,9 +484,9 @@ class BaseTransformer(nn.Module):
         lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
     ) -> "BaseTransformer":
-        # Import wrapper locally to avoid circular dependency or global import issues
-        from fish_speech.tokenizer import FishTokenizer
+        from fish_speech.utils.model_type import get_fish_model_type
 
+        fish_model_type = get_fish_model_type()
         config = BaseModelArgs.from_pretrained(str(path))
         if max_length is not None:
             config.max_seq_len = max_length
@@ -496,17 +496,40 @@ class BaseTransformer(nn.Module):
             config.rope_base = rope_base
             logger.info(f"Override rope_base to {rope_base}")
 
-        try:
-            tokenizer = FishTokenizer.from_pretrained(path)
-            config.semantic_begin_id = tokenizer.semantic_begin_id
-            config.semantic_end_id = tokenizer.semantic_end_id
-            logger.info(
-                f"Injected Semantic IDs into Config: {config.semantic_begin_id}-{config.semantic_end_id}"
-            )
-        except Exception as e:
-            logger.warning(
-                f"Failed to load tokenizer for config injection: {e}. Semantic IDs might be 0."
-            )
+        # Validate checkpoint type before tokenizer loading to surface a clear error.
+        path_obj = Path(path)
+        config_json_path = path_obj / "config.json" if path_obj.is_dir() else path_obj
+        if config_json_path.exists():
+            with open(config_json_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+            raw_model_type = raw_data.get("model_type", "unknown")
+            if fish_model_type == "s1" and raw_model_type == "fish_qwen3_omni":
+                raise ValueError(
+                    "FISH_MODEL_TYPE=s1 but checkpoint has model_type=fish_qwen3_omni. "
+                    "This is an S2 checkpoint. Set FISH_MODEL_TYPE=s2 or use an S1 checkpoint."
+                )
+            if fish_model_type == "s2" and raw_model_type == "dual_ar":
+                raise ValueError(
+                    "FISH_MODEL_TYPE=s2 but checkpoint has model_type=dual_ar. "
+                    "This is an S1 checkpoint. Set FISH_MODEL_TYPE=s1 or use an S2 checkpoint."
+                )
+
+        if fish_model_type == "s1":
+            from fish_speech.tokenizer_s1 import FishTokenizerS1
+
+            tokenizer = FishTokenizerS1.from_pretrained(str(path))
+            logger.info("Loaded S1 tiktoken tokenizer")
+        else:
+            from fish_speech.tokenizer import FishTokenizer
+
+            tokenizer = FishTokenizer.from_pretrained(str(path))
+            logger.info("Loaded S2 HuggingFace tokenizer")
+
+        config.semantic_begin_id = tokenizer.semantic_begin_id
+        config.semantic_end_id = tokenizer.semantic_end_id
+        logger.info(
+            f"Injected Semantic IDs into Config: {config.semantic_begin_id}-{config.semantic_end_id}"
+        )
 
         match config.model_type:
             case "naive":

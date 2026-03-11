@@ -281,8 +281,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 ARG GRADIO_SERVER_NAME="0.0.0.0"
 ARG GRADIO_SERVER_PORT=7860
-ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
-ARG DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"
+ARG LLAMA_CHECKPOINT_PATH=""
+ARG DECODER_CHECKPOINT_PATH=""
 ARG DECODER_CONFIG_NAME="modded_dac_vq"
 
 
@@ -303,6 +303,30 @@ RUN printf '%s\n' \
     '' \
     'log "Starting Fish Speech WebUI..."' \
     'validate_env' \
+    '' \
+    'FISH_MODEL_TYPE="$(echo "${FISH_MODEL_TYPE:-s2}" | tr '"'"'[:upper:]'"'"' '"'"'[:lower:]'"'"')"' \
+    'case "${FISH_MODEL_TYPE}" in' \
+    '    s1|s2) ;;' \
+    '    *)' \
+    '        log "ERROR: FISH_MODEL_TYPE=${FISH_MODEL_TYPE} is not valid. Must be s1 or s2."' \
+    '        exit 1' \
+    '        ;;' \
+    'esac' \
+    '' \
+    'if [ -z "${LLAMA_CHECKPOINT_PATH}" ]; then' \
+    '    if [ "${FISH_MODEL_TYPE}" = "s1" ]; then' \
+    '        LLAMA_CHECKPOINT_PATH="checkpoints/openaudio-s1-mini"' \
+    '    else' \
+    '        LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"' \
+    '    fi' \
+    'fi' \
+    'if [ -z "${DECODER_CHECKPOINT_PATH}" ]; then' \
+    '    if [ "${FISH_MODEL_TYPE}" = "s1" ]; then' \
+    '        DECODER_CHECKPOINT_PATH="checkpoints/openaudio-s1-mini/codec.pth"' \
+    '    else' \
+    '        DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"' \
+    '    fi' \
+    'fi' \
     '' \
     'DEVICE_ARGS=$(build_device_args)' \
     'COMPILE_ARGS=$(build_compile_args "$@")' \
@@ -330,8 +354,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080
-ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
-ARG DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"
+ARG LLAMA_CHECKPOINT_PATH=""
+ARG DECODER_CHECKPOINT_PATH=""
 ARG DECODER_CONFIG_NAME="modded_dac_vq"
 
 # Expose port
@@ -351,6 +375,30 @@ RUN printf '%s\n' \
     '' \
     'log "Starting Fish Speech API Server..."' \
     'validate_env' \
+    '' \
+    'FISH_MODEL_TYPE="$(echo "${FISH_MODEL_TYPE:-s2}" | tr '"'"'[:upper:]'"'"' '"'"'[:lower:]'"'"')"' \
+    'case "${FISH_MODEL_TYPE}" in' \
+    '    s1|s2) ;;' \
+    '    *)' \
+    '        log "ERROR: FISH_MODEL_TYPE=${FISH_MODEL_TYPE} is not valid. Must be s1 or s2."' \
+    '        exit 1' \
+    '        ;;' \
+    'esac' \
+    '' \
+    'if [ -z "${LLAMA_CHECKPOINT_PATH}" ]; then' \
+    '    if [ "${FISH_MODEL_TYPE}" = "s1" ]; then' \
+    '        LLAMA_CHECKPOINT_PATH="checkpoints/openaudio-s1-mini"' \
+    '    else' \
+    '        LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"' \
+    '    fi' \
+    'fi' \
+    'if [ -z "${DECODER_CHECKPOINT_PATH}" ]; then' \
+    '    if [ "${FISH_MODEL_TYPE}" = "s1" ]; then' \
+    '        DECODER_CHECKPOINT_PATH="checkpoints/openaudio-s1-mini/codec.pth"' \
+    '    else' \
+    '        DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"' \
+    '    fi' \
+    'fi' \
     '' \
     'DEVICE_ARGS=$(build_device_args)' \
     'COMPILE_ARGS=$(build_compile_args "$@")' \

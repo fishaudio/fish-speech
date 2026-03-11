@@ -19,17 +19,37 @@ from tools.server.inference import inference_wrapper as inference
 
 
 def parse_args():
+    import os
+
+    from fish_speech.utils.model_type import get_fish_model_type
+
+    fish_model_type = get_fish_model_type()
+    if fish_model_type == "s1":
+        default_llama_path = os.environ.get(
+            "LLAMA_CHECKPOINT_PATH", "checkpoints/openaudio-s1-mini"
+        )
+        default_decoder_path = os.environ.get(
+            "DECODER_CHECKPOINT_PATH", "checkpoints/openaudio-s1-mini/codec.pth"
+        )
+    else:
+        default_llama_path = os.environ.get(
+            "LLAMA_CHECKPOINT_PATH", "checkpoints/s2-pro"
+        )
+        default_decoder_path = os.environ.get(
+            "DECODER_CHECKPOINT_PATH", "checkpoints/s2-pro/codec.pth"
+        )
+
     parser = ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["tts"], default="tts")
     parser.add_argument(
         "--llama-checkpoint-path",
         type=str,
-        default="checkpoints/s2-pro",
+        default=default_llama_path,
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=str,
-        default="checkpoints/s2-pro/codec.pth",
+        default=default_decoder_path,
     )
     parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
     parser.add_argument("--device", type=str, default="cuda")

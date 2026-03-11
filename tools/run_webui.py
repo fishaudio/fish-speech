@@ -10,7 +10,6 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
-from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.webui import build_app
 from tools.webui.inference import get_inference_wrapper
@@ -20,16 +19,34 @@ os.environ["EINX_FILTER_TRACEBACK"] = "false"
 
 
 def parse_args():
+    from fish_speech.utils.model_type import get_fish_model_type
+
+    fish_model_type = get_fish_model_type()
+    if fish_model_type == "s1":
+        default_llama_path = os.environ.get(
+            "LLAMA_CHECKPOINT_PATH", "checkpoints/openaudio-s1-mini"
+        )
+        default_decoder_path = os.environ.get(
+            "DECODER_CHECKPOINT_PATH", "checkpoints/openaudio-s1-mini/codec.pth"
+        )
+    else:
+        default_llama_path = os.environ.get(
+            "LLAMA_CHECKPOINT_PATH", "checkpoints/s2-pro"
+        )
+        default_decoder_path = os.environ.get(
+            "DECODER_CHECKPOINT_PATH", "checkpoints/s2-pro/codec.pth"
+        )
+
     parser = ArgumentParser()
     parser.add_argument(
         "--llama-checkpoint-path",
         type=Path,
-        default="checkpoints/s2-pro",
+        default=default_llama_path,
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=Path,
-        default="checkpoints/s2-pro/codec.pth",
+        default=default_decoder_path,
     )
     parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
     parser.add_argument("--device", type=str, default="cuda")
@@ -55,6 +72,20 @@ if __name__ == "__main__":
     elif not torch.cuda.is_available():
         logger.info("CUDA is not available, running on CPU.")
         args.device = "cpu"
+
+    from fish_speech.utils.model_type import get_fish_model_type
+
+    fish_model_type = get_fish_model_type()
+    if fish_model_type == "s1":
+        from fish_speech.models.text2semantic.inference_s1 import (
+            launch_thread_safe_queue,
+        )
+
+        logger.info("WebUI: Using S1-Mini inference pipeline")
+    else:
+        from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
+
+        logger.info("WebUI: Using S2-Pro inference pipeline")
 
     logger.info("Loading Llama model...")
     llama_queue = launch_thread_safe_queue(

@@ -3,7 +3,7 @@ from loguru import logger
 
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
-from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
+from fish_speech.utils.model_type import get_fish_model_type
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
@@ -56,6 +56,19 @@ class ModelManager:
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
     ) -> None:
+        fish_model_type = get_fish_model_type()
+        if fish_model_type == "s1":
+            from fish_speech.models.text2semantic.inference_s1 import (
+                launch_thread_safe_queue,
+            )
+
+            logger.info("Using S1-Mini inference pipeline")
+        else:
+            from fish_speech.models.text2semantic.inference import (
+                launch_thread_safe_queue,
+            )
+
+            logger.info("Using S2-Pro inference pipeline")
 
         if mode == "tts":
             self.llama_queue = launch_thread_safe_queue(
