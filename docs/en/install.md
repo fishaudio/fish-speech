@@ -98,6 +98,9 @@ docker compose --profile server up
 # Start API server with compile optimization  
 COMPILE=1 docker compose --profile server up
 
+# Start API server with S1-Mini pipeline
+FISH_MODEL_TYPE=s1 docker compose --profile server up
+
 # For CPU-only deployment
 BACKEND=cpu docker compose --profile webui up
 ```
@@ -110,6 +113,9 @@ You can customize the deployment using environment variables:
 # .env file example
 BACKEND=cuda              # or cpu
 COMPILE=1                 # Enable compile optimization
+FISH_MODEL_TYPE=s2        # s2 (default) or s1
+LLAMA_CHECKPOINT_PATH=    # Optional override, auto-selected when empty
+DECODER_CHECKPOINT_PATH=  # Optional override, auto-selected when empty
 GRADIO_PORT=7860         # WebUI port
 API_PORT=8080            # API server port
 UV_VERSION=0.8.15        # UV package manager version
@@ -177,6 +183,9 @@ Both methods require mounting these directories:
 ### Environment Variables
 
 - `COMPILE=1` - Enable torch.compile for faster inference (~10x speedup)
+- `FISH_MODEL_TYPE=s2|s1` - Select S2-Pro (default) or OpenAudio S1-Mini runtime pipeline
+- `LLAMA_CHECKPOINT_PATH` - Optional LLM checkpoint override
+- `DECODER_CHECKPOINT_PATH` - Optional decoder checkpoint override
 - `GRADIO_SERVER_NAME=0.0.0.0` - WebUI server host
 - `GRADIO_SERVER_PORT=7860` - WebUI server port
 - `API_SERVER_NAME=0.0.0.0` - API server host  

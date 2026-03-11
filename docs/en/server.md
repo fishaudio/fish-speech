@@ -1,6 +1,6 @@
 # Server
 
-This page covers server-side inference for Fish Audio S2, plus quick links for WebUI inference and Docker deployment.
+This page covers server-side inference for Fish Audio runtime, including S2-Pro and OpenAudio S1-Mini pipelines.
 
 ## API Server Inference
 
@@ -9,11 +9,22 @@ Fish Speech provides an HTTP API server entrypoint at `tools/api_server.py`.
 ### Start the server locally
 
 ```bash
+# S2-Pro (default)
 python tools/api_server.py \
-  --llama-checkpoint-path checkpoints/s2-pro \
-  --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \
   --listen 0.0.0.0:8080
 ```
+
+For S1-Mini, set `FISH_MODEL_TYPE=s1` before startup:
+
+```bash
+FISH_MODEL_TYPE=s1 python tools/api_server.py --listen 0.0.0.0:8080
+```
+
+Model defaults and overrides:
+
+- `FISH_MODEL_TYPE=s2` (default) uses `checkpoints/s2-pro` and `checkpoints/s2-pro/codec.pth`
+- `FISH_MODEL_TYPE=s1` uses `checkpoints/openaudio-s1-mini` and `checkpoints/openaudio-s1-mini/codec.pth`
+- optional overrides: `LLAMA_CHECKPOINT_PATH`, `DECODER_CHECKPOINT_PATH`
 
 Common options:
 

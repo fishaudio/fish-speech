@@ -70,6 +70,14 @@ Here are the official documents for Fish Audio S2, follow the instructions to ge
 Install and configure Fish-Audio S2 by following the instructions here: https://speech.fish.audio/install/
 ```
 
+### Runtime Model Selection
+
+Runtime now supports both `S2-Pro` and `OpenAudio S1-Mini` pipelines.
+
+- `FISH_MODEL_TYPE=s2` (default): uses `checkpoints/s2-pro` and `checkpoints/s2-pro/codec.pth`
+- `FISH_MODEL_TYPE=s1`: uses `checkpoints/openaudio-s1-mini` and `checkpoints/openaudio-s1-mini/codec.pth`
+- Optional overrides: `LLAMA_CHECKPOINT_PATH` and `DECODER_CHECKPOINT_PATH`
+
 ## Fish Audio S2  
 **Best text-to-speech system among both open source and closed source**
 

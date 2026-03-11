@@ -2,6 +2,9 @@
 
 The Fish Audio S2 model requires a large amount of VRAM. We recommend using a GPU with at least 24GB for inference.
 
+!!! note
+    This page uses S2-Pro examples. To run OpenAudio S1-Mini, set `FISH_MODEL_TYPE=s1` and use S1 checkpoints.
+
 ## Download Weights
 
 First, you need to download the model weights:
@@ -33,6 +36,16 @@ python fish_speech/models/text2semantic/inference.py \
     --prompt-text "Your reference text" \
     --prompt-tokens "fake.npy" \
     # --compile
+```
+
+S1-Mini equivalent:
+
+```bash
+FISH_MODEL_TYPE=s1 python fish_speech/models/text2semantic/inference_s1.py \
+    --checkpoint-path "checkpoints/openaudio-s1-mini" \
+    --text "The text you want to convert" \
+    --prompt-text "Your reference text" \
+    --prompt-tokens "fake.npy"
 ```
 
 This command will create a `codes_N` file in the working directory, where N is an integer starting from 0.
