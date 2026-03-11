@@ -11,6 +11,10 @@ services:
       - ./references:/app/references
     environment:
       COMPILE: ${COMPILE:-0}
+      FISH_MODEL_TYPE: ${FISH_MODEL_TYPE:-s2}
+      LLAMA_CHECKPOINT_PATH: ${LLAMA_CHECKPOINT_PATH:-}
+      DECODER_CHECKPOINT_PATH: ${DECODER_CHECKPOINT_PATH:-}
+      DECODER_CONFIG_NAME: ${DECODER_CONFIG_NAME:-modded_dac_vq}
     # GPU (remove this block if CPU-only):
     deploy:
       resources:
