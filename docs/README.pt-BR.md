@@ -156,7 +156,7 @@ Graças à extensão do contexto do modelo, nosso modelo agora pode usar informa
 ### Clonagem de Voz Rápida
 
 O Fish Audio S2 suporta clonagem de voz precisa usando uma pequena amostra de referência (tipicamente de 10 a 30 segundos). O modelo captura o timbre, o estilo de fala e as tendências emocionais, produzindo vozes clonadas realistas e consistentes sem ajuste fino adicional.
-Para usar o servidor SGLang, consulte https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md .
+Para usar o servidor SGLang, consulte [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) .
 
 ---
 

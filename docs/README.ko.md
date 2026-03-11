@@ -156,7 +156,7 @@ Fish Audio S2는 사용자가 여러 화자가 포함된 참조 오디오를 업
 ### 빠른 음성 복제
 
 Fish Audio S2는 짧은 참조 샘플(일반적으로 10-30초)을 사용하여 정확한 음성 복제를 지원합니다. 모델은 음색, 말하기 스타일 및 감정적 경향을 캡처하여 추가 미세 조정 없이 사실적이고 일관된 복제 음성을 생성합니다.
-SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 를 참고하세요.
+SGLang 서버 사용은 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) 를 참고하세요.
 
 ---
 
