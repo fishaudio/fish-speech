@@ -154,7 +154,7 @@ Fish Audio S2 では、ユーザーが複数のスピーカーを含む参照オ
 ### 高速音声クローニング
 
 Fish Audio S2 は、短い参照サンプル（通常10〜30秒）を使用した正確な音声クローニングをサポートしています。モデルは音色、話し方、感情的な傾向を捉え、追加の微調整なしでリアルで一貫したクローン音声を生成します。
-SGLang サーバーの利用については https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md を参照してください。
+SGLang サーバーの利用については [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) を参照してください。
 
 ---
 

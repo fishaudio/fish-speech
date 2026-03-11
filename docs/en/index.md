@@ -154,7 +154,7 @@ Thanks to the expansion of the model context, our model can now use previous inf
 ### Rapid Voice Cloning
 
 Fish Audio S2 supports accurate voice cloning using a short reference sample (typically 10–30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning.
-Please refer to https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md to use the SGLang server.
+Please refer to [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) to use the SGLang server.
 ---
 
 ## Credits
