@@ -61,10 +61,12 @@ def logits_to_probs(
     # Sort and compute top-p mask
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
+    # Shift right by one so the token that first crosses top_p is included in the nucleus
     sorted_indices_to_remove = cum_probs > top_p
+    sorted_indices_to_remove[1:] = sorted_indices_to_remove[:-1].clone()
+    sorted_indices_to_remove[0] = False
     # top-k mask
     sorted_indices_to_remove[top_k:] = True
-    sorted_indices_to_remove[0] = False  # keep at least one option
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
     )
