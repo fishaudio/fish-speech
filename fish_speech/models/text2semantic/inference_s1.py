@@ -525,7 +525,9 @@ def launch_thread_safe_queue(
 
             except Exception as exc:
                 logger.error(traceback.format_exc())
-                response_queue.put(WrappedGenerateResponse(status="error", response=exc))
+                response_queue.put(
+                    WrappedGenerateResponse(status="error", response=exc)
+                )
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 

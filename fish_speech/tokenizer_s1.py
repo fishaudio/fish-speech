@@ -74,8 +74,7 @@ class FishTokenizerS1:
         else:
             special_token_begin = len(mergeable_ranks)
             self.all_special_tokens_with_ids = {
-                token: special_token_begin + i
-                for i, token in enumerate(special_tokens)
+                token: special_token_begin + i for i, token in enumerate(special_tokens)
             }
 
         self.tkt_model = tiktoken.core.Encoding(
@@ -151,7 +150,9 @@ class FishTokenizerS1:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
-        allowed_special = kwargs.pop("allowed_special", self.tkt_model.special_tokens_set)
+        allowed_special = kwargs.pop(
+            "allowed_special", self.tkt_model.special_tokens_set
+        )
         if add_special_tokens:
             logger.debug(
                 "FishTokenizerS1 ignores add_special_tokens=True; special tokens are parsed inline."
