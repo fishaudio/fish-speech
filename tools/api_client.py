@@ -22,8 +22,8 @@ def parse_args():
             "  server was started with checkpoints/s2-pro, this client will use S2-Pro\n"
             "  automatically. There is no separate per-request --model flag.\n\n"
             "Examples:\n"
-            "  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t \"Hello from Fish Speech\"\n"
-            "  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t \"Hello\" --reference_id my-speaker"
+            '  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t "Hello from Fish Speech"\n'
+            '  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t "Hello" --reference_id my-speaker'
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
