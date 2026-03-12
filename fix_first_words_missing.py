@@ -13,8 +13,9 @@ Solution:
 - Add padding/warmup tokens to prevent first-word loss
 """
 
+from typing import Optional, Tuple
+
 import torch
-from typing import Tuple, Optional
 
 
 def decode_one_token_ar_fixed(
@@ -33,7 +34,7 @@ def decode_one_token_ar_fixed(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Fixed version of decode_one_token_ar that preserves fast model input_pos.
-    
+
     Returns:
         Tuple of (codebooks, fast_input_pos) to track position across calls
     """
@@ -56,9 +57,7 @@ def decode_one_token_ar_fixed(
     )[0]
 
     # RAS: high-temp fallback for repetition
-    high_temp = torch.tensor(
-        1.0, device=temperature.device, dtype=temperature.dtype
-    )
+    high_temp = torch.tensor(1.0, device=temperature.device, dtype=temperature.dtype)
     high_top_p = torch.tensor(0.9, device=top_p.device, dtype=top_p.dtype)
     main_token_high = sample(
         biased_logits, temperature=high_temp, top_p=high_top_p, top_k=top_k
@@ -80,8 +79,10 @@ def decode_one_token_ar_fixed(
     # CRITICAL FIX: Use continuous input_pos for fast model
     # Instead of resetting to 0, increment from previous position
     if fast_input_pos is None:
-        fast_input_pos = torch.tensor([0], device=hidden_states.device, dtype=torch.long)
-    
+        fast_input_pos = torch.tensor(
+            [0], device=hidden_states.device, dtype=torch.long
+        )
+
     # First forward pass in fast model (position 0)
     model.forward_generate_fast(hidden_states, fast_input_pos.clone())
 
@@ -99,21 +100,19 @@ def decode_one_token_ar_fixed(
 
         # Sample codebook token
         codebook_logits = logits  # DualAR predicts codebook_size tokens
-        
+
         # Apply temperature and sample
         codebook_probs = torch.nn.functional.softmax(
             codebook_logits / torch.clip(temperature, min=1e-5), dim=-1
         )
         codebook_token = multinomial_sample_one_no_sync(codebook_probs[0, -1])
-        
+
         codebook_token = torch.clamp(
-            codebook_token, 
-            min=0, 
-            max=model.config.codebook_size - 1
+            codebook_token, min=0, max=model.config.codebook_size - 1
         )
-        
+
         codebooks.append(codebook_token)
-        
+
         # Update hidden states for next codebook
         if codebook_idx < model.config.num_codebooks - 1:
             hidden_states = model.fast_embeddings(codebook_token)
@@ -144,10 +143,10 @@ def decode_n_tokens_fixed(
         dtype=torch.int,
         device=cur_token.device,
     )
-    
+
     new_tokens = []
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
-    
+
     # CRITICAL FIX: Track fast model position across calls
     fast_input_pos = None
 
@@ -169,11 +168,13 @@ def decode_n_tokens_fixed(
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
-        
+
         # RAS window roll
         previous_tokens = previous_tokens.roll(-1, dims=1)
-        previous_tokens[:, -1] = next_token.view(model.config.num_codebooks + 1, -1)[:, 0]
-        
+        previous_tokens[:, -1] = next_token.view(model.config.num_codebooks + 1, -1)[
+            :, 0
+        ]
+
         new_tokens.append(next_token)
 
         if cur_token[0, 0, -1] == im_end_id:
@@ -292,26 +293,26 @@ def generate_fixed(
 def inference_wrapper_with_warmup(req, engine):
     """
     Wrapper that adds warmup/padding to prevent first-word loss.
-    
+
     Root cause: First few audio segments may be incomplete due to:
     - Model initialization overhead
     - Streaming buffer underrun
     - Client-side buffer discarding first chunks
-    
+
     Solution: Pre-generate warmup tokens, then discard their audio.
     """
     import numpy as np
-    
+
     # Add warmup prefix to text (will be discarded in output)
     warmup_text = "... "  # 3 dots + space = ~200ms of silence/warmup
     original_text = req.text
     req.text = warmup_text + original_text
-    
+
     # Generate with warmup
     segments = []
     warmup_samples = 0
     sample_rate = None
-    
+
     for result in engine.inference(req):
         if result.code == "header":
             sample_rate = result.audio[0]
@@ -325,9 +326,13 @@ def inference_wrapper_with_warmup(req, engine):
                 # Now yield header (once we have real content)
                 if len(segments) == 0 and sample_rate:
                     from fish_speech.inference_engine.utils import wav_chunk_header
+
                     yield InferenceResult(
                         code="header",
-                        audio=(sample_rate, np.array(wav_chunk_header(sample_rate=sample_rate))),
+                        audio=(
+                            sample_rate,
+                            np.array(wav_chunk_header(sample_rate=sample_rate)),
+                        ),
                         error=None,
                     )
                 # Yield real segment
@@ -336,7 +341,7 @@ def inference_wrapper_with_warmup(req, engine):
         elif result.code == "final":
             # Yield final without warmup
             yield result
-    
+
     return segments
 
 
