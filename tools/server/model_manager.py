@@ -54,7 +54,12 @@ class ModelManager:
             self.warm_up(self.tts_inference_engine)
 
     def load_llama_model(
-        self, checkpoint_path, device, precision, compile, mode
+        self,
+        checkpoint_path: str,
+        device: str,
+        precision: torch.dtype,
+        compile: bool,
+        mode: str,
     ) -> None:
         fish_model_type = get_fish_model_type()
         if fish_model_type == "s1":

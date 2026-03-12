@@ -1,5 +1,5 @@
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import pyrootutils
@@ -10,6 +10,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
+from fish_speech.utils.model_type import get_fish_model_type
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.webui import build_app
 from tools.webui.inference import get_inference_wrapper
@@ -18,9 +19,7 @@ from tools.webui.inference import get_inference_wrapper
 os.environ["EINX_FILTER_TRACEBACK"] = "false"
 
 
-def parse_args():
-    from fish_speech.utils.model_type import get_fish_model_type
-
+def parse_args() -> tuple[Namespace, str]:
     fish_model_type = get_fish_model_type()
     if fish_model_type == "s1":
         default_llama_path = os.environ.get(
@@ -55,11 +54,11 @@ def parse_args():
     parser.add_argument("--max-gradio-length", type=int, default=0)
     parser.add_argument("--theme", type=str, default="light")
 
-    return parser.parse_args()
+    return parser.parse_args(), fish_model_type
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args, fish_model_type = parse_args()
     args.precision = torch.half if args.half else torch.bfloat16
 
     # Check if MPS or CUDA is available
@@ -73,9 +72,6 @@ if __name__ == "__main__":
         logger.info("CUDA is not available, running on CPU.")
         args.device = "cpu"
 
-    from fish_speech.utils.model_type import get_fish_model_type
-
-    fish_model_type = get_fish_model_type()
     if fish_model_type == "s1":
         from fish_speech.models.text2semantic.inference_s1 import (
             launch_thread_safe_queue,

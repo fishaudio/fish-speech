@@ -2,7 +2,6 @@ import base64
 import json
 import logging
 from pathlib import Path
-from typing import Union
 
 import tiktoken
 import torch
@@ -63,8 +62,8 @@ ALL_SPECIAL_TOKENS = [
 class FishTokenizerS1:
     def __init__(
         self,
-        model_path: Union[str, Path],
-        special_tokens: Union[list[str], dict[str, int]] = ALL_SPECIAL_TOKENS,
+        model_path: str | Path,
+        special_tokens: list[str] | dict[str, int] = ALL_SPECIAL_TOKENS,
     ) -> None:
         mergeable_ranks = self.load_tiktoken_bpe(str(model_path))
 

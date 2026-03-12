@@ -91,7 +91,6 @@ class MsgPackRequest(HttpRequest):
 
 async def inference_async(req: ServeTTSRequest, engine: TTSInferenceEngine):
     for chunk in inference(req, engine):
-        print("Got chunk")
         if isinstance(chunk, bytes):
             yield chunk
 
