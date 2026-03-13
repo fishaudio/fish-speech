@@ -178,11 +178,21 @@ def generate_dialogue(
     elapsed = time.time() - start
     print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
 
-    # ストリームデータをそのまま WAV として保存
+    # ストリームデータを一時ファイルに保存してから ffmpeg で再エンコード
+    import subprocess
+    tmp_file = f"{output_path}_tmp.wav"
     out_file = f"{output_path}.wav"
-    with open(out_file, "wb") as f:
+    with open(tmp_file, "wb") as f:
         f.write(b"".join(pcm_chunks))
 
+    # ffmpeg で WAV ヘッダーを正しく修正（QuickTime/iTunes 互換）
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", tmp_file, out_file],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    os.remove(tmp_file)
     print(f"[出力] ファイル保存: {out_file}")
 
 
