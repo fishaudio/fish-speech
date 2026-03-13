@@ -130,6 +130,7 @@ def generate_dialogue(
     max_new_tokens: int = 0,
     chunk_length: int = 300,
     api_key: str = "",
+    seed: int | None = None,
 ):
     """
     原生の多話者・多ターン生成（1回のリクエスト）を使いながら
@@ -161,6 +162,7 @@ def generate_dialogue(
         chunk_length=chunk_length,
         streaming=True,
         use_memory_cache="on",
+        seed=seed,
     )
 
     start = time.time()
@@ -261,6 +263,12 @@ def main():
     parser.add_argument(
         "--api_key", type=str, default="", help="APIキー（ローカルサーバーでは不要）"
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="乱数シード（同じシードで再現性確保、異なるシードで別の声質を試す）",
+    )
     args = parser.parse_args()
 
     references = build_references(REFERENCE_CONFIGS)
@@ -272,6 +280,7 @@ def main():
         temperature=args.temperature,
         top_p=args.top_p,
         api_key=args.api_key,
+        seed=args.seed,
     )
 
 
