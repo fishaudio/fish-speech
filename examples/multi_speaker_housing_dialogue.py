@@ -126,18 +126,19 @@ def generate_dialogue(
     chunk_length: int = 300,
     api_key: str = "",
 ):
-    """対話音声を生成してファイルに保存する"""
+    """対話音声をストリーミングで生成してファイルに保存する"""
+    # streaming=True でチャンクを受信しながら書き込む（タイムアウト回避）
     request = ServeTTSRequest(
         text=DIALOGUE_SCRIPT,
         references=references,
-        format=format,
+        format="pcm",  # ストリーミング時は PCM raw で受信
         temperature=temperature,
         top_p=top_p,
         repetition_penalty=repetition_penalty,
-        max_new_tokens=max_new_tokens,  # 0 = 制限なし
+        max_new_tokens=max_new_tokens,
         chunk_length=chunk_length,
-        streaming=False,
-        use_memory_cache="on",  # 同一話者の参照キャッシュを有効化
+        streaming=True,
+        use_memory_cache="on",
     )
 
     headers = {"content-type": "application/msgpack"}
@@ -146,6 +147,7 @@ def generate_dialogue(
 
     print(f"\n[生成開始] APIサーバー: {url}")
     print(f"[テキスト文字数] {len(DIALOGUE_SCRIPT)} 文字")
+    print("[モード] ストリーミング（PCM → WAV変換）")
     start = time.time()
 
     response = requests.post(
@@ -153,10 +155,9 @@ def generate_dialogue(
         params={"format": "msgpack"},
         data=ormsgpack.packb(request, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
         headers=headers,
-        timeout=300,
+        stream=True,
+        timeout=(10, 600),  # (接続タイムアウト, 読み取りタイムアウト)
     )
-
-    elapsed = time.time() - start
 
     if response.status_code != 200:
         print(f"[エラー] ステータスコード: {response.status_code}")
@@ -164,11 +165,33 @@ def generate_dialogue(
         return
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    out_file = f"{output_path}.{format}"
-    with open(out_file, "wb") as f:
-        f.write(response.content)
 
-    print(f"[完了] 生成時間: {elapsed:.1f}秒")
+    # PCM チャンクを収集
+    pcm_chunks = []
+    received = 0
+    for chunk in response.iter_content(chunk_size=4096):
+        if chunk:
+            pcm_chunks.append(chunk)
+            received += len(chunk)
+            print(f"\r[受信中] {received // 1024} KB ...", end="", flush=True)
+
+    elapsed = time.time() - start
+    print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
+
+    # PCM raw → WAV に変換して保存（16bit, mono, 44100Hz）
+    import struct, wave
+    pcm_data = b"".join(pcm_chunks)
+    out_file = f"{output_path}.{format}"
+    if format == "wav":
+        with wave.open(out_file, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)       # 16bit
+            wf.setframerate(44100)
+            wf.writeframes(pcm_data)
+    else:
+        with open(out_file, "wb") as f:
+            f.write(pcm_data)
+
     print(f"[出力] ファイル保存: {out_file}")
 
 
