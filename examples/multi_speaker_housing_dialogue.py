@@ -20,9 +20,13 @@ Multi-speaker, multi-turn TTS dialogue about custom homes (注文住宅) in Toky
 """
 
 import argparse
+import io
 import os
+import re
 import time
+import wave
 
+import numpy as np
 import ormsgpack
 import requests
 
@@ -114,6 +118,25 @@ def build_references(configs: list[dict]) -> list[ServeReferenceAudio]:
     return refs
 
 
+def parse_turns(script: str) -> list[tuple[int, str]]:
+    """対話スクリプトを (speaker_id, text) のリストに分解する"""
+    turns = []
+    for line in script.strip().split("\n"):
+        m = re.match(r"<\|speaker:(\d+)\|>(.*)", line)
+        if m:
+            turns.append((int(m.group(1)), m.group(2).strip()))
+    return turns
+
+
+def wav_bytes_to_pcm(wav_bytes: bytes) -> tuple[np.ndarray, int]:
+    """WAV バイト列から int16 PCM サンプルとサンプルレートを取得する"""
+    with wave.open(io.BytesIO(wav_bytes)) as wf:
+        frames = wf.readframes(wf.getnframes())
+        sample_rate = wf.getframerate()
+    samples = np.frombuffer(frames, dtype=np.int16).astype(np.float32)
+    return samples, sample_rate
+
+
 def generate_dialogue(
     url: str,
     output_path: str,
@@ -126,74 +149,108 @@ def generate_dialogue(
     chunk_length: int = 300,
     api_key: str = "",
 ):
-    """対話音声をストリーミングで生成してファイルに保存する"""
-    # streaming=True でチャンクを受信しながら書き込む（タイムアウト回避）
-    request = ServeTTSRequest(
-        text=DIALOGUE_SCRIPT,
-        references=references,
-        format="wav",  # ストリーミング時は WAV のみ対応
-        temperature=temperature,
-        top_p=top_p,
-        repetition_penalty=repetition_penalty,
-        max_new_tokens=max_new_tokens,
-        chunk_length=chunk_length,
-        streaming=True,
-        use_memory_cache="on",
-    )
-
+    """
+    ターンごとに音声を生成し、ステレオ WAV に合成する。
+      speaker:0 (営業スタッフ) → 左チャンネル
+      speaker:1 (お客様)       → 右チャンネル
+    """
+    turns = parse_turns(DIALOGUE_SCRIPT)
     headers = {"content-type": "application/msgpack"}
     if api_key:
         headers["authorization"] = f"Bearer {api_key}"
 
     print(f"\n[生成開始] APIサーバー: {url}")
-    print(f"[テキスト文字数] {len(DIALOGUE_SCRIPT)} 文字")
-    print("[モード] ストリーミング（PCM → WAV変換）")
+    print(f"[ターン数] {len(turns)} / ステレオモード（speaker:0=左, speaker:1=右）")
+
     start = time.time()
 
-    response = requests.post(
-        url,
-        params={"format": "msgpack"},
-        data=ormsgpack.packb(request, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
-        headers=headers,
-        stream=True,
-        timeout=(10, 600),  # (接続タイムアウト, 読み取りタイムアウト)
-    )
+    # 話者ごとに最初に生成した音声を参照として再利用し声質を一定に保つ
+    # 外部参照音声が渡された場合はそちらを優先する
+    speaker_refs: dict[int, tuple[bytes, str]] = {}
+    if len(references) >= 1:
+        speaker_refs[0] = (references[0].audio, references[0].text)
+    if len(references) >= 2:
+        speaker_refs[1] = (references[1].audio, references[1].text)
 
-    if response.status_code != 200:
-        print(f"[エラー] ステータスコード: {response.status_code}")
-        print(response.text)
-        return
+    turn_audio: list[tuple[int, np.ndarray]] = []
+    sample_rate = 44100
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    for i, (speaker_id, text) in enumerate(turns):
+        refs = []
+        if speaker_id in speaker_refs:
+            prev_wav, prev_text = speaker_refs[speaker_id]
+            refs = [ServeReferenceAudio(audio=prev_wav, text=prev_text)]
 
-    # PCM チャンクを収集
-    pcm_chunks = []
-    received = 0
-    for chunk in response.iter_content(chunk_size=4096):
-        if chunk:
-            pcm_chunks.append(chunk)
-            received += len(chunk)
-            print(f"\r[受信中] {received // 1024} KB ...", end="", flush=True)
+        req = ServeTTSRequest(
+            text=f"<|speaker:{speaker_id}|>{text}",
+            references=refs,
+            format="wav",
+            temperature=temperature,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            max_new_tokens=max_new_tokens,
+            chunk_length=chunk_length,
+            streaming=False,
+            use_memory_cache="on",
+        )
+
+        print(f"\r[生成中] Turn {i + 1:2d}/{len(turns)}  speaker:{speaker_id}  {text[:20]}...", end="", flush=True)
+
+        resp = requests.post(
+            url,
+            params={"format": "msgpack"},
+            data=ormsgpack.packb(req, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+            headers=headers,
+            timeout=(10, 300),
+        )
+
+        if resp.status_code != 200:
+            print(f"\n[エラー] Turn {i + 1}: HTTP {resp.status_code}")
+            print(resp.text)
+            return
+
+        wav_bytes = resp.content
+        samples, sample_rate = wav_bytes_to_pcm(wav_bytes)
+        turn_audio.append((speaker_id, samples))
+
+        # 最初のターンの音声を同話者の後続ターンの参照として登録
+        if speaker_id not in speaker_refs:
+            speaker_refs[speaker_id] = (wav_bytes, text)
 
     elapsed = time.time() - start
     print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
 
-    # WAV ヘッダーのサイズフィールドを正しい値に修正して保存
-    # ストリーミング時はヘッダーのサイズが 0 のため QuickTime が読めない
-    import struct
-    data = b"".join(pcm_chunks)
-    data_size = len(data) - 44  # 44バイトが標準 WAV ヘッダー
-    data = (
-        data[:4]
-        + struct.pack("<I", 36 + data_size)  # ChunkSize（RIFF チャンク全体）
-        + data[8:40]
-        + struct.pack("<I", data_size)       # Subchunk2Size（PCM データ長）
-        + data[44:]
-    )
+    # ステレオ合成: 各ターンを左右チャンネルに振り分けて結合
+    total_len = sum(len(s) for _, s in turn_audio)
+    left = np.zeros(total_len, dtype=np.float32)
+    right = np.zeros(total_len, dtype=np.float32)
+
+    pos = 0
+    for speaker_id, samples in turn_audio:
+        n = len(samples)
+        if speaker_id == 0:
+            left[pos : pos + n] = samples
+        else:
+            right[pos : pos + n] = samples
+        pos += n
+
+    left_i16 = np.clip(left, -32768, 32767).astype(np.int16)
+    right_i16 = np.clip(right, -32768, 32767).astype(np.int16)
+
+    # L/R サンプルをインターリーブ (L0 R0 L1 R1 ...)
+    stereo = np.empty(total_len * 2, dtype=np.int16)
+    stereo[0::2] = left_i16
+    stereo[1::2] = right_i16
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     out_file = f"{output_path}.wav"
-    with open(out_file, "wb") as f:
-        f.write(data)
-    print(f"[出力] ファイル保存: {out_file}")
+    with wave.open(out_file, "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(stereo.tobytes())
+
+    print(f"[出力] ステレオ WAV 保存: {out_file}")
 
 
 def main():
