@@ -23,12 +23,17 @@ OmegaConf.register_new_resolver("eval", eval)
 # This file is used to convert the audio files to text files using the Whisper model.
 # It's mainly used to generate the training data for the VQ model.
 
-backends = torchaudio.list_audio_backends()
-
-if "ffmpeg" in backends:
-    backend = "ffmpeg"
+if hasattr(torchaudio, "list_audio_backends"):
+    backends = torchaudio.list_audio_backends()
+    backend = "ffmpeg" if "ffmpeg" in backends else "soundfile"
 else:
-    backend = "soundfile"
+    # torchaudio >= 2.9 removed list_audio_backends(); default to soundfile
+    try:
+        import torchaudio._backend.ffmpeg  # noqa: F401
+
+        backend = "ffmpeg"
+    except Exception:
+        backend = "soundfile"
 
 RANK = int(os.environ.get("SLURM_PROCID", 0))
 WORLD_SIZE = int(os.environ.get("SLURM_NTASKS", 1))
