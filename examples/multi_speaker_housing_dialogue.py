@@ -82,21 +82,26 @@ REFERENCE_CONFIGS = [
 
 
 def build_references(configs: list[dict]) -> list[ServeReferenceAudio]:
-    """参照音声ファイルが存在する場合のみ読み込む"""
+    """参照音声ファイルが存在する場合のみ読み込む（.lab は任意）"""
     refs = []
     for cfg in configs:
         audio_path = cfg["audio"]
         text_path = cfg["text"]
-        if os.path.exists(audio_path) and os.path.exists(text_path):
-            refs.append(
-                ServeReferenceAudio(
-                    audio=audio_to_bytes(audio_path),
-                    text=read_ref_text(text_path),
-                )
-            )
-            print(f"[参照音声] 読み込み完了: {audio_path}")
+        if not os.path.exists(audio_path):
+            print(f"[参照音声] WAVなし (スキップ): {audio_path}")
+            continue
+        if os.path.exists(text_path):
+            ref_text = read_ref_text(text_path)
+            print(f"[参照音声] 読み込み完了: {audio_path} + {text_path}")
         else:
-            print(f"[参照音声] ファイルなし (スキップ): {audio_path}")
+            ref_text = ""
+            print(f"[参照音声] LABなし、空テキストで読み込み: {audio_path}")
+        refs.append(
+            ServeReferenceAudio(
+                audio=audio_to_bytes(audio_path),
+                text=ref_text,
+            )
+        )
     return refs
 
 
