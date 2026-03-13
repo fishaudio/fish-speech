@@ -150,81 +150,96 @@ def generate_dialogue(
     api_key: str = "",
 ):
     """
-    ターンごとに音声を生成し、ステレオ WAV に合成する。
+    原生の多話者・多ターン生成（1回のリクエスト）を使いながら
+    ストリーミングチャンクをターン単位で受信してステレオ WAV に合成する。
+
+    サーバーのストリーミング構造:
+      Chunk 0      : WAV ヘッダー（header イベント）
+      Chunk k≥1   : ターン k-1 の PCM（segment イベント、1ターン=1チャンク）
+
       speaker:0 (営業スタッフ) → 左チャンネル
       speaker:1 (お客様)       → 右チャンネル
     """
     turns = parse_turns(DIALOGUE_SCRIPT)
-    headers = {"content-type": "application/msgpack"}
+    http_headers = {"content-type": "application/msgpack"}
     if api_key:
-        headers["authorization"] = f"Bearer {api_key}"
+        http_headers["authorization"] = f"Bearer {api_key}"
 
     print(f"\n[生成開始] APIサーバー: {url}")
-    print(f"[ターン数] {len(turns)} / ステレオモード（speaker:0=左, speaker:1=右）")
+    print(f"[ターン数] {len(turns)} / 原生多ターン生成 + ステレオ合成")
+
+    req = ServeTTSRequest(
+        text=DIALOGUE_SCRIPT,
+        references=references,
+        format="wav",
+        temperature=temperature,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        max_new_tokens=max_new_tokens,
+        chunk_length=chunk_length,
+        streaming=True,
+        use_memory_cache="on",
+    )
 
     start = time.time()
+    response = requests.post(
+        url,
+        params={"format": "msgpack"},
+        data=ormsgpack.packb(req, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+        headers=http_headers,
+        stream=True,
+        timeout=(10, 600),
+    )
 
-    # 話者ごとに最初に生成した音声を参照として再利用し声質を一定に保つ
-    # 外部参照音声が渡された場合はそちらを優先する
-    speaker_refs: dict[int, tuple[bytes, str]] = {}
-    if len(references) >= 1:
-        speaker_refs[0] = (references[0].audio, references[0].text)
-    if len(references) >= 2:
-        speaker_refs[1] = (references[1].audio, references[1].text)
+    if response.status_code != 200:
+        print(f"[エラー] ステータスコード: {response.status_code}")
+        print(response.text)
+        return
 
-    turn_audio: list[tuple[int, np.ndarray]] = []
+    # chunk_size=None でサーバーが送出する自然なチャンク境界を維持する
+    # Chunk 0 = WAV ヘッダー、Chunk k (k≥1) = ターン k-1 の PCM
+    wav_header: bytes | None = None
     sample_rate = 44100
+    turn_pcm: list[tuple[int, bytes]] = []  # (speaker_id, pcm_bytes)
+    chunk_idx = 0
 
-    for i, (speaker_id, text) in enumerate(turns):
-        refs = []
-        if speaker_id in speaker_refs:
-            prev_wav, prev_text = speaker_refs[speaker_id]
-            refs = [ServeReferenceAudio(audio=prev_wav, text=prev_text)]
-
-        req = ServeTTSRequest(
-            text=f"<|speaker:{speaker_id}|>{text}",
-            references=refs,
-            format="wav",
-            temperature=temperature,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            max_new_tokens=max_new_tokens,
-            chunk_length=chunk_length,
-            streaming=False,
-            use_memory_cache="on",
-        )
-
-        print(f"\r[生成中] Turn {i + 1:2d}/{len(turns)}  speaker:{speaker_id}  {text[:20]}...", end="", flush=True)
-
-        resp = requests.post(
-            url,
-            params={"format": "msgpack"},
-            data=ormsgpack.packb(req, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
-            headers=headers,
-            timeout=(10, 300),
-        )
-
-        if resp.status_code != 200:
-            print(f"\n[エラー] Turn {i + 1}: HTTP {resp.status_code}")
-            print(resp.text)
-            return
-
-        wav_bytes = resp.content
-        samples, sample_rate = wav_bytes_to_pcm(wav_bytes)
-        turn_audio.append((speaker_id, samples))
-
-        # 最初のターンの音声を同話者の後続ターンの参照として登録
-        if speaker_id not in speaker_refs:
-            speaker_refs[speaker_id] = (wav_bytes, text)
+    for chunk in response.iter_content(chunk_size=None):
+        if not chunk:
+            continue
+        if chunk_idx == 0:
+            # WAV ヘッダーからサンプルレートを取得
+            wav_header = chunk
+            with wave.open(io.BytesIO(chunk + b"\x00" * 36)) as wf:
+                try:
+                    sample_rate = wf.getframerate()
+                except Exception:
+                    pass
+        else:
+            turn_idx = chunk_idx - 1
+            if turn_idx < len(turns):
+                speaker_id = turns[turn_idx][0]
+                turn_pcm.append((speaker_id, chunk))
+                print(
+                    f"\r[受信済] {chunk_idx}/{len(turns)} ターン  "
+                    f"speaker:{speaker_id}  {turns[turn_idx][1][:18]}...",
+                    end="",
+                    flush=True,
+                )
+        chunk_idx += 1
 
     elapsed = time.time() - start
-    print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
+    print(f"\n[完了] 生成時間: {elapsed:.1f}秒  受信ターン数: {len(turn_pcm)}")
 
-    # ステレオ合成: 各ターンを左右チャンネルに振り分けて結合
+    # PCM bytes → float32 配列
+    turn_audio: list[tuple[int, np.ndarray]] = []
+    for speaker_id, pcm_bytes in turn_pcm:
+        samples = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32)
+        turn_audio.append((speaker_id, samples))
+
+    # ステレオ合成: speaker:0 → 左、speaker:1 → 右
     total_len = sum(len(s) for _, s in turn_audio)
     left = np.zeros(total_len, dtype=np.float32)
     right = np.zeros(total_len, dtype=np.float32)
-
     pos = 0
     for speaker_id, samples in turn_audio:
         n = len(samples)
@@ -237,7 +252,6 @@ def generate_dialogue(
     left_i16 = np.clip(left, -32768, 32767).astype(np.int16)
     right_i16 = np.clip(right, -32768, 32767).astype(np.int16)
 
-    # L/R サンプルをインターリーブ (L0 R0 L1 R1 ...)
     stereo = np.empty(total_len * 2, dtype=np.int16)
     stereo[0::2] = left_i16
     stereo[1::2] = right_i16
