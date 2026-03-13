@@ -196,36 +196,25 @@ def generate_dialogue(
         print(response.text)
         return
 
-    # chunk_size=None でサーバーが送出する自然なチャンク境界を維持する
-    # Chunk 0 = WAV ヘッダー、Chunk k (k≥1) = ターン k-1 の PCM
-    wav_header: bytes | None = None
-    sample_rate = 44100
+    # inference_wrapper の "header"/"final" は numpy array のため
+    # inference_async では bytes のみ yield される。
+    # → クライアントが受信するのは segment の PCM bytes のみ:
+    #     Chunk 0 = Turn 0 の PCM、Chunk 1 = Turn 1 の PCM、...
+    sample_rate = 44100  # decoder_model のデフォルト
     turn_pcm: list[tuple[int, bytes]] = []  # (speaker_id, pcm_bytes)
-    chunk_idx = 0
 
-    for chunk in response.iter_content(chunk_size=None):
+    for turn_idx, chunk in enumerate(response.iter_content(chunk_size=None)):
         if not chunk:
             continue
-        if chunk_idx == 0:
-            # WAV ヘッダーからサンプルレートを取得
-            wav_header = chunk
-            with wave.open(io.BytesIO(chunk + b"\x00" * 36)) as wf:
-                try:
-                    sample_rate = wf.getframerate()
-                except Exception:
-                    pass
-        else:
-            turn_idx = chunk_idx - 1
-            if turn_idx < len(turns):
-                speaker_id = turns[turn_idx][0]
-                turn_pcm.append((speaker_id, chunk))
-                print(
-                    f"\r[受信済] {chunk_idx}/{len(turns)} ターン  "
-                    f"speaker:{speaker_id}  {turns[turn_idx][1][:18]}...",
-                    end="",
-                    flush=True,
-                )
-        chunk_idx += 1
+        if turn_idx < len(turns):
+            speaker_id = turns[turn_idx][0]
+            turn_pcm.append((speaker_id, chunk))
+            print(
+                f"\r[受信済] {turn_idx + 1:2d}/{len(turns)} ターン  "
+                f"speaker:{speaker_id}  {turns[turn_idx][1][:18]}...",
+                end="",
+                flush=True,
+            )
 
     elapsed = time.time() - start
     print(f"\n[完了] 生成時間: {elapsed:.1f}秒  受信ターン数: {len(turn_pcm)}")
