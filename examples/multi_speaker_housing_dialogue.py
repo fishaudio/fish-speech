@@ -131,7 +131,7 @@ def generate_dialogue(
     request = ServeTTSRequest(
         text=DIALOGUE_SCRIPT,
         references=references,
-        format="pcm",  # ストリーミング時は PCM raw で受信
+        format="wav",  # ストリーミング時は WAV のみ対応
         temperature=temperature,
         top_p=top_p,
         repetition_penalty=repetition_penalty,
@@ -178,19 +178,10 @@ def generate_dialogue(
     elapsed = time.time() - start
     print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
 
-    # PCM raw → WAV に変換して保存（16bit, mono, 44100Hz）
-    import struct, wave
-    pcm_data = b"".join(pcm_chunks)
-    out_file = f"{output_path}.{format}"
-    if format == "wav":
-        with wave.open(out_file, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)       # 16bit
-            wf.setframerate(44100)
-            wf.writeframes(pcm_data)
-    else:
-        with open(out_file, "wb") as f:
-            f.write(pcm_data)
+    # ストリームデータをそのまま WAV として保存
+    out_file = f"{output_path}.wav"
+    with open(out_file, "wb") as f:
+        f.write(b"".join(pcm_chunks))
 
     print(f"[出力] ファイル保存: {out_file}")
 
