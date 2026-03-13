@@ -961,9 +961,11 @@ class Attention(nn.Module):
 
         if attn_mask is not None:
             if attn_mask.dtype == torch.bool:
-                attn_bias.masked_fill_(attn_mask.logical_not(), float("-inf"))
+                attn_bias = torch.where(
+                    attn_mask.logical_not(), float("-inf"), attn_bias
+                )
             else:
-                attn_bias += attn_mask
+                attn_bias = attn_bias + attn_mask
 
         attn_weight = query @ key.transpose(-2, -1) * scale_factor
         attn_weight += attn_bias
