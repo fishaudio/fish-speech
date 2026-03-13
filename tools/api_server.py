@@ -102,9 +102,19 @@ class API(ExceptionHandler):
 # outputs if multiple threads access the same buffers simultaneously.
 # Instead, it's better to use multiprocessing or independent models per thread.
 
-if __name__ == "__main__":
-    api = API()
+# When workers > 1, uvicorn spawns subprocesses via multiprocessing. Each
+# worker must import the app fresh; passing an app instance causes the worker
+# to inherit the parent's state (including any CUDA handles), which leads to
+# CUDA initialisation failures and workers dying on startup.  Passing an
+# import string ("module:attribute") tells uvicorn to let every worker
+# process import the module independently, avoiding the fork/CUDA conflict.
+#
+# The module-level `api` and `app` names below are required so that the
+# import string "tools.api_server:app" resolves correctly inside each worker.
+api = API()
+app = api.app
 
+if __name__ == "__main__":
     # IPv6 address format is [xxxx:xxxx::xxxx]:port
     match = re.search(r"\[([^\]]+)\]:(\d+)$", api.args.listen)
     if match:
@@ -113,7 +123,10 @@ if __name__ == "__main__":
         host, port = api.args.listen.split(":")  # IPv4
 
     uvicorn.run(
-        api.app,
+        # Use an import string when spawning multiple workers so that each
+        # worker process imports and instantiates the app independently,
+        # avoiding CUDA context inheritance issues caused by os.fork().
+        "tools.api_server:app" if api.args.workers > 1 else app,
         host=host,
         port=int(port),
         workers=api.args.workers,
