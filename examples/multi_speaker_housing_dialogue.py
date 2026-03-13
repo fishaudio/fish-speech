@@ -40,29 +40,28 @@ from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 #   <|speaker:0|> … 営業スタッフ・鈴木（男性、プロフェッショナル）
 #   <|speaker:1|> … お客様・田中（女性、主婦）
 #
-# Fish S2 インライン制御タグ（自由形式の英語説明）:
-#   [calm professional male voice]  → 落ち着いた男性プロ口調
-#   [gentle female voice]           → 優しい女性の声
-#   [slightly hesitant]             → 少し遠慮がち
-#   [reassuring tone]               → 安心させる口調
-#   [warmly emphatic]               → 温かみを持って強調
-#   [relieved and hopeful]          → 安堵と期待
-#   [sincere and warm]              → 誠実で温かい
+# Fish S2 Pro 公式オーディオタグ:
+#   感情トーン: [angry] [sad] [embarrassed] [emphasis] [whispering]
+#               [soft] [breathy] [excited]
+#   エフェクト: [laughing] [chuckling] [moaning] [clear throat] [sobbing]
+#               [crying loudly] [sighing] [panting] [groaning]
+#               [crowd laughing] [background laughter] [audience laughing]
+#               [pause] [long pause]
 # ---------------------------------------------------------------------------
 DIALOGUE_SCRIPT = """\
-<|speaker:0|>[calm professional male voice, politely welcoming]こんにちは、東京ホームプランニングへようこそ。本日はどのようなご相談でしょうか？
-<|speaker:1|>[gentle female voice, slightly hesitant]はじめまして、田中と申します。東京で注文住宅を建てたいと思っているのですが、何から始めればいいのかわからなくて。
-<|speaker:0|>[reassuring professional tone]ご来店ありがとうございます、田中様。注文住宅は完全に自由設計できる分、選択肢が多くて迷いますよね。まず、どのエリアをお考えでしょうか？
-<|speaker:1|>[gentle female voice, earnest]世田谷区か杉並区あたりを希望しています。子どもの学校のことも考えて、住環境を大切にしたいんです。
-<|speaker:0|>[calm informative male voice]世田谷・杉並は人気エリアですね。ただ、都内の土地相場は坪単価が高めで、世田谷区では平均で一坪200万円前後になることもあります。予算はどのくらいお考えですか？
-<|speaker:1|>[gentle female voice, slightly anxious]土地込みで7000万円くらいを目安にしています。建物にもこだわりたくて、[warmly emphatic]吹き抜けと書斎は絶対に欲しいと思っていて。
-<|speaker:0|>[confident encouraging male voice]7000万円であれば、土地に4500万円、建物に2500万円ほどの配分が現実的かと思います。吹き抜けと書斎はどちらも設計次第で十分実現できますよ。
-<|speaker:1|>[gentle female voice, relieved and hopeful]それは心強いですね。でも、具体的にどう進めればいいのかまだ不安で。
-<|speaker:0|>[empathetic warm male voice]そのお気持ち、よく分かります。実は弊社には、注文住宅専門の建築顧問・山田建築士がおります。東京の狭小地や変形地での設計実績が豊富で、資金計画から法規制の確認まで、トータルでサポートしてくれます。
-<|speaker:1|>[gentle female voice, interested and eager]ぜひ相談してみたいです。どうすれば会えますか？
-<|speaker:0|>[clear helpful male voice]山田建築士との初回相談は無料です。平日は毎日10時から18時まで対応しております。田中様のご都合のよい日時をお聞かせいただければ、すぐにご予約をお取りできます。今週末か来週あたり、いかがでしょうか？
-<|speaker:1|>[gentle female voice, cheerful and decisive]来週の水曜日、午後2時はいかがでしょうか。
-<|speaker:0|>[sincere and warm male voice]ありがとうございます。来週水曜日の午後2時、山田建築士との初回相談、ただいまご予約を承りました。当日は土地の候補エリアや間取りのイメージなど、お気軽にお持ちください。田中様の理想の住まいが実現できるよう、スタッフ一同、精一杯サポートいたします。本日はご来店いただき、ありがとうございました。"""
+<|speaker:0|>こんにちは、東京ホームプランニングへようこそ。本日はどのようなご相談でしょうか？[pause]
+<|speaker:1|>[soft]はじめまして、田中と申します。[embarrassed]東京で注文住宅を建てたいと思っているのですが、何から始めればいいのかわからなくて。
+<|speaker:0|>[soft]ご来店ありがとうございます、田中様。注文住宅は完全に自由設計できる分、選択肢が多くて迷いますよね。[pause]まず、どのエリアをお考えでしょうか？
+<|speaker:1|>[soft]世田谷区か杉並区あたりを希望しています。子どもの学校のことも考えて、住環境を大切にしたいんです。
+<|speaker:0|>世田谷・杉並は人気エリアですね。[pause]ただ、都内の土地相場は坪単価が高めで、世田谷区では平均で一坪200万円前後になることもあります。[emphasis]予算はどのくらいお考えですか？
+<|speaker:1|>[breathy]土地込みで7000万円くらいを目安にしています。建物にもこだわりたくて、[emphasis]吹き抜けと書斎は絶対に欲しいと思っていて。
+<|speaker:0|>[chuckling]7000万円であれば、土地に4500万円、建物に2500万円ほどの配分が現実的かと思います。[soft]吹き抜けと書斎はどちらも設計次第で十分実現できますよ。
+<|speaker:1|>[sighing]それは心強いですね。[soft]でも、具体的にどう進めればいいのかまだ不安で。
+<|speaker:0|>そのお気持ち、よく分かります。[pause]実は弊社には、注文住宅専門の建築顧問・山田建築士がおります。[emphasis]東京の狭小地や変形地での設計実績が豊富で、資金計画から法規制の確認まで、トータルでサポートしてくれます。
+<|speaker:1|>[excited]ぜひ相談してみたいです。どうすれば会えますか？
+<|speaker:0|>山田建築士との初回相談は無料です。平日は毎日10時から18時まで対応しております。[soft]田中様のご都合のよい日時をお聞かせいただければ、すぐにご予約をお取りできます。[pause]今週末か来週あたり、いかがでしょうか？
+<|speaker:1|>[excited]来週の水曜日、午後2時はいかがでしょうか。
+<|speaker:0|>ありがとうございます。[pause]来週水曜日の午後2時、山田建築士との初回相談、ただいまご予約を承りました。[soft]当日は土地の候補エリアや間取りのイメージなど、お気軽にお持ちください。[emphasis]田中様の理想の住まいが実現できるよう、スタッフ一同、精一杯サポートいたします。本日はご来店いただき、ありがとうございました。"""
 
 # ---------------------------------------------------------------------------
 # 参照音声の設定（ファイルがなければ空リストにフォールバック）
