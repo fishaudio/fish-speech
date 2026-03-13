@@ -178,21 +178,21 @@ def generate_dialogue(
     elapsed = time.time() - start
     print(f"\n[完了] 生成時間: {elapsed:.1f}秒")
 
-    # ストリームデータを一時ファイルに保存してから ffmpeg で再エンコード
-    import subprocess
-    tmp_file = f"{output_path}_tmp.wav"
-    out_file = f"{output_path}.wav"
-    with open(tmp_file, "wb") as f:
-        f.write(b"".join(pcm_chunks))
-
-    # ffmpeg で WAV ヘッダーを正しく修正（QuickTime/iTunes 互換）
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", tmp_file, out_file],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    # WAV ヘッダーのサイズフィールドを正しい値に修正して保存
+    # ストリーミング時はヘッダーのサイズが 0 のため QuickTime が読めない
+    import struct
+    data = b"".join(pcm_chunks)
+    data_size = len(data) - 44  # 44バイトが標準 WAV ヘッダー
+    data = (
+        data[:4]
+        + struct.pack("<I", 36 + data_size)  # ChunkSize（RIFF チャンク全体）
+        + data[8:40]
+        + struct.pack("<I", data_size)       # Subchunk2Size（PCM データ長）
+        + data[44:]
     )
-    os.remove(tmp_file)
+    out_file = f"{output_path}.wav"
+    with open(out_file, "wb") as f:
+        f.write(data)
     print(f"[出力] ファイル保存: {out_file}")
 
 
