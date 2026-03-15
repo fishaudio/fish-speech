@@ -64,7 +64,9 @@ def logits_to_probs(
     top_k_mask = indices >= top_k
     sorted_indices_to_remove = (cum_probs > top_p) | top_k_mask
     # Use torch.where instead of in-place modification for torch.compile compatibility
-    sorted_indices_to_remove = torch.where(indices == 0, False, sorted_indices_to_remove)
+    sorted_indices_to_remove = torch.where(
+        indices == 0, False, sorted_indices_to_remove
+    )
 
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
