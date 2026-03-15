@@ -32,25 +32,37 @@ echo ""
 # Optional: use first reference from server (e.g. after preencode + upload)
 REF_ID=""
 if command -v jq >/dev/null 2>&1; then
-  REF_ID=$(curl -sf "$BASE_URL/v1/references/list" | jq -r '.reference_ids[0] // empty')
+  REF_ID=$(curl -sf --compressed "$BASE_URL/v1/references/list" 2>/dev/null | jq -r '.reference_ids[0] // empty' 2>/dev/null) || true
 fi
 if [[ -n "$REF_ID" ]]; then
   echo "Using reference_id=$REF_ID for TTS"
 fi
 echo ""
 
-# Streaming TTS
+# Streaming TTS (with TTFA metrics when python3 + ttfa_smoke.py available)
 echo "--- TTS streaming ---"
 STREAM_OUT="$OUT_DIR/e2e_stream.wav"
-if [[ -n "$REF_ID" ]]; then
-  TTS_JSON="{\"text\":\"Hello, this is an e2e smoke test.\",\"streaming\":true,\"reference_id\":\"$REF_ID\"}"
-else
-  TTS_JSON='{"text":"Hello, this is an e2e smoke test.","streaming":true}'
+TTFA_OK=0
+if command -v python3 >/dev/null 2>&1 && [[ -f "$REPO_ROOT/scripts/ttfa_smoke.py" ]]; then
+  TTFA_ARGS="--url $BASE_URL --output $STREAM_OUT"
+  [[ -n "$REF_ID" ]] && TTFA_ARGS="$TTFA_ARGS --reference-id $REF_ID"
+  if python3 "$REPO_ROOT/scripts/ttfa_smoke.py" $TTFA_ARGS && [[ -s "$STREAM_OUT" ]]; then
+    TTFA_OK=1
+  else
+    echo "  (ttfa_smoke failed, falling back to curl)"
+  fi
 fi
-curl -sf -X POST "$BASE_URL/v1/tts" \
-  -H "Content-Type: application/json" \
-  -d "$TTS_JSON" \
-  --output "$STREAM_OUT" --max-time 60
+if [[ "$TTFA_OK" -ne 1 ]]; then
+  if [[ -n "$REF_ID" ]]; then
+    TTS_JSON="{\"text\":\"Hello, this is an e2e smoke test.\",\"streaming\":true,\"reference_id\":\"$REF_ID\"}"
+  else
+    TTS_JSON='{"text":"Hello, this is an e2e smoke test.","streaming":true}'
+  fi
+  curl -sf -X POST "$BASE_URL/v1/tts" \
+    -H "Content-Type: application/json" \
+    -d "$TTS_JSON" \
+    --output "$STREAM_OUT" --max-time 60
+fi
 if [[ ! -s "$STREAM_OUT" ]]; then
   echo "ERROR: streaming TTS produced empty or missing file: $STREAM_OUT"
   exit 1
@@ -58,18 +70,30 @@ fi
 echo "  OK: $STREAM_OUT ($(wc -c < "$STREAM_OUT") bytes)"
 echo ""
 
-# Oneshot TTS
+# Oneshot TTS (with timing metrics when python3 + ttfa_smoke.py available)
 echo "--- TTS oneshot ---"
 ONESHOT_OUT="$OUT_DIR/e2e_oneshot.wav"
-if [[ -n "$REF_ID" ]]; then
-  ONESHOT_JSON="{\"text\":\"Short test.\",\"streaming\":false,\"reference_id\":\"$REF_ID\"}"
-else
-  ONESHOT_JSON='{"text":"Short test.","streaming":false}'
+ONESHOT_TTFA_OK=0
+if command -v python3 >/dev/null 2>&1 && [[ -f "$REPO_ROOT/scripts/ttfa_smoke.py" ]]; then
+  ONESHOT_ARGS="--url $BASE_URL --output $ONESHOT_OUT --oneshot"
+  [[ -n "$REF_ID" ]] && ONESHOT_ARGS="$ONESHOT_ARGS --reference-id $REF_ID"
+  if python3 "$REPO_ROOT/scripts/ttfa_smoke.py" $ONESHOT_ARGS && [[ -s "$ONESHOT_OUT" ]]; then
+    ONESHOT_TTFA_OK=1
+  else
+    echo "  (ttfa_smoke oneshot failed, falling back to curl)"
+  fi
 fi
-curl -sf -X POST "$BASE_URL/v1/tts" \
-  -H "Content-Type: application/json" \
-  -d "$ONESHOT_JSON" \
-  --output "$ONESHOT_OUT" --max-time 60
+if [[ "$ONESHOT_TTFA_OK" -ne 1 ]]; then
+  if [[ -n "$REF_ID" ]]; then
+    ONESHOT_JSON="{\"text\":\"Short test.\",\"streaming\":false,\"reference_id\":\"$REF_ID\"}"
+  else
+    ONESHOT_JSON='{"text":"Short test.","streaming":false}'
+  fi
+  curl -sf -X POST "$BASE_URL/v1/tts" \
+    -H "Content-Type: application/json" \
+    -d "$ONESHOT_JSON" \
+    --output "$ONESHOT_OUT" --max-time 60
+fi
 if [[ ! -s "$ONESHOT_OUT" ]]; then
   echo "ERROR: oneshot TTS produced empty or missing file: $ONESHOT_OUT"
   exit 1
@@ -79,7 +103,7 @@ echo ""
 
 # Memory
 echo "--- Memory ---"
-curl -sf "$BASE_URL/v1/debug/memory" | tee "$OUT_DIR/memory_after.json" | (command -v jq >/dev/null 2>&1 && jq -c '{allocated_gb, reserved_gb, max_allocated_gb}' || cat)
+curl -sf --compressed "$BASE_URL/v1/debug/memory" | tee "$OUT_DIR/memory_after.json" | (command -v jq >/dev/null 2>&1 && jq -c '{allocated_gb, reserved_gb, max_allocated_gb}' 2>/dev/null || cat) || true
 echo ""
 
 echo "E2E smoke passed. Outputs in $OUT_DIR"

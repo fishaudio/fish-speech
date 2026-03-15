@@ -71,7 +71,12 @@ class ModelManager:
 
         # When --compile: run warmup before accepting requests so /v1/health "ready" = compiled.
         if self.mode == "tts" and self.compile:
+            logger.warning(
+                "torch.compile enabled — running warmup now (Inductor compiles kernels; typically 2–10 min). "
+                "Server will accept connections after this."
+            )
             self.warm_up(self.tts_inference_engine, compile=True)
+            logger.warning("torch.compile warmup finished — server ready.")
 
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
@@ -104,8 +109,8 @@ class ModelManager:
         # Use small max_new_tokens on warmup to reduce peak VRAM (fits ~32 GB with compile).
         if compile:
             logger.info(
-                "Warmup: running first inference (triggers torch.compile/Inductor; "
-                "may take 2-10+ min on first run, then fast)."
+                "Warmup: first inference (triggers torch.compile/Inductor; "
+                "compiling kernels — can take 2–10+ min, then requests are fast)."
             )
         request = ServeTTSRequest(
             text="Hello world.",
@@ -121,7 +126,7 @@ class ModelManager:
         list(inference(request, tts_inference_engine))
         if torch.cuda.is_available():
             torch.cuda.empty_cache()  # free cached VRAM so first request with reference fits in 32 GB
-        logger.info("Warmup done.")
+        logger.info("Warmup: first inference done.")
 
         # Optional: compile the long-prompt + streaming path so first real request is fast.
         # Set FISH_WARMUP_REFERENCE_ID to a valid reference id (e.g. en) to run one

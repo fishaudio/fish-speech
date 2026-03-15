@@ -49,9 +49,10 @@ if [[ -z "$WORKSPACE_DIR" ]]; then
     echo "Downloading s2-pro checkpoints to $CHECKPOINTS_DIR ..."
     mkdir -p "$REPO_ROOT/$CHECKPOINTS_DIR"
     docker run --rm \
+      --entrypoint /app/.venv/bin/huggingface-cli \
       -v "$REPO_ROOT":/workspace -w /workspace \
       "$IMAGE" \
-      /app/.venv/bin/huggingface-cli download fishaudio/s2-pro --local-dir "$CHECKPOINTS_DIR"
+      download fishaudio/s2-pro --local-dir "$CHECKPOINTS_DIR"
     echo "Download done."
   else
     echo "Checkpoints found at $CHECKPOINTS_DIR"

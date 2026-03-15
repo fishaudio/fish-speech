@@ -9,9 +9,10 @@ BASE_URL ?= http://127.0.0.1:$(PORT)
 
 help:
 	@echo "Fish Speech 32GB server and E2E"
-	@echo "  make run-server        - Start API server in Docker"
+	@echo "  make run-server        - Start API server in Docker (COMPILE=0)"
+	@echo "  make run-server COMPILE=1 - Start with torch.compile (warmup 2-10 min)"
 	@echo "  make stop-server       - Stop container"
-	@echo "  make e2e               - E2E smoke (uses reference_id if any)"
+	@echo "  make e2e               - E2E smoke (server must be up)"
 	@echo "  make e2e-memory        - E2E memory (2 TTS requests)"
 	@echo "  make preencode         - Pre-encode WAV+txt to references/"
 	@echo "  make preencode-upload  - Pre-encode and upload to server"
@@ -20,7 +21,7 @@ help:
 	@echo "Override: PORT=8080 PREENCODE_CHECKPOINT=../../checkpoints/s2-pro/codec.pth"
 
 run-server:
-	WORKSPACE_DIR="$(WORKSPACE_DIR)" CHECKPOINTS_DIR="$(CHECKPOINTS_DIR)" PORT="$(PORT)" ./scripts/run_server_32gb.sh
+	WORKSPACE_DIR="$(WORKSPACE_DIR)" CHECKPOINTS_DIR="$(CHECKPOINTS_DIR)" PORT="$(PORT)" COMPILE="$(COMPILE)" ./scripts/run_server_32gb.sh
 
 stop-server:
 	docker rm -f $(CONTAINER) 2>/dev/null || true
