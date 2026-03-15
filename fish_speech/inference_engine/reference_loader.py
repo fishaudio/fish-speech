@@ -42,27 +42,66 @@ class ReferenceLoader:
         id: str,
         use_cache: Literal["on", "off"],
     ) -> Tuple:
-        # Load the references audio and text by id
+        # Load the references audio and text by id.
+        # Each reference can be: (a) .wav + .lab → encode at load, or (b) .codes.pt + .lab → load pre-encoded (no encoder run).
         ref_folder = Path("references") / id
         ref_folder.mkdir(parents=True, exist_ok=True)
         ref_audios = list_files(
             ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
         )
+        ref_codes = list(ref_folder.glob("*.codes.pt"))
+
+        # .codes.pt filename stem is "en.codes" (Path.stem); we want logical stem "en" for en.lab / en.codes.pt
+        def _stem_for_codes(p: Path) -> str:
+            s = p.stem
+            return s.removesuffix(".codes") if s.endswith(".codes") else s
+
+        stems = {p.stem for p in ref_audios} | {_stem_for_codes(p) for p in ref_codes}
+        stems = sorted(stems)
 
         if use_cache == "off" or id not in self.ref_by_id:
-            # If the references are not already loaded, encode them
-            prompt_tokens = [
-                self.encode_reference(
-                    # decoder_model=self.decoder_model,
-                    reference_audio=audio_to_bytes(str(ref_audio)),
-                    enable_reference_audio=True,
+            prompt_tokens = []
+            prompt_texts = []
+            for stem in stems:
+                lab_path = ref_folder / f"{stem}.lab"
+                codes_path = ref_folder / f"{stem}.codes.pt"
+                audio_path = next(
+                    (
+                        ref_folder / f"{stem}{ext}"
+                        for ext in AUDIO_EXTENSIONS
+                        if (ref_folder / f"{stem}{ext}").exists()
+                    ),
+                    None,
                 )
-                for ref_audio in ref_audios
-            ]
-            prompt_texts = [
-                read_ref_text(str(ref_audio.with_suffix(".lab")))
-                for ref_audio in ref_audios
-            ]
+                if not lab_path.exists():
+                    logger.warning("Reference stem {} missing .lab, skipping", stem)
+                    continue
+                prompt_texts.append(read_ref_text(str(lab_path)))
+                if codes_path.exists():
+                    # Pre-encoded: load from disk (no encoder run). File must be tensor shape (num_codebooks, T) from DAC encode.
+                    # map_location="cpu" = put tensor in RAM (worker will .to(device) later). Loading to GPU here would save one tiny copy but is negligible for KB-sized tensors.
+                    loaded = torch.load(
+                        codes_path, map_location="cpu", weights_only=True
+                    )
+                    prompt_tokens.append(
+                        loaded if isinstance(loaded, torch.Tensor) else loaded[0]
+                    )
+                    logger.info(
+                        "Loaded pre-encoded reference {} from {}", stem, codes_path.name
+                    )
+                elif audio_path is not None:
+                    prompt_tokens.append(
+                        self.encode_reference(
+                            reference_audio=audio_to_bytes(str(audio_path)),
+                            enable_reference_audio=True,
+                        )
+                    )
+                else:
+                    logger.warning(
+                        "Reference stem {} has .lab but no .codes.pt or audio, skipping",
+                        stem,
+                    )
+                    prompt_texts.pop()
             self.ref_by_id[id] = (prompt_tokens, prompt_texts)
 
         else:
@@ -163,6 +202,50 @@ class ReferenceLoader:
                 valid_ids.append(ref_dir.name)
 
         return sorted(valid_ids)
+
+    def add_reference_encoded(
+        self, id: str, codes_bytes: bytes, lab_text: str, stem: str | None = None
+    ) -> Literal["created", "updated", "unchanged"]:
+        """
+        Add or update a pre-encoded reference (e.g. from preencode_references.py).
+        Writes references/<id>/<stem>.codes.pt and <stem>.lab (stem defaults to id). Skips if hash matches.
+        """
+        import re
+
+        if not re.match(r"^[a-zA-Z0-9\-_ ]+$", id):
+            raise ValueError(
+                "Reference ID contains invalid characters. Only alphanumeric, hyphens, underscores, and spaces are allowed."
+            )
+        if len(id) > 255:
+            raise ValueError(
+                "Reference ID is too long. Maximum length is 255 characters."
+            )
+        stem = stem or id
+        if not re.match(r"^[a-zA-Z0-9\-_ ]+$", stem):
+            raise ValueError("Stem contains invalid characters.")
+
+        ref_dir = Path("references") / id
+        payload = codes_bytes + lab_text.encode("utf-8")
+        content_hash = sha256(payload).hexdigest()
+        hash_file = ref_dir / f".{stem}.hash"
+
+        if ref_dir.exists() and hash_file.exists():
+            if hash_file.read_text(encoding="utf-8").strip() == content_hash:
+                logger.info(
+                    "Reference %s/%s unchanged (hash match), skip write", id, stem
+                )
+                return "unchanged"
+
+        existed_before = ref_dir.exists() and (ref_dir / f"{stem}.codes.pt").exists()
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        (ref_dir / f"{stem}.codes.pt").write_bytes(codes_bytes)
+        (ref_dir / f"{stem}.lab").write_text(lab_text, encoding="utf-8")
+        hash_file.write_text(content_hash, encoding="utf-8")
+        if id in self.ref_by_id:
+            del self.ref_by_id[id]
+        status = "updated" if existed_before else "created"
+        logger.info("Reference %s/%s %s", id, stem, status)
+        return status
 
     def add_reference(self, id: str, wav_file_path: str, reference_text: str) -> None:
         """
