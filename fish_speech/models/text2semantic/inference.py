@@ -63,7 +63,8 @@ def logits_to_probs(
     indices = torch.arange(sorted_logits.shape[-1], device=sorted_logits.device)
     top_k_mask = indices >= top_k
     sorted_indices_to_remove = (cum_probs > top_p) | top_k_mask
-    sorted_indices_to_remove[0] = False  # 单元素修改问题不大，或者写成 | (indices != 0)
+    # Use torch.where instead of in-place modification for torch.compile compatibility
+    sorted_indices_to_remove = torch.where(indices == 0, False, sorted_indices_to_remove)
 
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
@@ -292,11 +293,12 @@ def generate(
 
     # Create new tensor each time, but try to reuse memory
     input_pos = torch.arange(0, T, device=device, dtype=torch.long)
-    empty = torch.empty(
-        (codebook_dim, model.config.max_seq_len), dtype=prompt.dtype, device=device
+    # Use torch.cat instead of in-place assignment for torch.compile compatibility
+    padding_size = model.config.max_seq_len - T
+    padding = torch.zeros(
+        (codebook_dim, padding_size), dtype=prompt.dtype, device=device
     )
-    empty[:, :T] = prompt
-    seq = empty
+    seq = torch.cat([prompt, padding], dim=1)
 
     temp_val = sampling_kwargs.get("temperature", 1.0)
     top_p_val = sampling_kwargs.get("top_p", 0.9)
@@ -307,17 +309,26 @@ def generate(
 
     # Build semantic logit bias: 0 for semantic tokens + im_end, -inf for all others
     vocab_size = model.config.vocab_size
+    # Initialize with -inf
     semantic_logit_bias = torch.full(
         (1, 1, vocab_size), float("-inf"), device=device, dtype=dtype
     )
 
-    # [MODIFIED] Use config for semantic range
-    semantic_logit_bias[
-        0, 0, model.config.semantic_begin_id : model.config.semantic_end_id + 1
-    ] = 0.0
+    # Create mask for semantic tokens + IM_END_TOKEN
+    semantic_range = torch.arange(vocab_size, device=device)
+    im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
 
-    # [MODIFIED] Use tokenizer.get_token_id (Wrapper method)
-    semantic_logit_bias[0, 0, model.tokenizer.get_token_id(IM_END_TOKEN)] = 0.0
+    # Create masks for positions that should be 0
+    is_semantic = (semantic_range >= model.config.semantic_begin_id) & (
+        semantic_range <= model.config.semantic_end_id
+    )
+    is_im_end = semantic_range == im_end_id
+    should_be_zero = is_semantic | is_im_end
+
+    # Use torch.where for in-place assignment replacement
+    semantic_logit_bias = torch.where(
+        should_be_zero.view(1, 1, -1), 0.0, semantic_logit_bias
+    )
 
     prefill_decode = decode_one_token_ar
 
