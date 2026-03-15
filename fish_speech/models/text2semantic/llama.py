@@ -323,6 +323,16 @@ class BaseTransformer(nn.Module):
                 dtype=dtype,
             )
 
+    def clear_caches(self) -> None:
+        """Release KV cache buffers so VRAM can be freed between requests (avoids OOM on 32 GB)."""
+        if not getattr(self, "_cache_setup_done", False):
+            return
+        for b in self.layers:
+            b.attention.kv_cache = None
+        self._cache_setup_done = False
+        self.max_seq_len = -1
+        self.max_batch_size = -1
+
     def embed(self, inp: Tensor) -> Tensor:
         embeds = []
 
@@ -719,6 +729,11 @@ class DualARTransformer(BaseTransformer):
                 self.config.fast_head_dim,
                 dtype=dtype,
             )
+
+    def clear_caches(self) -> None:
+        super().clear_caches()
+        for b in self.fast_layers:
+            b.attention.kv_cache = None
 
     def forward(
         self,

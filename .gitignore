@@ -97,6 +97,9 @@ filelists/
 *log
 *.log
 site/
+.pytest_cache/
+memory_metrics.jsonl
+memory_snapshot_*.pickle
 
 # External Tools
 # --------------

@@ -95,7 +95,10 @@ class ServeTTSRequest(BaseModel):
     normalize: bool = True
     # not usually used below
     streaming: bool = False
-    max_new_tokens: int = 1024
+    # When True, stream token chunks (low TTFA) instead of splitting text into batches
+    stream_tokens: bool = False
+    stream_chunk_size: Annotated[int, conint(ge=1, le=200, strict=True)] = 20
+    max_new_tokens: int = 512
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.1
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
@@ -113,6 +116,13 @@ class AddReferenceRequest(BaseModel):
 
 class AddReferenceResponse(BaseModel):
     success: bool
+    message: str
+    reference_id: str
+
+
+class AddEncodedReferenceResponse(BaseModel):
+    success: bool
+    status: str  # "created" | "updated" | "unchanged"
     message: str
     reference_id: str
 

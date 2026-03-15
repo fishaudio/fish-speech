@@ -1,3 +1,4 @@
+import gc
 import os
 import queue
 import re
@@ -7,7 +8,7 @@ import traceback
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Optional, Tuple, Union
+from typing import Callable, Iterator, Literal, Optional, Tuple, Union, cast
 
 import click
 import numpy as np
@@ -22,6 +23,18 @@ from fish_speech.content_sequence import (
 )
 from fish_speech.conversation import Conversation, Message
 from fish_speech.tokenizer import IM_END_TOKEN
+
+
+def _to_normal_tensor(t: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
+    """
+    Copy tensor so it is not an inference tensor (AOT fails on inplace into inference tensors).
+    detach().clone() inside inference_mode(False) can still yield inference tensors in some PyTorch
+    versions; roundtrip via CPU forces a new allocation and clears the flag.
+    """
+    if t is None:
+        return None
+    with torch.inference_mode(False):
+        return t.detach().cpu().clone().to(t.device)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -38,6 +51,20 @@ from fish_speech.models.text2semantic.llama import (
     DualARTransformer,
     NaiveTransformer,
 )
+
+
+def _cache_max_seq_len(model: BaseTransformer) -> int:
+    """
+    Max sequence length used for KV cache and buffers. Tuned for streaming (short turns);
+    512 tokens ~= 41 s audio. Set FISH_CACHE_MAX_SEQ_LEN to override (e.g. 4096 for long form).
+    """
+    default = 512
+    raw = os.environ.get("FISH_CACHE_MAX_SEQ_LEN", str(default))
+    try:
+        n = int(raw)
+    except ValueError:
+        n = default
+    return min(max(1, n), model.config.max_seq_len)
 
 
 def multinomial_sample_one_no_sync(probs_sort):
@@ -193,53 +220,133 @@ def decode_n_tokens(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
-):
-    # Rolling window for RAS (Repetition Aware Sampling)
-    previous_tokens = torch.zeros(
+    stream_chunk_size: Optional[int] = None,
+    compile: bool = False,
+) -> Iterator[torch.Tensor]:
+    """
+    Generate tokens autoregressively. When stream_chunk_size is None, yields once
+    with the full tensor (backward compatible). When stream_chunk_size is set, yields
+    every stream_chunk_size tokens for low-TTFA streaming.
+    """
+    need_normal_state = stream_chunk_size is not None
+    # Streaming path: all state must be normal tensors (not inference tensors) so AOT
+    # inplace updates and stateful loop don't explode. Normalize once before loop.
+    if need_normal_state:
+        cur_token = cast(torch.Tensor, _to_normal_tensor(cur_token))
+        input_pos = cast(torch.Tensor, _to_normal_tensor(input_pos))
+        temperature = cast(torch.Tensor, _to_normal_tensor(temperature))
+        top_p = cast(torch.Tensor, _to_normal_tensor(top_p))
+        semantic_logit_bias = cast(torch.Tensor, _to_normal_tensor(semantic_logit_bias))
+        if audio_masks is not None:
+            audio_masks = _to_normal_tensor(audio_masks)
+        if audio_parts is not None:
+            audio_parts = _to_normal_tensor(audio_parts)
+
+    # Rolling window for RAS (Repetition Aware Sampling). Streaming: create as normal
+    # so we never do inplace on an inference tensor.
+    _prev_zeros = torch.zeros(
         (model.config.num_codebooks + 1, RAS_WIN_SIZE),
         dtype=torch.int,
         device=cur_token.device,
     )
-    # Accumulate all generated tokens (the actual output)
-    new_tokens = []
-
+    previous_tokens = cast(torch.Tensor, _to_normal_tensor(_prev_zeros)) if need_normal_state else _prev_zeros
+    new_tokens: list[torch.Tensor] = []
     # [MODIFIED] Pre-fetch ID for efficiency loop
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
+    do_stream_log = stream_chunk_size is not None
 
     for i in tqdm(range(num_new_tokens)):
-        with sdpa_kernel(SDPBackend.MATH):
-            next_token = decode_one_token(
-                model=model,
-                x=cur_token,
-                input_pos=input_pos,
-                previous_tokens=previous_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                semantic_logit_bias=semantic_logit_bias,
-                audio_masks=audio_masks,
-                audio_parts=audio_parts,
-            ).clone()
+        if do_stream_log and i < 3:
+            logger.info(
+                "stream: decode_n_tokens iter={} cur_token.shape={} input_pos={}",
+                i,
+                cur_token.shape,
+                input_pos.shape,
+            )
+        try:
+            # With torch.compile we must use MATH backend so Inductor can fuse attention kernels.
+            # Without compile, Flash/Triton is faster. FISH_SDPA_MATH=1 forces MATH when not compiling.
+            use_math = compile or (
+                os.environ.get("FISH_SDPA_MATH", "").strip() in ("1", "true", "TRUE", "yes", "YES")
+            )
+            if use_math:
+                with sdpa_kernel(SDPBackend.MATH):
+                    next_token = decode_one_token(
+                        model=model,
+                        x=cur_token,
+                        input_pos=input_pos,
+                        previous_tokens=previous_tokens,
+                        temperature=temperature,
+                        top_p=top_p,
+                        top_k=top_k,
+                        semantic_logit_bias=semantic_logit_bias,
+                        audio_masks=audio_masks,
+                        audio_parts=audio_parts,
+                    ).clone()
+            else:
+                next_token = decode_one_token(
+                    model=model,
+                    x=cur_token,
+                    input_pos=input_pos,
+                    previous_tokens=previous_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    semantic_logit_bias=semantic_logit_bias,
+                    audio_masks=audio_masks,
+                    audio_parts=audio_parts,
+                ).clone()
+        except Exception as e:
+            logger.exception(
+                "stream: decode_n_tokens FAILED at iter={} (cur_token.shape={}): {}",
+                i,
+                cur_token.shape,
+                e,
+            )
+            raise
 
-        input_pos += 1
-        cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
-        # Roll RAS window left and insert new token at end
-        previous_tokens = previous_tokens.roll(-1, dims=1)
-        previous_tokens[:, -1] = next_token.view(model.config.num_codebooks + 1, -1)[
-            :, 0
-        ]
+        # Streaming: normalize state before any inplace op (AOT fails on inference tensors).
+        # To debug: log tensor.is_inference() before/after (PyTorch 2.5+).
+        # Non-streaming: plain detach/clone.
+        if need_normal_state:
+            next_token = cast(torch.Tensor, _to_normal_tensor(next_token))
+            input_pos = cast(torch.Tensor, _to_normal_tensor(input_pos + 1))
+            cur_token = cast(torch.Tensor, _to_normal_tensor(next_token.view(1, model.config.num_codebooks + 1, -1)))
+            # Normalize previous_tokens before inplace; then assign column.
+            previous_tokens = cast(torch.Tensor, _to_normal_tensor(previous_tokens.roll(-1, dims=1)))
+            prev_col = next_token.view(model.config.num_codebooks + 1, -1)[:, 0]
+            previous_tokens[:, -1].copy_(prev_col)
+        else:
+            next_token = next_token.detach().clone()
+            input_pos = (input_pos + 1).detach().clone()
+            cur_token = next_token.view(1, model.config.num_codebooks + 1, -1).clone()
+            previous_tokens = previous_tokens.roll(-1, dims=1)
+            previous_tokens[:, -1] = next_token.view(model.config.num_codebooks + 1, -1)[:, 0].clone()
         new_tokens.append(next_token)
 
+        if stream_chunk_size is not None and len(new_tokens) >= stream_chunk_size:
+            chunk_out = torch.cat(new_tokens, dim=1).detach().clone()
+            if do_stream_log:
+                logger.info("stream: decode_n_tokens yielding chunk shape={} after iter={}", chunk_out.shape, i)
+            yield chunk_out
+            new_tokens = []
+
         if cur_token[0, 0, -1] == im_end_id:
+            if do_stream_log:
+                logger.info("stream: decode_n_tokens EOS at iter={}", i)
             break
 
     del cur_token
 
-    return torch.cat(new_tokens, dim=1)
+    if new_tokens:
+        remainder = torch.cat(new_tokens, dim=1).detach().clone()
+        if do_stream_log:
+            logger.info("stream: decode_n_tokens yielding remainder shape={}", remainder.shape)
+        yield remainder
 
 
+# Only no_grad(); inference_mode() causes AOT copy-back into inference tensors in streaming.
 @torch.no_grad()
-@torch.inference_mode()
 def generate(
     *,
     model: DualARTransformer,
@@ -259,18 +366,20 @@ def generate(
     T = prompt.size(1)
     prompt = prompt[None].repeat(num_samples, 1, 1)
 
-    if T >= model.config.max_seq_len:
+    cache_len = _cache_max_seq_len(model)
+
+    if T >= cache_len:
         raise ValueError(
-            f"Input sequence length {T} exceeds max_seq_len {model.config.max_seq_len}"
+            f"Input sequence length {T} exceeds cache_max_seq_len {cache_len}"
         )
 
     if max_new_tokens:
-        if T + max_new_tokens > model.config.max_seq_len:
-            max_new_tokens = model.config.max_seq_len - T
+        if T + max_new_tokens > cache_len:
+            max_new_tokens = cache_len - T
 
         T_new = T + max_new_tokens
     else:
-        T_new = model.config.max_seq_len
+        T_new = cache_len
         max_new_tokens = T_new - T
 
     device = prompt.device
@@ -283,7 +392,7 @@ def generate(
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,  # Fixed to 1, avoid dynamic changes
-                max_seq_len=model.config.max_seq_len,
+                max_seq_len=cache_len,
                 dtype=next(model.parameters()).dtype,
             )
         model._cache_setup_done = True
@@ -293,7 +402,7 @@ def generate(
     # Create new tensor each time, but try to reuse memory
     input_pos = torch.arange(0, T, device=device, dtype=torch.long)
     empty = torch.empty(
-        (codebook_dim, model.config.max_seq_len), dtype=prompt.dtype, device=device
+        (codebook_dim, cache_len), dtype=prompt.dtype, device=device
     )
     empty[:, :T] = prompt
     seq = empty
@@ -321,9 +430,15 @@ def generate(
 
     prefill_decode = decode_one_token_ar
 
+    # Mark seq dim dynamic so one compiled graph works for any prompt length (1..cache_len).
+    x_prefill = prompt.view(1, codebook_dim, -1)
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "mark_dynamic"):
+        torch._dynamo.mark_dynamic(x_prefill, 2, min=1, max=cache_len)
+        torch._dynamo.mark_dynamic(input_pos, 0, min=1, max=cache_len)
+
     first_token = prefill_decode(
         model,
-        prompt.view(1, codebook_dim, -1),
+        x_prefill,
         input_pos,
         temperature,
         top_p,
@@ -334,10 +449,11 @@ def generate(
     )
     seq[:, T : T + 1] = first_token
 
-    # Recreate input_pos
     input_pos = torch.tensor([T], device=device, dtype=torch.int)
+    stream_chunk_size = sampling_kwargs.pop("stream_chunk_size", None)
+    compile = sampling_kwargs.pop("compile", False)
 
-    x = decode_n_tokens(
+    decode_iter = decode_n_tokens(
         model,
         first_token.view(1, codebook_dim, -1),
         input_pos,
@@ -349,14 +465,24 @@ def generate(
         audio_masks=audio_masks,
         audio_parts=audio_parts,
         decode_one_token=decode_one_token,
+        stream_chunk_size=stream_chunk_size,
+        compile=compile,
     )
-    seq = seq[:, : T + 1 + x.size(1)]
-    seq[:, T + 1 :] = x
 
-    # Clean up temporary variables
-    del first_token, x, prompt, empty, input_pos
+    if stream_chunk_size is None:
+        # Non-streaming: single chunk from decode_n_tokens
+        x = next(iter(decode_iter))
+        seq = seq[:, : T + 1 + x.size(1)]
+        seq[:, T + 1 :] = x
+        del first_token, x, prompt, empty, input_pos
+        return seq
 
-    return seq
+    # Streaming: return a generator (no yield in this branch so generate() still returns when non-streaming)
+    def _stream():
+        yield first_token
+        yield from decode_iter
+
+    return _stream()
 
 
 def init_model(checkpoint_path, device, precision, compile=False):
@@ -382,11 +508,14 @@ def init_model(checkpoint_path, device, precision, compile=False):
 
     if compile:
         logger.info("Compiling function...")
+        # dynamic=True: one graph for variable prompt length (1..200+), avoid recompile on length change.
+        # If compile fails, try without dynamic=True; mark_dynamic() in generate() still helps.
         decode_one_token = torch.compile(
             decode_one_token,
             backend="inductor" if torch.cuda.is_available() else "aot_eager",
             mode="default" if torch.cuda.is_available() else None,
             fullgraph=True,
+            dynamic=True,
         )
 
     return model.eval(), decode_one_token
@@ -482,6 +611,29 @@ def split_text_by_speaker(text: str) -> list[str]:
     return turns
 
 
+def split_text_by_bytes(text: str, max_bytes: int) -> list[str]:
+    """
+    Split text into chunks of at most max_bytes (UTF-8). Used when there are
+    no speaker turns so that chunk_length still controls batch size for streaming.
+    """
+    if max_bytes <= 0 or len(text.encode("utf-8")) <= max_bytes:
+        return [text] if text.strip() else []
+    chunks = []
+    remaining = text
+    while remaining:
+        encoded = remaining.encode("utf-8")
+        if len(encoded) <= max_bytes:
+            chunks.append(remaining)
+            break
+        # Cut at max_bytes; avoid splitting multi-byte UTF-8 codepoints
+        cut = max_bytes
+        while cut > 0 and (encoded[cut] & 0xC0) == 0x80:
+            cut -= 1
+        chunks.append(encoded[:cut].decode("utf-8", errors="replace"))
+        remaining = encoded[cut:].decode("utf-8", errors="replace")
+    return chunks
+
+
 def group_turns_into_batches(
     turns: list[str], max_speakers: int = 3, max_bytes: int = 300
 ) -> list[str]:
@@ -537,6 +689,8 @@ def generate_long(
     chunk_length: int = 512,
     prompt_text: Optional[Union[str, list[str]]] = None,
     prompt_tokens: Optional[Union[torch.Tensor, list[torch.Tensor]]] = None,
+    stream_tokens: bool = False,
+    stream_chunk_size: int = 20,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
@@ -547,16 +701,16 @@ def generate_long(
         prompt_tokens = [prompt_tokens]
 
     if use_prompt:
-        assert len(prompt_text) == len(
-            prompt_tokens
-        ), "Prompt text and tokens must have the same length"
+        assert len(prompt_text) == len(prompt_tokens), (
+            "Prompt text and tokens must have the same length"
+        )
 
     if prompt_tokens:
         prompt_tokens = [i.cpu() for i in prompt_tokens]
 
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     tokenizer = model.tokenizer
-    max_length = model.config.max_seq_len
+    max_length = _cache_max_seq_len(model)
 
     # Build base conversation with system message
     base_conversation = Conversation()
@@ -597,14 +751,18 @@ def generate_long(
         )
     )
 
-    # Split text by speaker and group into batches
+    # When stream_tokens=True: single batch (full text), yield token chunks from decode for low TTFA.
+    # Otherwise: split by speaker/chunk_length and run full generate() per batch.
     turns = split_text_by_speaker(text)
-    if turns:
+    if stream_tokens:
+        batches = [text]
+        logger.info("Token streaming: single batch (no text split)")
+    elif turns:
         batches = group_turns_into_batches(
             turns, max_speakers=5, max_bytes=chunk_length
         )
     else:
-        batches = [text]
+        batches = split_text_by_bytes(text, chunk_length)
 
     logger.info(f"Split into {len(turns)} turns, grouped into {len(batches)} batches")
 
@@ -667,63 +825,151 @@ def generate_long(
                     f"Audio masks non-zero count: {torch.count_nonzero(audio_masks)}"
                 )
 
-            if encoded.size(1) > max_length - 2048:
+            # Prompt + generation must fit in cache (max_length = cache_max_seq_len).
+            prompt_len = encoded.size(1)
+            if prompt_len > max_length:
                 raise ValueError(
-                    f"Prompt is too long: {encoded.size(1)} > {max_length - 2048}"
+                    f"Prompt length {prompt_len} exceeds KV cache size {max_length}. "
+                    f"Increase FISH_CACHE_MAX_SEQ_LEN (e.g. 1024 or 2048) or use a shorter reference."
                 )
+            if prompt_len + max_new_tokens > max_length:
+                max_new_tokens = max_length - prompt_len
+                logger.info(
+                    "Capping max_new_tokens to {} so prompt+gen fits in cache (prompt={}, cache={})",
+                    max_new_tokens,
+                    prompt_len,
+                    max_length,
+                )
+            # Optional hard cap for 32 GB VRAM: limit generation length to avoid OOM (e.g. FISH_MAX_NEW_TOKENS_CAP=80 with cache=384).
+            cap_env = os.environ.get("FISH_MAX_NEW_TOKENS_CAP", "").strip()
+            if cap_env:
+                try:
+                    cap = int(cap_env)
+                    if cap >= 1 and max_new_tokens > cap:
+                        max_new_tokens = cap
+                        logger.info(
+                            "Capping max_new_tokens to {} (FISH_MAX_NEW_TOKENS_CAP) for VRAM safety",
+                            max_new_tokens,
+                        )
+                except ValueError:
+                    pass
 
             encoded = encoded.to(device=device)
             prompt_length = encoded.size(1)
 
-            y = generate(
-                model=model,
-                prompt=encoded,
-                max_new_tokens=max_new_tokens,
-                audio_masks=audio_masks,
-                audio_parts=audio_parts,
-                decode_one_token=decode_one_token,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-            )
-
-            if sample_idx == 0 and batch_idx == 0 and compile:
-                logger.info(f"Compilation time: {time.perf_counter() - t0:.2f} seconds")
-
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()
-
-            t_batch = time.perf_counter() - t0
-            tokens_generated = y.size(1) - prompt_length
-            tokens_sec = tokens_generated / t_batch if t_batch > 0 else 0
-            logger.info(
-                f"Batch {batch_idx}: Generated {tokens_generated} tokens in "
-                f"{t_batch:.02f} seconds, {tokens_sec:.02f} tokens/sec"
-            )
-            logger.info(
-                f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
-            )
-
-            # Extract generated codes
-            codes = y[1:, prompt_length:-1].clone()
-            assert (codes >= 0).all(), f"Negative code found: {codes}"
-
-            # Add assistant message with generated codes back to conversation
-            conversation.append(
-                Message(
-                    role="assistant",
-                    parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
-                    cal_loss=False,
-                    modality="voice",
-                    add_im_start=True,
-                    add_im_end=True,
+            if stream_tokens:
+                # Token-level streaming: yield chunks as they're generated for low TTFA
+                logger.info(
+                    "stream: generate_long starting token stream batch_idx={} stream_chunk_size={}",
+                    batch_idx,
+                    stream_chunk_size,
                 )
-            )
+                gen = generate(
+                    model=model,
+                    prompt=encoded,
+                    max_new_tokens=max_new_tokens,
+                    audio_masks=audio_masks,
+                    audio_parts=audio_parts,
+                    decode_one_token=decode_one_token,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    stream_chunk_size=stream_chunk_size,
+                    compile=compile,
+                )
+                codes_list: list[torch.Tensor] = []
+                chunk_idx = 0
+                for chunk in gen:
+                    # chunk shape [11, K]; decoder expects codes as in current path (rows 1:)
+                    codes_chunk = chunk[1:, :].clone()
+                    if chunk_idx < 3:
+                        logger.info(
+                            "stream: generate_long chunk_idx={} chunk.shape={} codes_chunk.shape={}",
+                            chunk_idx,
+                            chunk.shape,
+                            codes_chunk.shape,
+                        )
+                    if (codes_chunk >= 0).all():
+                        yield GenerateResponse(
+                            action="sample", codes=codes_chunk, text=batch_text
+                        )
+                    codes_list.append(chunk)
+                    chunk_idx += 1
+                logger.info("stream: generate_long finished chunk_idx={} total_chunks={}", chunk_idx, len(codes_list))
+                codes = (
+                    torch.cat(codes_list, dim=1)[1:, :].clone()
+                    if codes_list
+                    else None
+                )
+                if codes is not None:
+                    conversation.append(
+                        Message(
+                            role="assistant",
+                            parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
+                            cal_loss=False,
+                            modality="voice",
+                            add_im_start=True,
+                            add_im_end=True,
+                        )
+                    )
+                codes_list.clear()
+                del codes_list
+                if codes is not None:
+                    del codes
+                if sample_idx == 0 and batch_idx == 0 and compile:
+                    logger.info(
+                        f"Compilation time: {time.perf_counter() - t0:.2f} seconds"
+                    )
+                del encoded
+            else:
+                y = generate(
+                    model=model,
+                    prompt=encoded,
+                    max_new_tokens=max_new_tokens,
+                    audio_masks=audio_masks,
+                    audio_parts=audio_parts,
+                    decode_one_token=decode_one_token,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    compile=compile,
+                )
 
-            yield GenerateResponse(action="sample", codes=codes, text=batch_text)
+                if sample_idx == 0 and batch_idx == 0 and compile:
+                    logger.info(
+                        f"Compilation time: {time.perf_counter() - t0:.2f} seconds"
+                    )
 
-            # Cleanup
-            del y, encoded
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+
+                t_batch = time.perf_counter() - t0
+                tokens_generated = y.size(1) - prompt_length
+                tokens_sec = tokens_generated / t_batch if t_batch > 0 else 0
+                logger.info(
+                    f"Batch {batch_idx}: Generated {tokens_generated} tokens in "
+                    f"{t_batch:.02f} seconds, {tokens_sec:.02f} tokens/sec"
+                )
+                logger.info(
+                    f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
+                )
+
+                codes = y[1:, prompt_length:-1].clone()
+                assert (codes >= 0).all(), f"Negative code found: {codes}"
+
+                conversation.append(
+                    Message(
+                        role="assistant",
+                        parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
+                        cal_loss=False,
+                        modality="voice",
+                        add_im_start=True,
+                        add_im_end=True,
+                    )
+                )
+
+                yield GenerateResponse(action="sample", codes=codes, text=batch_text)
+                del y, encoded
 
         if torch.cuda.is_available():
             logger.info(
@@ -745,25 +991,53 @@ class GenerateRequest:
     response_queue: queue.Queue
 
 
+def _model_param_memory_gb(module: torch.nn.Module) -> tuple[float, int]:
+    """Return (param_memory_gb, param_count) for a module (weights only)."""
+    total = 0
+    count = 0
+    for p in module.parameters():
+        total += p.numel() * p.element_size()
+        count += p.numel()
+    return (round(total / (1024**3), 3), count)
+
+
 def launch_thread_safe_queue(
     checkpoint_path,
     device,
     precision,
     compile: bool = False,
+    memory_info: dict | None = None,
 ):
+    """
+    memory_info: optional shared dict; worker will set llama_param_gb, llama_param_count after load.
+    """
     input_queue = queue.Queue()
     init_event = threading.Event()
 
     def worker():
+        profile_cadence = os.getenv("FISH_PROFILE_INFERENCE", "0") in {
+            "1",
+            "true",
+            "TRUE",
+            "yes",
+            "YES",
+        }
+
         model, decode_one_token = init_model(
             checkpoint_path, device, precision, compile=compile
         )
+        cache_len = _cache_max_seq_len(model)
+        logger.info("KV cache max_seq_len={} (model max={})", cache_len, model.config.max_seq_len)
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,
-                max_seq_len=model.config.max_seq_len,
+                max_seq_len=cache_len,
                 dtype=next(model.parameters()).dtype,
             )
+        if memory_info is not None:
+            gb, count = _model_param_memory_gb(model)
+            memory_info["llama_param_gb"] = gb
+            memory_info["llama_param_count"] = count
         init_event.set()
 
         while True:
@@ -772,21 +1046,99 @@ def launch_thread_safe_queue(
                 break
 
             kwargs = item.request
+            req_tag = str(kwargs.pop("req_tag", "na"))
+            ack_queue = kwargs.pop("ack_queue", None)  # back-pressure: wait for main to finish DAC before next LLM chunk
             response_queue = item.response_queue
+            t_req_start = time.perf_counter()
+            t_last_put = t_req_start
+            stream_tokens = kwargs.get("stream_tokens", False)
+            put_count = 0
+            if stream_tokens:
+                logger.info("stream: worker got request req={} stream_chunk_size={}", req_tag, kwargs.get("stream_chunk_size"))
 
             try:
                 for chunk in generate_long(
                     model=model, decode_one_token=decode_one_token, **kwargs
                 ):
+                    if stream_tokens and put_count < 5:
+                        logger.info(
+                            "stream: worker putting chunk put_count={} action={} req={}",
+                            put_count,
+                            getattr(chunk, "action", None),
+                            req_tag,
+                        )
+                    put_count += 1
+                    if profile_cadence:
+                        now = time.perf_counter()
+                        delta_ms = (now - t_last_put) * 1000.0
+                        total_ms = (now - t_req_start) * 1000.0
+                        t_last_put = now
+                        action = getattr(chunk, "action", type(chunk).__name__)
+                        vram_s = ""
+                        if torch.cuda.is_available():
+                            vram_s = " vram_alloc_gb={:.2f} vram_max_gb={:.2f}".format(
+                                torch.cuda.memory_allocated() / (1024**3),
+                                torch.cuda.max_memory_allocated() / (1024**3),
+                            )
+                        logger.info(
+                            "queue_put req={} action={} delta_ms={:.1f} total_ms={:.1f}{}",
+                            req_tag,
+                            action,
+                            delta_ms,
+                            total_ms,
+                            vram_s,
+                        )
+                    # Send chunk with codes on CPU so queue/main never hold GPU tensors; avoids 24 GB stuck after request on 32 GB.
+                    out = chunk
+                    codes = getattr(chunk, "codes", None)
+                    if codes is not None and codes.is_cuda:
+                        out = GenerateResponse(
+                            action=chunk.action,
+                            codes=codes.cpu(),
+                            text=getattr(chunk, "text", None),
+                        )
                     response_queue.put(
-                        WrappedGenerateResponse(status="success", response=chunk)
+                        WrappedGenerateResponse(status="success", response=out)
                     )
+                    # Back-pressure: wait for main thread to finish DAC decode so we don't run LLM and DAC on GPU at once (OOM on 32 GB).
+                    if stream_tokens and ack_queue is not None:
+                        ack_queue.get()
+                    # During streaming, free cache after each chunk to reduce fragmentation (32 GB often OOMs by mid-stream)
+                    if stream_tokens and torch.cuda.is_available():
+                        torch.cuda.empty_cache()
 
-                # Only clear cache after complete request batch
+                # Release KV cache and clear allocator so next request starts near baseline (avoids OOM on 32 GB).
+                logger.info("worker: post-request cleanup starting")
                 if torch.cuda.is_available():
+                    before_clear_gb = round(torch.cuda.memory_allocated() / (1024**3), 2)
+                clear_caches_fn = getattr(model, "clear_caches", None)
+                if clear_caches_fn is not None:
+                    try:
+                        clear_caches_fn()
+                        if torch.cuda.is_available():
+                            after_clear_gb = round(torch.cuda.memory_allocated() / (1024**3), 2)
+                            logger.info(
+                                "worker: clear_caches done alloc before={} GB after={} GB",
+                                before_clear_gb,
+                                after_clear_gb,
+                            )
+                    except Exception as clear_err:
+                        logger.warning("clear_caches failed: %s", clear_err)
+                if torch.cuda.is_available():
+                    gc.collect()
+                    torch.cuda.synchronize()
+                    torch.cuda.empty_cache()
+                    gc.collect()
                     torch.cuda.empty_cache()
 
             except Exception as e:
+                logger.error(
+                    "stream: worker EXCEPTION req={} put_count={}: {}",
+                    req_tag,
+                    put_count,
+                    e,
+                    exc_info=True,
+                )
                 logger.error(traceback.format_exc())
                 response_queue.put(WrappedGenerateResponse(status="error", response=e))
                 # Clear cache on error
@@ -880,7 +1232,7 @@ def main(
     with torch.device(device):
         model.setup_caches(
             max_batch_size=1,
-            max_seq_len=model.config.max_seq_len,
+            max_seq_len=_cache_max_seq_len(model),
             dtype=next(model.parameters()).dtype,
         )
     if torch.cuda.is_available():

@@ -19,7 +19,11 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
         match result.code:
             case "header":
                 if isinstance(result.audio, tuple):
-                    yield result.audio[1]
+                    header = result.audio[1]
+                    if isinstance(header, np.ndarray):
+                        yield header.tobytes()
+                    elif isinstance(header, (bytes, bytearray)):
+                        yield bytes(header)
 
             case "error":
                 raise HTTPException(
@@ -35,7 +39,11 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
             case "final":
                 count += 1
                 if isinstance(result.audio, tuple):
-                    yield result.audio[1]
+                    final = result.audio[1]
+                    if isinstance(final, np.ndarray):
+                        yield (final * AMPLITUDE).astype(np.int16).tobytes()
+                    elif isinstance(final, (bytes, bytearray)):
+                        yield bytes(final)
                 return None  # Stop the generator
 
     if count == 0:
