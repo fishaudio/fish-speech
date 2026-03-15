@@ -81,6 +81,17 @@ class ServeReferenceAudio(BaseModel):
 class ServeTTSRequest(BaseModel):
     text: str
     chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
+    """
+    Controls segment-based processing. When chunk_length > 0, the input text
+    is processed in segments/chunks of approximately chunk_length characters.
+    This enables memory-efficient processing of long texts. Set to 0 to disable
+    segment processing and process the entire text at once.
+
+    Default: 200 (characters per segment)
+    Range: 100-300 characters
+    """
+    # Audio format
+    format: Literal["wav", "pcm", "mp3"] = "wav"
     # Audio format
     format: Literal["wav", "pcm", "mp3"] = "wav"
     # References audios for in-context learning
