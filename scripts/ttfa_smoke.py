@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """One TTS request (streaming or oneshot): measure TTFA and save WAV. Prints ttfa_s, ttfa_audio_s, total_s."""
+
 import argparse
 import sys
 import time
@@ -12,11 +13,19 @@ def main() -> None:
     p.add_argument("--url", required=True, help="Base URL (e.g. http://127.0.0.1:8080)")
     p.add_argument("--output", required=True, help="Output WAV path")
     p.add_argument("--reference-id", default=None, help="Optional reference_id")
-    p.add_argument("--text", default=None, help="Text to synthesize (default depends on --oneshot)")
-    p.add_argument("--oneshot", action="store_true", help="Non-streaming request (streaming: false)")
+    p.add_argument(
+        "--text", default=None, help="Text to synthesize (default depends on --oneshot)"
+    )
+    p.add_argument(
+        "--oneshot",
+        action="store_true",
+        help="Non-streaming request (streaming: false)",
+    )
     args = p.parse_args()
     if args.text is None:
-        args.text = "Short test." if args.oneshot else "Hello, this is an e2e smoke test."
+        args.text = (
+            "Short test." if args.oneshot else "Hello, this is an e2e smoke test."
+        )
 
     try:
         import urllib.request
@@ -29,6 +38,7 @@ def main() -> None:
     if args.reference_id:
         body["reference_id"] = args.reference_id
     import json
+
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
         url,
@@ -62,7 +72,9 @@ def main() -> None:
     ttfa_s = (t1 - t0) if t1 is not None else 0.0
     ttfa_audio_s = (t2 - t0) if t2 is not None else ttfa_s
     total_s = t3 - t0
-    print(f"  ttfa_s={ttfa_s:.3f}  ttfa_audio_s={ttfa_audio_s:.3f}  total_s={total_s:.3f}  bytes={bytes_read}")
+    print(
+        f"  ttfa_s={ttfa_s:.3f}  ttfa_audio_s={ttfa_audio_s:.3f}  total_s={total_s:.3f}  bytes={bytes_read}"
+    )
 
 
 if __name__ == "__main__":
