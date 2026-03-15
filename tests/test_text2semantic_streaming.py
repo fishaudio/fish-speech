@@ -6,6 +6,7 @@ Run from repo root with project venv:
   uv sync --extra cpu --extra dev && .venv/bin/python -m pytest tests/test_text2semantic_streaming.py -v
 Or: uv run --extra dev pytest tests/test_text2semantic_streaming.py -v  (if uv uses project venv)
 """
+
 import unittest.mock as mock
 
 import pytest
@@ -104,7 +105,9 @@ class TestToNormalTensor:
         assert out is not None
         assert torch.equal(out, t)
         if hasattr(out, "is_inference") and callable(out.is_inference):
-            assert not out.is_inference(), "_to_normal_tensor must return a normal tensor when used under inference_mode"
+            assert (
+                not out.is_inference()
+            ), "_to_normal_tensor must return a normal tensor when used under inference_mode"
 
 
 class TestDecodeNTokens:
@@ -120,7 +123,9 @@ class TestDecodeNTokens:
 
     def _make_inputs(self, device="cpu", seq_len=1):
         codebook_dim = 11  # 1 + num_codebooks
-        cur_token = torch.randint(0, 100, (1, codebook_dim, seq_len), device=device, dtype=torch.long)
+        cur_token = torch.randint(
+            0, 100, (1, codebook_dim, seq_len), device=device, dtype=torch.long
+        )
         input_pos = torch.tensor([0], device=device, dtype=torch.long)
         temperature = torch.tensor(0.7, device=device)
         top_p = torch.tensor(0.8, device=device)
@@ -130,7 +135,9 @@ class TestDecodeNTokens:
     @mock.patch("fish_speech.models.text2semantic.inference.tqdm", lambda x: x)
     def test_streaming_yields_chunks_of_requested_size(self, mock_model):
         """With stream_chunk_size=5 and mock returning 12 tokens then EOS, we get chunks [5, 5, 2]."""
-        cur_token, input_pos, temperature, top_p, semantic_logit_bias = self._make_inputs()
+        cur_token, input_pos, temperature, top_p, semantic_logit_bias = (
+            self._make_inputs()
+        )
         EOS_ID = 99999
         num_codebooks = 10
         chunk_size = 5
@@ -176,7 +183,9 @@ class TestDecodeNTokens:
     @mock.patch("fish_speech.models.text2semantic.inference.tqdm", lambda x: x)
     def test_non_streaming_yields_single_chunk(self, mock_model):
         """With stream_chunk_size=None we get one chunk with all generated tokens."""
-        cur_token, input_pos, temperature, top_p, semantic_logit_bias = self._make_inputs()
+        cur_token, input_pos, temperature, top_p, semantic_logit_bias = (
+            self._make_inputs()
+        )
         EOS_ID = 99999
         num_codebooks = 10
         total_tokens = 7
@@ -217,7 +226,9 @@ class TestDecodeNTokens:
     @mock.patch("fish_speech.models.text2semantic.inference.tqdm", lambda x: x)
     def test_streaming_eos_before_full_chunk(self, mock_model):
         """EOS after 2 tokens with stream_chunk_size=5 yields one remainder chunk of 2."""
-        cur_token, input_pos, temperature, top_p, semantic_logit_bias = self._make_inputs()
+        cur_token, input_pos, temperature, top_p, semantic_logit_bias = (
+            self._make_inputs()
+        )
         EOS_ID = 99999
         num_codebooks = 10
 

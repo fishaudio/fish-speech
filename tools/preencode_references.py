@@ -12,6 +12,7 @@ write if content hash matches (unchanged). Requires server to be running.
   python tools/preencode_references.py --input-dir ./data/voice_references
   python tools/preencode_references.py --input-dir ./data/voice_references --upload --server-url http://127.0.0.1:8080
 """
+
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -21,12 +22,16 @@ import torch
 import torchaudio
 from loguru import logger
 
-from fish_speech.utils.file import AUDIO_EXTENSIONS
 from fish_speech.models.dac.inference import load_model as load_dac_model
+from fish_speech.utils.file import AUDIO_EXTENSIONS
 
 
 def _upload_encoded(
-    server_url: str, ref_id: str, codes_path: Path, lab_path: Path, stem: str | None = None
+    server_url: str,
+    ref_id: str,
+    codes_path: Path,
+    lab_path: Path,
+    stem: str | None = None,
 ) -> None:
     """POST pre-encoded reference to server. Server skips if hash matches."""
     stem = stem or ref_id
@@ -136,13 +141,19 @@ def main(
                 continue
             ref_id_name = ref_dir.name
             for codes_path in sorted(ref_dir.glob("*.codes.pt")):
-                stem = codes_path.stem.removesuffix(".codes") if codes_path.stem.endswith(".codes") else codes_path.stem
+                stem = (
+                    codes_path.stem.removesuffix(".codes")
+                    if codes_path.stem.endswith(".codes")
+                    else codes_path.stem
+                )
                 lab_path = ref_dir / f"{stem}.lab"
                 if not lab_path.exists():
                     logger.warning("No %s for %s, skip", lab_path.name, codes_path.name)
                     continue
                 logger.info("Upload only: %s/%s", ref_id_name, stem)
-                _upload_encoded(server_url, ref_id_name, codes_path, lab_path, stem=stem)
+                _upload_encoded(
+                    server_url, ref_id_name, codes_path, lab_path, stem=stem
+                )
         logger.info("Upload-only done for %s", base_out)
         return
 
@@ -192,7 +203,12 @@ def main(
     for stem, wav_path, text_path in stems:
         ref_folder = base_out / (stem if use_stem_as_id else ref_id)
         ref_folder.mkdir(parents=True, exist_ok=True)
-        logger.info("Encoding {} -> {} (id={})", stem, ref_folder, stem if use_stem_as_id else ref_id)
+        logger.info(
+            "Encoding {} -> {} (id={})",
+            stem,
+            ref_folder,
+            stem if use_stem_as_id else ref_id,
+        )
         audio, sr = torchaudio.load(str(wav_path))
         if audio.shape[0] > 1:
             audio = audio.mean(0, keepdim=True)
@@ -212,7 +228,13 @@ def main(
         if upload:
             ref_id_for_upload = stem if use_stem_as_id else ref_id
             stem_for_upload = stem
-            _upload_encoded(server_url, ref_id_for_upload, codes_path, lab_path, stem=stem_for_upload)
+            _upload_encoded(
+                server_url,
+                ref_id_for_upload,
+                codes_path,
+                lab_path,
+                stem=stem_for_upload,
+            )
 
     logger.info("Done. {} reference(s) in {}", len(stems), base_out)
 

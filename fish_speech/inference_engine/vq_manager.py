@@ -34,9 +34,7 @@ class VQManager:
             # Keep audio on CPU; run encoder on CPU to avoid OOM (encoder on long ref
             # can use ~14+ GB GPU and we're already near 16 GB after warmup).
             audios = torch.from_numpy(reference_audio_content)[None, None, :]
-            audio_lengths = torch.tensor(
-                [audios.shape[2]], dtype=torch.long
-            )
+            audio_lengths = torch.tensor([audios.shape[2]], dtype=torch.long)
             logger.info(
                 f"Loaded audio with {audios.shape[2] / sample_rate:.2f} seconds"
             )
@@ -48,11 +46,15 @@ class VQManager:
                     torch.cuda.empty_cache()
                     self.decoder_model.to("cpu")
                     try:
-                        prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
+                        prompt_tokens = self.decoder_model.encode(
+                            audios, audio_lengths
+                        )[0][0]
                     finally:
                         self.decoder_model.to(device)
                 else:
-                    prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
+                    prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][
+                        0
+                    ]
                 logger.info("Encoded prompt: {}", prompt_tokens.shape)
             else:
                 raise ValueError(f"Unknown model type: {type(self.decoder_model)}")

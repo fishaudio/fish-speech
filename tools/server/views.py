@@ -21,8 +21,8 @@ from kui.asgi import (
     UploadFile,
     request,
 )
-from starlette.responses import Response
 from loguru import logger
+from starlette.responses import Response
 from typing_extensions import Annotated
 
 from fish_speech.utils.schema import (
@@ -88,7 +88,10 @@ def _gpu_memory_info(model_manager: ModelManager | None = None):
     }
     if model_manager is not None:
         models = {}
-        if hasattr(model_manager, "decoder_model") and model_manager.decoder_model is not None:
+        if (
+            hasattr(model_manager, "decoder_model")
+            and model_manager.decoder_model is not None
+        ):
             dac_gb, dac_count = _model_param_memory_gb(model_manager.decoder_model)
             models["dac"] = {"param_gb": dac_gb, "param_count": dac_count}
         if getattr(model_manager, "_worker_memory_info", None):
@@ -104,13 +107,17 @@ def _gpu_memory_info(model_manager: ModelManager | None = None):
         out["devices"] = []
         for i in range(torch.cuda.device_count()):
             with torch.cuda.device(i):
-                out["devices"].append({
-                    "device": i,
-                    "name": torch.cuda.get_device_name(i),
-                    "allocated_gb": round(torch.cuda.memory_allocated() / gb, 3),
-                    "reserved_gb": round(torch.cuda.memory_reserved() / gb, 3),
-                    "max_allocated_gb": round(torch.cuda.max_memory_allocated() / gb, 3),
-                })
+                out["devices"].append(
+                    {
+                        "device": i,
+                        "name": torch.cuda.get_device_name(i),
+                        "allocated_gb": round(torch.cuda.memory_allocated() / gb, 3),
+                        "reserved_gb": round(torch.cuda.memory_reserved() / gb, 3),
+                        "max_allocated_gb": round(
+                            torch.cuda.max_memory_allocated() / gb, 3
+                        ),
+                    }
+                )
     try:
         out["memory_summary"] = torch.cuda.memory_summary(abbreviated=True)
     except Exception:
@@ -133,12 +140,16 @@ def _gpu_memory_text(info: dict) -> str:
     if "models" in info:
         lines.append("Model weights (params only)")
         for name, m in info["models"].items():
-            lines.append(f"  {name}: param_gb={m.get('param_gb')} param_count={m.get('param_count', 'N/A')}")
+            lines.append(
+                f"  {name}: param_gb={m.get('param_gb')} param_count={m.get('param_count', 'N/A')}"
+            )
         lines.append("")
     if "devices" in info:
         for d in info["devices"]:
             lines.append(f"  device {d['device']} ({d['name']})")
-            lines.append(f"    allocated_gb: {d['allocated_gb']}  reserved_gb: {d['reserved_gb']}  max_allocated_gb: {d['max_allocated_gb']}")
+            lines.append(
+                f"    allocated_gb: {d['allocated_gb']}  reserved_gb: {d['reserved_gb']}  max_allocated_gb: {d['max_allocated_gb']}"
+            )
         lines.append("")
     if "memory_summary" in info:
         lines.append(info["memory_summary"])
@@ -158,7 +169,10 @@ def _dump_memory_snapshot(out_dir: str = "/workspace") -> tuple[str | None, str 
         dump_fn(path)
         return path, None
     except Exception as e:
-        return None, f"Dump failed: {e!r} (need PyTorch built with CUDA memory snapshot support?)"
+        return (
+            None,
+            f"Dump failed: {e!r} (need PyTorch built with CUDA memory snapshot support?)",
+        )
 
 
 @routes.http.get("/v1/debug/memory")
@@ -176,9 +190,14 @@ async def debug_memory():
         snapshot_path, snapshot_err = _dump_memory_snapshot(out_dir=out_dir)
         if snapshot_path:
             info["snapshot_path"] = snapshot_path
-            info["snapshot_note"] = "Open at https://pytorch.org/memory_viz or: python -m torch.cuda._memory_viz trace_plot <path> -o out.html"
+            info["snapshot_note"] = (
+                "Open at https://pytorch.org/memory_viz or: python -m torch.cuda._memory_viz trace_plot <path> -o out.html"
+            )
         else:
-            info["snapshot_error"] = snapshot_err or "Set FISH_RECORD_MEMORY_HISTORY=1 at startup for alloc history in snapshot."
+            info["snapshot_error"] = (
+                snapshot_err
+                or "Set FISH_RECORD_MEMORY_HISTORY=1 at startup for alloc history in snapshot."
+            )
     if request.query_params.get("format", "").strip().lower() == "text":
         return Response(_gpu_memory_text(info), media_type="text/plain; charset=utf-8")
     return JSONResponse(info)
@@ -284,7 +303,9 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
             for result in engine.inference(req):
                 if result.code == "error" and result.error:
                     raise RuntimeError(str(result.error))
-                if result.code in ("segment", "final") and isinstance(result.audio, tuple):
+                if result.code in ("segment", "final") and isinstance(
+                    result.audio, tuple
+                ):
                     chunks.append(result.audio[1])
             if not chunks:
                 raise HTTPException(

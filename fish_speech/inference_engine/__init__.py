@@ -61,7 +61,9 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             return {
                 "vram_alloc_gb": round(torch.cuda.memory_allocated() / (1024**3), 2),
                 "vram_reserved_gb": round(torch.cuda.memory_reserved() / (1024**3), 2),
-                "vram_max_alloc_gb": round(torch.cuda.max_memory_allocated() / (1024**3), 2),
+                "vram_max_alloc_gb": round(
+                    torch.cuda.max_memory_allocated() / (1024**3), 2
+                ),
             }
 
         def _mark(event: str, **extra) -> None:
@@ -87,7 +89,9 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             ref_id = req.reference_id
             prompt_tokens, prompt_texts = [], []
             if ref_id is not None:
-                prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
+                prompt_tokens, prompt_texts = self.load_by_id(
+                    ref_id, req.use_memory_cache
+                )
                 _mark("ref_loaded", mode="id")
             elif req.references:
                 prompt_tokens, prompt_texts = self.load_by_hash(
@@ -109,7 +113,9 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             )
             _mark("llama_queued")
             if stream_tokens:
-                logger.info("stream: inference started (token streaming), req={}", req_tag)
+                logger.info(
+                    "stream: inference started (token streaming), req={}", req_tag
+                )
 
             # Get the sample rate from the decoder model
             if hasattr(self.decoder_model, "spec_transform"):
@@ -135,14 +141,29 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             while True:
                 # Get the response from the LLAMA model
                 if stream_tokens:
-                    logger.info("stream: waiting for next chunk from queue, req={}", req_tag)
+                    logger.info(
+                        "stream: waiting for next chunk from queue, req={}", req_tag
+                    )
                 wrapped_result = response_queue.get()
                 _mark("queue_get")
                 if stream_tokens:
-                    action = getattr(wrapped_result.response, "action", None) if hasattr(wrapped_result.response, "action") else None
-                    logger.info("stream: queue_get status={} action={} req={}", wrapped_result.status, action, req_tag)
+                    action = (
+                        getattr(wrapped_result.response, "action", None)
+                        if hasattr(wrapped_result.response, "action")
+                        else None
+                    )
+                    logger.info(
+                        "stream: queue_get status={} action={} req={}",
+                        wrapped_result.status,
+                        action,
+                        req_tag,
+                    )
                 if wrapped_result.status == "error":
-                    logger.error("stream: got error from worker req={} err={}", req_tag, wrapped_result.response)
+                    logger.error(
+                        "stream: got error from worker req={} err={}",
+                        req_tag,
+                        wrapped_result.response,
+                    )
                     _mark("yield_error")
                     yield InferenceResult(
                         code="error",
@@ -169,7 +190,13 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                             result.codes.shape if result.codes is not None else None,
                             req_tag,
                         )
-                    _mark("decode_vq_start", segment_idx=seg_idx + 1, codes_frames=result.codes.shape[1] if result.codes is not None else 0)
+                    _mark(
+                        "decode_vq_start",
+                        segment_idx=seg_idx + 1,
+                        codes_frames=(
+                            result.codes.shape[1] if result.codes is not None else 0
+                        ),
+                    )
                     try:
                         if result.codes is not None and not result.codes.is_cuda:
                             result = GenerateResponse(
@@ -183,7 +210,11 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                             logger.exception(
                                 "stream: get_audio_segment FAILED seg_idx={} codes_shape={} req={}: {}",
                                 seg_idx + 1,
-                                result.codes.shape if result.codes is not None else None,
+                                (
+                                    result.codes.shape
+                                    if result.codes is not None
+                                    else None
+                                ),
                                 req_tag,
                                 seg_err,
                             )
@@ -191,7 +222,12 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                     seg_idx += 1
                     _mark("segment_decoded", segment_idx=seg_idx, samples=len(segment))
                     if stream_tokens:
-                        logger.info("stream: segment_decoded seg_idx={} samples={} req={}", seg_idx, len(segment), req_tag)
+                        logger.info(
+                            "stream: segment_decoded seg_idx={} samples={} req={}",
+                            seg_idx,
+                            len(segment),
+                            req_tag,
+                        )
 
                     if req.streaming:
                         _mark("yield_segment", segment_idx=seg_idx)
@@ -207,7 +243,11 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                         torch.cuda.empty_cache()
                 else:
                     if stream_tokens:
-                        logger.info("stream: got_next (end of stream), total_segments={} req={}", seg_idx, req_tag)
+                        logger.info(
+                            "stream: got_next (end of stream), total_segments={} req={}",
+                            seg_idx,
+                            req_tag,
+                        )
                     if ack_queue is not None:
                         ack_queue.put(None)
                     _mark("got_next")
@@ -228,7 +268,9 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                 yield InferenceResult(
                     code="error",
                     audio=None,
-                    error=RuntimeError("No audio generated, please check the input text."),
+                    error=RuntimeError(
+                        "No audio generated, please check the input text."
+                    ),
                 )
             else:
                 audio = np.concatenate(segments, axis=0)

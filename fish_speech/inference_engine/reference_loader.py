@@ -50,10 +50,12 @@ class ReferenceLoader:
             ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
         )
         ref_codes = list(ref_folder.glob("*.codes.pt"))
+
         # .codes.pt filename stem is "en.codes" (Path.stem); we want logical stem "en" for en.lab / en.codes.pt
         def _stem_for_codes(p: Path) -> str:
             s = p.stem
             return s.removesuffix(".codes") if s.endswith(".codes") else s
+
         stems = {p.stem for p in ref_audios} | {_stem_for_codes(p) for p in ref_codes}
         stems = sorted(stems)
 
@@ -64,7 +66,11 @@ class ReferenceLoader:
                 lab_path = ref_folder / f"{stem}.lab"
                 codes_path = ref_folder / f"{stem}.codes.pt"
                 audio_path = next(
-                    (ref_folder / f"{stem}{ext}" for ext in AUDIO_EXTENSIONS if (ref_folder / f"{stem}{ext}").exists()),
+                    (
+                        ref_folder / f"{stem}{ext}"
+                        for ext in AUDIO_EXTENSIONS
+                        if (ref_folder / f"{stem}{ext}").exists()
+                    ),
                     None,
                 )
                 if not lab_path.exists():
@@ -74,9 +80,15 @@ class ReferenceLoader:
                 if codes_path.exists():
                     # Pre-encoded: load from disk (no encoder run). File must be tensor shape (num_codebooks, T) from DAC encode.
                     # map_location="cpu" = put tensor in RAM (worker will .to(device) later). Loading to GPU here would save one tiny copy but is negligible for KB-sized tensors.
-                    loaded = torch.load(codes_path, map_location="cpu", weights_only=True)
-                    prompt_tokens.append(loaded if isinstance(loaded, torch.Tensor) else loaded[0])
-                    logger.info("Loaded pre-encoded reference {} from {}", stem, codes_path.name)
+                    loaded = torch.load(
+                        codes_path, map_location="cpu", weights_only=True
+                    )
+                    prompt_tokens.append(
+                        loaded if isinstance(loaded, torch.Tensor) else loaded[0]
+                    )
+                    logger.info(
+                        "Loaded pre-encoded reference {} from {}", stem, codes_path.name
+                    )
                 elif audio_path is not None:
                     prompt_tokens.append(
                         self.encode_reference(
@@ -85,7 +97,10 @@ class ReferenceLoader:
                         )
                     )
                 else:
-                    logger.warning("Reference stem {} has .lab but no .codes.pt or audio, skipping", stem)
+                    logger.warning(
+                        "Reference stem {} has .lab but no .codes.pt or audio, skipping",
+                        stem,
+                    )
                     prompt_texts.pop()
             self.ref_by_id[id] = (prompt_tokens, prompt_texts)
 
@@ -202,7 +217,9 @@ class ReferenceLoader:
                 "Reference ID contains invalid characters. Only alphanumeric, hyphens, underscores, and spaces are allowed."
             )
         if len(id) > 255:
-            raise ValueError("Reference ID is too long. Maximum length is 255 characters.")
+            raise ValueError(
+                "Reference ID is too long. Maximum length is 255 characters."
+            )
         stem = stem or id
         if not re.match(r"^[a-zA-Z0-9\-_ ]+$", stem):
             raise ValueError("Stem contains invalid characters.")
@@ -214,7 +231,9 @@ class ReferenceLoader:
 
         if ref_dir.exists() and hash_file.exists():
             if hash_file.read_text(encoding="utf-8").strip() == content_hash:
-                logger.info("Reference %s/%s unchanged (hash match), skip write", id, stem)
+                logger.info(
+                    "Reference %s/%s unchanged (hash match), skip write", id, stem
+                )
                 return "unchanged"
 
         existed_before = ref_dir.exists() and (ref_dir / f"{stem}.codes.pt").exists()

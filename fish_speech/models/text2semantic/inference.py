@@ -36,6 +36,7 @@ def _to_normal_tensor(t: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
     with torch.inference_mode(False):
         return t.detach().cpu().clone().to(t.device)
 
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
 torch._inductor.config.triton.unique_kernel_names = True
@@ -249,7 +250,11 @@ def decode_n_tokens(
         dtype=torch.int,
         device=cur_token.device,
     )
-    previous_tokens = cast(torch.Tensor, _to_normal_tensor(_prev_zeros)) if need_normal_state else _prev_zeros
+    previous_tokens = (
+        cast(torch.Tensor, _to_normal_tensor(_prev_zeros))
+        if need_normal_state
+        else _prev_zeros
+    )
     new_tokens: list[torch.Tensor] = []
     # [MODIFIED] Pre-fetch ID for efficiency loop
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
@@ -267,7 +272,8 @@ def decode_n_tokens(
             # With torch.compile we must use MATH backend so Inductor can fuse attention kernels.
             # Without compile, Flash/Triton is faster. FISH_SDPA_MATH=1 forces MATH when not compiling.
             use_math = compile or (
-                os.environ.get("FISH_SDPA_MATH", "").strip() in ("1", "true", "TRUE", "yes", "YES")
+                os.environ.get("FISH_SDPA_MATH", "").strip()
+                in ("1", "true", "TRUE", "yes", "YES")
             )
             if use_math:
                 with sdpa_kernel(SDPBackend.MATH):
@@ -311,9 +317,16 @@ def decode_n_tokens(
         if need_normal_state:
             next_token = cast(torch.Tensor, _to_normal_tensor(next_token))
             input_pos = cast(torch.Tensor, _to_normal_tensor(input_pos + 1))
-            cur_token = cast(torch.Tensor, _to_normal_tensor(next_token.view(1, model.config.num_codebooks + 1, -1)))
+            cur_token = cast(
+                torch.Tensor,
+                _to_normal_tensor(
+                    next_token.view(1, model.config.num_codebooks + 1, -1)
+                ),
+            )
             # Normalize previous_tokens before inplace; then assign column.
-            previous_tokens = cast(torch.Tensor, _to_normal_tensor(previous_tokens.roll(-1, dims=1)))
+            previous_tokens = cast(
+                torch.Tensor, _to_normal_tensor(previous_tokens.roll(-1, dims=1))
+            )
             prev_col = next_token.view(model.config.num_codebooks + 1, -1)[:, 0]
             previous_tokens[:, -1].copy_(prev_col)
         else:
@@ -321,13 +334,19 @@ def decode_n_tokens(
             input_pos = (input_pos + 1).detach().clone()
             cur_token = next_token.view(1, model.config.num_codebooks + 1, -1).clone()
             previous_tokens = previous_tokens.roll(-1, dims=1)
-            previous_tokens[:, -1] = next_token.view(model.config.num_codebooks + 1, -1)[:, 0].clone()
+            previous_tokens[:, -1] = next_token.view(
+                model.config.num_codebooks + 1, -1
+            )[:, 0].clone()
         new_tokens.append(next_token)
 
         if stream_chunk_size is not None and len(new_tokens) >= stream_chunk_size:
             chunk_out = torch.cat(new_tokens, dim=1).detach().clone()
             if do_stream_log:
-                logger.info("stream: decode_n_tokens yielding chunk shape={} after iter={}", chunk_out.shape, i)
+                logger.info(
+                    "stream: decode_n_tokens yielding chunk shape={} after iter={}",
+                    chunk_out.shape,
+                    i,
+                )
             yield chunk_out
             new_tokens = []
 
@@ -341,7 +360,9 @@ def decode_n_tokens(
     if new_tokens:
         remainder = torch.cat(new_tokens, dim=1).detach().clone()
         if do_stream_log:
-            logger.info("stream: decode_n_tokens yielding remainder shape={}", remainder.shape)
+            logger.info(
+                "stream: decode_n_tokens yielding remainder shape={}", remainder.shape
+            )
         yield remainder
 
 
@@ -401,9 +422,7 @@ def generate(
 
     # Create new tensor each time, but try to reuse memory
     input_pos = torch.arange(0, T, device=device, dtype=torch.long)
-    empty = torch.empty(
-        (codebook_dim, cache_len), dtype=prompt.dtype, device=device
-    )
+    empty = torch.empty((codebook_dim, cache_len), dtype=prompt.dtype, device=device)
     empty[:, :T] = prompt
     seq = empty
 
@@ -701,9 +720,9 @@ def generate_long(
         prompt_tokens = [prompt_tokens]
 
     if use_prompt:
-        assert len(prompt_text) == len(prompt_tokens), (
-            "Prompt text and tokens must have the same length"
-        )
+        assert len(prompt_text) == len(
+            prompt_tokens
+        ), "Prompt text and tokens must have the same length"
 
     if prompt_tokens:
         prompt_tokens = [i.cpu() for i in prompt_tokens]
@@ -895,11 +914,13 @@ def generate_long(
                         )
                     codes_list.append(chunk)
                     chunk_idx += 1
-                logger.info("stream: generate_long finished chunk_idx={} total_chunks={}", chunk_idx, len(codes_list))
+                logger.info(
+                    "stream: generate_long finished chunk_idx={} total_chunks={}",
+                    chunk_idx,
+                    len(codes_list),
+                )
                 codes = (
-                    torch.cat(codes_list, dim=1)[1:, :].clone()
-                    if codes_list
-                    else None
+                    torch.cat(codes_list, dim=1)[1:, :].clone() if codes_list else None
                 )
                 if codes is not None:
                     conversation.append(
@@ -1027,7 +1048,11 @@ def launch_thread_safe_queue(
             checkpoint_path, device, precision, compile=compile
         )
         cache_len = _cache_max_seq_len(model)
-        logger.info("KV cache max_seq_len={} (model max={})", cache_len, model.config.max_seq_len)
+        logger.info(
+            "KV cache max_seq_len={} (model max={})",
+            cache_len,
+            model.config.max_seq_len,
+        )
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,
@@ -1047,14 +1072,20 @@ def launch_thread_safe_queue(
 
             kwargs = item.request
             req_tag = str(kwargs.pop("req_tag", "na"))
-            ack_queue = kwargs.pop("ack_queue", None)  # back-pressure: wait for main to finish DAC before next LLM chunk
+            ack_queue = kwargs.pop(
+                "ack_queue", None
+            )  # back-pressure: wait for main to finish DAC before next LLM chunk
             response_queue = item.response_queue
             t_req_start = time.perf_counter()
             t_last_put = t_req_start
             stream_tokens = kwargs.get("stream_tokens", False)
             put_count = 0
             if stream_tokens:
-                logger.info("stream: worker got request req={} stream_chunk_size={}", req_tag, kwargs.get("stream_chunk_size"))
+                logger.info(
+                    "stream: worker got request req={} stream_chunk_size={}",
+                    req_tag,
+                    kwargs.get("stream_chunk_size"),
+                )
 
             try:
                 for chunk in generate_long(
@@ -1110,13 +1141,17 @@ def launch_thread_safe_queue(
                 # Release KV cache and clear allocator so next request starts near baseline (avoids OOM on 32 GB).
                 logger.info("worker: post-request cleanup starting")
                 if torch.cuda.is_available():
-                    before_clear_gb = round(torch.cuda.memory_allocated() / (1024**3), 2)
+                    before_clear_gb = round(
+                        torch.cuda.memory_allocated() / (1024**3), 2
+                    )
                 clear_caches_fn = getattr(model, "clear_caches", None)
                 if clear_caches_fn is not None:
                     try:
                         clear_caches_fn()
                         if torch.cuda.is_available():
-                            after_clear_gb = round(torch.cuda.memory_allocated() / (1024**3), 2)
+                            after_clear_gb = round(
+                                torch.cuda.memory_allocated() / (1024**3), 2
+                            )
                             logger.info(
                                 "worker: clear_caches done alloc before={} GB after={} GB",
                                 before_clear_gb,

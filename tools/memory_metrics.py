@@ -7,6 +7,7 @@ Usage:
   python tools/memory_metrics.py --all   # write every sample (no change filter)
 Stop with Ctrl+C.
 """
+
 import argparse
 import json
 import sys
@@ -15,7 +16,9 @@ import urllib.request
 
 
 def main():
-    p = argparse.ArgumentParser(description="Log GPU memory metrics to a JSONL file (on change)")
+    p = argparse.ArgumentParser(
+        description="Log GPU memory metrics to a JSONL file (on change)"
+    )
     p.add_argument(
         "--url",
         default="http://127.0.0.1:18081/v1/debug/memory",
@@ -67,7 +70,10 @@ def main():
                     f.write(json.dumps(row) + "\n")
                     f.flush()
                     line_count += 1
-                    print(f"{ts:.0f} alloc={row['allocated_gb']} reserved={row['reserved_gb']} max={row['max_allocated_gb']} GB", file=sys.stderr)
+                    print(
+                        f"{ts:.0f} alloc={row['allocated_gb']} reserved={row['reserved_gb']} max={row['max_allocated_gb']} GB",
+                        file=sys.stderr,
+                    )
                 time.sleep(args.interval)
     except KeyboardInterrupt:
         print(f"\nStopped. Wrote {line_count} lines to {args.out}", file=sys.stderr)

@@ -54,11 +54,18 @@ class ModelManager:
         )
 
         # Optional: record CUDA alloc/free history for debugging (dump via GET /v1/debug/memory?dump=1).
-        if torch.cuda.is_available() and os.environ.get("FISH_RECORD_MEMORY_HISTORY", "").strip() in ("1", "true", "True"):
+        if torch.cuda.is_available() and os.environ.get(
+            "FISH_RECORD_MEMORY_HISTORY", ""
+        ).strip() in ("1", "true", "True"):
             try:
-                max_entries = int(os.environ.get("FISH_MEMORY_HISTORY_MAX_ENTRIES", "100000"))
+                max_entries = int(
+                    os.environ.get("FISH_MEMORY_HISTORY_MAX_ENTRIES", "100000")
+                )
                 torch.cuda.memory._record_memory_history(max_entries=max_entries)
-                logger.info("CUDA memory history recording enabled (max_entries=%s); use ?dump=1 on /v1/debug/memory to save snapshot", max_entries)
+                logger.info(
+                    "CUDA memory history recording enabled (max_entries=%s); use ?dump=1 on /v1/debug/memory to save snapshot",
+                    max_entries,
+                )
             except Exception as e:
                 logger.warning("Could not enable CUDA memory history recording: %s", e)
 

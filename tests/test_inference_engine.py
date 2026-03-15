@@ -2,6 +2,7 @@
 Tests for inference_engine (get_audio_segment and related).
 Run: pytest tests/test_inference_engine.py -v
 """
+
 import unittest.mock as mock
 
 import numpy as np
