@@ -253,10 +253,15 @@ def main():
         "--url", default="http://127.0.0.1:8080/v1/tts", help="APIサーバーのURL"
     )
     parser.add_argument(
-        "--output", default="output/housing_dialogue", help="出力ファイルのパス（拡張子なし）"
+        "--output",
+        default="output/housing_dialogue",
+        help="出力ファイルのパス（拡張子なし）",
     )
     parser.add_argument(
-        "--format", choices=["wav", "mp3", "flac"], default="wav", help="音声フォーマット"
+        "--format",
+        choices=["wav", "mp3", "flac"],
+        default="wav",
+        help="音声フォーマット",
     )
     parser.add_argument(
         "--temperature", type=float, default=0.8, help="サンプリング温度 (0.1–1.0)"

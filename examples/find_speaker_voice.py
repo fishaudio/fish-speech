@@ -44,7 +44,9 @@ TEST_TEXTS = {
 }
 
 
-def test_seed(url: str, speaker: int, seed: int, output_dir: str, api_key: str = "") -> str:
+def test_seed(
+    url: str, speaker: int, seed: int, output_dir: str, api_key: str = ""
+) -> str:
     """指定シードで音声を生成し、WAVファイルを保存する"""
     text = TEST_TEXTS[speaker]
     http_headers = {"content-type": "application/msgpack"}
@@ -106,7 +108,9 @@ def main():
         description="異なるシードで声質をテストする",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("--url", default="http://127.0.0.1:8080/v1/tts", help="APIサーバーのURL")
+    parser.add_argument(
+        "--url", default="http://127.0.0.1:8080/v1/tts", help="APIサーバーのURL"
+    )
     parser.add_argument(
         "--speaker",
         type=int,
@@ -139,8 +143,12 @@ def main():
     for seed in seeds:
         test_seed(args.url, args.speaker, seed, args.output_dir, args.api_key)
 
-    print(f"\n完了。{args.output_dir}/ の WAV ファイルを再生して好みの声を確認してください。")
-    print("気に入ったシードを --seed オプションで multi_speaker_housing_dialogue.py に渡せます。")
+    print(
+        f"\n完了。{args.output_dir}/ の WAV ファイルを再生して好みの声を確認してください。"
+    )
+    print(
+        "気に入ったシードを --seed オプションで multi_speaker_housing_dialogue.py に渡せます。"
+    )
 
 
 if __name__ == "__main__":
