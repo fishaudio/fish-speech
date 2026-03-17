@@ -45,7 +45,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type AudioFormat = 'mp3' | 'wav' | 'pcm' | 'opus'
-type LatencyMode = 'low' | 'normal'
+type LatencyMode = 'normal' | 'balanced'
 
 const defaultInputText = `[excited, joyful tone] We're going to DISNEY WORLD! [squeal of delight] I've been saving for [emphasis] three years [breathless] and finally, FINALLY we can go! The look on your face right now is worth every extra shift I worked!
 [angry] After everything we've been through [break] I can't believe you would [emphasize] betray me like this. I gave you EVERYTHING! And now I'm left with nothing but memories and broken promises!`
@@ -117,6 +117,15 @@ function createId() {
   return Date.now() + Math.floor(Math.random() * 100000)
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
 function createSpeakerGroup(): SpeakerGroup {
   return {
     id: createId(),
@@ -130,22 +139,14 @@ function buildReferencesPayload(
   speakerGroups: SpeakerGroup[],
   includeBinaryAudio: boolean,
 ) {
-  const groupedReferences = speakerGroups
-    .map((speakerGroup) =>
-      speakerGroup.references.map((reference) => ({
-        text: reference.text,
-        audio: includeBinaryAudio
-          ? Array.from(new Uint8Array(reference.audio))
-          : '<audio binary data>',
-      })),
-    )
-    .filter((speakerReferences) => speakerReferences.length > 0)
-
-  if (groupedReferences.length <= 1) {
-    return groupedReferences[0] ?? []
-  }
-
-  return groupedReferences
+  return speakerGroups.flatMap((speakerGroup) =>
+    speakerGroup.references.map((reference) => ({
+      text: reference.text,
+      audio: includeBinaryAudio
+        ? arrayBufferToBase64(reference.audio)
+        : '<audio binary data>',
+    })),
+  )
 }
 
 function buildPreviewPayload(
@@ -994,8 +995,8 @@ function App() {
                       }
                     }}
                   >
-                    <ToggleGroupItem value="low" className="w-full">
-                      low
+                    <ToggleGroupItem value="balanced" className="w-full">
+                      balanced
                     </ToggleGroupItem>
                     <ToggleGroupItem value="normal" className="w-full">
                       normal

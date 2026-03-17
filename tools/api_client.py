@@ -66,7 +66,7 @@ def parse_args():
         help="Whether to play audio after receiving data",
     )
     parser.add_argument(
-        "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
+        "--format", type=str, choices=["wav", "pcm", "mp3", "opus"], default="wav"
     )
     parser.add_argument(
         "--latency",
@@ -159,6 +159,7 @@ if __name__ == "__main__":
         ],
         "reference_id": idstr,
         "format": args.format,
+        "latency": args.latency,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
         "top_p": args.top_p,
