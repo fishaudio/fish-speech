@@ -13,8 +13,6 @@ import {
   Upload,
 } from 'lucide-react'
 
-import defaultReferenceAudioUrl from '../../demo/energetic_female.mp3?inline'
-
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,8 +50,6 @@ type LatencyMode = 'low' | 'normal'
 const defaultInputText = `[excited, joyful tone] We're going to DISNEY WORLD! [squeal of delight] I've been saving for [emphasis] three years [breathless] and finally, FINALLY we can go! The look on your face right now is worth every extra shift I worked!
 [angry] After everything we've been through [break] I can't believe you would [emphasize] betray me like this. I gave you EVERYTHING! And now I'm left with nothing but memories and broken promises!`
 
-const defaultReferenceText =
-  'Through the dense morning fog that rolled across the peaceful valley, the distant church bells chimed their melodic song, echoing off ancient stone walls and mingling with the gentle rustling of maple leaves in the cool breeze. Inside the cozy lakeside cottage, fresh bread baked in the old clay oven filled every corner with its rich, comforting aroma, while steam rose lazily from ceramic mugs of fresh-brewed coffee on the handcrafted pine table. The persistent rain finally gave way to brilliant sunshine, transforming ordinary dewdrops into countless sparkling diamonds scattered across the vibrant garden flowers.'
 
 type ControlsState = {
   chunkLength: number
@@ -270,7 +266,6 @@ function App() {
   const [openSpeakerIds, setOpenSpeakerIds] = useState<number[]>([initialSpeakerGroup.id])
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isUploadingReference, setIsUploadingReference] = useState(false)
   const [copyLabel, setCopyLabel] = useState('Copy')
   const [isRequestPreviewOpen, setIsRequestPreviewOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState<StatusState | null>(null)
@@ -287,17 +282,6 @@ function App() {
   speakerGroupsRef.current = speakerGroups
 
   useEffect(() => {
-    if (!window.MediaSource) {
-      window.alert(
-        'MediaSource is not supported in this browser. Streaming playback may not work.',
-      )
-    }
-
-    const firstSpeakerId = speakerGroupsRef.current[0]?.id
-    if (typeof firstSpeakerId === 'number') {
-      void loadDefaultReference(firstSpeakerId)
-    }
-
     return () => {
       speakerGroupsRef.current.forEach((speakerGroup) => {
         speakerGroup.references.forEach((reference) => {
@@ -313,27 +297,7 @@ function App() {
         URL.revokeObjectURL(mediaSourceUrlRef.current)
       }
     }
-    // The initial default reference only needs to load once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  async function loadDefaultReference(speakerId: number) {
-    try {
-      const response = await fetch(defaultReferenceAudioUrl)
-      if (!response.ok) {
-        throw new Error('Default reference audio not found')
-      }
-
-      const audio = await response.arrayBuffer()
-      addReference(speakerId, 'Default Reference', audio, defaultReferenceText)
-      setStatusMessage(null)
-    } catch (error) {
-      setStatusMessage({
-        tone: 'error',
-        message: `Failed to load default reference: ${getErrorMessage(error)}`,
-      })
-    }
-  }
 
   function addSpeaker() {
     const nextSpeaker = createSpeakerGroup()
@@ -448,47 +412,13 @@ function App() {
     }
 
     const audio = await file.arrayBuffer()
-    setIsUploadingReference(true)
-    setStatusMessage(null)
-
-    const formData = new FormData()
-    formData.append('audio', new Blob([audio]), file.name)
-    formData.append('language', 'auto')
-    formData.append('ignore_timestamps', 'true')
-
-    try {
-      const response = await fetch('/v1/asr', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('ASR request failed')
-      }
-
-      const result = (await response.json()) as { text?: string }
-      setPendingReference({
-        mode: 'create',
-        speakerId,
-        name: file.name,
-        audio,
-        text: result.text ?? '',
-      })
-    } catch {
-      setPendingReference({
-        mode: 'create',
-        speakerId,
-        name: file.name,
-        audio,
-        text: '',
-      })
-      setStatusMessage({
-        tone: 'info',
-        message: 'ASR is unavailable. Enter the reference text manually and save it.',
-      })
-    } finally {
-      setIsUploadingReference(false)
-    }
+    setPendingReference({
+      mode: 'create',
+      speakerId,
+      name: file.name,
+      audio,
+      text: '',
+    })
   }
 
   function savePendingReference() {
@@ -673,7 +603,7 @@ function App() {
         audioElement.load()
         setStatusMessage({
           tone: 'info',
-          message: `Format "${controls.format}" does not use in-browser streaming playback. Audio is ready for preview or download after generation completes.`,
+          message: `Format "${controls.format}" is not supported for in-browser playback. The file is ready to download after generation completes.`,
         })
       }
     } catch (error) {
@@ -938,20 +868,10 @@ function App() {
                                   variant="outline"
                                   size="sm"
                                   className="h-8 border-zinc-200 bg-white px-2.5 hover:bg-zinc-100"
-                                  onClick={() => void loadDefaultReference(speakerGroup.id)}
-                                >
-                                  Load Default
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 border-zinc-200 bg-white px-2.5 hover:bg-zinc-100"
                                   onClick={() => {
                                     uploadTargetSpeakerIdRef.current = speakerGroup.id
                                     fileInputRef.current?.click()
                                   }}
-                                  disabled={isUploadingReference}
                                 >
                                   <Upload className="size-4" />
                                   Upload

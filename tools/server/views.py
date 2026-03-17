@@ -51,7 +51,25 @@ from tools.server.model_utils import (
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
+_WEBUI_HTML = (
+    Path(__file__).parent.parent.parent / "apex-engine-debugger" / "dist" / "index.html"
+)
+
 routes = Routes()
+
+
+@routes.http("/ui")
+class WebUI(HttpView):
+    @classmethod
+    async def get(cls):
+        from kui.asgi import HTMLResponse
+
+        if _WEBUI_HTML.exists():
+            return HTMLResponse(_WEBUI_HTML.read_text(encoding="utf-8"))
+        return JSONResponse(
+            {"error": "WebUI not built. Run: cd apex-engine-debugger && npm run build"},
+            status_code=404,
+        )
 
 
 @routes.http("/v1/health")
