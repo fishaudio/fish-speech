@@ -52,7 +52,7 @@ from tools.server.model_utils import (
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
 _WEBUI_HTML = (
-    Path(__file__).parent.parent.parent / "apex-engine-debugger" / "dist" / "index.html"
+    Path(__file__).parent.parent.parent / "awesome_webui" / "dist" / "index.html"
 )
 
 routes = Routes()
@@ -67,7 +67,7 @@ class WebUI(HttpView):
         if _WEBUI_HTML.exists():
             return HTMLResponse(_WEBUI_HTML.read_text(encoding="utf-8"))
         return JSONResponse(
-            {"error": "WebUI not built. Run: cd apex-engine-debugger && npm run build"},
+            {"error": "WebUI not built. Run: cd awesome_webui && npm run build"},
             status_code=404,
         )
 
