@@ -78,6 +78,7 @@ def merge(lora_config, base_weight, lora_weight, output):
     original_keys = set(llama_state_dict_copy.keys())
 
     tolerance = 1e-5
+    diff_l1 = 0.0
     for key in original_keys:
         diff_l1 = (new_state_dict[key] - llama_state_dict_copy[key]).abs().sum().item()
         if diff_l1 > tolerance:
