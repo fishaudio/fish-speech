@@ -309,9 +309,7 @@ async def delete_reference(reference_id: str = Body(...)):
 
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
         if not re.match(id_pattern, reference_id) or len(reference_id) > 255:
-            raise ValueError(
-                "Reference ID contains invalid characters or is too long"
-            )
+            raise ValueError("Reference ID contains invalid characters or is too long")
 
         # Get the model manager to access the reference loader
         app_state = request.app.state

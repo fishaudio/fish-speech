@@ -17,7 +17,6 @@ from fish_speech.utils.file import (
 )
 from fish_speech.utils.schema import ServeReferenceAudio
 
-
 _ID_PATTERN = re.compile(r"^[a-zA-Z0-9\-_ ]+$")
 
 
