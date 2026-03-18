@@ -29,8 +29,12 @@ def setup_lora(model, lora_config):
         model.codebook_embeddings, lora_config
     )
 
-    # Replace output layer with a LoRA layer
-    linears = [(model, "output")]
+    # Replace output layer with a LoRA layer (only if model has output attribute)
+    # When tie_word_embeddings=True (default), the model uses weight tying instead
+    if hasattr(model, "output"):
+        linears = [(model, "output")]
+    else:
+        linears = []
 
     # Replace all linear layers with LoRA layers
     for layer in model.layers:
