@@ -307,6 +307,12 @@ async def delete_reference(reference_id: str = Body(...)):
         if not reference_id or not reference_id.strip():
             raise ValueError("Reference ID cannot be empty")
 
+        id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
+        if not re.match(id_pattern, reference_id) or len(reference_id) > 255:
+            raise ValueError(
+                "Reference ID contains invalid characters or is too long"
+            )
+
         # Get the model manager to access the reference loader
         app_state = request.app.state
         model_manager: ModelManager = app_state.model_manager
@@ -377,6 +383,10 @@ async def update_reference(
 
         # Validate ID format per ReferenceLoader rules
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
+        if not re.match(id_pattern, old_reference_id) or len(old_reference_id) > 255:
+            raise ValueError(
+                "Old reference ID contains invalid characters or is too long"
+            )
         if not re.match(id_pattern, new_reference_id) or len(new_reference_id) > 255:
             raise ValueError(
                 "New reference ID contains invalid characters or is too long"
