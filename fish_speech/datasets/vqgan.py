@@ -141,7 +141,5 @@ if __name__ == "__main__":
 
     for batch in dataloader:
         print(batch["audios"].shape)
-        print(batch["features"].shape)
         print(batch["audio_lengths"])
-        print(batch["feature_lengths"])
         break
