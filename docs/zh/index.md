@@ -36,7 +36,7 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
+    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -75,7 +75,7 @@ Fish Audio S2 是由 [Fish Audio](https://fish.audio/) 开发的最新模型。S
 
 S2 支持通过自然语言标签（如 `[laugh]`、`[whispers]`、`[super happy]`）对韵律和情绪进行细粒度行内控制，同时原生支持多说话人和多轮生成。
 
-请访问 [Fish Audio 网站](https://fish.audio/) 体验在线演示，并阅读[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)了解更多细节。
+请访问 [Fish Audio 网站](https://fish.audio/) 体验在线演示，并阅读[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)和[技术报告](https://arxiv.org/abs/2603.08823)了解更多细节。
 
 ### 模型变体
 
