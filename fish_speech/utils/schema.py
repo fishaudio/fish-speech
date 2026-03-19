@@ -80,9 +80,11 @@ class ServeReferenceAudio(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
-    chunk_length: Annotated[int, conint(ge=100, le=300, strict=True)] = 200
+    chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
     # Audio format
-    format: Literal["wav", "pcm", "mp3"] = "wav"
+    format: Literal["wav", "pcm", "mp3", "opus"] = "wav"
+    # Latency mode (used by api.fish.audio; "normal" or "balanced")
+    latency: Literal["normal", "balanced"] = "normal"
     # References audios for in-context learning
     references: list[ServeReferenceAudio] = []
     # Reference id

@@ -36,7 +36,7 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
+    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -71,14 +71,14 @@
 请先阅读 https://speech.fish.audio/zh/install/ ，并按文档安装和配置 Fish Audio S2。
 ```
 
-## Fish Audio S2
-**在开源与闭源方案中都处于领先水平的文本转语音系统**
+## Fish Audio S2 Pro
+**行业顶尖的多语言文本转语音 (TTS) 系统，重新定义声音生成的边界。**
 
-Fish Audio S2 是由 [Fish Audio](https://fish.audio/) 开发的最新模型。S2 在约 50 种语言、超过 1000 万小时音频数据上完成训练，并结合强化学习对齐与双自回归架构，能够生成自然、真实且情感丰富的语音。
+Fish Audio S2 Pro 是 [Fish Audio](https://fish.audio/) 开发的最先进的多模态模型。S2 Pro 训练自超过 **1000 万小时** 的海量音频数据，覆盖全球 **80 多种语言**。通过创新的 **双自回归 (Dual-AR)** 架构与强化学习 (RL) 对齐技术，S2 Pro 能生成极具自然感、真实感且情感饱满的语音，在开源与闭源竞争中均处于领先地位。
 
-S2 支持通过自然语言标签（如 `[laugh]`、`[whispers]`、`[super happy]`）对韵律和情绪进行细粒度行内控制，同时原生支持多说话人和多轮生成。
+S2 Pro 的杀手锏在于支持通过自然语言标签（如 `[whisper]`、`[excited]`、`[angry]`）对韵律与情绪进行 **亚词级（Sub-word Level）** 的极细粒度行内控制，同时原生支持多说话人与超长上下文的多轮对话生成。
 
-请访问 [Fish Audio 网站](https://fish.audio/) 体验在线演示，并阅读[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)了解更多细节。
+立即访问 [Fish Audio 官网](https://fish.audio/) 体验在线演示，或阅读我们的[技术报告](https://arxiv.org/abs/2603.08823)与[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)深入了解。
 
 ### 模型变体
 
@@ -107,42 +107,43 @@ S2 支持通过自然语言标签（如 `[laugh]`、`[whispers]`、`[super happy
 
 <img src="./assets/totalability.png" width=200%>
 
-### 通过自然语言进行细粒度行内控制
+### 通过自然语言进行极细粒度行内控制
 
-Fish Audio S2 支持在文本中的特定词或短语位置直接嵌入自然语言指令，从而对语音生成进行局部控制。与依赖固定预设标签不同，S2 接受自由形式的文本描述，例如 [whisper in small voice]、[professional broadcast tone] 或 [pitch up]，实现词级别的开放式表达控制。
+S2 Pro 赋予了语音前所未有的“灵性”。通过简单的 `[tag]` 语法，你可以在文本的任何位置精准嵌入情感指令。
+- **15,000+ 独特标签支持**：不局限于固定的预设，支持 **自由格式的文本描述**。你可以尝试 `[whisper in small voice]` (低声耳语), `[professional broadcast tone]` (专业播音腔), 或 `[pitch up]` (提高音调)。
+- **丰富的情绪库**：
+  `[pause]` `[emphasis]` `[laughing]` `[inhale]` `[chuckle]` `[tsk]` `[singing]` `[excited]` `[laughing tone]` `[interrupting]` `[chuckling]` `[excited tone]` `[volume up]` `[echo]` `[angry]` `[low volume]` `[sigh]` `[low voice]` `[whisper]` `[screaming]` `[shouting]` `[loud]` `[surprised]` `[short pause]` `[exhale]` `[delight]` `[panting]` `[audience laughter]` `[with strong accent]` `[volume down]` `[clearing throat]` `[sad]` `[moaning]` `[shocked]`
 
-### 双自回归架构（Dual-Autoregressive）
+### 创新的双自回归 (Dual-Autoregressive) 架构
 
-S2 基于仅解码器 Transformer，并结合 RVQ 音频编解码器（10 个码本，约 21 Hz 帧率）。Dual-AR 架构将生成拆分为两个阶段：
+S2 Pro 采用了主从式 Dual-AR 架构，由 Decoder-only Transformer 与 RVQ 音频编解码器（10 个码本，约 21 Hz 帧率）组成：
 
-- **Slow AR** 沿时间轴运行，预测主语义码本。
-- **Fast AR** 在每个时间步生成剩余 9 个残差码本，用于重建细粒度声学细节。
+- **Slow AR (4B 参数)**：沿时间轴工作，预测核心的语义码本。
+- **Fast AR (400M 参数)**：在每个时间步生成剩余 9 个残差码本，细腻还原极致的音频细节。
 
-这种非对称设计（时间轴 4B 参数、深度轴 400M 参数）在保持音频保真度的同时，提高了推理效率。
+这种非对称设计在保证音频极致保真度的同时，大幅提升了推理速度。
 
-### 强化学习对齐
+### 强化学习对齐 (RL Alignment)
 
-S2 使用 Group Relative Policy Optimization（GRPO）进行后训练对齐。用于过滤和标注训练数据的同一批模型被直接复用为 RL 的奖励模型，从而避免了预训练数据分布与后训练目标之间的不匹配。奖励信号综合了语义准确性、指令遵循、声学偏好评分与音色相似度。
+S2 Pro 采用了 **Group Relative Policy Optimization (GRPO)** 技术进行后训练对齐。我们将用于数据清洗与标注的同一套模型直接作为奖励模型 (Reward Model)，完美解决了预训练数据分布与后训练目标之间的不匹配问题。
+- **多维奖励信号**：综合评估语义准确性、指令遵循能力、声学偏好评分以及音色相似度，确保生成的每一秒语音都符合人类直觉。
 
-### 基于 SGLang 的生产级流式推理
+### 极致的流式推理性能 (基于 SGLang)
 
-由于 Dual-AR 架构在结构上与标准自回归 LLM 同构，S2 可以直接继承 SGLang 提供的 LLM 原生服务优化能力，包括连续批处理、分页 KV Cache、CUDA Graph Replay 与基于 RadixAttention 的前缀缓存。
+由于 Dual-AR 架构与标准 LLM 结构同构，S2 Pro 原生支持 SGLang 的所有推理加速特性，包括连续批处理 (Continuous Batching)、分页 KV Cache、CUDA Graph 与基于 RadixAttention 的前缀缓存。
 
-在单张 NVIDIA H200 GPU 上：
+**单张 NVIDIA H200 GPU 性能表现：**
+- **实时因子 (RTF)**：0.195
+- **首音延迟 (TTFA)**：约 100 ms
+- **极速吞吐**：在保持 RTF < 0.5 时，吞吐量达到 3,000+ acoustic tokens/s
 
-- **实时因子（RTF）：** 0.195
-- **首音频延迟：** 约 100 ms
-- **吞吐：** 在 RTF 低于 0.5 的情况下达到 3,000+ acoustic tokens/s
+### 强大的多语言支持
 
-### 多语言支持
+S2 Pro 支持 80 多种语言，无需音素或特定语言的处理即可实现高质量合成：
 
-Fish Audio S2 支持高质量的多语言文本转语音，无需音素或特定语言的预处理。包括：
-
-**英语、中文、日语、韩语、阿拉伯语、德语、法语...**
-
-**以及更多！**
-
-列表正在不断扩大，请查看 [Fish Audio](https://fish.audio/) 获取最新发布。
+- **第一梯队 (Tier 1)**：日语 (ja), 英语 (en), 中文 (zh)
+- **第二梯队 (Tier 2)**：韩语 (ko), 西班牙语 (es), 葡萄牙语 (pt), 阿拉伯语 (ar), 俄语 (ru), 法语 (fr), 德语 (de)
+- **全球覆盖**：sv, it, tr, no, nl, cy, eu, ca, da, gl, ta, hu, fi, pl, et, hi, la, ur, th, vi, jw, bn, yo, xsl, cs, sw, nn, he, ms, uk, id, kk, bg, lv, my, tl, sk, ne, fa, af, el, bo, hr, ro, sn, mi, yi, am, be, km, is, az, sd, br, sq, ps, mn, ht, ml, sr, sa, te, ka, bs, pa, lt, kn, si, hy, mr, as, gu, fo 等。
 
 ### 原生多说话人生成
 

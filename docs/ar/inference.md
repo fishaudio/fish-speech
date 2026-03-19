@@ -55,4 +55,44 @@ python fish_speech/models/dac/inference.py \
 
 ## استنتاج WebUI
 
-قيد التطوير.
+### 1. Gradio WebUI
+
+للحفاظ على التوافق، ما زلنا نحتفظ بواجهة Gradio WebUI السابقة.
+
+```bash
+python tools/run_webui.py # --compile إذا كنت بحاجة إلى تسريع
+```
+
+### 2. Awesome WebUI
+
+تعد Awesome WebUI واجهة ويب حديثة تعتمد على TypeScript، وتوفر ميزات أغنى وتجربة مستخدم أفضل.
+
+**بناء WebUI:**
+
+يجب أن يكون لديك Node.js و npm مثبتين على جهازك المحلي أو الخادم.
+
+1. ادخل إلى دليل `awesome_webui`:
+   ```bash
+   cd awesome_webui
+   ```
+2. تثبيت التبعيات:
+   ```bash
+   npm install
+   ```
+3. بناء WebUI:
+   ```bash
+   npm run build
+   ```
+
+**بدء تشغيل خادم الخلفية:**
+
+بعد بناء WebUI، عد إلى دليل جذر المشروع وقم بتشغيل خادم API:
+
+```bash
+python tools/api_server.py --listen 0.0.0.0:8888 --compile
+```
+
+**الوصول:**
+
+بمجرد تشغيل الخادم، يمكنك الوصول إليه عبر المتصفح على العنوان التالي:
+`http://localhost:8888/ui`

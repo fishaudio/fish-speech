@@ -55,4 +55,44 @@ After that, you will get a `fake.wav` file.
 
 ## WebUI Inference
 
-Coming soon.
+### 1. Gradio WebUI
+
+For compatibility, we still maintain the Gradio WebUI.
+
+```bash
+python tools/run_webui.py # --compile if you need acceleration
+```
+
+### 2. Awesome WebUI
+
+Awesome WebUI is a modernized Web interface built with TypeScript, offering richer features and a better user experience.
+
+**Build WebUI:**
+
+You need to have Node.js and npm installed on your local machine or server.
+
+1. Enter the `awesome_webui` directory:
+   ```bash
+   cd awesome_webui
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Build the WebUI:
+   ```bash
+   npm run build
+   ```
+
+**Start Backend Server:**
+
+After building the WebUI, return to the project root and start the API server:
+
+```bash
+python tools/api_server.py --listen 0.0.0.0:8888 --compile
+```
+
+**Access:**
+
+Once the server is running, you can access it via your browser:
+`http://localhost:8888/ui`
