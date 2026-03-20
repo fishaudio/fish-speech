@@ -29,8 +29,10 @@ def setup_lora(model, lora_config):
         model.codebook_embeddings, lora_config
     )
 
-    # Replace output layer with a LoRA layer
-    linears = [(model, "output")]
+    # Replace output layer with a LoRA layer (only if it exists)
+    linears = []
+    if hasattr(model, "output"):
+        linears.append((model, "output"))
 
     # Replace all linear layers with LoRA layers
     for layer in model.layers:
@@ -47,7 +49,8 @@ def setup_lora(model, lora_config):
         model.fast_embeddings = _replace_embedding(model.fast_embeddings, lora_config)
 
         # Dual-AR model
-        linears.append((model, "fast_output"))
+        if hasattr(model, "fast_output"):
+            linears.append((model, "fast_output"))
 
         for layer in model.fast_layers:
             linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
