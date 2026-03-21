@@ -5,6 +5,8 @@ services:
       dockerfile: docker/Dockerfile
       args:
         BACKEND: ${BACKEND:-cuda}     # or cpu
+        CUDA_VER: ${CUDA_VER:-12.9.0}
+        UV_EXTRA: ${UV_EXTRA:-cu129}
         UV_VERSION: ${UV_VERSION:-0.8.15}
     volumes:
       - ./checkpoints:/app/checkpoints
