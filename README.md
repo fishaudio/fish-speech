@@ -30,7 +30,7 @@
 </div>
 
 <div align="center">
-    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
         <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
     </a>
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
