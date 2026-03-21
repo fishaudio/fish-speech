@@ -1,5 +1,15 @@
 import re
+import warnings
 from threading import Lock
+
+# Suppress torch.compile (Inductor) spam: "Logical operators 'and'/'or' deprecated, use '&'/'|'"
+# Source: torch._inductor.runtime.triton_helpers — fix belongs in PyTorch upstream
+warnings.filterwarnings(
+    "ignore",
+    message=".*Logical operators 'and' and 'or' are deprecated for non-scalar tensors.*",
+    category=UserWarning,
+    module="torch._inductor",
+)
 
 import pyrootutils
 import uvicorn

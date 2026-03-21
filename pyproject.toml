@@ -71,6 +71,9 @@ cu129 = [
   "torch==2.8.0",
   "torchaudio",
 ]
+dev = [
+  "pytest>=7.0.0",
+]
 
 [tool.uv]
 conflicts = [
@@ -119,6 +122,11 @@ explicit = true
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
 
 [tool.setuptools]
 packages = ["fish_speech", "tools"]

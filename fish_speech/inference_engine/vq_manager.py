@@ -14,7 +14,8 @@ class VQManager:
         self.load_audio: Callable
 
     def decode_vq_tokens(self, codes):
-        logger.info(f"VQ features: {codes.shape}")
+        chunk_len = codes.shape[1] if codes.dim() >= 2 else 0
+        logger.info("VQ features: {} (stream chunk={})", codes.shape, chunk_len)
 
         if isinstance(self.decoder_model, DAC):
             return self.decoder_model.from_indices(codes[None])[0].squeeze()
@@ -30,20 +31,31 @@ class VQManager:
                 sample_rate = self.decoder_model.sample_rate
             reference_audio_content = self.load_audio(reference_audio, sample_rate)
 
-            audios = torch.from_numpy(reference_audio_content).to(
-                self.decoder_model.device
-            )[None, None, :]
-            audio_lengths = torch.tensor(
-                [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long
-            )
+            # Keep audio on CPU; run encoder on CPU to avoid OOM (encoder on long ref
+            # can use ~14+ GB GPU and we're already near 16 GB after warmup).
+            audios = torch.from_numpy(reference_audio_content)[None, None, :]
+            audio_lengths = torch.tensor([audios.shape[2]], dtype=torch.long)
             logger.info(
                 f"Loaded audio with {audios.shape[2] / sample_rate:.2f} seconds"
             )
 
-            # VQ Encoder
             if isinstance(self.decoder_model, DAC):
-                prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
-                logger.info(f"Encoded prompt: {prompt_tokens.shape}")
+                device = getattr(self.decoder_model, "device", None)
+                on_cuda = device is not None and str(device).startswith("cuda")
+                if on_cuda:
+                    torch.cuda.empty_cache()
+                    self.decoder_model.to("cpu")
+                    try:
+                        prompt_tokens = self.decoder_model.encode(
+                            audios, audio_lengths
+                        )[0][0]
+                    finally:
+                        self.decoder_model.to(device)
+                else:
+                    prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][
+                        0
+                    ]
+                logger.info("Encoded prompt: {}", prompt_tokens.shape)
             else:
                 raise ValueError(f"Unknown model type: {type(self.decoder_model)}")
         else:
