@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import loralib as lora
 
@@ -8,6 +8,8 @@ class LoraConfig:
     r: int
     lora_alpha: float
     lora_dropout: float = 0.0
+    # Valid values: "attention", "mlp", "embeddings", "output"
+    target_modules: list = field(default_factory=lambda: ["attention", "mlp", "embeddings", "output"])
 
 
 def _replace_embedding(old_embed, lora_config):
@@ -23,34 +25,22 @@ def _replace_embedding(old_embed, lora_config):
 
 
 def setup_lora(model, lora_config):
-    # Replace the embedding layer with a LoRA layer, preserving pretrained weights
-    model.embeddings = _replace_embedding(model.embeddings, lora_config)
-    model.codebook_embeddings = _replace_embedding(
-        model.codebook_embeddings, lora_config
-    )
+    targets = set(lora_config.target_modules)
+    linears = []
 
-    # Replace output layer with a LoRA layer
-    linears = [(model, "output")]
-
-    # Replace all linear layers with LoRA layers
-    for layer in model.layers:
-        linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
-        linears.extend(
-            [
-                (layer.feed_forward, "w1"),
-                (layer.feed_forward, "w2"),
-                (layer.feed_forward, "w3"),
-            ]
+    if "embeddings" in targets:
+        model.embeddings = _replace_embedding(model.embeddings, lora_config)
+        model.codebook_embeddings = _replace_embedding(
+            model.codebook_embeddings, lora_config
         )
 
-    if hasattr(model, "fast_layers"):
-        model.fast_embeddings = _replace_embedding(model.fast_embeddings, lora_config)
+    if "output" in targets and hasattr(model, "output"):
+        linears.append((model, "output"))
 
-        # Dual-AR model
-        linears.append((model, "fast_output"))
-
-        for layer in model.fast_layers:
+    for layer in model.layers:
+        if "attention" in targets:
             linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
+        if "mlp" in targets:
             linears.extend(
                 [
                     (layer.feed_forward, "w1"),
@@ -58,6 +48,24 @@ def setup_lora(model, lora_config):
                     (layer.feed_forward, "w3"),
                 ]
             )
+
+    if hasattr(model, "fast_layers"):
+        if "embeddings" in targets:
+            model.fast_embeddings = _replace_embedding(model.fast_embeddings, lora_config)
+        if "output" in targets:
+            linears.append((model, "fast_output"))
+
+        for layer in model.fast_layers:
+            if "attention" in targets:
+                linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
+            if "mlp" in targets:
+                linears.extend(
+                    [
+                        (layer.feed_forward, "w1"),
+                        (layer.feed_forward, "w2"),
+                        (layer.feed_forward, "w3"),
+                    ]
+                )
 
     for module, layer_name in linears:
         old_linear = getattr(module, layer_name)
