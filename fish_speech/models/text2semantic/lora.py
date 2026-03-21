@@ -9,7 +9,9 @@ class LoraConfig:
     lora_alpha: float
     lora_dropout: float = 0.0
     # Valid values: "attention", "mlp", "embeddings", "output"
-    target_modules: list = field(default_factory=lambda: ["attention", "mlp", "embeddings", "output"])
+    target_modules: list = field(
+        default_factory=lambda: ["attention", "mlp", "embeddings", "output"]
+    )
 
 
 def _replace_embedding(old_embed, lora_config):
@@ -51,7 +53,9 @@ def setup_lora(model, lora_config):
 
     if hasattr(model, "fast_layers"):
         if "embeddings" in targets:
-            model.fast_embeddings = _replace_embedding(model.fast_embeddings, lora_config)
+            model.fast_embeddings = _replace_embedding(
+                model.fast_embeddings, lora_config
+            )
         if "output" in targets:
             linears.append((model, "fast_output"))
 
