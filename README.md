@@ -36,6 +36,9 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
+    <a href="https://gitcgr.com/fishaudio/fish-speech">
+      <img src="https://gitcgr.com/badge/fishaudio/fish-speech.svg" alt="gitcgr" />
+    </a>
     <a target="_blank" href="https://arxiv.org/abs/2603.08823">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
