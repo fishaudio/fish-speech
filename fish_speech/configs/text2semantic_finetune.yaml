@@ -84,3 +84,11 @@ model:
 callbacks:
   model_checkpoint:
     every_n_train_steps: ${trainer.val_check_interval}
+  # Uncomment to generate audio samples at each checkpoint during training.
+  # audio_sample:
+  #   _target_: fish_speech.callbacks.AudioSampleCallback
+  #   text: "Text to synthesize for each sample."
+  #   codec_checkpoint_path: ${pretrained_ckpt_path}/codec.pth
+  #   reference_audio_path: null   # path to reference wav for voice cloning
+  #   reference_text: null         # transcript of the reference audio
+  #   audio_format: wav            # or mp3
