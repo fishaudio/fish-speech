@@ -8,7 +8,10 @@ class LoraConfig:
     r: int
     lora_alpha: float
     lora_dropout: float = 0.0
-    # Valid values: "attention", "mlp", "embeddings", "output"
+    # Valid values: "attention", "mlp", "embeddings", "output",
+    #               "fast_attention", "fast_mlp", "fast_embeddings", "fast_output"
+    # Unprefixed names target the slow transformer (and fast too for backwards compat).
+    # "fast_*" names target only the fast transformer.
     target_modules: list = field(
         default_factory=lambda: ["attention", "mlp", "embeddings", "output"]
     )
@@ -30,19 +33,31 @@ def setup_lora(model, lora_config):
     targets = set(lora_config.target_modules)
     linears = []
 
-    if "embeddings" in targets:
+    # Slow transformer: targeted by unprefixed names (e.g. "attention")
+    slow_attention = "attention" in targets
+    slow_mlp = "mlp" in targets
+    slow_embeddings = "embeddings" in targets
+    slow_output = "output" in targets
+
+    # Fast transformer: targeted by unprefixed names (backwards compat) OR "fast_*"
+    fast_attention = slow_attention or "fast_attention" in targets
+    fast_mlp = slow_mlp or "fast_mlp" in targets
+    fast_embeddings = slow_embeddings or "fast_embeddings" in targets
+    fast_output = slow_output or "fast_output" in targets
+
+    if slow_embeddings:
         model.embeddings = _replace_embedding(model.embeddings, lora_config)
         model.codebook_embeddings = _replace_embedding(
             model.codebook_embeddings, lora_config
         )
 
-    if "output" in targets and hasattr(model, "output"):
+    if slow_output and hasattr(model, "output"):
         linears.append((model, "output"))
 
     for layer in model.layers:
-        if "attention" in targets:
+        if slow_attention:
             linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
-        if "mlp" in targets:
+        if slow_mlp:
             linears.extend(
                 [
                     (layer.feed_forward, "w1"),
@@ -52,17 +67,17 @@ def setup_lora(model, lora_config):
             )
 
     if hasattr(model, "fast_layers"):
-        if "embeddings" in targets:
+        if fast_embeddings:
             model.fast_embeddings = _replace_embedding(
                 model.fast_embeddings, lora_config
             )
-        if "output" in targets:
+        if fast_output:
             linears.append((model, "fast_output"))
 
         for layer in model.fast_layers:
-            if "attention" in targets:
+            if fast_attention:
                 linears.extend([(layer.attention, "wqkv"), (layer.attention, "wo")])
-            if "mlp" in targets:
+            if fast_mlp:
                 linears.extend(
                     [
                         (layer.feed_forward, "w1"),
