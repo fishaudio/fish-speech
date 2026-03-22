@@ -131,9 +131,7 @@ class AudioSampleCallback(Callback):
                     temperature=0.8,
                     repetition_penalty=1.1,
                     prompt_text=(
-                        self.reference_text
-                        if prompt_tokens is not None
-                        else None
+                        self.reference_text if prompt_tokens is not None else None
                     ),
                     prompt_tokens=prompt_tokens,
                 )
@@ -167,14 +165,14 @@ class AudioSampleCallback(Callback):
 
             sample_rate = self._codec.sample_rate
             out_path = out_dir / f"step_{step:09d}.{self.audio_format}"
-            torchaudio.save(str(out_path), wav.unsqueeze(0), sample_rate, format=self.audio_format)
+            torchaudio.save(
+                str(out_path), wav.unsqueeze(0), sample_rate, format=self.audio_format
+            )
             logger.info(f"AudioSampleCallback: saved sample to {out_path}")
 
             # Log to TensorBoard if available
             for lg in trainer.loggers:
-                if hasattr(lg, "experiment") and hasattr(
-                    lg.experiment, "add_audio"
-                ):
+                if hasattr(lg, "experiment") and hasattr(lg.experiment, "add_audio"):
                     lg.experiment.add_audio(
                         "audio_sample",
                         wav,
@@ -183,9 +181,7 @@ class AudioSampleCallback(Callback):
                     )
 
         except Exception as e:
-            logger.exception(
-                f"AudioSampleCallback: failed to generate sample: {e}"
-            )
+            logger.exception(f"AudioSampleCallback: failed to generate sample: {e}")
         finally:
             self._teardown_caches(model)
             self._free_codec()
