@@ -44,8 +44,8 @@ def test_resolve_reference_payload_accepts_valid_payload():
     engine = _engine()
     payload = _payload(compatibility=_compatibility())
 
-    prompt_tokens, prompt_texts, reference_fingerprint = engine.resolve_reference_payload(
-        payload
+    prompt_tokens, prompt_texts, reference_fingerprint = (
+        engine.resolve_reference_payload(payload)
     )
 
     assert prompt_texts == ["Hello there."]
