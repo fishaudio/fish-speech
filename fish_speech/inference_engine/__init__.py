@@ -101,7 +101,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             # Check the response type
             if not isinstance(wrapped_result.response, GenerateResponse):
                 raise TypeError(
-                    "Expected GenerateResponse, got {type(wrapped_result.response).__name__}"
+                    f"Expected GenerateResponse, got {type(wrapped_result.response).__name__}"
                 )
 
             result: GenerateResponse = wrapped_result.response
