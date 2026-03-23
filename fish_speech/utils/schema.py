@@ -2,7 +2,7 @@ import base64
 import os
 import queue
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import torch
 from pydantic import BaseModel, Field, conint, model_validator
@@ -78,6 +78,53 @@ class ServeReferenceAudio(BaseModel):
         return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
 
 
+class ServeReferenceCompatibility(BaseModel):
+    artifact_schema_version: Literal[1] = 1
+    codec_checkpoint_sha256: str
+    decoder_config_name: str
+    text2semantic_checkpoint_sha256: str
+    tokenizer_sha256: str
+    num_codebooks: Annotated[int, Field(gt=0, strict=True)]
+    semantic_begin_id: Annotated[int, Field(ge=0, strict=True)]
+    sample_rate_hz: Annotated[int, Field(gt=0, strict=True)]
+
+
+class ServeReferencePayload(BaseModel):
+    reference_id: str | None = None
+    reference_text: str
+    prompt_tokens: SkipValidation[list[list[int]]]
+    reference_fingerprint: str | None = None
+    compatibility: ServeReferenceCompatibility
+
+    @model_validator(mode="after")
+    def validate_payload(self):
+        if not self.reference_text.strip():
+            raise ValueError("reference_text cannot be empty")
+
+        if not self.prompt_tokens:
+            raise ValueError("prompt_tokens cannot be empty")
+
+        if len(self.prompt_tokens) != self.compatibility.num_codebooks:
+            raise ValueError(
+                "prompt_tokens row count must equal compatibility.num_codebooks"
+            )
+
+        row_lengths = {len(row) for row in self.prompt_tokens}
+        if 0 in row_lengths:
+            raise ValueError("prompt_tokens rows cannot be empty")
+        if len(row_lengths) != 1:
+            raise ValueError("all prompt_tokens rows must have the same length")
+
+        for row in self.prompt_tokens:
+            for token in row:
+                if not isinstance(token, int) or token < 0:
+                    raise ValueError(
+                        "prompt_tokens must contain only non-negative integers"
+                    )
+
+        return self
+
+
 class ServeTTSRequest(BaseModel):
     text: str
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
@@ -91,6 +138,7 @@ class ServeTTSRequest(BaseModel):
     # For example, if you want use https://fish.audio/m/7f92f8afb8ec43bf81429cc1c9199cb1/
     # Just pass 7f92f8afb8ec43bf81429cc1c9199cb1
     reference_id: str | None = None
+    reference_payload: ServeReferencePayload | None = None
     seed: int | None = None
     use_memory_cache: Literal["on", "off"] = "off"
     # Normalize text for en & zh, this increase stability for numbers
@@ -101,6 +149,17 @@ class ServeTTSRequest(BaseModel):
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.1
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
+
+    def effective_reference_source(
+        self,
+    ) -> Literal["reference_payload", "references", "reference_id", "none"]:
+        if self.reference_payload is not None:
+            return "reference_payload"
+        if self.references:
+            return "references"
+        if self.reference_id is not None:
+            return "reference_id"
+        return "none"
 
     class Config:
         # Allow arbitrary types for pytorch related types
@@ -136,3 +195,9 @@ class UpdateReferenceResponse(BaseModel):
     message: str
     old_reference_id: str
     new_reference_id: str
+
+
+class ReferenceCompatibilityResponse(BaseModel):
+    success: bool
+    compatibility: ServeReferenceCompatibility
+    message: str = "Success"

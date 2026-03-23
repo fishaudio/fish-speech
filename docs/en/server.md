@@ -39,6 +39,70 @@ Expected response:
 - `POST /v1/tts` for text-to-speech generation
 - `POST /v1/vqgan/encode` for VQ encode
 - `POST /v1/vqgan/decode` for VQ decode
+- `GET /v1/references/compatibility` for the runtime prompt-bundle contract
+
+### Reusing a VQ-encoded prompt bundle
+
+For advanced integrations, a client can encode a reference audio once with `/v1/vqgan/encode`, fetch the runtime compatibility contract from `/v1/references/compatibility`, then send the resulting prompt bundle directly to `/v1/tts` as `reference_payload`.
+
+This is useful when your own backend wants to cache and replay prompt tokens without resending raw reference audio on every TTS request.
+
+Example flow:
+
+1. Call `POST /v1/vqgan/encode`
+2. Call `GET /v1/references/compatibility`
+3. Store a prompt bundle on your backend:
+
+```json
+{
+  "reference_id": "debug-sky",
+  "reference_text": "Hello there.",
+  "prompt_tokens": [[1, 2], [3, 4], [5, 6]],
+  "reference_fingerprint": "sha256:...",
+  "compatibility": {
+    "artifact_schema_version": 1,
+    "codec_checkpoint_sha256": "sha256:...",
+    "decoder_config_name": "modded_dac_vq",
+    "text2semantic_checkpoint_sha256": "sha256:...",
+    "tokenizer_sha256": "sha256:...",
+    "num_codebooks": 3,
+    "semantic_begin_id": 1024,
+    "sample_rate_hz": 24000
+  }
+}
+```
+
+4. Send that bundle to `POST /v1/tts`:
+
+```json
+{
+  "text": "Say hello",
+  "reference_payload": {
+    "reference_id": "debug-sky",
+    "reference_text": "Hello there.",
+    "prompt_tokens": [[1, 2], [3, 4], [5, 6]],
+    "reference_fingerprint": "sha256:...",
+    "compatibility": {
+      "artifact_schema_version": 1,
+      "codec_checkpoint_sha256": "sha256:...",
+      "decoder_config_name": "modded_dac_vq",
+      "text2semantic_checkpoint_sha256": "sha256:...",
+      "tokenizer_sha256": "sha256:...",
+      "num_codebooks": 3,
+      "semantic_begin_id": 1024,
+      "sample_rate_hz": 24000
+    }
+  }
+}
+```
+
+Request precedence is:
+
+- `reference_payload`
+- `references`
+- `reference_id`
+
+So if `reference_payload` is present, the server ignores inline `references` and `reference_id`.
 
 ### Python client example
 
