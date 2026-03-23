@@ -108,7 +108,7 @@ def wants_json(req):
     """
     q = req.query_params.get("format", "").strip().lower()
     if q in {"json", "application/json", "msgpack", "application/msgpack"}:
-        return q == "json"
+        return q in ("json", "application/json")
     accept = req.headers.get("Accept", "").strip().lower()
     return "application/json" in accept and "application/msgpack" not in accept
 
