@@ -1,0 +1,9 @@
+_target_: fish_speech.models.text2semantic.lora.LoraConfig
+r: 32
+lora_alpha: 16
+lora_dropout: 0.1
+target_modules:
+  - fast_attention
+  - fast_mlp
+  - fast_embeddings
+  - fast_output
