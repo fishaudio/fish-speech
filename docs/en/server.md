@@ -40,6 +40,27 @@ Expected response:
 - `POST /v1/vqgan/encode` for VQ encode
 - `POST /v1/vqgan/decode` for VQ decode
 
+### Python client example
+
+The base TTS model is selected when the server starts. In the example above, the server is started with the `checkpoints/s2-pro` weights, so every request sent to `http://127.0.0.1:8080/v1/tts` will use **S2-Pro** automatically. There is no separate per-request `model` field in `tools/api_client.py` for local server calls.
+
+```bash
+python tools/api_client.py \
+  --url http://127.0.0.1:8080/v1/tts \
+  --text "Hello from Fish Speech" \
+  --output s2-pro-demo
+```
+
+If you want to select a saved reference voice, use `--reference_id`. This chooses the **voice reference**, not the base TTS model:
+
+```bash
+python tools/api_client.py \
+  --url http://127.0.0.1:8080/v1/tts \
+  --text "Hello from Fish Speech" \
+  --reference_id my-speaker \
+  --output s2-pro-demo
+```
+
 ## WebUI Inference
 
 For WebUI usage, see:

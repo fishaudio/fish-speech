@@ -496,6 +496,7 @@ class BaseTransformer(nn.Module):
             config.rope_base = rope_base
             logger.info(f"Override rope_base to {rope_base}")
 
+        tokenizer = None
         try:
             tokenizer = FishTokenizer.from_pretrained(path)
             config.semantic_begin_id = tokenizer.semantic_begin_id
@@ -961,9 +962,11 @@ class Attention(nn.Module):
 
         if attn_mask is not None:
             if attn_mask.dtype == torch.bool:
-                attn_bias.masked_fill_(attn_mask.logical_not(), float("-inf"))
+                attn_bias = torch.where(
+                    attn_mask.logical_not(), float("-inf"), attn_bias
+                )
             else:
-                attn_bias += attn_mask
+                attn_bias = attn_bias + attn_mask
 
         attn_weight = query @ key.transpose(-2, -1) * scale_factor
         attn_weight += attn_bias

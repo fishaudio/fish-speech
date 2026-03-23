@@ -15,7 +15,16 @@ from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Send a WAV file and text to a server and receive synthesized audio.",
+        description="Send text to a Fish Speech TTS server and receive synthesized audio.",
+        epilog=(
+            "Model selection note:\n"
+            "  The base TTS model is selected by the server you call. For example, if the\n"
+            "  server was started with checkpoints/s2-pro, this client will use S2-Pro\n"
+            "  automatically. There is no separate per-request --model flag.\n\n"
+            "Examples:\n"
+            '  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t "Hello from Fish Speech"\n'
+            '  python tools/api_client.py -u http://127.0.0.1:8080/v1/tts -t "Hello" --reference_id my-speaker'
+        ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
@@ -24,7 +33,7 @@ def parse_args():
         "-u",
         type=str,
         default="http://127.0.0.1:8080/v1/tts",
-        help="URL of the server",
+        help="URL of the TTS server. The server decides which base model is loaded.",
     )
     parser.add_argument(
         "--text", "-t", type=str, required=True, help="Text to be synthesized"
@@ -34,7 +43,7 @@ def parse_args():
         "-id",
         type=str,
         default=None,
-        help="ID of the reference model to be used for the speech\n(Local: name of folder containing audios and files)",
+        help="ID of the reference voice to use for synthesis\n(Local: name of folder containing audios and files)",
     )
     parser.add_argument(
         "--reference_audio",
@@ -66,7 +75,7 @@ def parse_args():
         help="Whether to play audio after receiving data",
     )
     parser.add_argument(
-        "--format", type=str, choices=["wav", "mp3", "flac"], default="wav"
+        "--format", type=str, choices=["wav", "pcm", "mp3", "opus"], default="wav"
     )
     parser.add_argument(
         "--latency",
@@ -159,6 +168,7 @@ if __name__ == "__main__":
         ],
         "reference_id": idstr,
         "format": args.format,
+        "latency": args.latency,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
         "top_p": args.top_p,

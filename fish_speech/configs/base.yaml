@@ -57,6 +57,9 @@ callbacks:
     norm_type: 2
     logging_interval: step
 
+  progress_bar:
+    _target_: fish_speech.callbacks.GradAccumProgressBar
+
 # Logger
 logger:
   tensorboard:

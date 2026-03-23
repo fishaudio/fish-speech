@@ -51,7 +51,25 @@ from tools.server.model_utils import (
 
 MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
+_WEBUI_HTML = (
+    Path(__file__).parent.parent.parent / "awesome_webui" / "dist" / "index.html"
+)
+
 routes = Routes()
+
+
+@routes.http("/ui")
+class WebUI(HttpView):
+    @classmethod
+    async def get(cls):
+        from kui.asgi import HTMLResponse
+
+        if _WEBUI_HTML.exists():
+            return HTMLResponse(_WEBUI_HTML.read_text(encoding="utf-8"))
+        return JSONResponse(
+            {"error": "WebUI not built. Run: cd awesome_webui && npm run build"},
+            status_code=404,
+        )
 
 
 @routes.http("/v1/health")
@@ -307,6 +325,10 @@ async def delete_reference(reference_id: str = Body(...)):
         if not reference_id or not reference_id.strip():
             raise ValueError("Reference ID cannot be empty")
 
+        id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
+        if not re.match(id_pattern, reference_id) or len(reference_id) > 255:
+            raise ValueError("Reference ID contains invalid characters or is too long")
+
         # Get the model manager to access the reference loader
         app_state = request.app.state
         model_manager: ModelManager = app_state.model_manager
@@ -377,6 +399,10 @@ async def update_reference(
 
         # Validate ID format per ReferenceLoader rules
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
+        if not re.match(id_pattern, old_reference_id) or len(old_reference_id) > 255:
+            raise ValueError(
+                "Old reference ID contains invalid characters or is too long"
+            )
         if not re.match(id_pattern, new_reference_id) or len(new_reference_id) > 255:
             raise ValueError(
                 "New reference ID contains invalid characters or is too long"

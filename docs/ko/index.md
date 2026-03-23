@@ -36,8 +36,8 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://github.com/fishaudio/fish-speech/blob/main/FishAudioS2TecReport.pdf">
-        <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Tecnical_Report-b31b1b?style=flat-square"/>
+    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+        <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
@@ -75,7 +75,7 @@ Fish Audio S2는 [Fish Audio](https://fish.audio/)가 개발한 최신 모델입
 
 S2는 `[laugh]`, `[whispers]`, `[super happy]` 같은 자연어 태그를 사용해 운율과 감정을 문장 내부에서 세밀하게 제어할 수 있으며, 멀티 화자/멀티 턴 생성도 네이티브로 지원합니다.
 
-실시간 데모는 [Fish Audio 웹사이트](https://fish.audio/)에서, 자세한 내용은 [블로그 글](https://fish.audio/blog/fish-audio-open-sources-s2/)에서 확인할 수 있습니다.
+실시간 데모는 [Fish Audio 웹사이트](https://fish.audio/)에서, 자세한 내용은 [블로그 글](https://fish.audio/blog/fish-audio-open-sources-s2/)과 [기술 보고서](https://arxiv.org/abs/2603.08823)에서 확인할 수 있습니다.
 
 ### 모델 변형
 
@@ -154,7 +154,7 @@ Fish Audio S2는 사용자가 여러 화자가 포함된 참조 오디오를 업
 ### 빠른 음성 복제
 
 Fish Audio S2는 짧은 참조 샘플(일반적으로 10-30초)을 사용하여 정확한 음성 복제를 지원합니다. 모델은 음색, 말하기 스타일 및 감정적 경향을 캡처하여 추가 미세 조정 없이 사실적이고 일관된 복제 음성을 생성합니다.
-SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md 를 참고하세요.
+SGLang 서버 사용은 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) 를 참고하세요.
 
 ---
 
@@ -178,5 +178,15 @@ SGLang 서버 사용은 https://github.com/sgl-project/sglang-omni/blob/main/sgl
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2411.01156},
+}
+
+@misc{liao2026fishaudios2technical,
+      title={Fish Audio S2 Technical Report}, 
+      author={Shijia Liao and Yuxuan Wang and Songting Liu and Yifan Cheng and Ruoyi Zhang and Tianyu Li and Shidong Li and Yisheng Zheng and Xingwei Liu and Qingzheng Wang and Zhizhuo Zhou and Jiahua Liu and Xin Chen and Dawei Han},
+      year={2026},
+      eprint={2603.08823},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2603.08823}, 
 }
 ```

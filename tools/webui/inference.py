@@ -68,12 +68,12 @@ def get_reference_audio(reference_audio: str, reference_text: str) -> list:
 
 def build_html_error_message(error: Any) -> str:
 
-    error = error if isinstance(error, Exception) else Exception("Unknown error")
+    error_str = str(error) if error is not None else "Unknown error"
 
     return f"""
     <div style="color: red; 
     font-weight: bold;">
-        {html.escape(str(error))}
+        {html.escape(error_str)}
     </div>
     """
 

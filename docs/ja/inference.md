@@ -55,4 +55,44 @@ python fish_speech/models/dac/inference.py \
 
 ## WebUI 推論
 
-まもなく公開予定です。
+### 1. Gradio WebUI
+
+互換性を維持するため、以前の Gradio WebUI も引き続き利用可能です。
+
+```bash
+python tools/run_webui.py # 加速が必要な場合は --compile
+```
+
+### 2. Awesome WebUI
+
+Awesome WebUI は TypeScript で開発された、より豊富な機能と優れたユーザー体験を提供する最新の Web インターフェースです。
+
+**WebUI のビルド：**
+
+ローカルまたはサーバーに Node.js と npm がインストールされている必要があります。
+
+1. `awesome_webui` ディレクトリに移動します：
+   ```bash
+   cd awesome_webui
+   ```
+2. 依存関係をインストールします：
+   ```bash
+   npm install
+   ```
+3. WebUI をビルドします：
+   ```bash
+   npm run build
+   ```
+
+**バックエンドサーバーの起動：**
+
+WebUI のビルドが完了したら、プロジェクトのルートに戻り、API サーバーを起動します：
+
+```bash
+python tools/api_server.py --listen 0.0.0.0:8888 --compile
+```
+
+**アクセス：**
+
+サーバーが起動したら、ブラウザから以下のアドレスにアクセスして体験できます：
+`http://localhost:8888/ui`

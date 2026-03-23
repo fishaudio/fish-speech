@@ -61,9 +61,9 @@
 
 
 # Select the specific cuda version (see https://hub.docker.com/r/nvidia/cuda/)
-ARG CUDA_VER=12.6.0
+ARG CUDA_VER=12.9.0
 # Adapt the uv extra to fit the cuda version (one of [cu126, cu128, cu129])
-ARG UV_EXTRA=cu126
+ARG UV_EXTRA=cu129
 ARG BACKEND=cuda
 
 ARG UBUNTU_VER=24.04
