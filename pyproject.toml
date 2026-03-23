@@ -26,7 +26,7 @@ dependencies = [
     "librosa>=0.10.1",
     "rich>=13.5.3",
     "gradio>5.0.0",
-    "wandb>=0.15.11",
+    "wandb>=0.19.0",
     "grpcio>=1.58.0",
     "kui>=1.6.0",
     "uvicorn>=0.30.0",
@@ -46,7 +46,6 @@ dependencies = [
     "pydantic==2.9.2",
     "cachetools",
     "descript-audio-codec",
-    "descript-audiotools",
     "safetensors"
 ]
 
@@ -73,6 +72,11 @@ cu129 = [
 ]
 
 [tool.uv]
+override-dependencies = [
+    # descript-audiotools (transitive via descript-audio-codec) pins protobuf<3.20,
+    # but fish-speech's generated proto code requires >=3.20; cap at <6 for API stability
+    "protobuf>=3.20.0,<6.0.0",
+]
 conflicts = [
   [
     { extra = "cpu" },
