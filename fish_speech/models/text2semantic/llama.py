@@ -496,6 +496,7 @@ class BaseTransformer(nn.Module):
             config.rope_base = rope_base
             logger.info(f"Override rope_base to {rope_base}")
 
+        tokenizer = None
         try:
             tokenizer = FishTokenizer.from_pretrained(path)
             config.semantic_begin_id = tokenizer.semantic_begin_id
