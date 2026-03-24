@@ -48,7 +48,8 @@ class ReferenceLoader:
             # binding that shadows the module-level torchaudio global.
             try:
                 import importlib
-                importlib.import_module('torchaudio.io._load_audio_fileobj')
+
+                importlib.import_module("torchaudio.io._load_audio_fileobj")
 
                 self.backend = "ffmpeg"
             except (ImportError, ModuleNotFoundError):
