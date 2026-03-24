@@ -44,8 +44,11 @@ class ReferenceLoader:
         except AttributeError:
             # torchaudio 2.9+ removed list_audio_backends()
             # Try ffmpeg first, fallback to soundfile
+            # Use importlib to avoid 'import torchaudio.io...' creating a local
+            # binding that shadows the module-level torchaudio global.
             try:
-                import torchaudio.io._load_audio_fileobj  # noqa: F401
+                import importlib
+                importlib.import_module('torchaudio.io._load_audio_fileobj')
 
                 self.backend = "ffmpeg"
             except (ImportError, ModuleNotFoundError):
