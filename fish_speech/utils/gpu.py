@@ -1,17 +1,15 @@
 """GPU detection, VRAM guidance, ROCm gfx arch auto-detection, and GTT weight offloading."""
 
 import os
-import subprocess
 
 import torch
 import torch.nn as nn
 from loguru import logger
 
 # Known ROCm gfx arch overrides for GPUs not yet in PyTorch's HIP target list.
-# Maps PCI device ID prefixes to the closest supported gfx version.
+# Maps gcnArchName to the closest supported HSA_OVERRIDE_GFX_VERSION.
 _ROCM_GFX_OVERRIDES = {
-    "0x7550": "12.0.0",  # Navi 48 — RX 9070/9070 XT (gfx1201 → gfx1200)
-    "0x7551": "12.0.0",  # Navi 48 variants
+    "gfx1201": "12.0.0",  # Navi 48 — RX 9070/9070 XT → fallback to gfx1200
 }
 
 # Approximate model memory requirements (in GB) for VRAM guidance.
@@ -26,47 +24,31 @@ def _is_rocm() -> bool:
     return torch.cuda.is_available() and hasattr(torch.version, "hip") and torch.version.hip is not None
 
 
-def _get_amd_device_id() -> str | None:
-    """Read the PCI device ID from the first AMD render node."""
-    try:
-        result = subprocess.run(
-            ["cat", "/sys/class/drm/renderD128/device/device"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return None
-
-
 def auto_detect_rocm_gfx():
     """Set HSA_OVERRIDE_GFX_VERSION if running on an unrecognized AMD GPU.
 
     Only acts when:
-    - torch.cuda (HIP) is available
+    - Running on ROCm (HIP backend)
     - HSA_OVERRIDE_GFX_VERSION is not already set
-    - The GPU's PCI device ID matches a known override
+    - The GPU's gcnArchName matches a known override
     """
-    if not torch.cuda.is_available():
+    if not _is_rocm():
         return
     if os.environ.get("HSA_OVERRIDE_GFX_VERSION"):
         return
 
-    device_id = _get_amd_device_id()
-    if device_id is None:
+    props = torch.cuda.get_device_properties(0)
+    arch = getattr(props, "gcnArchName", None)
+    if arch is None:
         return
 
-    for prefix, gfx_ver in _ROCM_GFX_OVERRIDES.items():
-        if device_id == prefix:
-            os.environ["HSA_OVERRIDE_GFX_VERSION"] = gfx_ver
-            logger.info(
-                f"Auto-detected AMD GPU (device {device_id}), "
-                f"setting HSA_OVERRIDE_GFX_VERSION={gfx_ver}"
-            )
-            return
+    gfx_ver = _ROCM_GFX_OVERRIDES.get(arch)
+    if gfx_ver is not None:
+        os.environ["HSA_OVERRIDE_GFX_VERSION"] = gfx_ver
+        logger.info(
+            f"Auto-detected AMD GPU arch {arch}, "
+            f"setting HSA_OVERRIDE_GFX_VERSION={gfx_ver}"
+        )
 
 
 def check_vram_and_advise(checkpoint_path: str):
