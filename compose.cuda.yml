@@ -1,0 +1,20 @@
+# CUDA (NVIDIA GPU) overlay — use with:
+#   docker compose -f compose.yml -f compose.cuda.yml --profile webui up
+services:
+  webui:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  server:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

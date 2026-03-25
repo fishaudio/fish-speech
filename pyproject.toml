@@ -14,8 +14,8 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
-    "torch==2.8.0",
-    "torchaudio==2.8.0",
+    "torch>=2.8.0",
+    "torchaudio>=2.8.0",
     "transformers<=4.57.3",
     "datasets==2.18.0",
     "lightning>=2.1.0",
@@ -51,24 +51,29 @@ dependencies = [
 
 [project.optional-dependencies]
 stable = [
-    "torch==2.8.0",
+    "torch>=2.8.0",
     "torchaudio",
 ]
 cpu = [
   "torch==2.8.0",
-  "torchaudio",
+  "torchaudio==2.8.0",
 ]
 cu126 = [
   "torch==2.8.0",
-  "torchaudio",
+  "torchaudio==2.8.0",
 ]
 cu128 = [
   "torch==2.8.0",
-  "torchaudio",
+  "torchaudio==2.8.0",
 ]
 cu129 = [
   "torch==2.8.0",
-  "torchaudio",
+  "torchaudio==2.8.0",
+]
+rocm72 = [
+  "torch==2.11.0",
+  "torchaudio==2.11.0",
+  "triton-rocm==3.6.0",
 ]
 
 [tool.uv]
@@ -83,6 +88,7 @@ conflicts = [
     { extra = "cu126" },
     { extra = "cu128" },
     { extra = "cu129" },
+    { extra = "rocm72" },
   ],
 ]
 
@@ -92,12 +98,17 @@ torch = [
   { index = "pytorch-cu126", extra = "cu126" },
   { index = "pytorch-cu128", extra = "cu128" },
   { index = "pytorch-cu129", extra = "cu129" },
+  { index = "pytorch-rocm72", extra = "rocm72" },
 ]
 torchaudio = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu126", extra = "cu126" },
   { index = "pytorch-cu128", extra = "cu128" },
   { index = "pytorch-cu129", extra = "cu129" },
+  { index = "pytorch-rocm72", extra = "rocm72" },
+]
+triton-rocm = [
+  { index = "pytorch-rocm72", extra = "rocm72" },
 ]
 
 [[tool.uv.index]]
@@ -118,6 +129,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu129"
 url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm72"
+url = "https://download.pytorch.org/whl/rocm7.2"
 explicit = true
 
 [build-system]

@@ -1,0 +1,45 @@
+# ROCm (AMD GPU) overlay — use with:
+#   BACKEND=rocm UV_EXTRA=rocm72 docker compose -f compose.yml -f compose.rocm.yml --profile webui up
+#
+# Requires: /dev/kfd and /dev/dri on the host (ROCm kernel driver installed)
+# RENDER_GID should match the host's render group GID (run: stat -c '%g' /dev/kfd)
+# For the AMD Container Toolkit alternative (runtime: amd), see:
+#   https://instinct.docs.amd.com/projects/container-toolkit/en/latest/container-runtime/docker-compose.html
+services:
+  webui:
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - "${RENDER_GID:-993}"
+    security_opt:
+      - seccomp=unconfined
+    ipc: host
+    shm_size: 8G
+    environment:
+      HSA_ENABLE_SDMA: "0"
+      GPU_MAX_HW_QUEUES: "1"
+      HSA_USE_SVM: "0"
+      PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
+      VRAM_FRACTION: "${VRAM_FRACTION:-0}"
+      MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"
+
+  server:
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - "${RENDER_GID:-993}"
+    security_opt:
+      - seccomp=unconfined
+    ipc: host
+    shm_size: 8G
+    environment:
+      HSA_ENABLE_SDMA: "0"
+      GPU_MAX_HW_QUEUES: "1"
+      HSA_USE_SVM: "0"
+      PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
+      VRAM_FRACTION: "${VRAM_FRACTION:-0}"
+      MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"

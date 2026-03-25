@@ -6,9 +6,9 @@
 #   docker build \
 #       --platform linux/amd64 \
 #       -f docker/Dockerfile \
-#       --build-arg BACKEND=[cuda, cpu] \
+#       --build-arg BACKEND=[cuda, cpu, rocm] \
 #       --target [webui, server] \
-#       -t fish-speech-[webui, server]:[cuda, cpu] .
+#       -t fish-speech-[webui, server]:[cuda, cpu, rocm] .
 
 # e.g. for building the webui:
 #   docker build \
@@ -62,9 +62,11 @@
 
 # Select the specific cuda version (see https://hub.docker.com/r/nvidia/cuda/)
 ARG CUDA_VER=12.9.0
-# Adapt the uv extra to fit the cuda version (one of [cu126, cu128, cu129])
+# Adapt the uv extra to fit the backend (one of [cu126, cu128, cu129, rocm72, cpu])
 ARG UV_EXTRA=cu129
 ARG BACKEND=cuda
+# ROCm version (see https://hub.docker.com/r/rocm/dev-ubuntu-24.04)
+ARG ROCM_VER=7.2
 
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
@@ -84,6 +86,26 @@ FROM nvidia/cuda:${CUDA_VER}-cudnn-runtime-ubuntu${UBUNTU_VER} AS base-cuda
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies in a single layer with cleanup
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux \
+    && rm -f /etc/apt/apt.conf.d/docker-clean \
+    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3-pip \
+        python3-dev \
+        git \
+        ca-certificates \
+        curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- ROCm (AMD GPU, x86_64) ---
+FROM rocm/dev-ubuntu-${UBUNTU_VER}:${ROCM_VER} AS base-rocm
+ENV DEBIAN_FRONTEND=noninteractive
+ENV UV_EXTRA=rocm72
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -eux \
@@ -311,7 +333,7 @@ RUN printf '%s\n' \
     'log "Compile args: ${COMPILE_ARGS}"' \
     'log "Server: ${GRADIO_SERVER_NAME}:${GRADIO_SERVER_PORT}"' \
     '' \
-    'exec uv run tools/run_webui.py \' \
+    'exec uv run --no-sync tools/run_webui.py \' \
     '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
     '  --decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}" \' \
     '  --decoder-config-name "${DECODER_CONFIG_NAME}" \' \
@@ -359,7 +381,7 @@ RUN printf '%s\n' \
     'log "Compile args: ${COMPILE_ARGS}"' \
     'log "Server: ${API_SERVER_NAME}:${API_SERVER_PORT}"' \
     '' \
-    'exec uv run tools/api_server.py \' \
+    'exec uv run --no-sync tools/api_server.py \' \
     '  --listen "${API_SERVER_NAME}:${API_SERVER_PORT}" \' \
     '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
     '  --decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}" \' \
