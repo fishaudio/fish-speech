@@ -69,7 +69,9 @@ class ModelManager:
 
         logger.info("LLAMA model loaded.")
 
-    def load_decoder_model(self, config_name, checkpoint_path, device, precision=None) -> None:
+    def load_decoder_model(
+        self, config_name, checkpoint_path, device, precision=None
+    ) -> None:
         self.decoder_model = load_decoder_model(
             config_name=config_name,
             checkpoint_path=checkpoint_path,
