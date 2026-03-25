@@ -1,4 +1,4 @@
-"""GPU detection, VRAM guidance, ROCm gfx arch auto-detection, and GTT weight offloading."""
+"""GPU detection, VRAM guidance, ROCm gfx arch auto-detection, and CPU weight offloading."""
 
 import os
 
@@ -94,8 +94,7 @@ def check_vram_and_advise(checkpoint_path: str):
             suggestions.append(
                 f"reduce MAX_SEQ_LEN (current: {max_seq_len}, try 4096 to save ~{(max_seq_len - 4096) / 8192 * 1.2:.1f}GB)"
             )
-        if _is_rocm():
-            suggestions.append("set OFFLOAD_WEIGHTS_TO_GTT=true to stream weights from system RAM")
+        suggestions.append("set OFFLOAD_WEIGHTS_TO_CPU=true to stream weights from system RAM")
         suggestions.append("set VRAM_FRACTION=0.95 to prevent system freeze on OOM")
 
         logger.warning(
@@ -110,14 +109,32 @@ def _is_kv_cache(name: str) -> bool:
     return "k_cache" in name or "v_cache" in name
 
 
-def _layer_to_cpu(layer: nn.Module):
-    """Move a layer to CPU, preserving KV caches on GPU."""
+def _pin_layer(layer: nn.Module):
+    """Pin all non-KV parameters and buffers for faster DMA transfers."""
+    with torch.inference_mode(False):
+        for param in layer.parameters():
+            if param.device.type == "cpu" and not param.data.is_pinned():
+                param.data = param.data.pin_memory()
+        for name, buf in layer.named_buffers():
+            if not _is_kv_cache(name) and buf.device.type == "cpu" and not buf.data.is_pinned():
+                buf.data = buf.data.pin_memory()
+
+
+def _layer_to_cpu(layer: nn.Module, pin: bool = False):
+    """Move a layer to CPU memory, preserving KV caches on GPU.
+
+    Args:
+        pin: If True, pin memory for faster DMA. Only use for initial offload,
+             not during streaming (pin_memory() overhead exceeds DMA savings).
+    """
     kv_refs = {}
     for name, buf in layer.named_buffers():
         if _is_kv_cache(name):
             kv_refs[name] = buf.data
     with torch.inference_mode(False):
         layer.to("cpu")
+    if pin:
+        _pin_layer(layer)
     for name, buf in layer.named_buffers():
         if name in kv_refs:
             buf.data = kv_refs[name]
@@ -137,10 +154,13 @@ def _layer_to_gpu(layer: nn.Module, device: torch.device):
 
 
 class LayerStreamer:
-    """Streams transformer layers between CPU and GPU one at a time with prefetching.
+    """Streams transformer layers between pinned CPU memory and GPU with prefetching.
 
-    Usage: replaces `for layer in self.layers: x = layer(x, ...)` with
-           `x = model._layer_streamer.run(self.layers, x, *args)`
+    Replaces `for layer in self.layers: x = layer(x, ...)` with
+    `x = model._layer_streamer.run(self.layers, x, *args)`.
+
+    Weights are kept in pinned (page-locked) CPU memory between uses,
+    which enables faster DMA transfers over PCIe when loading to GPU.
     """
 
     def __init__(self, device: torch.device):
@@ -148,7 +168,7 @@ class LayerStreamer:
         self.prefetch_stream = torch.cuda.Stream()
 
     def run(self, layers: nn.ModuleList, x, *args, **kwargs):
-        """Execute layers sequentially, streaming weights from CPU."""
+        """Execute layers sequentially, streaming weights from pinned CPU memory."""
         n = len(layers)
 
         # Prefetch first layer
@@ -167,27 +187,23 @@ class LayerStreamer:
             # Run the layer
             x = layer(x, *args, **kwargs)
 
-            # Move current layer back to CPU (sync first)
+            # Move current layer back to pinned CPU memory
             torch.cuda.synchronize()
             _layer_to_cpu(layer)
 
         return x
 
 
-def setup_gtt_offload(model: nn.Module, device: torch.device):
-    """Offload transformer layer weights to CPU (GTT) and stream them to GPU on demand.
+def setup_cpu_offload(model: nn.Module, device: torch.device):
+    """Offload transformer layer weights to pinned CPU memory and stream on demand.
 
-    ROCm only. Keeps KV caches on GPU for low-latency attention access.
-    Weights are moved to CPU memory and streamed layer-by-layer
-    with async prefetching of the next layer via a separate HIP stream.
+    Keeps KV caches on GPU for low-latency attention access. Weights are
+    stored in pinned (page-locked) host memory for faster PCIe DMA transfers
+    and streamed layer-by-layer with async prefetching via a separate HIP/CUDA stream.
 
-    Enable with OFFLOAD_WEIGHTS_TO_GTT=true.
+    Enable with OFFLOAD_WEIGHTS_TO_CPU=true.
     """
-    if not os.environ.get("OFFLOAD_WEIGHTS_TO_GTT", "").lower() in ("true", "1"):
-        return False
-
-    if not _is_rocm():
-        logger.warning("OFFLOAD_WEIGHTS_TO_GTT is only supported on AMD ROCm devices, ignoring.")
+    if not os.environ.get("OFFLOAD_WEIGHTS_TO_CPU", "").lower() in ("true", "1"):
         return False
 
     if not hasattr(model, "layers"):
@@ -197,15 +213,15 @@ def setup_gtt_offload(model: nn.Module, device: torch.device):
     layers = model.layers
     n_layers = len(layers)
 
-    # Move each layer to CPU, keeping KV caches on GPU
+    # Move each layer to pinned CPU memory, keeping KV caches on GPU
     gpu_mem_before = torch.cuda.memory_allocated()
     for layer in layers:
-        _layer_to_cpu(layer)
+        _layer_to_cpu(layer, pin=True)
     gpu_mem_after = torch.cuda.memory_allocated()
     saved_gb = (gpu_mem_before - gpu_mem_after) / 1e9
 
     logger.info(
-        f"GTT offload: moved {n_layers} layers to CPU, "
+        f"CPU offload: moved {n_layers} layers to pinned host memory, "
         f"freed {saved_gb:.1f}GB VRAM. KV caches remain on GPU."
     )
 
@@ -213,8 +229,8 @@ def setup_gtt_offload(model: nn.Module, device: torch.device):
     fast_layers = getattr(model, "fast_layers", None)
     if fast_layers is not None:
         for layer in fast_layers:
-            _layer_to_cpu(layer)
-        logger.info(f"GTT offload: also moved {len(fast_layers)} fast layers to CPU.")
+            _layer_to_cpu(layer, pin=True)
+        logger.info(f"CPU offload: also moved {len(fast_layers)} fast layers to pinned host memory.")
 
     # Attach a LayerStreamer to the model — the forward methods will use it
     model._layer_streamer = LayerStreamer(device)

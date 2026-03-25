@@ -768,12 +768,12 @@ def launch_thread_safe_queue(
                 dtype=next(model.parameters()).dtype,
             )
 
-        # Offload weights to GTT (CPU pinned memory) if requested.
+        # Offload weights to pinned CPU memory if requested.
         # Runs after setup_caches so KV caches exist and can be
         # preserved on GPU while layer weights move to CPU.
-        from fish_speech.utils.gpu import setup_gtt_offload
+        from fish_speech.utils.gpu import setup_cpu_offload
 
-        setup_gtt_offload(model, torch.device(device))
+        setup_cpu_offload(model, torch.device(device))
 
         init_event.set()
 
