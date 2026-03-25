@@ -187,8 +187,8 @@ class LayerStreamer:
             # Run the layer
             x = layer(x, *args, **kwargs)
 
-            # Move current layer back to pinned CPU memory
-            torch.cuda.synchronize()
+            # Move current layer back to CPU — the next iteration's
+            # wait_stream() ensures prefetch is done before we proceed
             _layer_to_cpu(layer)
 
         return x
@@ -225,12 +225,12 @@ def setup_cpu_offload(model: nn.Module, device: torch.device):
         f"freed {saved_gb:.1f}GB VRAM. KV caches remain on GPU."
     )
 
-    # Also handle fast_layers if present (DualAR fast transformer)
+    # Keep fast_layers on GPU — they're small (~200MB) but called 10× per token
+    # (once per codebook). Offloading them would add 40 PCIe round-trips per token.
     fast_layers = getattr(model, "fast_layers", None)
     if fast_layers is not None:
-        for layer in fast_layers:
-            _layer_to_cpu(layer, pin=True)
-        logger.info(f"CPU offload: also moved {len(fast_layers)} fast layers to pinned host memory.")
+        fast_mb = sum(p.numel() * p.element_size() for p in fast_layers.parameters()) / 1e6
+        logger.info(f"CPU offload: keeping {len(fast_layers)} fast layers on GPU ({fast_mb:.0f}MB).")
 
     # Attach a LayerStreamer to the model — the forward methods will use it
     model._layer_streamer = LayerStreamer(device)
