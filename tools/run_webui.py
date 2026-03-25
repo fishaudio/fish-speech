@@ -11,6 +11,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
+from fish_speech.utils.gpu import auto_detect_rocm_gfx, check_vram_and_advise
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.webui import build_app
 from tools.webui.inference import get_inference_wrapper
@@ -55,6 +56,9 @@ if __name__ == "__main__":
             f"VRAM cap: {vram_fraction:.0%} "
             f"({vram_fraction * total_mem / 1e9:.1f}GB / {total_mem / 1e9:.1f}GB)"
         )
+
+    auto_detect_rocm_gfx()
+    check_vram_and_advise(args.llama_checkpoint_path)
 
     # Check if MPS or CUDA is available
     if torch.backends.mps.is_available():

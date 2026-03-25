@@ -4,6 +4,7 @@ from loguru import logger
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.inference import launch_thread_safe_queue
+from fish_speech.utils.gpu import auto_detect_rocm_gfx, check_vram_and_advise
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
@@ -26,6 +27,9 @@ class ModelManager:
         self.compile = compile
 
         self.precision = torch.half if half else torch.bfloat16
+
+        auto_detect_rocm_gfx()
+        check_vram_and_advise(llama_checkpoint_path)
 
         # Check if MPS or CUDA is available
         if torch.backends.mps.is_available():
