@@ -24,6 +24,7 @@ services:
       PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
       VRAM_FRACTION: "${VRAM_FRACTION:-0}"
       MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"
+      OFFLOAD_WEIGHTS_TO_GTT: "${OFFLOAD_WEIGHTS_TO_GTT:-false}"
 
   server:
     devices:
@@ -43,3 +44,4 @@ services:
       PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
       VRAM_FRACTION: "${VRAM_FRACTION:-0}"
       MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"
+      OFFLOAD_WEIGHTS_TO_GTT: "${OFFLOAD_WEIGHTS_TO_GTT:-false}"
