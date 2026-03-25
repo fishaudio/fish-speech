@@ -280,10 +280,11 @@ def generate(
 
     # Critical fix: Only set up cache on first run or when necessary
     if not hasattr(model, "_cache_setup_done") or not model._cache_setup_done:
+        max_seq_len = int(os.environ.get("MAX_SEQ_LEN", model.config.max_seq_len))
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,  # Fixed to 1, avoid dynamic changes
-                max_seq_len=model.config.max_seq_len,
+                max_seq_len=max_seq_len,
                 dtype=next(model.parameters()).dtype,
             )
         model._cache_setup_done = True
@@ -758,10 +759,11 @@ def launch_thread_safe_queue(
         model, decode_one_token = init_model(
             checkpoint_path, device, precision, compile=compile
         )
+        max_seq_len = int(os.environ.get("MAX_SEQ_LEN", model.config.max_seq_len))
         with torch.device(device):
             model.setup_caches(
                 max_batch_size=1,
-                max_seq_len=model.config.max_seq_len,
+                max_seq_len=max_seq_len,
                 dtype=next(model.parameters()).dtype,
             )
         init_event.set()
