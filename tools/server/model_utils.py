@@ -12,8 +12,13 @@ ASR_SAMPLE_RATE = 16000
 HUGE_GAP_THRESHOLD = 4000
 
 
+def _autocast(device_type: str):
+    if device_type == "cpu":
+        return torch.autocast(device_type="cpu", dtype=torch.bfloat16)
+    return torch.autocast(device_type=device_type, dtype=torch.half)
+
+
 @torch.no_grad()
-@torch.autocast(device_type="cuda", dtype=torch.half)
 def batch_encode(model, audios_list: list[bytes]):
     # Get sample rate from model
     if hasattr(model, "spec_transform"):
@@ -42,7 +47,8 @@ def batch_encode(model, audios_list: list[bytes]):
         ]
     ).to(model.device)
 
-    features, feature_lengths = model.encode(padded, audio_lengths=lengths)
+    with _autocast(model.device.type):
+        features, feature_lengths = model.encode(padded, audio_lengths=lengths)
     features, feature_lengths = features.cpu(), feature_lengths.cpu()
 
     return [feature[..., :length] for feature, length in zip(features, feature_lengths)]
@@ -57,7 +63,6 @@ def cached_vqgan_batch_encode(model, audios: list[bytes]):
 
 
 @torch.no_grad()
-@torch.autocast(device_type="cuda", dtype=torch.half)
 def batch_vqgan_decode(model, features):
     lengths = torch.tensor(
         [feature.shape[-1] for feature in features], device=model.device
@@ -72,13 +77,14 @@ def batch_vqgan_decode(model, features):
 
     # If bs too large, we do micro batch decode
     audios, audio_lengths = [], []
-    for i in range(0, padded.shape[0], MICRO_BATCH_SIZE):
-        audio, audio_length = model.decode(
-            padded[i : i + MICRO_BATCH_SIZE],
-            feature_lengths=lengths[i : i + MICRO_BATCH_SIZE],
-        )
-        audios.append(audio)
-        audio_lengths.append(audio_length)
+    with _autocast(model.device.type):
+        for i in range(0, padded.shape[0], MICRO_BATCH_SIZE):
+            audio, audio_length = model.decode(
+                padded[i : i + MICRO_BATCH_SIZE],
+                feature_lengths=lengths[i : i + MICRO_BATCH_SIZE],
+            )
+            audios.append(audio)
+            audio_lengths.append(audio_length)
     audios = torch.cat(audios, dim=0)
     audio_lengths = torch.cat(audio_lengths, dim=0)
     audios, audio_lengths = audios.cpu(), audio_lengths.cpu()

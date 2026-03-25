@@ -1015,13 +1015,14 @@ if __name__ == "__main__":
         model = hydra.utils.instantiate(OmegaConf.load(config_path))
         new_sd = torch.load(checkpoint_path, map_location="cpu")
         model.load_state_dict(new_sd, strict=False)
-        model.cuda()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
         model.eval()
 
         # 2. 加载外部 codes (.npy)
         # 预期 shape 通常为 [num_codebooks, seq_len] 或 [1, num_codebooks, seq_len]
         codes_np = np.load(codes_path)
-        codes_tensor = torch.from_numpy(codes_np).to(torch.long).cuda()
+        codes_tensor = torch.from_numpy(codes_np).to(torch.long).to(device)
 
         # 如果 codes 没有 batch 维度，增加一个维度 [1, num_codebooks, seq_len]
         if len(codes_tensor.shape) == 2:
