@@ -106,11 +106,79 @@ def check_vram_and_advise(checkpoint_path: str):
             logger.warning(f"  {i}. {s}")
 
 
+def _is_kv_cache(name: str) -> bool:
+    return "k_cache" in name or "v_cache" in name
+
+
+def _layer_to_cpu(layer: nn.Module):
+    """Move a layer to CPU, preserving KV caches on GPU."""
+    kv_refs = {}
+    for name, buf in layer.named_buffers():
+        if _is_kv_cache(name):
+            kv_refs[name] = buf.data
+    with torch.inference_mode(False):
+        layer.to("cpu")
+    for name, buf in layer.named_buffers():
+        if name in kv_refs:
+            buf.data = kv_refs[name]
+
+
+def _layer_to_gpu(layer: nn.Module, device: torch.device):
+    """Move a layer to GPU, preserving KV caches (already on GPU)."""
+    kv_refs = {}
+    for name, buf in layer.named_buffers():
+        if _is_kv_cache(name):
+            kv_refs[name] = buf.data
+    with torch.inference_mode(False):
+        layer.to(device)
+    for name, buf in layer.named_buffers():
+        if name in kv_refs:
+            buf.data = kv_refs[name]
+
+
+class LayerStreamer:
+    """Streams transformer layers between CPU and GPU one at a time with prefetching.
+
+    Usage: replaces `for layer in self.layers: x = layer(x, ...)` with
+           `x = model._layer_streamer.run(self.layers, x, *args)`
+    """
+
+    def __init__(self, device: torch.device):
+        self.device = device
+        self.prefetch_stream = torch.cuda.Stream()
+
+    def run(self, layers: nn.ModuleList, x, *args, **kwargs):
+        """Execute layers sequentially, streaming weights from CPU."""
+        n = len(layers)
+
+        # Prefetch first layer
+        with torch.cuda.stream(self.prefetch_stream):
+            _layer_to_gpu(layers[0], self.device)
+
+        for i, layer in enumerate(layers):
+            # Wait for current layer to be on GPU
+            torch.cuda.current_stream().wait_stream(self.prefetch_stream)
+
+            # Prefetch next layer while current one computes
+            if i + 1 < n:
+                with torch.cuda.stream(self.prefetch_stream):
+                    _layer_to_gpu(layers[i + 1], self.device)
+
+            # Run the layer
+            x = layer(x, *args, **kwargs)
+
+            # Move current layer back to CPU (sync first)
+            torch.cuda.synchronize()
+            _layer_to_cpu(layer)
+
+        return x
+
+
 def setup_gtt_offload(model: nn.Module, device: torch.device):
     """Offload transformer layer weights to CPU (GTT) and stream them to GPU on demand.
 
     ROCm only. Keeps KV caches on GPU for low-latency attention access.
-    Weights are moved to pinned CPU memory and streamed layer-by-layer
+    Weights are moved to CPU memory and streamed layer-by-layer
     with async prefetching of the next layer via a separate HIP stream.
 
     Enable with OFFLOAD_WEIGHTS_TO_GTT=true.
@@ -122,24 +190,22 @@ def setup_gtt_offload(model: nn.Module, device: torch.device):
         logger.warning("OFFLOAD_WEIGHTS_TO_GTT is only supported on AMD ROCm devices, ignoring.")
         return False
 
-    # Find the transformer layers (self.layers in BaseTransformer)
     if not hasattr(model, "layers"):
         logger.warning("Model has no 'layers' attribute, cannot offload weights.")
         return False
 
     layers = model.layers
     n_layers = len(layers)
-    prefetch_stream = torch.cuda.Stream()
 
-    # Move each layer's parameters to pinned CPU memory, but keep KV caches on GPU.
+    # Move each layer to CPU, keeping KV caches on GPU
     gpu_mem_before = torch.cuda.memory_allocated()
     for layer in layers:
-        _offload_layer_to_cpu(layer, device)
+        _layer_to_cpu(layer)
     gpu_mem_after = torch.cuda.memory_allocated()
     saved_gb = (gpu_mem_before - gpu_mem_after) / 1e9
 
     logger.info(
-        f"GTT offload: moved {n_layers} layers to pinned CPU memory, "
+        f"GTT offload: moved {n_layers} layers to CPU, "
         f"freed {saved_gb:.1f}GB VRAM. KV caches remain on GPU."
     )
 
@@ -147,94 +213,10 @@ def setup_gtt_offload(model: nn.Module, device: torch.device):
     fast_layers = getattr(model, "fast_layers", None)
     if fast_layers is not None:
         for layer in fast_layers:
-            _offload_layer_to_cpu(layer, device)
+            _layer_to_cpu(layer)
         logger.info(f"GTT offload: also moved {len(fast_layers)} fast layers to CPU.")
 
-    # Register hooks for streaming weights layer-by-layer
-    _register_offload_hooks(layers, prefetch_stream, device)
-    if fast_layers is not None:
-        _register_offload_hooks(fast_layers, prefetch_stream, device)
+    # Attach a LayerStreamer to the model — the forward methods will use it
+    model._layer_streamer = LayerStreamer(device)
 
     return True
-
-
-def _offload_layer_to_cpu(layer: nn.Module, device: torch.device):
-    """Move a layer's parameters and non-KV buffers to pinned CPU memory."""
-    for name, param in layer.named_parameters():
-        # Pin the CPU tensor for faster PCIe transfers
-        cpu_data = param.data.to("cpu").pin_memory()
-        param.data = cpu_data
-
-    for name, buf in layer.named_buffers():
-        # Keep KV caches on GPU — they're the whole point of this optimization
-        if "k_cache" in name or "v_cache" in name:
-            continue
-        cpu_data = buf.data.to("cpu").pin_memory()
-        buf.data = cpu_data
-
-
-def _register_offload_hooks(layers: nn.ModuleList, prefetch_stream, device):
-    """Register forward hooks that stream weights GPU↔CPU with prefetching."""
-    n_layers = len(layers)
-
-    def make_pre_hook(layer_idx):
-        def pre_hook(module, args):
-            # Wait for prefetch to complete (if this layer was prefetched)
-            torch.cuda.current_stream().wait_stream(prefetch_stream)
-
-            # If this is the first layer (no prefetch), move synchronously
-            if not hasattr(module, "_on_gpu"):
-                _move_layer_to_device(module, device)
-            module._on_gpu = True
-
-            # Prefetch next layer asynchronously
-            if layer_idx + 1 < n_layers:
-                next_layer = layers[layer_idx + 1]
-                with torch.cuda.stream(prefetch_stream):
-                    _move_layer_to_device(next_layer, device)
-                    next_layer._on_gpu = True
-
-        return pre_hook
-
-    def make_post_hook(layer_idx):
-        def post_hook(module, args, output):
-            # Move this layer back to CPU after use
-            _move_layer_to_cpu(module)
-            module._on_gpu = False
-            return output
-
-        return post_hook
-
-    for idx, layer in enumerate(layers):
-        layer.register_forward_pre_hook(make_pre_hook(idx))
-        layer.register_forward_hook(make_post_hook(idx))
-
-
-def _move_layer_to_device(layer: nn.Module, device):
-    """Move layer parameters and non-KV buffers to GPU."""
-    for name, param in layer.named_parameters():
-        if param.device.type != "cpu":
-            continue
-        param.data = param.data.to(device, non_blocking=True)
-
-    for name, buf in layer.named_buffers():
-        if "k_cache" in name or "v_cache" in name:
-            continue
-        if buf.device.type != "cpu":
-            continue
-        buf.data = buf.data.to(device, non_blocking=True)
-
-
-def _move_layer_to_cpu(layer: nn.Module):
-    """Move layer parameters and non-KV buffers back to pinned CPU memory."""
-    for name, param in layer.named_parameters():
-        if param.device.type == "cpu":
-            continue
-        param.data = param.data.to("cpu", non_blocking=True).pin_memory()
-
-    for name, buf in layer.named_buffers():
-        if "k_cache" in name or "v_cache" in name:
-            continue
-        if buf.device.type == "cpu":
-            continue
-        buf.data = buf.data.to("cpu", non_blocking=True).pin_memory()

@@ -441,8 +441,11 @@ class BaseTransformer(nn.Module):
         mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
         freqs_cis = self.freqs_cis[input_pos]
 
-        for layer in self.layers:
-            x = layer(x, freqs_cis, mask, input_pos=input_pos)
+        if getattr(self, "_layer_streamer", None) is not None:
+            x = self._layer_streamer.run(self.layers, x, freqs_cis, mask, input_pos=input_pos)
+        else:
+            for layer in self.layers:
+                x = layer(x, freqs_cis, mask, input_pos=input_pos)
 
         if x.size(1) > 1 and not return_all:
             x = x[:, -1:]
@@ -807,8 +810,11 @@ class DualARTransformer(BaseTransformer):
         ]  # (B, N, Q, K)
         fast_freqs_cis = self.fast_freqs_cis[input_pos]
 
-        for layer in self.fast_layers:
-            x = layer(x, fast_freqs_cis, fast_mask, input_pos=input_pos)
+        if getattr(self, "_layer_streamer", None) is not None:
+            x = self._layer_streamer.run(self.fast_layers, x, fast_freqs_cis, fast_mask, input_pos=input_pos)
+        else:
+            for layer in self.fast_layers:
+                x = layer(x, fast_freqs_cis, fast_mask, input_pos=input_pos)
 
         # unflatten the batch and num_codebooks
         fast_out = self.fast_norm(x)  # only take the last token

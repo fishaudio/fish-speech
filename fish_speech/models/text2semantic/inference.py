@@ -760,13 +760,6 @@ def launch_thread_safe_queue(
             checkpoint_path, device, precision, compile=compile
         )
 
-        # Offload weights to GTT (CPU pinned memory) if requested.
-        # Must happen after model.to(device) but before setup_caches so
-        # freed VRAM is available for KV cache allocation.
-        from fish_speech.utils.gpu import setup_gtt_offload
-
-        setup_gtt_offload(model, torch.device(device))
-
         max_seq_len = int(os.environ.get("MAX_SEQ_LEN", model.config.max_seq_len))
         with torch.device(device):
             model.setup_caches(
@@ -774,6 +767,14 @@ def launch_thread_safe_queue(
                 max_seq_len=max_seq_len,
                 dtype=next(model.parameters()).dtype,
             )
+
+        # Offload weights to GTT (CPU pinned memory) if requested.
+        # Runs after setup_caches so KV caches exist and can be
+        # preserved on GPU while layer weights move to CPU.
+        from fish_speech.utils.gpu import setup_gtt_offload
+
+        setup_gtt_offload(model, torch.device(device))
+
         init_event.set()
 
         while True:
