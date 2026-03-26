@@ -20,7 +20,11 @@ _DECODER_ESTIMATE_INT8 = 1.8
 
 def _is_rocm() -> bool:
     """Check if running on ROCm (AMD HIP backend)."""
-    return torch.cuda.is_available() and hasattr(torch.version, "hip") and torch.version.hip is not None
+    return (
+        torch.cuda.is_available()
+        and hasattr(torch.version, "hip")
+        and torch.version.hip is not None
+    )
 
 
 def auto_detect_rocm_gfx():
