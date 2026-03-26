@@ -17,11 +17,18 @@ services:
       - seccomp=unconfined
     ipc: host
     shm_size: 8G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - miopen-cache:/home/fish/.config/miopen
     environment:
       HSA_ENABLE_SDMA: "0"
       GPU_MAX_HW_QUEUES: "1"
       HSA_USE_SVM: "0"
       PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
+      MIOPEN_FIND_MODE: "${MIOPEN_FIND_MODE:-3}"
       VRAM_FRACTION: "${VRAM_FRACTION:-0}"
       MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"
       OFFLOAD_WEIGHTS_TO_CPU: "${OFFLOAD_WEIGHTS_TO_CPU:-false}"
@@ -37,11 +44,21 @@ services:
       - seccomp=unconfined
     ipc: host
     shm_size: 8G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - miopen-cache:/home/fish/.config/miopen
     environment:
       HSA_ENABLE_SDMA: "0"
       GPU_MAX_HW_QUEUES: "1"
       HSA_USE_SVM: "0"
       PYTORCH_HIP_ALLOC_CONF: "garbage_collection_threshold:0.7,max_split_size_mb:4096"
+      MIOPEN_FIND_MODE: "${MIOPEN_FIND_MODE:-3}"
       VRAM_FRACTION: "${VRAM_FRACTION:-0}"
       MAX_SEQ_LEN: "${MAX_SEQ_LEN:-32768}"
       OFFLOAD_WEIGHTS_TO_CPU: "${OFFLOAD_WEIGHTS_TO_CPU:-false}"
+
+volumes:
+  miopen-cache:

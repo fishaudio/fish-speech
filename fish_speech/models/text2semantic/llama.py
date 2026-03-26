@@ -396,22 +396,28 @@ class BaseTransformer(nn.Module):
         return_all: bool = False,
     ) -> BaseTransformerForwardResult:
 
+        # When CPU offload is active, embeddings are on CPU — move input there
+        # Capture original device before any moves (for returning results to GPU)
+        _orig_device = inp.device
+        embed_device = self.embeddings.weight.device
+        inp_e = inp.to(embed_device) if inp.device != embed_device else inp
+
         # Embedding logic replicated from embed() for compilation compatibility
         embeds = []
         for i in range(self.config.num_codebooks):
             emb = self.codebook_embeddings(
-                inp[:, i + 1] + i * self.config.codebook_size
+                inp_e[:, i + 1] + i * self.config.codebook_size
             )
             embeds.append(emb)
 
         vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
 
-        vq_masks = (inp[:, 0] >= self.config.semantic_begin_id) & (
-            inp[:, 0] <= self.config.semantic_end_id
+        vq_masks = (inp_e[:, 0] >= self.config.semantic_begin_id) & (
+            inp_e[:, 0] <= self.config.semantic_end_id
         )
 
         vq_embeds_sum[~vq_masks] = 0
-        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
+        x = self.embeddings(inp_e[:, 0]) + vq_embeds_sum
 
         if self.config.scale_codebook_embeddings:
             vq_masks_expanded = vq_masks.unsqueeze(-1).expand_as(x)
@@ -421,14 +427,12 @@ class BaseTransformer(nn.Module):
 
         # Audio embeddings
         if audio_parts is not None:
-            # Note: This assumes self.audio_projector exists if audio_parts is used
-            # It seems missing in init, but we keep existing logic
             if hasattr(self, "audio_projector"):
-                audio_embeds = self.audio_projector(audio_parts)
+                audio_embeds = self.audio_projector(audio_parts.to(embed_device))
                 if self.config.scale_codebook_embeddings:
-                    x[audio_masks] = audio_embeds / math.sqrt(2)
+                    x[audio_masks.to(embed_device)] = audio_embeds / math.sqrt(2)
                 else:
-                    x[audio_masks] = audio_embeds
+                    x[audio_masks.to(embed_device)] = audio_embeds
             else:
                 logger.warning("audio_parts provided but model has no audio_projector")
 
@@ -442,10 +446,40 @@ class BaseTransformer(nn.Module):
         freqs_cis = self.freqs_cis[input_pos]
 
         if getattr(self, "_layer_streamer", None) is not None:
-            x = self._layer_streamer.run(self.layers, x, freqs_cis, mask, input_pos=input_pos)
-        else:
+            # CPU offload: run slow layers + norm + logits on CPU,
+            # then transfer only the small results to GPU
+            gpu_device = _orig_device
+            x_cpu = x.to("cpu")
+            freqs_cpu = freqs_cis.to("cpu")
+            mask_cpu = mask.to("cpu")
+            ipos_cpu = input_pos.to("cpu") if input_pos is not None else None
+
             for layer in self.layers:
-                x = layer(x, freqs_cis, mask, input_pos=input_pos)
+                x_cpu = layer(x_cpu, freqs_cpu, mask_cpu, input_pos=ipos_cpu)
+
+            if x_cpu.size(1) > 1 and not return_all:
+                x_cpu = x_cpu[:, -1:]
+
+            slow_out_cpu = self.norm(x_cpu)
+
+            if self.config.is_reward_model:
+                token_logits_cpu = self.score_output(slow_out_cpu)
+            elif self.config.tie_word_embeddings:
+                token_logits_cpu = F.linear(slow_out_cpu, self.embeddings.weight)
+            else:
+                token_logits_cpu = self.output(slow_out_cpu)
+
+            hidden_cpu = (
+                slow_out_cpu if getattr(self.config, "norm_fastlayer_input", False) else x_cpu
+            )
+
+            return BaseTransformerForwardResult(
+                logits=token_logits_cpu.to(gpu_device),
+                hidden_states=hidden_cpu.to(gpu_device),
+            )
+
+        for layer in self.layers:
+            x = layer(x, freqs_cis, mask, input_pos=input_pos)
 
         if x.size(1) > 1 and not return_all:
             x = x[:, -1:]
@@ -810,11 +844,8 @@ class DualARTransformer(BaseTransformer):
         ]  # (B, N, Q, K)
         fast_freqs_cis = self.fast_freqs_cis[input_pos]
 
-        if getattr(self, "_layer_streamer", None) is not None:
-            x = self._layer_streamer.run(self.fast_layers, x, fast_freqs_cis, fast_mask, input_pos=input_pos)
-        else:
-            for layer in self.fast_layers:
-                x = layer(x, fast_freqs_cis, fast_mask, input_pos=input_pos)
+        for layer in self.fast_layers:
+            x = layer(x, fast_freqs_cis, fast_mask, input_pos=input_pos)
 
         # unflatten the batch and num_codebooks
         fast_out = self.fast_norm(x)  # only take the last token
