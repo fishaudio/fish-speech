@@ -46,6 +46,7 @@ class ReferenceLoader:
             # Try ffmpeg first, fallback to soundfile
             try:
                 import importlib
+
                 importlib.import_module("torchaudio.io._load_audio_fileobj")
 
                 self.backend = "ffmpeg"
