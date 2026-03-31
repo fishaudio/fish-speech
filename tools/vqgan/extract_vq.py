@@ -1,3 +1,4 @@
+import importlib
 import os
 import subprocess as sp
 import sys
@@ -34,12 +35,10 @@ except AttributeError:
     # torchaudio 2.9+ removed list_audio_backends()
     # Try ffmpeg first, fallback to soundfile
     try:
-        import importlib
-
         importlib.import_module("torchaudio.io._load_audio_fileobj")
 
         backend = "ffmpeg"
-    except (ImportError, ModuleNotFoundError):
+    except ImportError:
         backend = "soundfile"
 
 RANK = int(os.environ.get("SLURM_PROCID", 0))
