@@ -29,6 +29,8 @@ from fish_speech.utils.schema import (
     AddReferenceResponse,
     DeleteReferenceResponse,
     ListReferencesResponse,
+    ReferenceCompatibilityResponse,
+    ServeReferenceCompatibility,
     ServeTTSRequest,
     ServeVQGANDecodeRequest,
     ServeVQGANDecodeResponse,
@@ -311,6 +313,43 @@ async def list_references():
         logger.error(f"Unexpected error listing references: {e}", exc_info=True)
         response = ListReferencesResponse(
             success=False, reference_ids=[], message="Internal server error occurred"
+        )
+        return format_response(response, status_code=500)
+
+
+@routes.http.get("/v1/references/compatibility")
+async def get_reference_compatibility():
+    """
+    Get the current runtime reference compatibility contract.
+    """
+    try:
+        app_state = request.app.state
+        model_manager: ModelManager = app_state.model_manager
+        compatibility = ServeReferenceCompatibility.model_validate(
+            model_manager.get_reference_compatibility_snapshot()
+        )
+        response = ReferenceCompatibilityResponse(
+            success=True,
+            compatibility=compatibility,
+        )
+        return format_response(response)
+
+    except Exception as e:
+        logger.error("Unexpected error getting reference compatibility", exc_info=True)
+        compatibility = ServeReferenceCompatibility(
+            artifact_schema_version=1,
+            codec_checkpoint_sha256="sha256:unknown",
+            decoder_config_name="unknown",
+            text2semantic_checkpoint_sha256="sha256:unknown",
+            tokenizer_sha256="sha256:unknown",
+            num_codebooks=1,
+            semantic_begin_id=0,
+            sample_rate_hz=1,
+        )
+        response = ReferenceCompatibilityResponse(
+            success=False,
+            compatibility=compatibility,
+            message=str(e),
         )
         return format_response(response, status_code=500)
 

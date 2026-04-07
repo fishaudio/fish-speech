@@ -1,5 +1,7 @@
 import gc
 import queue
+import unicodedata
+from hashlib import sha256
 from typing import Generator
 
 import numpy as np
@@ -16,7 +18,34 @@ from fish_speech.models.text2semantic.inference import (
     WrappedGenerateResponse,
 )
 from fish_speech.utils import autocast_exclude_mps, set_seed
-from fish_speech.utils.schema import ServeTTSRequest
+from fish_speech.utils.schema import (
+    ServeReferenceCompatibility,
+    ServeReferencePayload,
+    ServeTTSRequest,
+)
+
+
+def _normalize_reference_text(text: str) -> str:
+    return unicodedata.normalize("NFC", text).replace("\r\n", "\n").strip()
+
+
+def _build_prompt_fingerprint(
+    reference_text: str,
+    prompt_tokens: list[list[int]],
+    artifact_schema_version: int = 1,
+) -> str:
+    normalized_text = _normalize_reference_text(reference_text)
+    token_tensor = torch.tensor(prompt_tokens, dtype=torch.int32)
+    shape_ascii = f"{token_tensor.shape[0]},{token_tensor.shape[1]}".encode("ascii")
+    preimage = (
+        f"v{artifact_schema_version}\n".encode("ascii")
+        + normalized_text.encode("utf-8")
+        + b"\nint32\n"
+        + shape_ascii
+        + b"\n"
+        + token_tensor.contiguous().numpy().tobytes()
+    )
+    return f"sha256:{sha256(preimage).hexdigest()}"
 
 
 class TTSInferenceEngine(ReferenceLoader, VQManager):
@@ -27,6 +56,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         decoder_model: DAC,
         precision: torch.dtype,
         compile: bool,
+        reference_compatibility: ServeReferenceCompatibility | None = None,
     ) -> None:
 
         super().__init__()
@@ -35,6 +65,50 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         self.decoder_model = decoder_model
         self.precision = precision
         self.compile = compile
+        if reference_compatibility is None:
+            sample_rate_hz = getattr(self.decoder_model, "sample_rate", 0)
+            quantizer = getattr(self.decoder_model, "quantizer", None)
+            num_codebooks = getattr(quantizer, "n_codebooks", 0) + 1
+            reference_compatibility = ServeReferenceCompatibility(
+                artifact_schema_version=1,
+                codec_checkpoint_sha256="sha256:unknown",
+                decoder_config_name=type(self.decoder_model).__name__,
+                text2semantic_checkpoint_sha256="sha256:unknown",
+                tokenizer_sha256="sha256:unknown",
+                num_codebooks=num_codebooks,
+                semantic_begin_id=0,
+                sample_rate_hz=sample_rate_hz,
+            )
+        self.reference_compatibility = reference_compatibility
+
+    def resolve_reference_payload(
+        self, reference_payload: ServeReferencePayload
+    ) -> tuple[list[torch.Tensor], list[str], str]:
+        expected = self.reference_compatibility.model_dump(mode="python")
+        actual = reference_payload.compatibility.model_dump(mode="python")
+        for field_name, expected_value in expected.items():
+            if actual.get(field_name) != expected_value:
+                raise ValueError(
+                    f"reference_payload compatibility mismatch for '{field_name}'"
+                )
+
+        reference_fingerprint = _build_prompt_fingerprint(
+            reference_payload.reference_text,
+            reference_payload.prompt_tokens,
+            artifact_schema_version=actual["artifact_schema_version"],
+        )
+        if (
+            reference_payload.reference_fingerprint is not None
+            and reference_payload.reference_fingerprint != reference_fingerprint
+        ):
+            raise ValueError("reference_payload fingerprint mismatch")
+
+        normalized_text = _normalize_reference_text(reference_payload.reference_text)
+        prompt_tokens = [
+            torch.tensor(reference_payload.prompt_tokens, dtype=torch.long)
+        ]
+        prompt_texts = [normalized_text]
+        return prompt_tokens, prompt_texts, reference_fingerprint
 
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, None]:
@@ -47,14 +121,29 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
 
         ref_id: str | None = req.reference_id
         prompt_tokens, prompt_texts = [], []
-        # Load the reference audio and text based on id or hash
-        if ref_id is not None:
-            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
-
-        elif req.references:
+        reference_source = req.effective_reference_source()
+        if reference_source == "reference_payload":
+            if req.references:
+                logger.warning(
+                    "Ignoring inline references because reference_payload takes precedence"
+                )
+            if ref_id is not None:
+                logger.warning(
+                    "Ignoring reference_id because reference_payload takes precedence"
+                )
+            prompt_tokens, prompt_texts, _ = self.resolve_reference_payload(
+                req.reference_payload
+            )
+        elif reference_source == "references":
+            if ref_id is not None:
+                logger.warning(
+                    "Ignoring reference_id because inline references take precedence"
+                )
             prompt_tokens, prompt_texts = self.load_by_hash(
                 req.references, req.use_memory_cache
             )
+        elif ref_id is not None:
+            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
 
         # Set the random seed if provided
         if req.seed is not None:
