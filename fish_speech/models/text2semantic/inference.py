@@ -59,12 +59,19 @@ def logits_to_probs(
 ) -> torch.Tensor:
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     cum_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
-
+    # Calculate top-k mask
     indices = torch.arange(sorted_logits.shape[-1], device=sorted_logits.device)
     top_k_mask = indices >= top_k
-    sorted_indices_to_remove = (cum_probs > top_p) | top_k_mask
-    sorted_indices_to_remove[0] = False  # 单元素修改问题不大，或者写成 | (indices != 0)
 
+    # Calculate top-p mask and shift right by one to include the boundary token
+    top_p_mask = cum_probs > top_p
+    top_p_mask[..., 1:] = top_p_mask[..., :-1].clone()
+
+    # Combine both masks
+    sorted_indices_to_remove = top_p_mask | top_k_mask
+
+    # Ensure at least the most probable token is kept (safe for batched inputs)
+    sorted_indices_to_remove[..., 0] = False
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
     )
