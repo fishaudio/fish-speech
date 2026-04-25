@@ -5,11 +5,19 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from pydantic import BaseModel, Field, conint, model_validator
+from pydantic import BaseModel, Field, conint, field_validator, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
 
 from fish_speech.content_sequence import TextPart, VQPart
+
+# Security: per-audio size cap (25 MB ~ 2.5 min uncompressed 24 kHz mono).
+# Prevents OOM via crafted WAV with a 2^31-byte sample-count header
+# (DEFEND-20260424T1530-fish-vqgan-encode-audio-memory-bomb).
+_MAX_AUDIO_BYTES: int = 25 * 1024 * 1024  # 25 MB
+
+# Security: maximum number of reference-audio items in a single encode request.
+_MAX_AUDIO_LIST_ITEMS: int = 16
 
 
 class ServeVQPart(BaseModel):
@@ -40,8 +48,26 @@ class ServeRequest(BaseModel):
 
 
 class ServeVQGANEncodeRequest(BaseModel):
-    # The audio here should be in wav, mp3, etc
+    # The audio here should be in wav, mp3, etc.
+    # Security: bounded to _MAX_AUDIO_LIST_ITEMS items, each at most _MAX_AUDIO_BYTES.
     audios: list[bytes]
+
+    @field_validator("audios")
+    @classmethod
+    def validate_audios(cls, v: list[bytes]) -> list[bytes]:
+        if len(v) > _MAX_AUDIO_LIST_ITEMS:
+            raise ValueError(
+                f"Too many audio items: {len(v)} > {_MAX_AUDIO_LIST_ITEMS}. "
+                "Send at most 16 reference audios per request."
+            )
+        for i, audio in enumerate(v):
+            if len(audio) > _MAX_AUDIO_BYTES:
+                raise ValueError(
+                    f"Audio item {i} exceeds size limit: "
+                    f"{len(audio)} bytes > {_MAX_AUDIO_BYTES} bytes (25 MB). "
+                    "Reduce the audio length or bitrate."
+                )
+        return v
 
 
 class ServeVQGANEncodeResponse(BaseModel):
@@ -58,10 +84,13 @@ class ServeVQGANDecodeResponse(BaseModel):
 
 
 class ServeReferenceAudio(BaseModel):
+    # Security: bounded to _MAX_AUDIO_BYTES. Prevents OOM via crafted audio payloads
+    # (DEFEND-20260424T1530-fish-vqgan-encode-audio-memory-bomb).
     audio: bytes
     text: str
 
     @model_validator(mode="before")
+    @classmethod
     def decode_audio(cls, values):
         audio = values.get("audio")
         if (
@@ -73,6 +102,17 @@ class ServeReferenceAudio(BaseModel):
                 # If the audio is not a valid base64 string, we will just ignore it and let the server handle it
                 pass
         return values
+
+    @field_validator("audio")
+    @classmethod
+    def validate_audio_size(cls, v: bytes) -> bytes:
+        if len(v) > _MAX_AUDIO_BYTES:
+            raise ValueError(
+                f"Reference audio exceeds size limit: "
+                f"{len(v)} bytes > {_MAX_AUDIO_BYTES} bytes (25 MB). "
+                "Reduce the audio length or bitrate."
+            )
+        return v
 
     def __repr__(self) -> str:
         return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
