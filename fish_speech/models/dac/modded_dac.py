@@ -1013,7 +1013,7 @@ if __name__ == "__main__":
     with torch.inference_mode():
         # 1. 初始化模型
         model = hydra.utils.instantiate(OmegaConf.load(config_path))
-        new_sd = torch.load(checkpoint_path, map_location="cpu")
+        new_sd = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
         model.load_state_dict(new_sd, strict=False)
         model.cuda()
         model.eval()

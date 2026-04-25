@@ -40,7 +40,9 @@ def merge(lora_config, base_weight, lora_weight, output):
     llama_state_dict = llama_model.state_dict()
     llama_state_dict = {k: v for k, v in llama_state_dict.items() if "lora" not in k}
     llama_state_dict_copy = deepcopy(llama_state_dict)
-    lora_state_dict = torch.load(lora_weight, map_location="cpu", weights_only=False)
+    # Use weights_only=True to block pickle-RCE via crafted LoRA checkpoints.
+    # LoRA state dicts are tensor-only — no pickle objects required.
+    lora_state_dict = torch.load(lora_weight, map_location="cpu", weights_only=True)
 
     if "state_dict" in llama_state_dict:
         llama_state_dict = llama_state_dict["state_dict"]
@@ -74,7 +76,7 @@ def merge(lora_config, base_weight, lora_weight, output):
     llama_model.save_pretrained(output, drop_lora=True)
     logger.info(f"Saved merged model to {output}, validating")
 
-    new_state_dict = torch.load(output / "model.pth", map_location="cpu")
+    new_state_dict = torch.load(output / "model.pth", map_location="cpu", weights_only=True)
     original_keys = set(llama_state_dict_copy.keys())
 
     tolerance = 1e-5
