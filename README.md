@@ -63,6 +63,8 @@ Here are the official documents for Fish Audio S2, follow the instructions to ge
 
 > [!IMPORTANT]
 > **For SGLang server, please read [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
+>
+> **For vLLM Omni server, please read [vLLM-Omni Fish Speech README](https://github.com/vllm-project/vllm-omni/blob/main/examples/online_serving/fish_speech/README.md).**
 
 ### For LLM Agent
 
