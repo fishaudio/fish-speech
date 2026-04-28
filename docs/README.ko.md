@@ -64,6 +64,8 @@ Fish Audio S2의 공식 문서입니다. 지침에 따라 쉽게 시작하십시
 
 > [!IMPORTANT]
 > **SGLang 서버를 사용하려면 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)를 참조하십시오.**
+>
+> **vLLM Omni 서버를 사용하려면 [vLLM-Omni Fish Speech README](https://github.com/vllm-project/vllm-omni/blob/main/examples/online_serving/fish_speech/README.md)를 참조하십시오.**
 
 ### LLM Agent 가이드
 
