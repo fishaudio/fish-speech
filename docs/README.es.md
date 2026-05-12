@@ -61,7 +61,7 @@ Aquí tienes la documentación oficial de Fish Audio S2. Sigue las instrucciones
 > [!IMPORTANT]
 > **Para el servidor SGLang, consulta [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 >
-> **Para el servidor vLLM Omni, consulta [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md).**
+> **Para el servidor vLLM Omni, consulta [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md) y la [Guía de usuario](https://github.com/vllm-project/vllm-omni/blob/main/docs/user_guide/examples/online_serving/text_to_speech.md#fish-speech-s2-pro).**
 
 ### Para agentes LLM
 

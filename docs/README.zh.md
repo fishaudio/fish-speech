@@ -65,7 +65,7 @@
 > [!IMPORTANT]
 > **如需使用 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。**
 >
-> **如需使用 vLLM Omni Server，请参考 [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md)。**
+> **如需使用 vLLM Omni Server，请参考 [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md) 和[用户指南](https://github.com/vllm-project/vllm-omni/blob/main/docs/user_guide/examples/online_serving/text_to_speech.md#fish-speech-s2-pro)。**
 
 ### LLM Agent 指南
 
