@@ -65,7 +65,7 @@
 > [!IMPORTANT]
 > **إذا كنت ترغب في استخدام خادم SGLang، فيرجى الرجوع إلى [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 >
-> **إذا كنت ترغب في استخدام خادم vLLM Omni، فيرجى الرجوع إلى [vLLM-Omni Fish Speech README](https://github.com/vllm-project/vllm-omni/blob/main/examples/online_serving/fish_speech/README.md).**
+> **إذا كنت ترغب في استخدام خادم vLLM Omni، فيرجى الرجوع إلى [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md).**
 
 ### دليل وكيل LLM
 
