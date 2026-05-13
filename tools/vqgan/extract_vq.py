@@ -67,6 +67,7 @@ def get_model(
     state_dict = torch.load(
         checkpoint_path,
         map_location=device,
+        weights_only=True,
     )
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
