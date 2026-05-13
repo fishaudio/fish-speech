@@ -132,11 +132,46 @@ class ReferenceLoader:
 
     def load_audio(self, reference_audio: bytes | str, sr: int):
         """
-        Load the audio data from a file or bytes.
+        Load audio from either raw bytes or a filesystem path string.
+
+        Discrimination logic (DEFEND-20260424T1530-fish-vqgan-encode-audio-memory-bomb
+        secondary issue -- fragile len>255 path/bytes heuristic replaced):
+
+        1. If ``reference_audio`` is ``bytes``: treat as raw audio payload unconditionally.
+        2. If ``reference_audio`` is ``str`` and len < 512 *and* the path resolves to an
+           existing file: treat as a filesystem path.
+        3. Otherwise (``str`` that is too long to be a sane path, or does not resolve to a
+           file): treat as inline data and wrap in BytesIO.  A warning is logged when this
+           fallback fires so operators can detect misconfigured callers.
+
+        The old ``len(reference_audio) > 255`` heuristic was ambiguous: it misrouted both
+        256-byte payloads (bytes) and 256-char path strings (str).  This implementation
+        uses type and filesystem existence as the primary discriminators.
         """
-        if len(reference_audio) > 255 or not Path(reference_audio).exists():
-            audio_data = reference_audio
-            reference_audio = io.BytesIO(audio_data)
+        _MAX_PATH_LEN = 512
+        if isinstance(reference_audio, bytes):
+            # Unconditionally treat raw bytes as audio payload.
+            reference_audio = io.BytesIO(reference_audio)
+        elif isinstance(reference_audio, str):
+            if len(reference_audio) < _MAX_PATH_LEN and Path(reference_audio).is_file():
+                # Valid filesystem path -- pass directly to torchaudio.
+                pass
+            else:
+                # Not a resolvable file path -- treat as inline data.
+                if len(reference_audio) >= _MAX_PATH_LEN:
+                    logger.warning(
+                        "load_audio: string argument length %d >= %d; "
+                        "treating as inline data, not a file path.",
+                        len(reference_audio),
+                        _MAX_PATH_LEN,
+                    )
+                else:
+                    logger.warning(
+                        "load_audio: string argument %r does not resolve to a file; "
+                        "treating as inline data.",
+                        reference_audio[:64],
+                    )
+                reference_audio = io.BytesIO(reference_audio.encode("utf-8"))
 
         waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
 
