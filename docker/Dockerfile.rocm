@@ -1,0 +1,106 @@
+# docker/Dockerfile.rocm
+#
+# Fish Speech on AMD ROCm (RDNA3 / RDNA4).
+# The checkpoints are NOT bundled — mount them at /app/checkpoints.
+#
+# Build:
+#   docker build -f docker/Dockerfile.rocm --target webui -t fish-speech-webui:rocm .
+#   docker build -f docker/Dockerfile.rocm --target server -t fish-speech-server:rocm .
+#
+# Run (webui):
+#   docker run --device=/dev/kfd --device=/dev/dri \
+#       --group-add video --group-add render \
+#       -e ROCBLAS_USE_HIPBLASLT=0 \
+#       -v ./checkpoints:/app/checkpoints \
+#       -p 7860:7860 fish-speech-webui:rocm
+
+ARG ROCM_VERSION=7.2.3
+ARG BASE_IMAGE=rocm/pytorch:rocm${ROCM_VERSION}_ubuntu24.04_py3.12_pytorch_release_2.9.1
+
+FROM ${BASE_IMAGE} AS app-base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    ROCBLAS_USE_HIPBLASLT=0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git ffmpeg libsox-dev build-essential cmake \
+        libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY . /app
+
+# Install runtime dependencies WITHOUT torch/torchaudio — the ROCm base image
+# already ships a gfx-tuned torch (2.9.1+rocm7.2.3). Then install the package
+# itself with --no-deps so pip does not try to pull a CUDA/CPU torch.
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir \
+        numpy "transformers<=4.57.3" datasets lightning pytorch_lightning \
+        hydra-core natsort einops librosa rich "gradio>5.0.0" wandb grpcio kui \
+        uvicorn loguru loralib pyrootutils resampy "einx[torch]==0.2.2" zstandard \
+        pydub "modelscope==1.17.1" "opencc-python-reimplemented==0.1.7" \
+        silero-vad ormsgpack tiktoken "pydantic==2.9.2" cachetools \
+        descript-audio-codec safetensors soundfile vector_quantize_pytorch \
+    && pip install --no-cache-dir --no-build-isolation pyaudio \
+    && pip install --no-cache-dir --no-deps -e . \
+    # descript-audiotools pins protobuf<3.20, but fish-speech's generated proto
+    # code needs >=3.20. Override after install (mirrors pyproject's uv override).
+    && pip install --no-cache-dir --no-deps --upgrade "protobuf>=4.25,<6.0"
+
+EXPOSE 7860 8080
+
+# torch.compile is enabled by default (verified working on gfx1201/RDNA4).
+# Set COMPILE=0 to disable.
+ENV COMPILE=1
+
+##############################################################
+# Gradio WebUI
+##############################################################
+FROM app-base AS webui
+
+ARG GRADIO_SERVER_NAME="0.0.0.0"
+ARG GRADIO_SERVER_PORT=7860
+ENV GRADIO_SERVER_NAME=${GRADIO_SERVER_NAME} \
+    GRADIO_SERVER_PORT=${GRADIO_SERVER_PORT}
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    'ARGS=()' \
+    'if [ "${COMPILE:-0}" = "1" ] || [ "${COMPILE:-}" = "true" ]; then ARGS+=(--compile); fi' \
+    'exec python tools/run_webui.py \' \
+    '  --llama-checkpoint-path checkpoints/s2-pro \' \
+    '  --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \' \
+    '  --decoder-config-name modded_dac_vq "${ARGS[@]}"' \
+    > /app/start_webui.sh && chmod +x /app/start_webui.sh
+
+ENTRYPOINT ["/app/start_webui.sh"]
+
+##############################################################
+# API Server
+##############################################################
+FROM app-base AS server
+
+ARG API_SERVER_NAME="0.0.0.0"
+ARG API_SERVER_PORT=8080
+ENV API_SERVER_NAME=${API_SERVER_NAME} \
+    API_SERVER_PORT=${API_SERVER_PORT}
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    'ARGS=()' \
+    'if [ "${COMPILE:-0}" = "1" ] || [ "${COMPILE:-}" = "true" ]; then ARGS+=(--compile); fi' \
+    'exec python tools/api_server.py \' \
+    '  --listen 0.0.0.0:8080 \' \
+    '  --llama-checkpoint-path checkpoints/s2-pro \' \
+    '  --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \' \
+    '  --decoder-config-name modded_dac_vq "${ARGS[@]}"' \
+    > /app/start_server.sh && chmod +x /app/start_server.sh
+
+ENTRYPOINT ["/app/start_server.sh"]

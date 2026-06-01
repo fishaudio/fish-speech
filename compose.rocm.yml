@@ -1,0 +1,58 @@
+name: fish-speech-rocm
+
+# AMD ROCm compose for Fish Speech (RDNA3 / RDNA4).
+# Mount your checkpoints into ./checkpoints before running.
+#
+#   docker compose -f compose.rocm.yml --profile webui up --build
+#   docker compose -f compose.rocm.yml --profile server up --build
+
+services:
+  webui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rocm
+      target: webui
+    image: fish-speech-webui:rocm
+    profiles: ["webui"]
+    ports:
+      - "${GRADIO_PORT:-7860}:7860"
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./references:/app/references
+    environment:
+      - ROCBLAS_USE_HIPBLASLT=0
+      - COMPILE=${COMPILE:-1}
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    shm_size: "16g"
+    tty: true
+    stdin_open: true
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rocm
+      target: server
+    image: fish-speech-server:rocm
+    profiles: ["server"]
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./references:/app/references
+    environment:
+      - ROCBLAS_USE_HIPBLASLT=0
+      - COMPILE=${COMPILE:-1}
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    shm_size: "16g"
+    tty: true
+    stdin_open: true

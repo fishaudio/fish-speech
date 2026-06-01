@@ -189,3 +189,40 @@ Both methods require mounting these directories:
 
 !!! warning
     GPU support requires NVIDIA Docker runtime. For CPU-only deployment, remove the `--gpus all` flag and use CPU images.
+
+### AMD ROCm support
+
+Fish Speech runs on AMD GPUs via ROCm. The ROCm image is based on the official `rocm/pytorch` image, which already ships a gfx-tuned PyTorch, so no separate torch install is needed. Verified on RDNA4 (Radeon AI PRO R9700 / gfx1201) with ROCm 7.2.3; RDNA3 (gfx1100/gfx1101) should also work.
+
+**Prerequisites:**
+
+- AMD GPU with ROCm support (RDNA3 / RDNA4)
+- ROCm drivers installed on the host
+- Docker with GPU passthrough (`/dev/kfd` and `/dev/dri`)
+
+**Using Docker Compose:**
+
+```bash
+# WebUI
+docker compose -f compose.rocm.yml --profile webui up --build
+
+# API server
+docker compose -f compose.rocm.yml --profile server up --build
+```
+
+**Manual build and run:**
+
+```bash
+docker build -f docker/Dockerfile.rocm --target webui -t fish-speech-webui:rocm .
+
+docker run \
+    --device=/dev/kfd --device=/dev/dri \
+    --group-add video --group-add render \
+    -e ROCBLAS_USE_HIPBLASLT=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -p 7860:7860 \
+    fish-speech-webui:rocm
+```
+
+!!! note
+    `ROCBLAS_USE_HIPBLASLT=0` is set by default for RDNA4 (gfx1201) stability; RDNA3 users may not need it. Fish Speech uses `scaled_dot_product_attention`, which dispatches to ROCm's AOTriton flash-attention backend automatically — no custom kernel build is required. The first run is slower while MIOpen auto-tunes kernels. `torch.compile` is enabled by default (`COMPILE=1`); set `COMPILE=0` to disable.
