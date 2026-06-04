@@ -29,6 +29,9 @@ class TextToSemantic(L.LightningModule):
     def forward(self, x):
         return self.model(x)
 
+    def load_state_dict(self, state_dict, strict=True, assign=False):
+        return super().load_state_dict(state_dict, strict=False, assign=assign)
+
     def on_save_checkpoint(self, checkpoint):
         # Save only LoRA parameters
         state_dict = checkpoint["state_dict"]
