@@ -79,7 +79,7 @@ class ServeReferenceAudio(BaseModel):
 
 
 class ServeTTSRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1)
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
     # Audio format
     format: Literal["wav", "pcm", "mp3", "opus"] = "wav"
