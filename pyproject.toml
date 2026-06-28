@@ -37,7 +37,6 @@ dependencies = [
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
     "pydub",
-    "pyaudio",
     "modelscope==1.17.1",
     "opencc-python-reimplemented==0.1.7",
     "silero-vad",
@@ -70,6 +69,9 @@ cu129 = [
   "torch==2.8.0",
   "torchaudio",
 ]
+# Optional: native audio playback for the streaming api_client (PyAudio needs
+# system PortAudio headers; keeping it out of core unblocks slim / headless installs).
+client = ["pyaudio"]
 
 [tool.uv]
 override-dependencies = [
