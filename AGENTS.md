@@ -78,6 +78,15 @@ prefill activation memory, this leaves no room on a 16GB card (T4 reports ~15.56
   default PyPI index instead of the `cu126` wheel index. On this box that happened to still work
   (PyPI's default torch 2.8.0 wheel is a `cu128` build, and the driver's forward compatibility
   covers it — confirmed via `torch.cuda.is_available()` → `True`), but on a host that actually
-  needs an older CUDA wheel, `pip install -e .[cuXXX]` silently gives you the wrong build. Use
-  `uv sync --extra cuXXX` (as the docs' UV section says) if you need a specific CUDA wheel via
-  the extras mechanism.
+  needs an older CUDA wheel, `pip install -e .[cuXXX]` silently gives you the wrong build.
+- **UV extras are not "sticky" across invocations — this is the bigger trap.** `uv sync --extra
+  cu126` does correctly resolve `torch==2.8.0+cu126` (verified: `2.8.0 12.6 True`). But the base
+  `dependencies` list in `pyproject.toml` just pins bare `torch==2.8.0` with no CUDA index — the
+  `[tool.uv.sources]` redirection only applies while a matching extra (`cpu`/`cu126`/`cu128`/
+  `cu129`) is active *on that specific command*. Running a later `uv run python ...` **without**
+  repeating `--extra cu126` triggers an implicit re-sync that drops back to a different default
+  build — reproduced directly: `uv sync --extra cu126` → `2.8.0+cu126`; plain `uv run python3 -c
+  "import torch; print(torch.__version__)"` right after → silently switched to `2.8.0+cu128`;
+  `uv run --extra cu126 python3 ...` → back to `2.8.0+cu126`. **You must pass `--extra cuXXX` on
+  every `uv run`/`uv sync` invocation for the life of the project, not just the first setup step**
+  — a very easy thing to forget once install is "done."
