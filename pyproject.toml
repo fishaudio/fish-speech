@@ -37,7 +37,6 @@ dependencies = [
     "einx[torch]==0.2.2",
     "zstandard>=0.22.0",
     "pydub",
-    "pyaudio",
     "modelscope==1.17.1",
     "opencc-python-reimplemented==0.1.7",
     "silero-vad",
@@ -69,6 +68,12 @@ cu128 = [
 cu129 = [
   "torch==2.8.0",
   "torchaudio",
+]
+# Audio playback support for the interactive API client (tools/api_client.py).
+# Requires PortAudio system headers (e.g. apt install portaudio19-dev).
+# Not needed for headless server deployments.
+audio = [
+    "pyaudio",
 ]
 
 [tool.uv]

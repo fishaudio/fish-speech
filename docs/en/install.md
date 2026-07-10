@@ -30,6 +30,11 @@ pip install -e .
 # If you encounter an error during installation due to pyaudio, consider using the following command:
 # conda install pyaudio
 # Then run pip install -e . again
+
+# For headless/server-only installs (no audio playback needed), pyaudio is not required.
+# To enable interactive audio playback with the API client, install with the audio extra:
+# pip install -e .[audio]
+# (also requires PortAudio system headers: apt install portaudio19-dev)
 ```
 
 ### UV
