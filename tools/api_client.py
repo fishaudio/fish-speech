@@ -215,7 +215,10 @@ if __name__ == "__main__":
                 p = pyaudio.PyAudio()
                 audio_format = pyaudio.paInt16  # Assuming 16-bit PCM format
                 stream = p.open(
-                    format=audio_format, channels=args.channels, rate=args.rate, output=True
+                    format=audio_format,
+                    channels=args.channels,
+                    rate=args.rate,
+                    output=True,
                 )
 
                 wf = wave.open(f"{args.output}.wav", "wb")
