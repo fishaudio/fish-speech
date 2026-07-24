@@ -394,6 +394,7 @@ class BaseTransformer(nn.Module):
         audio_masks: Optional[Tensor] = None,
         audio_parts: Optional[Tensor] = None,
         return_all: bool = False,
+        kv_len: Optional[int] = None,
     ) -> BaseTransformerForwardResult:
 
         # Embedding logic replicated from embed() for compilation compatibility
@@ -432,13 +433,23 @@ class BaseTransformer(nn.Module):
             else:
                 logger.warning("audio_parts provided but model has no audio_projector")
 
+        cache_capacity = (
+            self.max_seq_len if self.max_seq_len > 0 else self.config.max_seq_len
+        )
         if input_pos is None:
             input_pos = torch.arange(inp.shape[-1], device=x.device)
-            max_seq_len = inp.shape[-1]
+            active_kv_len = inp.shape[-1]
         else:
-            max_seq_len = self.max_seq_len
+            active_kv_len = cache_capacity if kv_len is None else kv_len
 
-        mask = self.causal_mask[None, None, input_pos, :max_seq_len]  # (B, N, Q, K)
+        if not 1 <= active_kv_len <= cache_capacity:
+            raise ValueError(
+                f"kv_len must be between 1 and {cache_capacity}, got {active_kv_len}"
+            )
+
+        mask = self.causal_mask[
+            None, None, input_pos, :active_kv_len
+        ]  # (B, N, Q, active K)
         freqs_cis = self.freqs_cis[input_pos]
 
         for layer in self.layers:
@@ -651,9 +662,12 @@ class NaiveTransformer(BaseTransformer):
         return self.decode(result)
 
     def forward_generate(
-        self, x: Tensor, input_pos: Optional[Tensor] = None
+        self,
+        x: Tensor,
+        input_pos: Optional[Tensor] = None,
+        kv_len: Optional[int] = None,
     ) -> TransformerForwardResult:
-        result = super().forward_generate(x, input_pos)
+        result = super().forward_generate(x, input_pos, kv_len=kv_len)
         return self.decode(result)
 
 
@@ -822,8 +836,15 @@ class DualARTransformer(BaseTransformer):
         input_pos: Optional[Tensor] = None,
         audio_masks: Optional[Tensor] = None,
         audio_parts: Optional[Tensor] = None,
+        kv_len: Optional[int] = None,
     ) -> TransformerForwardResult:
-        x = super().forward_generate(x, input_pos, audio_masks, audio_parts)
+        x = super().forward_generate(
+            x,
+            input_pos,
+            audio_masks,
+            audio_parts,
+            kv_len=kv_len,
+        )
         x.hidden_states = self.fast_project_in(x.hidden_states)
         return x
 
@@ -909,6 +930,12 @@ class Attention(nn.Module):
 
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
+            if mask is not None:
+                # Keep the cache allocated at max_seq_len, but repeat and
+                # attend only to the prefix populated so far.
+                active_kv_len = mask.shape[-1]
+                k = k[:, :, :active_kv_len]
+                v = v[:, :, :active_kv_len]
 
         k = k.repeat_interleave(self.n_head // self.n_local_heads, dim=1)
         v = v.repeat_interleave(self.n_head // self.n_local_heads, dim=1)
