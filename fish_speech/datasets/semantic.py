@@ -16,6 +16,7 @@ from torch.distributed import get_rank, get_world_size, is_initialized
 from torch.utils.data import DataLoader, Dataset, IterableDataset, get_worker_info
 
 from fish_speech.content_sequence import ContentSequence, TextPart, VQPart
+from fish_speech.conversation import Conversation, Message
 
 CODEBOOK_PAD_TOKEN_ID = 0
 
@@ -190,34 +191,37 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         skip_text: bool = False,
     ):
 
-        seq = ContentSequence()
 
-        seq.append(TextPart(text="Speak out the provided text."))
-
-        # User's turn
         cated_sentences = " ".join(sentences)
         if skip_text:
             cated_sentences = "<|skip_text|>"
 
-        seq.append(
-            TextPart(text=f"<|speaker:user|> {cated_sentences}"),
-            add_end=True,
-        )
+        messages = [
+            Message(
+                role="system",
+                parts=[TextPart(text="Speak out the provided text.")],
+            ),
+            Message(
+                role="user",
+                parts=[TextPart(text=cated_sentences)],
+            ),
+        ]
 
         # Assistant's turn
         vq_codes = [x.values for x in semantics[0]]
         vq_codes_tensor = torch.tensor(vq_codes).to(torch.int32)
+        vq_part = VQPart(codes=vq_codes_tensor)
 
-        # 将 cal_loss=True 直接关联到 VQPart 上，这比之前更精确
-        vq_part = VQPart(codes=vq_codes_tensor, cal_loss=True)
-
-        # 将多个 parts 一起添加，最后也加上 <|im_end|>
-        seq.append(
-            [TextPart(text="<|speaker:assistant|> <|voice|>"), vq_part],
-            add_end=True,
+        messages.append(
+            Message(
+                role="assistant",
+                parts=[TextPart(text="<|voice|>"), vq_part],
+                cal_loss=True,
+            )
         )
 
-        encoded = seq.encode(
+        conversation = Conversation(messages=messages)
+        encoded = conversation.encode(
             tokenizer=self.tokenizer,
         )
 

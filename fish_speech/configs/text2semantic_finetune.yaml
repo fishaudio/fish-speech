@@ -12,12 +12,18 @@ trainer:
   gradient_clip_val: 1.0
   gradient_clip_algorithm: "norm"
   max_steps: 10000
-  precision: bf16-true
+  precision: bf16-mixed
   limit_val_batches: 10
   val_check_interval: 100
   # strategy:
   #   find_unused_parameters: true
-  #   static_graph: true 
+  #   static_graph: true
+
+loss:
+  base_weight: 1.0
+  base_vq_weight: 0.5
+  decode_semantic_token_weight: 0.5
+  semantic_weights: null
 
 # Dataset Configuration
 tokenizer:
@@ -28,7 +34,7 @@ tokenizer:
 train_dataset:
   _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
-    - data/protos
+    - data/quantized-dataset-ft
   tokenizer: ${tokenizer}
   causal: true
   max_length: ${max_length}
@@ -38,7 +44,7 @@ train_dataset:
 val_dataset:
   _target_: fish_speech.datasets.semantic.AutoTextSemanticInstructionIterableDataset
   proto_files:
-    - data/protos
+    - data/quantized-dataset-ft
   tokenizer: ${tokenizer}
   causal: true
   max_length: ${max_length}
@@ -57,20 +63,25 @@ data:
 # Model Configuration
 model:
   _target_: fish_speech.models.text2semantic.lit_module.TextToSemantic
-  model: 
+  model:
     _target_: fish_speech.models.text2semantic.llama.BaseTransformer.from_pretrained
     path: ${pretrained_ckpt_path}
     load_weights: true
     max_length: ${max_length}
     lora_config: null
 
+  base_weight: ${loss.base_weight}
+  base_vq_weight: ${loss.base_vq_weight}
+  decode_semantic_token_weight: ${loss.decode_semantic_token_weight}
+  semantic_weights: ${loss.semantic_weights}
+
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 1e-4
+    lr: 2e-5
     weight_decay: 0
     betas: [0.9, 0.95]
-    eps: 1e-5
+    eps: 1e-6
 
   lr_scheduler:
     _target_: torch.optim.lr_scheduler.LambdaLR
@@ -78,7 +89,7 @@ model:
     lr_lambda:
       _target_: fish_speech.scheduler.get_constant_schedule_with_warmup_lr_lambda
       _partial_: true
-      num_warmup_steps: 10
+      num_warmup_steps: 100
 
 # Callbacks
 callbacks:
