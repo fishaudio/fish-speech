@@ -127,7 +127,9 @@ class TextToSemantic(L.LightningModule):
             labels=batch["labels"],
         )
         token_logits = outputs.token_logits  # (B, T, vocab_size)
-        codebook_logits = outputs.codebook_logits  # (num_semantic, num_codebooks, codebook_size) for Dual-AR
+        codebook_logits = (
+            outputs.codebook_logits
+        )  # (num_semantic, num_codebooks, codebook_size) for Dual-AR
 
         token_labels = labels[:, 0]  # (B, T)
 
@@ -148,9 +150,7 @@ class TextToSemantic(L.LightningModule):
         all_codebook_labels = all_codebook_labels.permute(0, 2, 1)
         filtered_codebook_labels = all_codebook_labels[is_semantic]
 
-        semantic_loss = self._codebook_loss(
-            codebook_logits, filtered_codebook_labels
-        )
+        semantic_loss = self._codebook_loss(codebook_logits, filtered_codebook_labels)
 
         loss = (
             base_loss * self.base_weight

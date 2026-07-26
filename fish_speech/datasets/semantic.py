@@ -191,7 +191,6 @@ class AutoTextSemanticInstructionIterableDataset(IterableDataset):
         skip_text: bool = False,
     ):
 
-
         cated_sentences = " ".join(sentences)
         if skip_text:
             cated_sentences = "<|skip_text|>"
