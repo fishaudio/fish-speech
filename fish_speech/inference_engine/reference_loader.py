@@ -138,7 +138,19 @@ class ReferenceLoader:
             audio_data = reference_audio
             reference_audio = io.BytesIO(audio_data)
 
-        waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
+        try:
+            import soundfile as sf
+        except ImportError:
+            # torchaudio>=2.9 ignores backend= and always decodes through
+            # TorchCodec, which requires FFmpeg shared libraries that are
+            # commonly missing on Windows.
+            waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
+        else:
+            # soundfile bundles libsndfile, so it works without system FFmpeg.
+            data, original_sr = sf.read(
+                reference_audio, dtype="float32", always_2d=True
+            )
+            waveform = torch.from_numpy(data).transpose(0, 1).contiguous()
 
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
