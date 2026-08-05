@@ -144,7 +144,9 @@ class ReferenceLoader:
             # torchaudio>=2.9 ignores backend= and always decodes through
             # TorchCodec, which requires FFmpeg shared libraries that are
             # commonly missing on Windows.
-            waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
+            waveform, original_sr = torchaudio.load(
+                reference_audio, backend=self.backend
+            )
         else:
             # soundfile bundles libsndfile, so it works without system FFmpeg.
             data, original_sr = sf.read(
