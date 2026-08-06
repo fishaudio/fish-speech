@@ -143,16 +143,23 @@ if __name__ == "__main__":
     idstr: str | None = args.reference_id
     # priority: ref_id > [{text, audio},...]
     if idstr is None:
-        ref_audios = args.reference_audio
-        ref_texts = args.reference_text
-        if ref_audios is None:
-            byte_audios = []
-        else:
-            byte_audios = [audio_to_bytes(ref_audio) for ref_audio in ref_audios]
-        if ref_texts is None:
-            ref_texts = []
-        else:
-            ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
+        ref_audios = args.reference_audio or []
+        ref_texts = args.reference_text or []
+
+        if len(ref_audios) != len(ref_texts):
+            raise SystemExit(
+                "--reference_audio and --reference_text must be given the same number "
+                f"of values, got {len(ref_audios)} audio(s) and {len(ref_texts)} text(s)."
+            )
+
+        byte_audios = []
+        for ref_audio in ref_audios:
+            audio_bytes = audio_to_bytes(ref_audio)
+            if audio_bytes is None:
+                raise SystemExit(f"Reference audio file not found: {ref_audio}")
+            byte_audios.append(audio_bytes)
+
+        ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
     else:
         byte_audios = []
         ref_texts = []
@@ -161,9 +168,7 @@ if __name__ == "__main__":
     data = {
         "text": args.text,
         "references": [
-            ServeReferenceAudio(
-                audio=ref_audio if ref_audio is not None else b"", text=ref_text
-            )
+            ServeReferenceAudio(audio=ref_audio, text=ref_text)
             for ref_text, ref_audio in zip(ref_texts, byte_audios)
         ],
         "reference_id": idstr,
