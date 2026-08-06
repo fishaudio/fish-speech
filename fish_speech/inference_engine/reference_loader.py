@@ -134,9 +134,8 @@ class ReferenceLoader:
         """
         Load the audio data from a file or bytes.
         """
-        if len(reference_audio) > 255 or not Path(reference_audio).exists():
-            audio_data = reference_audio
-            reference_audio = io.BytesIO(audio_data)
+        if isinstance(reference_audio, bytes):
+            reference_audio = io.BytesIO(reference_audio)
 
         waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
 
