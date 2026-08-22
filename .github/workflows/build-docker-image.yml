@@ -7,6 +7,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest-16c64g
@@ -70,6 +74,8 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
+      - uses: actions/checkout@v4
+
       - name: Push README to Dockerhub
         uses: peter-evans/dockerhub-description@v4
         with:
