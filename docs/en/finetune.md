@@ -27,6 +27,26 @@ You need to convert your dataset into the above format and place it under `data`
 !!! info
     The `.lab` annotation file only needs to contain the transcription of the audio, with no special formatting required. For example, if `hi.mp3` says "Hello, goodbye," then the `hi.lab` file would contain a single line of text: "Hello, goodbye."
 
+If your audio does not have transcripts yet, you can optionally create `.lab`
+files with FunASR and the default SenseVoiceSmall model:
+
+```bash
+pip install "funasr>=1.3.27,<2"
+python tools/annotate_funasr.py data --device cuda:0 --language auto
+```
+
+Use `--device cpu` on a machine without CUDA. The command searches `.wav`,
+`.mp3`, and `.flac` files recursively, skips existing `.lab` files by default,
+and continues when an individual audio file fails. Run it with `--dry-run` to
+preview the work or `--overwrite` to replace existing labels. `--model`,
+`--language`, and `--no-itn` can be used to select another FunASR checkpoint or
+change its transcription options.
+
+The default SenseVoiceSmall checkpoint supports Mandarin, Cantonese, English,
+Japanese, and Korean. Review generated labels before training, especially for
+long recordings or audio outside those languages. The checkpoint is distributed
+under the [FunASR Model License](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+
 !!! warning
     It's recommended to apply loudness normalization to the dataset. You can use [fish-audio-preprocess](https://github.com/fishaudio/audio-preprocess) to do this.
 
