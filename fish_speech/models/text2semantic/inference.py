@@ -63,7 +63,7 @@ def logits_to_probs(
     indices = torch.arange(sorted_logits.shape[-1], device=sorted_logits.device)
     top_k_mask = indices >= top_k
     sorted_indices_to_remove = (cum_probs > top_p) | top_k_mask
-    sorted_indices_to_remove[0] = False  # 单元素修改问题不大，或者写成 | (indices != 0)
+    sorted_indices_to_remove[..., 0] = False  # keep the top-1 token, per row
 
     indices_to_remove = sorted_indices_to_remove.scatter(
         dim=-1, index=sorted_indices, src=sorted_indices_to_remove
