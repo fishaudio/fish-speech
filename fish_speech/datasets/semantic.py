@@ -529,6 +529,25 @@ class TextDataCollator:
         max_tokens_length = min(max_tokens_length, self.max_length)
 
         for example in examples:
+            original_length = example[tokens_key].size(1)
+            if original_length > max_tokens_length:
+                # Silent truncation here previously gave no signal that a
+                # training example (text + its full audio-codec token
+                # sequence) had been cut off mid-stream - which can corrupt
+                # training on any dataset whose examples run longer than
+                # sample_data()'s text-only "~20 tokens/sentence" length
+                # estimate once audio tokens are counted too. Surfacing it
+                # lets users notice and raise `max_length` accordingly
+                # instead of silently training on truncated audio.
+                log.warning(
+                    f"Truncating example from {original_length} to "
+                    f"{max_tokens_length} tokens (max_length={self.max_length}) "
+                    "- the training example (including its audio-codec "
+                    "tokens) is longer than max_length. Consider raising "
+                    "max_length if this happens often, to avoid training on "
+                    "truncated audio."
+                )
+
             _tokens = example[tokens_key][:, :max_tokens_length]
             _labels = example[labels_key][:, :max_tokens_length]
             _attention_mask = torch.ones((max_tokens_length,), dtype=torch.bool)
@@ -598,7 +617,12 @@ class SemanticDataModule(LightningDataModule):
             batch_size=self.batch_size,
             collate_fn=TextDataCollator(self.tokenizer, self.max_length),
             num_workers=self.num_workers,
-            persistent_workers=True,
+            # persistent_workers=True is invalid when num_workers=0 (torch
+            # raises "persistent_workers option needs num_workers > 0")
+            # PyTorch's own DataLoader constructor requires this to be
+            # conditional - num_workers=0 is a legitimate choice for small
+            # datasets/debugging, so this shouldn't need to hard-fail.
+            persistent_workers=self.num_workers > 0,
         )
 
     def val_dataloader(self):
@@ -607,7 +631,7 @@ class SemanticDataModule(LightningDataModule):
             batch_size=self.batch_size,
             collate_fn=TextDataCollator(self.tokenizer, self.max_length),
             num_workers=self.num_workers,
-            persistent_workers=True,
+            persistent_workers=self.num_workers > 0,
         )
 
 
