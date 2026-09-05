@@ -120,6 +120,8 @@ class Conversation:
             tokenizer,
             ignore_loss_tokens=ignore_loss_tokens,
             merge_semantic_tokens=merge_semantic_tokens,
+            merge_audio_tokens=merge_audio_tokens,
+            use_color=use_color,
         )
 
     def append(self: "Conversation", message: Message):
