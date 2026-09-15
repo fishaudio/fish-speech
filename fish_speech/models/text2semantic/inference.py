@@ -4,6 +4,7 @@ import re
 import threading
 import time
 import traceback
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -193,6 +194,7 @@ def decode_n_tokens(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
+    compile: bool = False,
 ):
     # Rolling window for RAS (Repetition Aware Sampling)
     previous_tokens = torch.zeros(
@@ -207,7 +209,11 @@ def decode_n_tokens(
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
 
     for i in tqdm(range(num_new_tokens)):
-        with sdpa_kernel(SDPBackend.MATH):
+        # Forcing SDPBackend.MATH only helps Inductor codegen a compiled graph;
+        # in eager mode it just disables flash/mem-efficient attention. The
+        # context manager is generator-based (single-use), so it must be
+        # created fresh each iteration rather than reused across the loop.
+        with sdpa_kernel(SDPBackend.MATH) if compile else nullcontext():
             next_token = decode_one_token(
                 model=model,
                 x=cur_token,
@@ -249,6 +255,7 @@ def generate(
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
     num_samples: int = 1,
+    compile: bool = False,
     **sampling_kwargs,
 ):
     """
@@ -349,6 +356,7 @@ def generate(
         audio_masks=audio_masks,
         audio_parts=audio_parts,
         decode_one_token=decode_one_token,
+        compile=compile,
     )
     seq = seq[:, : T + 1 + x.size(1)]
     seq[:, T + 1 :] = x
@@ -682,6 +690,7 @@ def generate_long(
                 audio_masks=audio_masks,
                 audio_parts=audio_parts,
                 decode_one_token=decode_one_token,
+                compile=compile,
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k,
