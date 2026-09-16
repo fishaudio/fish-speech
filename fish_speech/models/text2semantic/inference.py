@@ -1,3 +1,4 @@
+import inspect
 import os
 import queue
 import re
@@ -214,21 +215,30 @@ def decode_n_tokens(
     # [MODIFIED] Pre-fetch ID for efficiency loop
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
 
+    callback_parameters = inspect.signature(decode_one_token).parameters
+    supports_kv_len = "kv_len" in callback_parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in callback_parameters.values()
+    )
+
     for i in tqdm(range(num_new_tokens)):
+        decode_kwargs = {
+            "model": model,
+            "x": cur_token,
+            "input_pos": input_pos,
+            "previous_tokens": previous_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "semantic_logit_bias": semantic_logit_bias,
+            "audio_masks": audio_masks,
+            "audio_parts": audio_parts,
+        }
+        if supports_kv_len:
+            decode_kwargs["kv_len"] = kv_start_pos + i + 1
+
         with sdpa_kernel(SDPBackend.MATH):
-            next_token = decode_one_token(
-                model=model,
-                x=cur_token,
-                input_pos=input_pos,
-                kv_len=kv_start_pos + i + 1,
-                previous_tokens=previous_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                semantic_logit_bias=semantic_logit_bias,
-                audio_masks=audio_masks,
-                audio_parts=audio_parts,
-            ).clone()
+            next_token = decode_one_token(**decode_kwargs).clone()
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
@@ -341,7 +351,7 @@ def generate(
         audio_masks,
         audio_parts,
         kv_len=T,
-    )
+    ).clone()
     seq[:, T : T + 1] = first_token
 
     # Recreate input_pos
@@ -398,6 +408,7 @@ def init_model(checkpoint_path, device, precision, compile=False):
             backend="inductor" if torch.cuda.is_available() else "aot_eager",
             mode="default" if torch.cuda.is_available() else None,
             fullgraph=True,
+            dynamic=True,
         )
 
     return model.eval(), decode_one_token

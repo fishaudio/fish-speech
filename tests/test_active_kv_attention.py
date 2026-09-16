@@ -3,9 +3,13 @@ import unittest
 from unittest.mock import patch
 
 import torch
+from torch import nn
 from torch.nn import functional as F
 
-from fish_speech.models.text2semantic.inference import generate
+from fish_speech.models.text2semantic.inference import (
+    decode_one_token_ar,
+    generate,
+)
 from fish_speech.models.text2semantic.llama import (
     Attention,
     BaseModelArgs,
@@ -26,6 +30,19 @@ class _TokenizerStub:
 
     def get_token_id(self, _token: str) -> int:
         return self.eos_token_id
+
+
+class _ConstantOutput(nn.Module):
+    def __init__(self, size: int, preferred_id: int, suppressed_id: int | None = None):
+        super().__init__()
+        logits = torch.zeros(size)
+        logits[preferred_id] = 10.0
+        if suppressed_id is not None:
+            logits[suppressed_id] = -10.0
+        self.register_buffer("logits", logits)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.logits.to(dtype=x.dtype).expand(*x.shape[:-1], -1)
 
 
 def _base_args(**overrides) -> dict:
@@ -169,6 +186,18 @@ class ActiveKVProgressionTest(unittest.TestCase):
                         kv_len=invalid_kv_len,
                     )
 
+        for invalid_input_pos, kv_len in ((-1, 1), (1, 1), (3, 3)):
+            with self.subTest(input_pos=invalid_input_pos, kv_len=kv_len):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "input_pos must be within the active KV prefix",
+                ):
+                    model.forward_generate(
+                        token,
+                        input_pos=torch.tensor([invalid_input_pos]),
+                        kv_len=kv_len,
+                    )
+
     def test_prefill_first_decode_and_maximum_prefix(self) -> None:
         model = self._model()
         original_sdpa = F.scaled_dot_product_attention
@@ -255,8 +284,9 @@ class ActiveKVAutoregressiveDecodeTest(unittest.TestCase):
             if not use_active_prefix:
                 kwargs["kv_len"] = None
             result = original_forward(*args, **kwargs)
-            result.logits[..., model.tokenizer.eos_token_id] = -1e9
             slow_logits.append(result.logits.detach().clone())
+            result.logits = result.logits.clone()
+            result.logits[..., model.tokenizer.eos_token_id] = -1e9
             return result
 
         def capture_fast_forward(*args, **kwargs):
@@ -325,6 +355,105 @@ class ActiveKVAutoregressiveDecodeTest(unittest.TestCase):
             )
 
         torch.testing.assert_close(active_output, full_output, rtol=0, atol=0)
+
+    def test_legacy_decode_callback_remains_supported(self) -> None:
+        model = self._model()
+
+        def legacy_decode(
+            model,
+            x,
+            input_pos,
+            temperature,
+            top_p,
+            top_k,
+            semantic_logit_bias,
+            audio_masks,
+            audio_parts,
+            previous_tokens=None,
+        ):
+            return decode_one_token_ar(
+                model=model,
+                x=x,
+                input_pos=input_pos,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                semantic_logit_bias=semantic_logit_bias,
+                audio_masks=audio_masks,
+                audio_parts=audio_parts,
+                previous_tokens=previous_tokens,
+            )
+
+        with patch(
+            "fish_speech.models.text2semantic.inference.tqdm",
+            side_effect=lambda values, **_kwargs: values,
+        ):
+            output = generate(
+                model=model,
+                prompt=self._prompt(),
+                max_new_tokens=2,
+                audio_masks=None,
+                audio_parts=None,
+                temperature=0.8,
+                top_p=0.8,
+                top_k=1,
+                decode_one_token=legacy_decode,
+            )
+
+        self.assertEqual(
+            output.shape,
+            (1 + model.config.num_codebooks, PROMPT_LENGTH + 2),
+        )
+
+    def test_compiled_decode_uses_one_dynamic_graph(self) -> None:
+        model = self._model()
+        model.output = _ConstantOutput(
+            model.config.vocab_size,
+            preferred_id=model.config.semantic_begin_id,
+            suppressed_id=model.tokenizer.eos_token_id,
+        )
+        model.fast_output = _ConstantOutput(
+            model.config.codebook_size,
+            preferred_id=2,
+        )
+        compile_count = 0
+
+        def counting_backend(graph_module, _example_inputs):
+            nonlocal compile_count
+            compile_count += 1
+            return graph_module.forward
+
+        torch._dynamo.reset()
+        compiled_decode = torch.compile(
+            decode_one_token_ar,
+            backend=counting_backend,
+            fullgraph=True,
+            dynamic=True,
+        )
+        try:
+            with patch(
+                "fish_speech.models.text2semantic.inference.tqdm",
+                side_effect=lambda values, **_kwargs: values,
+            ):
+                output = generate(
+                    model=model,
+                    prompt=self._prompt(),
+                    max_new_tokens=4,
+                    audio_masks=None,
+                    audio_parts=None,
+                    temperature=0.8,
+                    top_p=0.8,
+                    top_k=1,
+                    decode_one_token=compiled_decode,
+                )
+        finally:
+            torch._dynamo.reset()
+
+        self.assertEqual(compile_count, 1)
+        self.assertEqual(
+            output.shape,
+            (1 + model.config.num_codebooks, PROMPT_LENGTH + 4),
+        )
 
 
 if __name__ == "__main__":
