@@ -1,3 +1,4 @@
+import inspect
 import os
 import queue
 import re
@@ -104,12 +105,14 @@ def decode_one_token_ar(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     previous_tokens: Optional[torch.Tensor] = None,
+    kv_len: Optional[int] = None,
 ) -> torch.Tensor:
     forward_result = model.forward_generate(
         x,
         input_pos,
         audio_masks=audio_masks,
         audio_parts=audio_parts,
+        kv_len=kv_len,
     )
     logits = forward_result.logits  # (1, 1, vocab_size)
     hidden_states = forward_result.hidden_states
@@ -193,7 +196,13 @@ def decode_n_tokens(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
+    kv_start_pos: Optional[int] = None,
 ):
+    if kv_start_pos is None:
+        # Compatibility fallback for direct callers. The production generation
+        # path passes the Python position explicitly to avoid a device sync.
+        kv_start_pos = int(input_pos[0].item())
+
     # Rolling window for RAS (Repetition Aware Sampling)
     previous_tokens = torch.zeros(
         (model.config.num_codebooks + 1, RAS_WIN_SIZE),
@@ -206,20 +215,30 @@ def decode_n_tokens(
     # [MODIFIED] Pre-fetch ID for efficiency loop
     im_end_id = model.tokenizer.get_token_id(IM_END_TOKEN)
 
+    callback_parameters = inspect.signature(decode_one_token).parameters
+    supports_kv_len = "kv_len" in callback_parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in callback_parameters.values()
+    )
+
     for i in tqdm(range(num_new_tokens)):
+        decode_kwargs = {
+            "model": model,
+            "x": cur_token,
+            "input_pos": input_pos,
+            "previous_tokens": previous_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "semantic_logit_bias": semantic_logit_bias,
+            "audio_masks": audio_masks,
+            "audio_parts": audio_parts,
+        }
+        if supports_kv_len:
+            decode_kwargs["kv_len"] = kv_start_pos + i + 1
+
         with sdpa_kernel(SDPBackend.MATH):
-            next_token = decode_one_token(
-                model=model,
-                x=cur_token,
-                input_pos=input_pos,
-                previous_tokens=previous_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                semantic_logit_bias=semantic_logit_bias,
-                audio_masks=audio_masks,
-                audio_parts=audio_parts,
-            ).clone()
+            next_token = decode_one_token(**decode_kwargs).clone()
 
         input_pos += 1
         cur_token = next_token.view(1, model.config.num_codebooks + 1, -1)
@@ -331,7 +350,8 @@ def generate(
         semantic_logit_bias,
         audio_masks,
         audio_parts,
-    )
+        kv_len=T,
+    ).clone()
     seq[:, T : T + 1] = first_token
 
     # Recreate input_pos
@@ -349,6 +369,7 @@ def generate(
         audio_masks=audio_masks,
         audio_parts=audio_parts,
         decode_one_token=decode_one_token,
+        kv_start_pos=T,
     )
     seq = seq[:, : T + 1 + x.size(1)]
     seq[:, T + 1 :] = x
@@ -387,6 +408,7 @@ def init_model(checkpoint_path, device, precision, compile=False):
             backend="inductor" if torch.cuda.is_available() else "aot_eager",
             mode="default" if torch.cuda.is_available() else None,
             fullgraph=True,
+            dynamic=True,
         )
 
     return model.eval(), decode_one_token
