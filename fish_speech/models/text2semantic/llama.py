@@ -447,10 +447,14 @@ class BaseTransformer(nn.Module):
                 f"kv_len must be between 1 and {cache_capacity}, got {active_kv_len}"
             )
 
-        torch.ops.aten._assert_async.msg(
-            ((input_pos >= 0) & (input_pos < active_kv_len)).all(),
-            "input_pos must be within the active KV prefix",
-        )
+        input_pos_is_valid = ((input_pos >= 0) & (input_pos < active_kv_len)).all()
+        if input_pos.device.type in {"cpu", "cuda"}:
+            torch.ops.aten._assert_async.msg(
+                input_pos_is_valid,
+                "input_pos must be within the active KV prefix",
+            )
+        elif not torch.compiler.is_compiling() and not bool(input_pos_is_valid):
+            raise ValueError("input_pos must be within the active KV prefix")
 
         mask = self.causal_mask[
             None, None, input_pos, :active_kv_len
