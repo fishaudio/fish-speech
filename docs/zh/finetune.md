@@ -26,6 +26,24 @@
 !!! info
     标注文件 `.lab` 仅需包含音频的转写文本，无需遵循特殊格式要求。例如，如果 `hi.mp3` 中的内容是“你好，再见。”，那么 `hi.lab` 文件中只需包含一行文本：“你好，再见”。    
 
+如果音频还没有转写文本，可以选择使用 FunASR 和默认的
+SenseVoiceSmall 模型生成 `.lab` 文件：
+
+```bash
+pip install "funasr>=1.3.27,<2"
+python tools/annotate_funasr.py data --device cuda:0 --language auto
+```
+
+没有 CUDA 时可改用 `--device cpu`。该命令会递归查找 `.wav`、`.mp3` 和
+`.flac` 文件，默认跳过已有的 `.lab` 文件，并在单个音频失败时继续处理。
+使用 `--dry-run` 可以先预览待处理文件，使用 `--overwrite` 可以覆盖已有标注。
+还可以通过 `--model`、`--language` 和 `--no-itn` 选择其他 FunASR 模型或
+调整转写选项。
+
+默认 SenseVoiceSmall 模型支持普通话、粤语、英语、日语和韩语。训练前请人工
+检查自动生成的标注，特别是长音频或上述语种之外的音频。该模型使用
+[FunASR 模型许可协议](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE)。
+
 !!! warning
     建议先对数据集进行响度匹配, 你可以使用 [fish-audio-preprocess](https://github.com/fishaudio/audio-preprocess) 来完成这一步骤. 
     ```bash
