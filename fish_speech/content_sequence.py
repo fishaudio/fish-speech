@@ -156,6 +156,7 @@ class ContentSequence:
         tokenizer: FishTokenizer,
         add_shift: bool = True,
         ignore_loss_tokens: list[str] = [],
+        max_length: int | None = None,
     ) -> EncodedMessage:
         """
         Encode the sequence parts into tokens for the model.
