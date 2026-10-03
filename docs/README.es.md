@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](docs/README.zh.md) | [Portuguese](docs/README.pt-BR.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md) | [العربية](docs/README.ar.md) | **Español** <br>
+[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [العربية](README.ar.md) | **Español** <br>
 
 <a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Clonación&#0032;de&#0032;voz&#0032;expresiva&#0032;y&#0032;texto&#0045;a&#0045;voz | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a> <a href="https://trendshift.io/repositories/7014" target="_blank"> <img src="https://trendshift.io/api/badge/repositories/7014" alt="fishaudio%2Ffish-speech | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/> </a> <br>
 
@@ -40,7 +40,7 @@
 
 > [!IMPORTANT]
 > **Aviso de Licencia**
-> Este código y los pesos de modelo asociados se publican bajo la **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Consulta [LICENSE](LICENSE) para más detalles. Se tomarán acciones ante cualquier violación de la licencia.
+> Este código y los pesos de modelo asociados se publican bajo la **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. Consulta [LICENSE](../LICENSE) para más detalles. Se tomarán acciones ante cualquier violación de la licencia.
 
 > [!WARNING]
 > **Descargo de Responsabilidad Legal**
@@ -104,7 +104,7 @@ En Seed-TTS Eval, S2 logra el menor WER entre todos los modelos evaluados, inclu
 
 ## Highlights
 
-<img src="./docs/assets/totalability.png" width=200%>
+<img src="assets/totalability.png" width=200%>
 
 ### Control fino inline mediante lenguaje natural
 
@@ -136,7 +136,7 @@ S2 Pro aporta un nivel de “alma” sin precedentes a la voz. Usando sintaxis `
 
 ### Generación multi-speaker nativa
 
-<img src="./docs/assets/chattemplate.png" width=200%>
+<img src="assets/chattemplate.png" width=200%>
 
 Permite múltiples hablantes usando `<|speaker:i|>` en una sola generación.
 
