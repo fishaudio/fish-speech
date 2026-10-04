@@ -1,5 +1,5 @@
-import io
 import inspect
+import io
 import os
 import re
 from pathlib import Path
@@ -9,8 +9,11 @@ import torch
 import torchaudio
 from loguru import logger
 
+from fish_speech.inference_engine.reference_token_cache import (
+    ReferenceTokenCache,
+    codec_fingerprint,
+)
 from fish_speech.models.dac.modded_dac import DAC
-from fish_speech.inference_engine.reference_token_cache import ReferenceTokenCache, codec_fingerprint
 from fish_speech.utils.file import (
     AUDIO_EXTENSIONS,
     audio_to_bytes,
@@ -67,36 +70,54 @@ class ReferenceLoader:
     def configure_reference_token_cache(self, checkpoint_path, config_name):
         self._reference_codec_config = (str(checkpoint_path), config_name)
         fingerprint, identity = codec_fingerprint(
-            checkpoint_path, config_name, inspect.getsource(type(self).load_audio),
-            self.decoder_model, self.backend,
+            checkpoint_path,
+            config_name,
+            inspect.getsource(type(self).load_audio),
+            self.decoder_model,
+            self.backend,
         )
         quantizer = self.decoder_model.quantizer
         limits = [quantizer.semantic_quantizer.codebook_size]
-        limits += [quantizer.quantizer.codebook_size] * len(quantizer.quantizer.quantizers)
+        limits += [quantizer.quantizer.codebook_size] * len(
+            quantizer.quantizer.quantizers
+        )
         self.reference_token_cache = ReferenceTokenCache(
             os.environ.get("REFERENCE_TOKEN_CACHE_DIR", "references/.token_cache"),
-            fingerprint, limits, identity,
+            fingerprint,
+            limits,
+            identity,
         )
         logger.info("Reference Codec Fingerprint: {}", fingerprint)
 
     def resolve_reference_tokens(
-        self, audio_bytes, encoder_device="gpu", use_memory_cache="off",
-        read_disk_cache=True, save_disk_cache=False, force_reencode=False,
+        self,
+        audio_bytes,
+        encoder_device="gpu",
+        use_memory_cache="off",
+        read_disk_cache=True,
+        save_disk_cache=False,
+        force_reencode=False,
     ):
         if self.reference_token_cache is None:
             # Third-party callers that construct an engine without checkpoint
             # metadata retain temporary/memory encoding; never share disk tokens.
             quantizer = self.decoder_model.quantizer
             limits = [quantizer.semantic_quantizer.codebook_size]
-            limits += [quantizer.quantizer.codebook_size] * len(quantizer.quantizer.quantizers)
+            limits += [quantizer.quantizer.codebook_size] * len(
+                quantizer.quantizer.quantizers
+            )
             self.reference_token_cache = ReferenceTokenCache(
-                "references/.token_cache", "unconfigured", limits,
+                "references/.token_cache",
+                "unconfigured",
+                limits,
             )
         if self._reference_codec_config is None:
             read_disk_cache = save_disk_cache = False
         array, event = self.reference_token_cache.resolve(
             audio_bytes,
-            lambda audio, device: self.encode_reference(audio, True, encoder_device=device),
+            lambda audio, device: self.encode_reference(
+                audio, True, encoder_device=device
+            ),
             encoder_device=encoder_device,
             use_memory_cache=use_memory_cache == "on",
             read_disk_cache=read_disk_cache,
@@ -117,14 +138,27 @@ class ReferenceLoader:
         # IDs locate materials only; text is read afresh for every request.
         tokens, texts = [], []
         for path in ref_audios:
-            tokens.append(self.resolve_reference_tokens(path.read_bytes(), use_memory_cache=use_cache, **options))
+            tokens.append(
+                self.resolve_reference_tokens(
+                    path.read_bytes(), use_memory_cache=use_cache, **options
+                )
+            )
             texts.append(read_ref_text(str(path.with_suffix(".lab"))))
         return tokens, texts
 
-    def load_by_hash(self, references: list[ServeReferenceAudio], use_cache: Literal["on", "off"], **options) -> Tuple:
+    def load_by_hash(
+        self,
+        references: list[ServeReferenceAudio],
+        use_cache: Literal["on", "off"],
+        **options,
+    ) -> Tuple:
         tokens, texts = [], []
         for reference in references:
-            tokens.append(self.resolve_reference_tokens(reference.audio, use_memory_cache=use_cache, **options))
+            tokens.append(
+                self.resolve_reference_tokens(
+                    reference.audio, use_memory_cache=use_cache, **options
+                )
+            )
             texts.append(reference.text)
         return tokens, texts
 
@@ -136,12 +170,17 @@ class ReferenceLoader:
             reference_audio = io.BytesIO(reference_audio)
 
         try:
-            waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
+            waveform, original_sr = torchaudio.load(
+                reference_audio, backend=self.backend
+            )
         except ImportError:
             # New torchaudio versions require optional torchcodec even when
             # soundfile is requested. Keep the existing mono/resample pipeline.
             import soundfile
-            data, original_sr = soundfile.read(reference_audio, dtype="float32", always_2d=True)
+
+            data, original_sr = soundfile.read(
+                reference_audio, dtype="float32", always_2d=True
+            )
             waveform = torch.from_numpy(data.T.copy())
 
         if waveform.shape[0] > 1:

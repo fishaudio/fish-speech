@@ -50,7 +50,8 @@ class ModelManager:
         )
 
         self.tts_inference_engine.configure_reference_token_cache(
-            decoder_checkpoint_path, decoder_config_name,
+            decoder_checkpoint_path,
+            decoder_config_name,
         )
 
         # Warm up the models

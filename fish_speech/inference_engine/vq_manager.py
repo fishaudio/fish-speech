@@ -21,7 +21,9 @@ class VQManager:
 
         raise ValueError(f"Unknown model type: {type(self.decoder_model)}")
 
-    def encode_reference(self, reference_audio, enable_reference_audio, encoder_device="gpu"):
+    def encode_reference(
+        self, reference_audio, enable_reference_audio, encoder_device="gpu"
+    ):
         if enable_reference_audio and reference_audio is not None:
             # Load audios, and prepare basic info here
             if hasattr(self.decoder_model, "spec_transform"):
@@ -36,9 +38,16 @@ class VQManager:
                 if encoder is None:
                     settings = getattr(self, "_reference_codec_config", None)
                     if settings is None:
-                        raise ValueError("CPU reference encoding requires configured Codec checkpoint metadata")
+                        raise ValueError(
+                            "CPU reference encoding requires configured Codec checkpoint metadata"
+                        )
                     from fish_speech.models.dac.inference import load_model
-                    encoder = load_model(settings[1], settings[0], device="cpu").float().eval()
+
+                    encoder = (
+                        load_model(settings[1], settings[0], device="cpu")
+                        .float()
+                        .eval()
+                    )
                     # Only this newly loaded CPU copy is trimmed. The original
                     # decoder/LLM stay on their configured devices, untouched.
                     del encoder.decoder
@@ -46,7 +55,8 @@ class VQManager:
             elif encoder_device != "gpu":
                 raise ValueError("Unknown reference encoder device")
             audios = torch.from_numpy(reference_audio_content).to(
-                device=encoder.device, dtype=next(encoder.parameters()).dtype,
+                device=encoder.device,
+                dtype=next(encoder.parameters()).dtype,
             )[None, None, :]
             audio_lengths = torch.tensor(
                 [audios.shape[2]], device=encoder.device, dtype=torch.long

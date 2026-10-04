@@ -93,17 +93,31 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
 
                             reference_encoder_device = gr.Radio(
                                 label=i18n("Reference encoder device"),
-                                choices=["cpu", "gpu"], value="gpu",
-                                info=i18n("Only reference encoding changes device; cache hits may reuse either device's Tokens."),
+                                choices=["cpu", "gpu"],
+                                value="gpu",
+                                info=i18n(
+                                    "Only reference encoding changes device; cache hits may reuse either device's Tokens."
+                                ),
                             )
                             with gr.Row():
-                                read_disk_cache = gr.Checkbox(label=i18n("Read local Token cache"), value=True)
-                                save_disk_cache = gr.Checkbox(label=i18n("Save Tokens to local disk"), value=False)
+                                read_disk_cache = gr.Checkbox(
+                                    label=i18n("Read local Token cache"), value=True
+                                )
+                                save_disk_cache = gr.Checkbox(
+                                    label=i18n("Save Tokens to local disk"), value=False
+                                )
                             force_reencode = gr.Checkbox(
-                                label=i18n("Force reference re-encoding"), value=False,
-                                info=i18n("Bypass memory and disk reads; saving remains independent."),
+                                label=i18n("Force reference re-encoding"),
+                                value=False,
+                                info=i18n(
+                                    "Bypass memory and disk reads; saving remains independent."
+                                ),
                             )
-                            gr.Markdown(i18n("Disk switches do not disable memory cache. Different Token variants are preserved."))
+                            gr.Markdown(
+                                i18n(
+                                    "Disk switches do not disable memory cache. Different Token variants are preserved."
+                                )
+                            )
                             with gr.Row():
                                 use_memory_cache = gr.Radio(
                                     label=i18n("Use Memory Cache"),
@@ -147,8 +161,10 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
 
         def infer_with_cache(*args):
             return inference_fct(
-                *args[:-4], reference_encoder_device=args[-4],
-                read_disk_cache=args[-3], save_disk_cache=args[-2],
+                *args[:-4],
+                reference_encoder_device=args[-4],
+                read_disk_cache=args[-3],
+                save_disk_cache=args[-2],
                 force_reencode=args[-1],
             )
 
