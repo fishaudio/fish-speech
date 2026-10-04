@@ -81,6 +81,10 @@ if __name__ == "__main__":
         precision=args.precision,
     )
 
+    inference_engine.configure_reference_token_cache(
+        args.decoder_checkpoint_path, args.decoder_config_name,
+    )
+
     # Dry run to check if the model is loaded correctly and avoid the first-time latency
     list(
         inference_engine.inference(

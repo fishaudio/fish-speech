@@ -21,7 +21,7 @@ class VQManager:
 
         raise ValueError(f"Unknown model type: {type(self.decoder_model)}")
 
-    def encode_reference(self, reference_audio, enable_reference_audio):
+    def encode_reference(self, reference_audio, enable_reference_audio, encoder_device="gpu"):
         if enable_reference_audio and reference_audio is not None:
             # Load audios, and prepare basic info here
             if hasattr(self.decoder_model, "spec_transform"):
@@ -30,19 +30,35 @@ class VQManager:
                 sample_rate = self.decoder_model.sample_rate
             reference_audio_content = self.load_audio(reference_audio, sample_rate)
 
+            encoder = self.decoder_model
+            if encoder_device == "cpu":
+                encoder = getattr(self, "_cpu_reference_encoder", None)
+                if encoder is None:
+                    settings = getattr(self, "_reference_codec_config", None)
+                    if settings is None:
+                        raise ValueError("CPU reference encoding requires configured Codec checkpoint metadata")
+                    from fish_speech.models.dac.inference import load_model
+                    encoder = load_model(settings[1], settings[0], device="cpu").float().eval()
+                    # Only this newly loaded CPU copy is trimmed. The original
+                    # decoder/LLM stay on their configured devices, untouched.
+                    del encoder.decoder
+                    self._cpu_reference_encoder = encoder
+            elif encoder_device != "gpu":
+                raise ValueError("Unknown reference encoder device")
             audios = torch.from_numpy(reference_audio_content).to(
-                self.decoder_model.device
+                device=encoder.device, dtype=next(encoder.parameters()).dtype,
             )[None, None, :]
             audio_lengths = torch.tensor(
-                [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long
+                [audios.shape[2]], device=encoder.device, dtype=torch.long
             )
             logger.info(
                 f"Loaded audio with {audios.shape[2] / sample_rate:.2f} seconds"
             )
 
             # VQ Encoder
-            if isinstance(self.decoder_model, DAC):
-                prompt_tokens = self.decoder_model.encode(audios, audio_lengths)[0][0]
+            if isinstance(encoder, DAC):
+                with torch.inference_mode():
+                    prompt_tokens = encoder.encode(audios, audio_lengths)[0][0]
                 logger.info(f"Encoded prompt: {prompt_tokens.shape}")
             else:
                 raise ValueError(f"Unknown model type: {type(self.decoder_model)}")

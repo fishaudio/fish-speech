@@ -112,3 +112,20 @@ ffprobe.exe
 # ----------
 /*.test.sh
 asr-label*
+
+# Private runtime artifacts (keep configuration templates tracked).
+.env.*
+!.env.example
+!.env.*example
+!.env.template
+!.env.*template
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.bin
+.token_cache/
+*.pem
+*.key
+id_rsa*
+id_ed25519*

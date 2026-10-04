@@ -45,15 +45,20 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         - Decodes the VQ tokens to audio.
         """
 
+        self.reference_cache_events = []
+        cache_options = dict(encoder_device=req.reference_encoder_device,
+                             read_disk_cache=req.read_disk_cache,
+                             save_disk_cache=req.save_disk_cache,
+                             force_reencode=req.force_reencode)
         ref_id: str | None = req.reference_id
         prompt_tokens, prompt_texts = [], []
         # Load the reference audio and text based on id or hash
         if ref_id is not None:
-            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
+            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache, **cache_options)
 
         elif req.references:
             prompt_tokens, prompt_texts = self.load_by_hash(
-                req.references, req.use_memory_cache
+                req.references, req.use_memory_cache, **cache_options
             )
 
         # Set the random seed if provided

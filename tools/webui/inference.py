@@ -19,6 +19,10 @@ def inference_wrapper(
     seed,
     use_memory_cache,
     engine,
+    reference_encoder_device="gpu",
+    read_disk_cache=True,
+    save_disk_cache=False,
+    force_reencode=False,
 ):
     """
     Wrapper for the inference function.
@@ -41,6 +45,10 @@ def inference_wrapper(
         temperature=temperature,
         seed=int(seed) if seed else None,
         use_memory_cache=use_memory_cache,
+        reference_encoder_device=reference_encoder_device,
+        read_disk_cache=read_disk_cache,
+        save_disk_cache=save_disk_cache,
+        force_reencode=force_reencode,
     )
 
     for result in engine.inference(req):
