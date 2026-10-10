@@ -1211,8 +1211,8 @@ function App() {
                   max={2}
                   step={0.01}
                   {...defaultState('repetitionPenalty')}
-                  disabled={isS3}
-                  hint={isS3 ? 'S3 has built-in repetition-aware sampling.' : undefined}
+                  disabled
+                  hint="Ignored: S2-Pro and S3 use repetition-aware sampling."
                   formatValue={(value) => value.toFixed(2)}
                   onValueChange={(value) => setSampling('repetitionPenalty', value)}
                 />
