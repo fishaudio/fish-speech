@@ -1,0 +1,2 @@
+# Isolated from the Fish Speech environment; v1 SDK API is intentional.
+mcp==1.30.0

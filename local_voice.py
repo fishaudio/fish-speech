@@ -56,6 +56,9 @@ def main():
     from fish_speech.utils.schema import ServeTTSRequest
     import tools.webui as webui
     from tools.webui.inference import get_inference_wrapper
+    from local_audio import install_reference_audio_support
+
+    install_reference_audio_support()
 
     device = args.device
     if device == "auto":

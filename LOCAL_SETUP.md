@@ -1,5 +1,8 @@
 # Local Fish Speech / OpenAudio S1 Mini
 
+For the start/stop guide and Codex / Claude Code MCP connection steps,
+see [VOICEOVER_SETUP.md](VOICEOVER_SETUP.md).
+
 Double-click **Start Fish Speech.command** in Finder. It uses the Apple GPU,
 generates a startup sample, and opens **http://127.0.0.1:7860**. Keep its Terminal
 window open while using the model; press **Control-C** to stop it.
@@ -10,6 +13,8 @@ Enter text and click **Generate**. To specify a voice, open **Reference Audio**,
 upload a clear 5–10 second recording, and enter its exact transcript. Leave
 Reference ID empty when uploading audio. Generated audio can be downloaded from
 the audio player.
+M4A recordings (including macOS Voice Memos) are decoded locally with FFmpeg.
+WAV and other libsndfile-supported formats use the direct audio decoder.
 
 The startup sample is saved as `results/setup-test.wav`.
 The server started during setup writes its output to `logs/webui.log`.

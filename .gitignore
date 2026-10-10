@@ -53,6 +53,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/.venv-mcp/
 /fishenv/
 
 # Project Dependencies
