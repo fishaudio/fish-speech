@@ -131,6 +131,15 @@ class TestPunjabiNormalize(unittest.TestCase):
         # visible.
         self.assertEqual(normalize_punjabi("ਗੰ"), "gṁ")
 
+    def test_precomposed_nukta_letters(self):
+        # Unicode has a single-codepoint form of the nukta letters
+        # (e.g. U+0A36) as well as base letter + nukta (U+0A38 U+0A3C).
+        # Both encodings should now give the same result.
+        self.assertEqual(normalize_punjabi("\u0a16\u0a41\u0a36"), "khuś")
+        self.assertEqual(
+            normalize_punjabi("\u0a5b\u0a3f\u0a02\u0a26\u0a17\u0a40"), "ziṁdagī"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
