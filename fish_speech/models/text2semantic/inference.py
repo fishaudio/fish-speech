@@ -26,12 +26,18 @@ from fish_speech.content_sequence import (
     VQPart,
 )
 from fish_speech.conversation import Conversation, Message
+from fish_speech.models.text2semantic.fish_omni.chunking import (
+    S3_CHUNK_MAX_NEW_TOKENS,
+    S3History,
+    split_s3_text,
+)
 from fish_speech.models.text2semantic.fish_omni.generate import (
     S3_DEFAULT_MAX_NEW_TOKENS,
     S3_DEFAULT_TEMPERATURE,
     S3_DEFAULT_TOP_K,
     S3_DEFAULT_TOP_P,
     S3DecodeGraphs,
+    S3PromptTooLongError,
     build_s3_prompt,
     generate_s3,
     resolve_s3_devices,
@@ -634,6 +640,7 @@ def generate_long(
     chunk_length: int = 512,
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
+    single_chunk: bool = False,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
@@ -649,6 +656,7 @@ def generate_long(
             temperature=temperature,
             prompt_text=prompt_text,
             prompt_tokens=prompt_tokens,
+            single_chunk=single_chunk,
         )
         return
 
@@ -855,69 +863,111 @@ def generate_long_s3(
     temperature: float = S3_DEFAULT_TEMPERATURE,
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
+    single_chunk: bool = False,
 ) -> Iterator[GenerateResponse]:
-    """S3 counterpart of generate_long: the whole text is one speaker-0 user turn.
+    """S3 counterpart of generate_long, chunked like the hosted server.
 
-    max_new_tokens <= 0 means 2048. Larger requests are clamped so prompt rows plus
-    max_new_tokens stay within the CUDA-graph capacity.
+    The text is split by split_s3_text and the chunks are generated one after
+    another, each yielded as soon as it is done; the first chunk and the latest one
+    go back into the next prompt as history. single_chunk generates the whole text
+    in one pass instead. max_new_tokens <= 0 means 600 frames per chunk (2048 with
+    single_chunk); every request is clamped so prompt rows plus max_new_tokens stay
+    within the CUDA-graph capacity.
     """
     if isinstance(prompt_text, str):
         prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
     prompt_text = list(prompt_text or [])
     prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
-    prompt = build_s3_prompt(
-        text, model.tokenizer, model.config, prompt_text, prompt_tokens
-    )
-    # The caches grow to fit a request and never shrink, and growing them drops the
-    # captured CUDA graphs, so a client-chosen max_new_tokens must not exceed this.
-    limit = S3DecodeGraphs.graph_capacity(model) - len(prompt)
-    if limit < 1:
-        raise ValueError(f"prompt has {len(prompt)} rows; no room left to generate")
-    if max_new_tokens <= 0:
-        max_new_tokens = min(S3_DEFAULT_MAX_NEW_TOKENS, limit)
-    elif max_new_tokens > limit:
-        logger.warning(
-            f"max_new_tokens={max_new_tokens} exceeds the {limit} frames left after "
-            f"the {len(prompt)}-row prompt; clamping"
+    chunks = [text] if single_chunk else split_s3_text(text) or [text]
+    requested = max_new_tokens
+    if requested <= 0:
+        requested = (
+            S3_DEFAULT_MAX_NEW_TOKENS if single_chunk else S3_CHUNK_MAX_NEW_TOKENS
         )
-        max_new_tokens = limit
     logger.info(
-        f"S3 prompt: {len(prompt)} rows, {len(prompt_tokens)} reference(s), "
-        f"max_new_tokens={max_new_tokens}"
+        f"S3: {len(chunks)} chunk(s), {len(prompt_tokens)} reference(s), "
+        f"max_new_tokens={requested} per chunk"
     )
     devices = {p.device for p in model.backbone.parameters()} | {model.device}
     devices = sorted((d for d in devices if d.type == "cuda"), key=str)
 
     for sample_idx in range(num_samples):
-        for device in devices:
-            torch.cuda.reset_peak_memory_stats(device)
-        t0 = time.perf_counter()
-        frames, finish_reason = generate_s3(
-            model,
-            prompt,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-        )
-        elapsed = time.perf_counter() - t0
-        logger.info(
-            f"Sample {sample_idx}: {len(frames)} frames in {elapsed:.2f}s "
-            f"({len(frames) / elapsed:.2f} frames/s), finish={finish_reason}"
-        )
-        peaks = (
-            f"{d}: {torch.cuda.max_memory_allocated(d) / 2**30:.1f} GiB"
-            for d in devices
-        )
-        logger.info(f"Peak GPU memory: {', '.join(peaks)}")
-        if finish_reason != "eos":
-            logger.warning("Reached max_new_tokens before EOS; audio may be truncated")
-        if len(frames):
-            codes = frames[:, 1:].T.contiguous()
-            yield GenerateResponse(action="sample", codes=codes, text=text)
-        else:
-            logger.warning("The model emitted EOS before any audio frame")
+        history = S3History()
+        for chunk_idx, chunk in enumerate(chunks):
+            prompt = build_s3_chunk_prompt(
+                model, chunk, prompt_text, prompt_tokens, history
+            )
+            # The caches grow to fit a request and never shrink, and growing them
+            # drops the captured CUDA graphs, so no request may exceed this.
+            limit = S3DecodeGraphs.graph_capacity(model) - len(prompt)
+            if limit < 1:
+                raise ValueError(
+                    f"prompt has {len(prompt)} rows; no room left to generate"
+                )
+            if max_new_tokens > limit:
+                logger.warning(
+                    f"max_new_tokens={max_new_tokens} exceeds the {limit} frames left "
+                    f"after the {len(prompt)}-row prompt; clamping"
+                )
+            budget = min(requested, limit)
+
+            for device in devices:
+                torch.cuda.reset_peak_memory_stats(device)
+            t0 = time.perf_counter()
+            frames, finish_reason = generate_s3(
+                model,
+                prompt,
+                max_new_tokens=budget,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+            )
+            elapsed = time.perf_counter() - t0
+            logger.info(
+                f"Sample {sample_idx}, chunk {chunk_idx + 1}/{len(chunks)}: "
+                f"{len(prompt)}-row prompt, {len(frames)} frames in {elapsed:.2f}s "
+                f"({len(frames) / elapsed:.2f} frames/s), finish={finish_reason}"
+            )
+            peaks = (
+                f"{d}: {torch.cuda.max_memory_allocated(d) / 2**30:.1f} GiB"
+                for d in devices
+            )
+            logger.info(f"Peak GPU memory: {', '.join(peaks)}")
+            if finish_reason != "eos":
+                logger.warning(
+                    "Reached max_new_tokens before EOS; audio may be truncated"
+                )
+            if len(frames):
+                codes = frames[:, 1:].T.contiguous()
+                yield GenerateResponse(action="sample", codes=codes, text=chunk)
+                history.push(chunk, codes.cpu())
+            else:
+                logger.warning("The model emitted EOS before any audio frame")
         yield GenerateResponse(action="next")
+
+
+def build_s3_chunk_prompt(
+    model: FishOmniModel,
+    text: str,
+    prompt_text: list[str],
+    prompt_tokens: list[torch.Tensor],
+    history: S3History,
+) -> torch.Tensor:
+    """The prompt for one chunk with as much history as fits S3_MAX_PROMPT_ROWS."""
+    error = None
+    for turns in history.candidates():
+        try:
+            return build_s3_prompt(
+                text,
+                model.tokenizer,
+                model.config,
+                prompt_text,
+                prompt_tokens,
+                history=turns,
+            )
+        except S3PromptTooLongError as too_long:
+            error = too_long
+    raise error
 
 
 @dataclass
@@ -1048,6 +1098,11 @@ def launch_thread_safe_queue(
 )
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--chunk-length", type=int, default=300)
+@click.option(
+    "--single-chunk/--no-single-chunk",
+    default=False,
+    help="S3: generate the whole text in one pass instead of chunks.",
+)
 @click.option("--output-dir", type=Path, default="output")
 def main(
     text: str,
@@ -1068,6 +1123,7 @@ def main(
     half: bool,
     iterative_prompt: bool,
     chunk_length: int,
+    single_chunk: bool,
     output_dir: Path,
 ) -> None:
     os.makedirs(output_dir, exist_ok=True)
@@ -1145,6 +1201,7 @@ def main(
         compile=compile,
         iterative_prompt=iterative_prompt,
         chunk_length=chunk_length,
+        single_chunk=single_chunk,
         prompt_text=list(prompt_text) if prompt_text else None,
         prompt_tokens=prompt_tokens_list,
     )

@@ -34,8 +34,9 @@ SAMPLING_DEFAULTS: dict[ModelFamily, dict[str, int | float]] = {
         repetition_penalty=1.1,
         temperature=0.8,
     ),
-    # S3 reads the text as one turn (max_new_tokens=0: up to 2048 frames) and has
-    # built-in repetition-aware sampling instead of a repetition penalty.
+    # S3 chunks long text itself (max_new_tokens=0: 600 frames per chunk, 2048 with
+    # single_chunk) and has built-in repetition-aware sampling instead of a
+    # repetition penalty.
     "s3": dict(
         max_new_tokens=0,
         top_p=S3_DEFAULT_TOP_P,
@@ -187,6 +188,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             compile=self.compile,
             iterative_prompt=req.chunk_length > 0,
             chunk_length=req.chunk_length,
+            single_chunk=req.single_chunk,
             prompt_tokens=prompt_tokens,
             prompt_text=prompt_texts,
             **self.resolve_sampling(req),

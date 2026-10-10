@@ -109,9 +109,11 @@ docker run --gpus device=0 \
 
 ### 与 S2-Pro 的区别
 
-- 整段文本一次生成。默认每个请求最多生成 2048 帧（约 95 秒音频）；更大的 `max_new_tokens` 会被限制在 10,240 帧减去 prompt 长度以内。更长的文本请拆成多个请求。
+- 长文本会切成约 300 字节（UTF-8）的块，尽量在句末断开，再逐块依次生成；第一块和最近一块会作为上下文喂回模型，保持音色一致。默认每块最多生成 600 帧（约 28 秒）。
+- 设置 `single_chunk`（命令行用 `--single-chunk`）可以整段一次生成，默认最多 2048 帧（约 95 秒）。两种模式下，更大的 `max_new_tokens` 都会被限制在 10,240 帧减去 prompt 长度以内。
+- 只支持 `<|speaker:0|>` 这一个说话人标签。
 - `chunk_length` 和 `repetition_penalty` 不起作用，S3 内置了重复感知采样。默认采样参数为 temperature 1.0、top-p 0.9、top-k 30。
-- 开启 `streaming` 时，音频会在生成结束后一次性返回。
+- 开启 `streaming` 时，音频按块依次返回。
 - `FISH_S3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_S3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。
 
 ## WebUI 推理

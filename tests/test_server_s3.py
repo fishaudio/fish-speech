@@ -88,6 +88,9 @@ class SamplingDefaultsTest(unittest.TestCase):
         self.assertEqual(sent["temperature"], 1.0)
         self.assertEqual(sent["max_new_tokens"], 0)
         self.assertEqual(sent["text"], "hi")
+        self.assertFalse(sent["single_chunk"])
+        engine.send_Llama_request(ServeTTSRequest(text="hi", single_chunk=True), [], [])
+        self.assertTrue(engine.llama_queue.get_nowait().request["single_chunk"])
 
     def test_unknown_family(self):
         with self.assertRaises(ValueError):

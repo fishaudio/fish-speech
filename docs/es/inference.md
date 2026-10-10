@@ -109,9 +109,11 @@ docker run --gpus device=0 \
 
 ### Diferencias con S2-Pro
 
-- Todo el texto se genera de una vez. Por defecto, cada solicitud produce como máximo 2048 frames (unos 95 segundos de audio); un `max_new_tokens` mayor se limita a 10.240 frames menos la longitud del prompt. Divide los textos más largos en varias solicitudes.
+- Los textos largos se dividen en fragmentos de unos 300 bytes (UTF-8), preferiblemente al final de las frases, y los fragmentos se generan uno tras otro. El primer fragmento y el más reciente se vuelven a pasar como contexto para mantener la voz coherente. Por defecto, cada fragmento produce como máximo 600 frames (unos 28 segundos).
+- Activa `single_chunk` (`--single-chunk` en la línea de comandos) para generar todo el texto de una vez, por defecto como máximo 2048 frames (unos 95 segundos). En ambos modos, un `max_new_tokens` mayor se limita a 10.240 frames menos la longitud del prompt.
+- Solo se acepta la etiqueta de hablante `<|speaker:0|>`.
 - `chunk_length` y `repetition_penalty` no tienen efecto; S3 incorpora muestreo con detección de repeticiones. El muestreo por defecto es temperature 1.0, top-p 0.9, top-k 30.
-- Con `streaming` activado, el audio llega de una sola vez cuando termina la generación.
+- Con `streaming` activado, el audio se devuelve fragmento a fragmento.
 - `FISH_S3_FP8_EXPERTS=0` o `1` fuerza expertos descuantizados o en FP8, y `FISH_S3_CUDA_GRAPH=0` desactiva la decodificación con CUDA graphs.
 
 ## Inferencia con WebUI

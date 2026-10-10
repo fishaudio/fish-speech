@@ -57,6 +57,10 @@ S3_GRAPH_KV_BUCKETS = (1024, 2048, 4096, S3_GRAPH_CAPACITY)
 FinishReason = Literal["eos", "length"]
 
 
+class S3PromptTooLongError(ValueError):
+    """The prompt has more than S3_MAX_PROMPT_ROWS rows."""
+
+
 def validate_s3_text(text: str, location: str) -> None:
     """Non-empty, no structural tokens, and speaker 0 as the only speaker tag."""
     if not text.strip(UNICODE_WHITE_SPACE):
@@ -85,12 +89,14 @@ def build_s3_prompt(
     config: FishOmniConfig,
     prompt_texts: Sequence[str] = (),
     prompt_tokens: Sequence[torch.Tensor] = (),
+    history: Sequence[tuple[str, torch.Tensor]] = (),
 ) -> torch.Tensor:
     """CPU int64 rows [rows, 1 + num_codebooks] ending in the open assistant voice turn.
 
     Text rows are [token, 0, ..., 0]; audio rows are [c0 + semantic_start, c0..cN-1].
     Every literal is tokenized on its own: tokenizing the joined string changes ids
-    at the seams.
+    at the seams. history holds earlier (text, codes) chunks, written as completed
+    user and assistant voice turns before the current one.
     """
     num_codebooks = config.audio_decoder.num_codebooks
     codebook_size = config.audio_decoder.vocab_size
@@ -105,13 +111,7 @@ def build_s3_prompt(
         raise ValueError("every reference needs both a transcript and codes")
     validate_s3_text(text, "text")
 
-    segments: list[str | torch.Tensor] = [
-        "<|im_start|>system\n",
-        S3_REFERENCE_INSTRUCTION if prompt_tokens else S3_TTS_INSTRUCTION,
-    ]
-    for index, (transcript, codes) in enumerate(zip(prompt_texts, prompt_tokens), 1):
-        location = f"reference {index}"
-        validate_s3_text(transcript, location)
+    def check_codes(codes: torch.Tensor, location: str) -> None:
         if (
             codes.dtype.is_floating_point
             or codes.dtype == torch.bool
@@ -125,6 +125,16 @@ def build_s3_prompt(
             )
         if codes.min() < 0 or codes.max() >= codebook_size:
             raise ValueError(f"{location}: codes must be in [0, {codebook_size})")
+
+    segments: list[str | torch.Tensor] = [
+        "<|im_start|>system\n",
+        S3_REFERENCE_INSTRUCTION if prompt_tokens else S3_TTS_INSTRUCTION,
+    ]
+
+    for index, (transcript, codes) in enumerate(zip(prompt_texts, prompt_tokens), 1):
+        location = f"reference {index}"
+        validate_s3_text(transcript, location)
+        check_codes(codes, location)
         # The tag must follow "Text: " directly; leading white space moves behind it.
         tagged = with_speaker_tag(transcript)
         body = tagged.lstrip(UNICODE_WHITE_SPACE)
@@ -132,8 +142,20 @@ def build_s3_prompt(
         leading = tagged[: len(tagged) - len(body)]
         transcript = tag.group(0) + leading + body[tag.end() :]
         segments += [f"\n\n[Reference {index}]\nText: {transcript}\nSpeech: ", codes]
+    segments.append(S3_MESSAGE_END)
+    for index, (turn_text, codes) in enumerate(history, 1):
+        location = f"history {index}"
+        validate_s3_text(turn_text, location)
+        check_codes(codes, location)
+        segments += [
+            "<|im_start|>user\n",
+            with_speaker_tag(turn_text),
+            S3_MESSAGE_END,
+            S3_GENERATION_START,
+            codes,
+            S3_MESSAGE_END,
+        ]
     segments += [
-        S3_MESSAGE_END,
         "<|im_start|>user\n",
         with_speaker_tag(text),
         S3_MESSAGE_END,
@@ -153,7 +175,9 @@ def build_s3_prompt(
             rows.append(torch.cat((main, codes)).T)
     rows = torch.cat(rows)
     if len(rows) > S3_MAX_PROMPT_ROWS:
-        raise ValueError(f"prompt has {len(rows)} rows; at most {S3_MAX_PROMPT_ROWS}")
+        raise S3PromptTooLongError(
+            f"prompt has {len(rows)} rows; at most {S3_MAX_PROMPT_ROWS}"
+        )
     return rows
 
 

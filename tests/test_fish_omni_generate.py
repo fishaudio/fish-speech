@@ -451,6 +451,87 @@ class S3GenerationTest(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["max_new_tokens"], limit)
             self.assertLessEqual(self.model.cache_capacity, min(capacity, 128))
 
+    def test_prompt_writes_history_as_completed_turns(self) -> None:
+        tokenizer, config = self.model.tokenizer, self.model.config
+        codes = torch.tensor([[1, 2], [3, 4], [5, 6]])
+        plain = build_s3_prompt("now", tokenizer, config)
+        prompt = build_s3_prompt("now", tokenizer, config, history=[("before", codes)])
+        self.assertEqual(
+            tokenizer.parts[-9:],
+            [
+                "<|im_start|>user\n",
+                "<|speaker:0|> before",
+                "<|im_end|>\n",
+                "<|im_start|>assistant\n<|voice|>",
+                "<|im_end|>\n",
+                "<|im_start|>user\n",
+                "<|speaker:0|> now",
+                "<|im_end|>\n",
+                "<|im_start|>assistant\n<|voice|>",
+            ],
+        )
+        # Five two-token literals plus the two audio frames.
+        self.assertEqual(len(prompt) - len(plain), 12)
+        audio = torch.tensor([[33, 1, 3, 5], [34, 2, 4, 6]])
+        start = int((prompt == audio[0]).all(-1).nonzero()[0])
+        torch.testing.assert_close(prompt[start : start + 2], audio)
+
+    def run_chunked(self, chunks: list[str], **kwargs) -> tuple[list, list, list]:
+        frame, eos = torch.tensor([[33, 1, 2, 3]]), torch.tensor([[2, 0, 0, 0]])
+        with (
+            patch.object(inference, "split_s3_text", return_value=chunks) as split,
+            patch.object(inference, "S3_CHUNK_MAX_NEW_TOKENS", 7),
+            patch.object(inference, "S3_DEFAULT_MAX_NEW_TOKENS", 9),
+            patch.object(
+                self.model.audio_decoder,
+                "decode_step",
+                side_effect=[frame, eos] * len(chunks),
+            ),
+            patch.object(inference, "build_s3_prompt", wraps=build_s3_prompt) as build,
+            patch.object(inference, "generate_s3", wraps=generate_s3) as run,
+        ):
+            responses = list(
+                generate_long(
+                    model=self.model,
+                    device="cpu",
+                    decode_one_token=None,
+                    text=" ".join(chunks),
+                    **kwargs,
+                )
+            )
+        self.split_calls = split.call_count
+        histories = [
+            [text for text, _ in call.kwargs["history"]]
+            for call in build.call_args_list
+        ]
+        budgets = [call.kwargs["max_new_tokens"] for call in run.call_args_list]
+        return responses, histories, budgets
+
+    def test_generate_long_s3_chunks_with_history(self) -> None:
+        responses, histories, budgets = self.run_chunked(["one", "two", "three"])
+        self.assertEqual([r.action for r in responses], ["sample"] * 3 + ["next"])
+        self.assertEqual([r.text for r in responses[:3]], ["one", "two", "three"])
+        torch.testing.assert_close(responses[0].codes, torch.tensor([[1], [2], [3]]))
+        # The first chunk stays pinned; only the latest other chunk is kept.
+        self.assertEqual(histories, [[], ["one"], ["one", "two"]])
+        self.assertEqual(budgets, [7, 7, 7])
+
+    def test_single_chunk_generates_the_whole_text_once(self) -> None:
+        responses, histories, budgets = self.run_chunked(
+            ["one", "two"], single_chunk=True
+        )
+        self.assertEqual(self.split_calls, 0)
+        self.assertEqual([r.action for r in responses], ["sample", "next"])
+        self.assertEqual(responses[0].text, "one two")
+        self.assertEqual((histories, budgets), ([[]], [9]))
+
+    def test_history_is_dropped_when_the_prompt_would_be_too_long(self) -> None:
+        rows = len(build_s3_prompt("x", self.model.tokenizer, self.model.config))
+        with patch.object(generate_module, "S3_MAX_PROMPT_ROWS", rows):
+            responses, histories, _ = self.run_chunked(["one", "two"])
+        self.assertEqual([r.action for r in responses], ["sample", "sample", "next"])
+        self.assertEqual(histories, [[], ["one"], []])
+
 
 class S3DispatchTest(unittest.TestCase):
     def test_device_layout(self) -> None:
