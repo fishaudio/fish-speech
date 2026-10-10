@@ -248,9 +248,18 @@ if __name__ == "__main__":
             wf.setframerate(args.rate)
 
             stream_stopped_flag = False
+            # The server opens the stream with a 44-byte WAV header (older ones
+            # did not); only the samples after it are played and saved.
+            header = b""
 
             try:
                 for chunk in response.iter_content(chunk_size=1024):
+                    if header is not None:
+                        header += chunk
+                        if len(header) < 44:
+                            continue
+                        chunk = header[44:] if header.startswith(b"RIFF") else header
+                        header = None
                     if chunk:
                         stream.write(chunk)
                         wf.writeframesraw(chunk)

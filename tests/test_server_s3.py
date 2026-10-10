@@ -1,3 +1,4 @@
+import asyncio
 import io
 import queue
 import unittest
@@ -15,7 +16,7 @@ from fish_speech.models.text2semantic import inference
 from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import S3PromptTooLongError
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
-from tools.server.api_utils import encode_audio
+from tools.server.api_utils import encode_audio, inference_async
 from tools.server.inference import inference_wrapper
 from tools.server.model_utils import batch_vqgan_decode
 
@@ -192,6 +193,42 @@ class ErrorMappingTest(unittest.TestCase):
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
+
+
+class StreamingTest(unittest.TestCase):
+    def test_stream_is_a_wav_file(self):
+        engine = make_engine("s3")
+        segments = [np.full(3, 0.5, np.float32), np.array([1.0, -1.0], np.float32)]
+        replies = queue.Queue()
+        for _ in segments:
+            replies.put(
+                inference.WrappedGenerateResponse(
+                    "success", inference.GenerateResponse("sample", torch.zeros(1, 1))
+                )
+            )
+        replies.put(
+            inference.WrappedGenerateResponse(
+                "success", inference.GenerateResponse("next")
+            )
+        )
+
+        async def collect():
+            req = ServeTTSRequest(text="hi", streaming=True)
+            return [chunk async for chunk in inference_async(req, engine)]
+
+        with (
+            patch.object(engine, "send_Llama_request", return_value=replies),
+            patch.object(engine, "get_audio_segment", side_effect=segments),
+        ):
+            chunks = asyncio.run(collect())
+
+        self.assertTrue(all(isinstance(chunk, bytes) for chunk in chunks))
+        stream = b"".join(chunks)
+        self.assertEqual(stream[:4] + stream[8:12], b"RIFFWAVE")
+        audio, rate = sf.read(io.BytesIO(stream), dtype="int16")
+        self.assertEqual(rate, FakeCodec.sample_rate)
+        # 1.0 is clipped to 32767 instead of wrapping around to -32768.
+        np.testing.assert_array_equal(audio, [16384, 16384, 16384, 32767, -32768])
 
 
 class EncodeAudioTest(unittest.TestCase):

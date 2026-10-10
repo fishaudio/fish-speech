@@ -126,7 +126,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                 code="header",
                 audio=(
                     sample_rate,
-                    np.array(wav_chunk_header(sample_rate=sample_rate)),
+                    np.frombuffer(wav_chunk_header(sample_rate), dtype=np.uint8),
                 ),
                 error=None,
             )
