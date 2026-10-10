@@ -15,6 +15,7 @@ FIXED_TEXT_FLAGS = (
     ("layernorm_zero_centered_gamma", True, True),
     ("shared_expert_gate", True, True),
 )
+# attention_qk_norm is deliberately not checked; see TowerAttention.
 FIXED_AUDIO_DECODER_FLAGS = {
     "decoder_type": "codebook_mtp_shared",
     "rotary_interleaved": True,
