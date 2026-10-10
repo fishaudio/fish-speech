@@ -91,6 +91,8 @@ filelists/
 # Cache and Temporary Files
 # --------------------------
 /.cache/
+/.runtime/
+/.local-voice/
 /.gradio/
 /.locale/
 .pgx.*
