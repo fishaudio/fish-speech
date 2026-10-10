@@ -120,7 +120,7 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 - 긴 텍스트는 약 300바이트(UTF-8), 청크당 최대 3명의 화자 단위로 나뉘어(가능하면 문장 끝에서 끊음) 순서대로 생성됩니다. 첫 번째 청크와 가장 최근 청크가 컨텍스트로 다시 입력되어 음색을 일정하게 유지합니다. 기본적으로 청크당 최대 1024프레임(약 47초)을 생성합니다.
 - `single_chunk`(명령줄에서는 `--single-chunk`)를 지정하면 전체 텍스트를 한 번에 생성합니다. 이때 기본 상한 1024프레임이 전체 텍스트에 적용되므로, 긴 텍스트는 `max_new_tokens`를 늘리거나 0으로 설정해 2048프레임(약 95초)을 사용하세요. 두 모드 모두 이보다 큰 `max_new_tokens`는 10,240프레임에서 프롬프트 길이를 뺀 값으로 제한됩니다.
 - 화자 태그는 `<|speaker:0|>`부터 `<|speaker:15|>`까지 사용할 수 있으며, 태그가 없는 텍스트는 speaker 0으로 처리됩니다. 화자마다 다른 목소리를 쓰려면 각 참조 오디오에 `speaker` 필드(`tools/api_client.py`에서는 `--reference_speaker`)를 지정하세요. 앞에 화자 태그가 없는 전사 텍스트에는 해당 태그가 붙습니다. 전사 텍스트 앞에 태그(예: `<|speaker:1|>`)를 직접 써도 됩니다. 참조 오디오의 순서로는 화자가 정해지지 않습니다.
-- `chunk_length`와 `repetition_penalty`는 적용되지 않습니다. S3에는 반복 인식 샘플링이 내장되어 있습니다. 기본 샘플링 설정은 S2-Pro와 마찬가지로 공식 Fish Audio SDK를 따르는 temperature 0.7, top-p 0.7, top-k 30입니다.
+- `chunk_length`는 적용되지 않습니다. `repetition_penalty`는 호환성을 위해 받기만 하며 S2-Pro와 마찬가지로 무시됩니다. 두 모델 모두 반복 인식 샘플링이 내장되어 있습니다. 기본 샘플링 설정은 S2-Pro와 마찬가지로 공식 Fish Audio SDK를 따르는 temperature 0.7, top-p 0.7, top-k 30입니다.
 - `streaming`을 켜면 오디오가 청크 단위로 반환됩니다.
 - `FISH_S3_FP8_EXPERTS=0` 또는 `1`로 역양자화 전문가 또는 FP8 전문가를 강제할 수 있고, `FISH_S3_CUDA_GRAPH=0`으로 CUDA 그래프 디코딩을 끌 수 있습니다.
 

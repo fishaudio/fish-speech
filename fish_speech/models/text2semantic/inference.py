@@ -442,11 +442,6 @@ def init_model(checkpoint_path, device, precision, compile=False):
     else:
         raise ValueError("Unsupported model type")
 
-    # Pre-create fixed parameter tensors to avoid runtime creation
-    model.fixed_temperature = torch.tensor(0.7, device=device, dtype=torch.float)
-    model.fixed_top_p = torch.tensor(0.7, device=device, dtype=torch.float)
-    model.fixed_repetition_penalty = torch.tensor(1.5, device=device, dtype=torch.float)
-
     # Mark whether cache has been initialized
     model._cache_setup_done = False
 
@@ -643,6 +638,8 @@ def generate_long(
     max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
     top_p: float = DEFAULT_TOP_P,
     top_k: int = DEFAULT_TOP_K,
+    # Accepted for API compatibility and ignored: decoding uses repetition-aware
+    # sampling (RAS) instead.
     repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
     temperature: float = DEFAULT_TEMPERATURE,
     compile: bool = False,

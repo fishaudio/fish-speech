@@ -84,7 +84,7 @@ class SamplingDefaultsTest(unittest.TestCase):
         )
         self.assertEqual(params["top_k"], 30)
 
-    def test_s3_warns_about_repetition_penalty(self):
+    def test_warns_that_repetition_penalty_is_ignored(self):
         with patch("fish_speech.inference_engine.logger") as log:
             for family in ("s3", "s2"):
                 make_engine(family).resolve_sampling(
@@ -94,7 +94,7 @@ class SamplingDefaultsTest(unittest.TestCase):
             make_engine("s3").resolve_sampling(
                 ServeTTSRequest(text="hi", repetition_penalty=1.2)
             )
-        self.assertEqual(log.warning.call_count, 1)
+        self.assertEqual(log.warning.call_count, 2)
 
     def test_request_is_forwarded_with_resolved_sampling(self):
         engine = make_engine("s3")

@@ -120,7 +120,8 @@ def parse_args():
         "--repetition_penalty",
         type=float,
         default=None,
-        help="Repetition penalty for synthesis (S2-Pro only)",
+        help="Accepted for compatibility; S2-Pro and S3 ignore it and use "
+        "repetition-aware sampling",
     )
     parser.add_argument(
         "--temperature", type=float, default=None, help="Temperature for sampling"

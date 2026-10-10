@@ -240,11 +240,12 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             if value is not None:
                 params[name] = value
 
-        # The SDK always sends its default; only warn about a value someone chose.
-        unset = (None, 1.0, DEFAULT_REPETITION_PENALTY)
-        if self.model_family == "s3" and req.repetition_penalty not in unset:
+        # Neither model applies it. The SDK always sends its default, so only warn
+        # about a value someone chose.
+        if req.repetition_penalty not in (None, 1.0, DEFAULT_REPETITION_PENALTY):
             logger.warning(
-                "S3 ignores repetition_penalty (repetition-aware sampling is built in)"
+                "repetition_penalty is ignored: S2-Pro and S3 use repetition-aware "
+                "sampling instead"
             )
         return params
 

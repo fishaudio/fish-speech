@@ -109,7 +109,9 @@ class ServeTTSRequest(BaseModel):
     # Sampling: None takes the official Fish Audio SDK's default (max_new_tokens
     # 1024, per chunk for S3; top_p 0.7; repetition_penalty 1.2; temperature 0.7).
     # max_new_tokens <= 0 means the model's own cap (S2-Pro: the context length;
-    # S3: 600 frames per chunk, or 2048 with single_chunk).
+    # S3: 600 frames per chunk, or 2048 with single_chunk). repetition_penalty is
+    # accepted for compatibility and ignored: both models use repetition-aware
+    # sampling.
     max_new_tokens: int | None = None
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] | None = (
