@@ -53,6 +53,67 @@ python fish_speech/models/dac/inference.py \
 
 Después de eso, obtendrás un archivo `fake.wav`.
 
+## S3-drama
+
+S3-drama usa la misma línea de comandos y el mismo servidor API que S2-Pro; el tipo de modelo se detecta a partir del `config.json` del checkpoint.
+
+!!! warning
+    S3-drama solo funciona en GPUs NVIDIA. No se admiten CPU, Apple MPS ni AMD ROCm, y tampoco `--compile`.
+
+| GPU | Modo | Memoria de GPU |
+| --- | --- | --- |
+| SM89 o posterior (L40, H100, H20) | Expertos MoE en FP8, decodificación con CUDA graphs, una sola GPU | unos 41 GB |
+| GPUs anteriores (V100, A100) | Expertos MoE descuantizados y repartidos entre varias GPUs | unos 70 GB en total |
+
+### Descargar pesos
+
+```bash
+hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
+```
+
+Si el directorio del checkpoint no tiene `codec.pth`, se usa el códec de S2-Pro en `checkpoints/s2-pro/codec.pth`.
+
+### Inferencia por línea de comandos
+
+```bash
+python fish_speech/models/text2semantic/inference.py \
+    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --text "El texto que quieres convertir" \
+    --prompt-audio "reference.wav" \
+    --prompt-text "Tu texto de referencia" \
+    --output "output.wav" \
+    --device cuda:0
+```
+
+`--output` escribe directamente el audio decodificado. En GPUs anteriores, indica varios dispositivos, por ejemplo `--device cuda:0,cuda:1,cuda:2,cuda:3`; el último se encarga del decodificador de audio y del códec. Con solo `--device cuda` se usan hasta las cuatro primeras GPUs visibles.
+
+### Servidor API
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --device cuda:0
+```
+
+Con Docker, ejecuta la imagen del servidor apuntando al checkpoint de S3. En tarjetas SM89 o posteriores, expón una sola GPU como abajo; en tarjetas anteriores, usa `--gpus all`:
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### Diferencias con S2-Pro
+
+- Todo el texto se genera de una vez. Por defecto, cada solicitud produce como máximo 2048 frames (unos 95 segundos de audio); un `max_new_tokens` mayor se limita a 10.240 frames menos la longitud del prompt. Divide los textos más largos en varias solicitudes.
+- `chunk_length` y `repetition_penalty` no tienen efecto; S3 incorpora muestreo con detección de repeticiones. El muestreo por defecto es temperature 1.0, top-p 0.9, top-k 30.
+- Con `streaming` activado, el audio llega de una sola vez cuando termina la generación.
+- `FISH_S3_FP8_EXPERTS=0` o `1` fuerza expertos descuantizados o en FP8, y `FISH_S3_CUDA_GRAPH=0` desactiva la decodificación con CUDA graphs.
+
 ## Inferencia con WebUI
 
 Próximamente.

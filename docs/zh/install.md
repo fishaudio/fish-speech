@@ -70,7 +70,7 @@ pip install -e .
 
 Fish Audio S2 系列模型提供多种 Docker 部署方式，适配不同场景。你可以直接使用 Docker Hub 预构建镜像，也可以用 Docker Compose 本地构建，或手动构建自定义镜像。
 
-我们提供 WebUI 与 API Server 的 GPU（默认 CUDA126）和 CPU 镜像。你可以直接用 Docker Hub 镜像，也可以在本地构建。如果你只想使用预构建镜像，请参考[inference guide](inference.md)。
+我们提供 API Server 的 GPU（默认 CUDA126）和 CPU 镜像。你可以直接用 Docker Hub 镜像，也可以在本地构建。如果你只想使用预构建镜像，请参考[inference guide](inference.md)。
 
 ### 前置条件
 
@@ -87,12 +87,6 @@ Fish Audio S2 系列模型提供多种 Docker 部署方式，适配不同场景�
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# 使用 CUDA 启动 WebUI
-docker compose --profile webui up
-
-# 启用 compile 优化启动 WebUI
-COMPILE=1 docker compose --profile webui up
-
 # 启动 API Server
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # 仅 CPU 部署
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Docker Compose 环境变量
@@ -111,28 +105,17 @@ BACKEND=cpu docker compose --profile webui up
 # .env 文件示例
 BACKEND=cuda              # 或 cpu
 COMPILE=1                 # 启用 compile 优化
-GRADIO_PORT=7860          # WebUI 端口
 API_PORT=8080             # API Server 端口
 UV_VERSION=0.8.15         # UV 包管理器版本
 ```
 
-命令执行后会自动构建镜像并启动容器。你可以通过 `http://localhost:7860` 访问 WebUI，通过 `http://localhost:8080` 访问 API Server。
+命令执行后会自动构建镜像并启动容器。你可以通过 `http://localhost:8080` 访问 API Server。
 
 ### 手动 Docker 构建
 
 如果你需要更细粒度的构建控制，可以手动构建：
 
 ```bash
-# 构建支持 CUDA 的 WebUI 镜像
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # 构建支持 CUDA 的 API Server 镜像
 docker build \
     --platform linux/amd64 \
@@ -148,8 +131,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # 构建开发镜像
 docker build \
@@ -178,8 +161,6 @@ docker build \
 ### 环境变量
 
 - `COMPILE=1` - 启用 `torch.compile`，可提升推理速度（约 10 倍）
-- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI 服务地址
-- `GRADIO_SERVER_PORT=7860` - WebUI 服务端口
 - `API_SERVER_NAME=0.0.0.0` - API 服务地址
 - `API_SERVER_PORT=8080` - API 服务端口
 

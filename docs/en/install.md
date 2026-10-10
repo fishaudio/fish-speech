@@ -70,7 +70,7 @@ pip install -e .
 
 Fish Audio S2 series model provides multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
 
-We provide Docker images for both WebUI and API server on both GPU (CUDA126 by default) and CPU. You can use the pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you only want to use pre-built images, follow the [inference guide](inference.md).
+We provide Docker images for the API server on both GPU (CUDA126 by default) and CPU. You can use the pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you only want to use pre-built images, follow the [inference guide](inference.md).
 
 ### Prerequisites
 
@@ -87,12 +87,6 @@ For development or customization, you can use Docker Compose to build and run lo
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# Start WebUI with CUDA
-docker compose --profile webui up
-
-# Start WebUI with compile optimization
-COMPILE=1 docker compose --profile webui up
-
 # Start API server
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # For CPU-only deployment
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Environment Variables for Docker Compose
@@ -111,30 +105,19 @@ You can customize the deployment using environment variables:
 # .env file example
 BACKEND=cuda              # or cpu
 COMPILE=1                 # Enable compile optimization
-GRADIO_PORT=7860         # WebUI port
 API_PORT=8080            # API server port
 UV_VERSION=0.8.15        # UV package manager version
 CUDA_VER=12.9.0          # CUDA base image version (e.g. 12.6.0 for older drivers)
 UV_EXTRA=cu129           # PyTorch CUDA variant (cu126, cu128, cu129) — must match CUDA_VER
 ```
 
-The command will build the image and run the container. You can access the WebUI at `http://localhost:7860` and the API server at `http://localhost:8080`.
+The command will build the image and run the container. You can access the API server at `http://localhost:8080`.
 
 ### Manual Docker Build
 
 For advanced users who want to customize the build process:
 
 ```bash
-# Build WebUI image with CUDA support
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.9.0 \
-    --build-arg UV_EXTRA=cu129 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # Build API server image with CUDA support
 docker build \
     --platform linux/amd64 \
@@ -150,8 +133,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # Build development image
 docker build \
@@ -180,8 +163,6 @@ Both methods require mounting these directories:
 ### Environment Variables
 
 - `COMPILE=1` - Enable torch.compile for faster inference (~10x speedup)
-- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI server host
-- `GRADIO_SERVER_PORT=7860` - WebUI server port
 - `API_SERVER_NAME=0.0.0.0` - API server host  
 - `API_SERVER_PORT=8080` - API server port
 
@@ -204,9 +185,6 @@ Fish Speech runs on AMD GPUs via ROCm. The ROCm image is based on the official `
 **Using Docker Compose:**
 
 ```bash
-# WebUI
-docker compose -f compose.rocm.yml --profile webui up --build
-
 # API server
 docker compose -f compose.rocm.yml --profile server up --build
 ```
@@ -214,15 +192,15 @@ docker compose -f compose.rocm.yml --profile server up --build
 **Manual build and run:**
 
 ```bash
-docker build -f docker/Dockerfile.rocm --target webui -t fish-speech-webui:rocm .
+docker build -f docker/Dockerfile.rocm --target server -t fish-speech-server:rocm .
 
 docker run \
     --device=/dev/kfd --device=/dev/dri \
     --group-add video --group-add render \
     -e ROCBLAS_USE_HIPBLASLT=0 \
     -v ./checkpoints:/app/checkpoints \
-    -p 7860:7860 \
-    fish-speech-webui:rocm
+    -p 8080:8080 \
+    fish-speech-server:rocm
 ```
 
 !!! note

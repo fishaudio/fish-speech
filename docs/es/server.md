@@ -22,6 +22,17 @@ Opciones comunes:
 * `--api-key`: requerir autenticación mediante bearer token
 * `--workers`: establecer la cantidad de procesos worker
 
+### Iniciar el servidor con S3-drama
+
+```bash
+python tools/api_server.py \
+  --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+  --listen 0.0.0.0:8080 \
+  --device cuda:0
+```
+
+El tipo de modelo se detecta a partir del checkpoint, así que cada request a este servidor usa S3-drama. S3-drama necesita una GPU NVIDIA y no admite `--compile`. Consulta [S3-drama](inference.md#s3-drama) para ver los requisitos de GPU y en qué se diferencian las requests respecto a S2-Pro.
+
 ### Verificación de estado (health check)
 
 ```bash
@@ -69,7 +80,7 @@ Para uso con WebUI, ver:
 
 ## Docker
 
-Para despliegue del servidor o WebUI basado en Docker, ver:
+Para despliegue del servidor basado en Docker, ver:
 
 * [Docker Setup](https://speech.fish.audio/install/#docker-setup)
 

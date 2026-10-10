@@ -53,17 +53,70 @@ python fish_speech/models/dac/inference.py \
 
 Depois disso, você obterá um arquivo `fake.wav`.
 
-## Inferência WebUI
+## S3-drama
 
-### 1. Gradio WebUI
+O S3-drama usa a mesma linha de comando e o mesmo servidor API do S2-Pro; o tipo de modelo é detectado a partir do `config.json` do checkpoint.
 
-Para manter a compatibilidade, mantemos a interface Gradio WebUI anterior.
+!!! warning
+    O S3-drama funciona apenas em GPUs NVIDIA. CPU, Apple MPS e AMD ROCm não são suportados, e `--compile` também não.
+
+| GPU | Modo | Memória da GPU |
+| --- | --- | --- |
+| SM89 ou mais recente (L40, H100, H20) | Especialistas MoE mantidos em FP8, decodificação com CUDA graphs, uma GPU | cerca de 41 GB |
+| GPUs mais antigas (V100, A100) | Especialistas MoE desquantizados e distribuídos por várias GPUs | cerca de 70 GB no total |
+
+### Baixar pesos
 
 ```bash
-python tools/run_webui.py # --compile se você precisar de aceleração
+hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 ```
 
-### 2. Awesome WebUI
+Se o diretório do checkpoint não tiver `codec.pth`, será usado o codec do S2-Pro em `checkpoints/s2-pro/codec.pth`.
+
+### Inferência por linha de comando
+
+```bash
+python fish_speech/models/text2semantic/inference.py \
+    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --text "O texto que você deseja converter" \
+    --prompt-audio "reference.wav" \
+    --prompt-text "Seu texto de referência" \
+    --output "output.wav" \
+    --device cuda:0
+```
+
+`--output` grava diretamente o áudio decodificado. Em GPUs mais antigas, indique vários dispositivos, por exemplo `--device cuda:0,cuda:1,cuda:2,cuda:3`; o último fica com o decodificador de áudio e o codec. Apenas `--device cuda` usa até as quatro primeiras GPUs visíveis.
+
+### Servidor API
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --device cuda:0
+```
+
+Com Docker, execute a imagem do servidor apontando para o checkpoint do S3. Em placas SM89 ou mais recentes, exponha uma única GPU como abaixo; em placas mais antigas, use `--gpus all`:
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### Diferenças em relação ao S2-Pro
+
+- O texto inteiro é gerado de uma só vez. Por padrão, cada requisição produz no máximo 2048 frames (cerca de 95 segundos de áudio); um `max_new_tokens` maior é limitado a 10.240 frames menos o comprimento do prompt. Divida textos mais longos em várias requisições.
+- `chunk_length` e `repetition_penalty` não têm efeito; o S3 tem amostragem com reconhecimento de repetição integrada. A amostragem padrão é temperature 1.0, top-p 0.9, top-k 30.
+- Com `streaming` ativado, o áudio chega de uma só vez depois que a geração termina.
+- `FISH_S3_FP8_EXPERTS=0` ou `1` força especialistas desquantizados ou em FP8, e `FISH_S3_CUDA_GRAPH=0` desativa a decodificação com CUDA graphs.
+
+## Inferência WebUI
+
+### Awesome WebUI
 
 A Awesome WebUI é uma interface web moderna baseada em TypeScript, oferecendo funcionalidades mais ricas e uma melhor experiência do usuário.
 

@@ -70,7 +70,7 @@ pip install -e .
 
 O modelo da série Fish Audio S2 oferece múltiplas opções de implementação com Docker para satisfazer diferentes necessidades. Pode usar imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas.
 
-Fornecemos imagens Docker para a WebUI e o servidor API, tanto para GPU (CUDA 12.6 por defeito) como para CPU. Pode usar as imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas. Se quiser construir localmente, siga as instruções abaixo. Se apenas quiser usar as imagens pré-construídas, siga diretamente o [guia de inferência](inference.md).
+Fornecemos imagens Docker para o servidor API, tanto para GPU (CUDA 12.6 por defeito) como para CPU. Pode usar as imagens pré-construídas do Docker Hub, construir localmente com o Docker Compose, ou construir manualmente imagens personalizadas. Se quiser construir localmente, siga as instruções abaixo. Se apenas quiser usar as imagens pré-construídas, siga diretamente o [guia de inferência](inference.md).
 
 ### Pré-requisitos
 
@@ -87,12 +87,6 @@ Para desenvolvimento ou personalização, pode usar o Docker Compose para constr
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# Iniciar a WebUI com CUDA
-docker compose --profile webui up
-
-# Iniciar a WebUI com otimização de compilação
-COMPILE=1 docker compose --profile webui up
-
 # Iniciar o servidor API
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # Implementação apenas com CPU
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Variáveis de Ambiente para o Docker Compose
@@ -111,28 +105,17 @@ Pode personalizar a implementação usando variáveis de ambiente:
 # Exemplo de ficheiro .env
 BACKEND=cuda              # ou cpu
 COMPILE=1                 # Ativar otimização de compilação
-GRADIO_PORT=7860         # Porta da WebUI
 API_PORT=8080            # Porta do servidor API
 UV_VERSION=0.8.15        # Versão do gestor de pacotes UV
 ```
 
-O comando irá construir a imagem e executar o contentor. Pode aceder à WebUI em `http://localhost:7860` e ao servidor API em `http://localhost:8080`.
+O comando irá construir a imagem e executar o contentor. Pode aceder ao servidor API em `http://localhost:8080`.
 
 ### Construção Manual com Docker
 
 Para utilizadores avançados que desejam personalizar o processo de construção:
 
 ```bash
-# Construir imagem da WebUI com suporte CUDA
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # Construir imagem do servidor API com suporte CUDA
 docker build \
     --platform linux/amd64 \
@@ -148,8 +131,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # Construir imagem de desenvolvimento
 docker build \
@@ -178,8 +161,6 @@ Ambos os métodos requerem a montagem dos seguintes diretórios:
 ### Variáveis de Ambiente
 
 - `COMPILE=1` - Ativa o `torch.compile` para uma inferência mais rápida (cerca de 10x)
-- `GRADIO_SERVER_NAME=0.0.0.0` - Anfitrião do servidor WebUI
-- `GRADIO_SERVER_PORT=7860` - Porta do servidor WebUI
 - `API_SERVER_NAME=0.0.0.0` - Anfitrião do servidor API
 - `API_SERVER_PORT=8080` - Porta do servidor API
 

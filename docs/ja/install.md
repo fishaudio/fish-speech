@@ -70,7 +70,7 @@ pip install -e .
 
 Fish Audio S2シリーズモデルは、さまざまなニーズに応えるため複数のDockerデプロイメントオプションを提供しています。Docker Hubのビルド済みイメージを使用するか、Docker Composeでローカルビルドするか、手動でカスタムイメージをビルドすることができます。
 
-WebUIとAPIサーバーの両方について、GPU（デフォルトはCUDA 12.6）版とCPU版のDockerイメージを提供しています。Docker Hubのビルド済みイメージを使用するか、Docker Composeでローカルビルドするか、手動でカスタムイメージをビルドするかを選択できます。ローカルでビルドする場合は、以下の手順に従ってください。ビルド済みイメージを使用するだけの場合は、[推論ガイド](inference.md)を直接参照してください。
+APIサーバーについて、GPU（デフォルトはCUDA 12.6）版とCPU版のDockerイメージを提供しています。Docker Hubのビルド済みイメージを使用するか、Docker Composeでローカルビルドするか、手動でカスタムイメージをビルドするかを選択できます。ローカルでビルドする場合は、以下の手順に従ってください。ビルド済みイメージを使用するだけの場合は、[推論ガイド](inference.md)を直接参照してください。
 
 ### 前提条件
 
@@ -87,12 +87,6 @@ WebUIとAPIサーバーの両方について、GPU（デフォルトはCUDA 12.6
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# CUDAでWebUIを起動
-docker compose --profile webui up
-
-# コンパイル最適化を有効にしてWebUIを起動
-COMPILE=1 docker compose --profile webui up
-
 # APIサーバーを起動
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # CPUのみでのデプロイ
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Docker Compose 環境変数
@@ -111,28 +105,17 @@ BACKEND=cpu docker compose --profile webui up
 # .env ファイルの例
 BACKEND=cuda              # または cpu
 COMPILE=1                 # コンパイル最適化を有効化
-GRADIO_PORT=7860         # WebUIのポート
 API_PORT=8080            # APIサーバーのポート
 UV_VERSION=0.8.15        # UVパッケージマネージャーのバージョン
 ```
 
-このコマンドはイメージをビルドし、コンテナを実行します。WebUIには`http://localhost:7860`で、APIサーバーには`http://localhost:8080`でアクセスできます。
+このコマンドはイメージをビルドし、コンテナを実行します。APIサーバーには`http://localhost:8080`でアクセスできます。
 
 ### 手動でのDockerビルド
 
 ビルドプロセスをカスタマイズしたい上級者向け:
 
 ```bash
-# CUDAサポート付きのWebUIイメージをビルド
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # CUDAサポート付きのAPIサーバーイメージをビルド
 docker build \
     --platform linux/amd64 \
@@ -148,8 +131,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # 開発用イメージをビルド
 docker build \
@@ -178,8 +161,6 @@ docker build \
 ### 環境変数
 
 - `COMPILE=1` - `torch.compile`を有効にして推論を高速化（約10倍）
-- `GRADIO_SERVER_NAME=0.0.0.0` - WebUIサーバーのホスト
-- `GRADIO_SERVER_PORT=7860` - WebUIサーバーのポート
 - `API_SERVER_NAME=0.0.0.0` - APIサーバーのホスト
 - `API_SERVER_PORT=8080` - APIサーバーのポート
 

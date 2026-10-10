@@ -53,17 +53,70 @@ python fish_speech/models/dac/inference.py \
 
 이후 `fake.wav` 파일을 얻게 됩니다.
 
-## WebUI 추론
+## S3-drama
 
-### 1. Gradio WebUI
+S3-drama는 S2-Pro와 같은 명령줄 및 API 서버를 사용합니다. 모델 종류는 체크포인트의 `config.json`에서 자동으로 판별됩니다.
 
-호환성을 유지하기 위해 기존의 Gradio WebUI를 보존하고 있습니다.
+!!! warning
+    S3-drama는 NVIDIA GPU에서만 실행됩니다. CPU, Apple MPS, AMD ROCm은 지원하지 않으며 `--compile`도 사용할 수 없습니다.
+
+| GPU | 실행 방식 | GPU 메모리 |
+| --- | --- | --- |
+| SM89 이상(L40, H100, H20) | MoE 전문가를 FP8로 유지, CUDA 그래프 디코딩, GPU 1개 | 약 41 GB |
+| 이전 세대 GPU(V100, A100) | MoE 전문가를 역양자화하여 여러 GPU에 분산 | 합계 약 70 GB |
+
+### 가중치 다운로드
 
 ```bash
-python tools/run_webui.py # 가속이 필요한 경우 --compile
+hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 ```
 
-### 2. Awesome WebUI
+체크포인트 디렉터리에 `codec.pth`가 없으면 `checkpoints/s2-pro/codec.pth`의 S2-Pro 코덱을 사용합니다.
+
+### 명령줄 추론
+
+```bash
+python fish_speech/models/text2semantic/inference.py \
+    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --text "변환하려는 텍스트" \
+    --prompt-audio "reference.wav" \
+    --prompt-text "참조 텍스트" \
+    --output "output.wav" \
+    --device cuda:0
+```
+
+`--output`을 지정하면 디코딩된 오디오가 바로 저장됩니다. 이전 세대 GPU에서는 `--device cuda:0,cuda:1,cuda:2,cuda:3`처럼 여러 장치를 지정하세요. 마지막 장치가 오디오 디코더와 코덱을 담당합니다. `--device cuda`만 지정하면 인식된 GPU 중 앞에서부터 최대 4개를 사용합니다.
+
+### API 서버
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --device cuda:0
+```
+
+Docker에서는 server 이미지로 S3 체크포인트를 불러옵니다. SM89 이상 GPU에서는 아래처럼 GPU 하나만 노출하고, 이전 세대 GPU에서는 `--gpus all`을 사용하세요.
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### S2-Pro와의 차이점
+
+- 전체 텍스트를 한 번에 생성합니다. 기본적으로 요청당 최대 2048프레임(약 95초 분량의 오디오)을 생성하며, 이보다 큰 `max_new_tokens`는 10,240프레임에서 프롬프트 길이를 뺀 값으로 제한됩니다. 더 긴 텍스트는 여러 요청으로 나누세요.
+- `chunk_length`와 `repetition_penalty`는 적용되지 않습니다. S3에는 반복 인식 샘플링이 내장되어 있습니다. 기본 샘플링 설정은 temperature 1.0, top-p 0.9, top-k 30입니다.
+- `streaming`을 켜면 생성이 끝난 뒤 오디오가 한 번에 반환됩니다.
+- `FISH_S3_FP8_EXPERTS=0` 또는 `1`로 역양자화 전문가 또는 FP8 전문가를 강제할 수 있고, `FISH_S3_CUDA_GRAPH=0`으로 CUDA 그래프 디코딩을 끌 수 있습니다.
+
+## WebUI 추론
+
+### Awesome WebUI
 
 Awesome WebUI는 TypeScript 기반으로 개발된 현대적인 웹 인터페이스로, 더 풍부한 기능과 향상된 사용자 경험을 제공합니다.
 

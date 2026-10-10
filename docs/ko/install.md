@@ -70,7 +70,7 @@ pip install -e .
 
 Fish Audio S2 시리즈 모델은 다양한 요구에 부응하기 위해 여러 Docker 배포 옵션을 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다.
 
-WebUI와 API 서버 모두에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 Docker 이미지를 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다. 로컬에서 빌드하려면 아래 지침을 따르세요. 사전 빌드된 이미지를 사용하려면 [추론 가이드](inference.md)를 직접 참조하세요.
+API 서버에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 Docker 이미지를 제공합니다. Docker Hub의 사전 빌드된 이미지를 사용하거나, Docker Compose로 로컬에서 빌드하거나, 수동으로 사용자 정의 이미지를 빌드할 수 있습니다. 로컬에서 빌드하려면 아래 지침을 따르세요. 사전 빌드된 이미지를 사용하려면 [추론 가이드](inference.md)를 직접 참조하세요.
 
 ### 사전 요구사항
 
@@ -87,12 +87,6 @@ WebUI와 API 서버 모두에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# CUDA로 WebUI 시작
-docker compose --profile webui up
-
-# 컴파일 최적화로 WebUI 시작
-COMPILE=1 docker compose --profile webui up
-
 # API 서버 시작
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # CPU 전용 배포
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Docker Compose 환경 변수
@@ -111,28 +105,17 @@ BACKEND=cpu docker compose --profile webui up
 # .env 파일 예시
 BACKEND=cuda              # 또는 cpu
 COMPILE=1                 # 컴파일 최적화 활성화
-GRADIO_PORT=7860         # WebUI 포트
 API_PORT=8080            # API 서버 포트
 UV_VERSION=0.8.15        # UV 패키지 관리자 버전
 ```
 
-이 명령은 이미지를 빌드하고 컨테이너를 실행합니다. WebUI는 `http://localhost:7860`에서, API 서버는 `http://localhost:8080`에서 접근할 수 있습니다.
+이 명령은 이미지를 빌드하고 컨테이너를 실행합니다. API 서버는 `http://localhost:8080`에서 접근할 수 있습니다.
 
 ### 수동 Docker 빌드
 
 빌드 프로세스를 사용자 정의하려는 고급 사용자를 위해:
 
 ```bash
-# CUDA를 지원하는 WebUI 이미지 빌드
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # CUDA를 지원하는 API 서버 이미지 빌드
 docker build \
     --platform linux/amd64 \
@@ -148,8 +131,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # 개발용 이미지 빌드
 docker build \
@@ -178,8 +161,6 @@ docker build \
 ### 환경 변수
 
 - `COMPILE=1` - `torch.compile`을 활성화하여 추론 속도 향상 (약 10배)
-- `GRADIO_SERVER_NAME=0.0.0.0` - WebUI 서버 호스트
-- `GRADIO_SERVER_PORT=7860` - WebUI 서버 포트
 - `API_SERVER_NAME=0.0.0.0` - API 서버 호스트
 - `API_SERVER_PORT=8080` - API 서버 포트
 

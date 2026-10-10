@@ -53,17 +53,70 @@ python fish_speech/models/dac/inference.py \
 
 之后你会得到一个fake.wav文件。
 
-## WebUI 推理
+## S3-drama
 
-### 1. Gradio WebUI
+S3-drama 与 S2-Pro 共用同一套命令行和 API Server，模型类型会根据权重目录中的 `config.json` 自动识别。
 
-为了保持兼容，我们保留了以往的Gradio WebUI。
+!!! warning
+    S3-drama 只能在 NVIDIA GPU 上运行，不支持 CPU、Apple MPS 和 AMD ROCm，也不支持 `--compile`。
+
+| GPU | 运行方式 | 显存 |
+| --- | --- | --- |
+| SM89 及以上（L40、H100、H20） | MoE 专家保持 FP8，使用 CUDA graph 解码，单卡运行 | 约 41 GB |
+| 较早的 GPU（V100、A100） | MoE 专家反量化后分布到多张卡上 | 合计约 70 GB |
+
+### 下载权重
 
 ```bash
-python tools/run_webui.py # --compile 如果你需要加速的话
+hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 ```
 
-### 2. Awesome WebUI
+如果权重目录中没有 `codec.pth`，会改用 `checkpoints/s2-pro/codec.pth` 中的 S2-Pro codec。
+
+### 命令行推理
+
+```bash
+python fish_speech/models/text2semantic/inference.py \
+    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --text "您想要转换的文本" \
+    --prompt-audio "reference.wav" \
+    --prompt-text "您的参考文本" \
+    --output "output.wav" \
+    --device cuda:0
+```
+
+`--output` 会直接写出解码后的音频。在较早的 GPU 上，可以指定多张卡，例如 `--device cuda:0,cuda:1,cuda:2,cuda:3`，最后一张卡负责音频解码器和 codec。只写 `--device cuda` 时，最多使用前四张可见的 GPU。
+
+### API Server
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --device cuda:0
+```
+
+使用 Docker 时，用 server 镜像加载 S3 权重。在 SM89 及以上的显卡上，按下面的方式只暴露一张卡；较早的显卡请使用 `--gpus all`：
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### 与 S2-Pro 的区别
+
+- 整段文本一次生成。默认每个请求最多生成 2048 帧（约 95 秒音频）；更大的 `max_new_tokens` 会被限制在 10,240 帧减去 prompt 长度以内。更长的文本请拆成多个请求。
+- `chunk_length` 和 `repetition_penalty` 不起作用，S3 内置了重复感知采样。默认采样参数为 temperature 1.0、top-p 0.9、top-k 30。
+- 开启 `streaming` 时，音频会在生成结束后一次性返回。
+- `FISH_S3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_S3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。
+
+## WebUI 推理
+
+### Awesome WebUI
 
 Awesome WebUI 是一个基于 TypeScript 开发的现代化 Web 界面，提供更丰富的功能和更好的交互体验。
 

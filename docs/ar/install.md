@@ -70,7 +70,7 @@ pip install -e .
 
 يوفر نموذج سلسلة Fish Audio S2 خيارات نشر متعددة مع Docker لتلبية الاحتياجات المختلفة. يمكنك استخدام الصور المعدة مسبقًا من Docker Hub، أو البناء محليًا باستخدام Docker Compose، أو بناء صور مخصصة يدويًا.
 
-لقد قدمنا صور Docker لكل من واجهة المستخدم الرسومية (WebUI) وخادم API، لكل من وحدات معالجة الرسومات (GPU) (CUDA 12.6 افتراضيًا) ووحدات المعالجة المركزية (CPU). يمكنك استخدام الصور المعدة مسبقًا من Docker Hub، أو البناء محليًا باستخدام Docker Compose، أو بناء صور مخصصة يدويًا. إذا كنت ترغب في البناء محليًا، فاتبع الإرشادات أدناه. إذا كنت ترغب فقط في استخدام الصور المعدة مسبقًا، فاتبع مباشرةً [دليل الاستدلال](inference.md).
+لقد قدمنا صور Docker لخادم API، لكل من وحدات معالجة الرسومات (GPU) (CUDA 12.6 افتراضيًا) ووحدات المعالجة المركزية (CPU). يمكنك استخدام الصور المعدة مسبقًا من Docker Hub، أو البناء محليًا باستخدام Docker Compose، أو بناء صور مخصصة يدويًا. إذا كنت ترغب في البناء محليًا، فاتبع الإرشادات أدناه. إذا كنت ترغب فقط في استخدام الصور المعدة مسبقًا، فاتبع مباشرةً [دليل الاستدلال](inference.md).
 
 ### المتطلبات الأساسية
 
@@ -87,12 +87,6 @@ pip install -e .
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# بدء واجهة المستخدم الرسومية (WebUI) مع CUDA
-docker compose --profile webui up
-
-# بدء واجهة المستخدم الرسومية (WebUI) مع تحسين التجميع
-COMPILE=1 docker compose --profile webui up
-
 # بدء خادم API
 docker compose --profile server up
 
@@ -100,7 +94,7 @@ docker compose --profile server up
 COMPILE=1 docker compose --profile server up
 
 # النشر باستخدام CPU فقط
-BACKEND=cpu docker compose --profile webui up
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### متغيرات البيئة لـ Docker Compose
@@ -111,28 +105,17 @@ BACKEND=cpu docker compose --profile webui up
 # مثال على ملف .env
 BACKEND=cuda              # أو cpu
 COMPILE=1                 # تمكين تحسين التجميع
-GRADIO_PORT=7860         # منفذ واجهة المستخدم الرسومية (WebUI)
 API_PORT=8080            # منفذ خادم API
 UV_VERSION=0.8.15        # إصدار مدير الحزم UV
 ```
 
-سيقوم الأمر ببناء الصورة وتشغيل الحاوية. يمكنك الوصول إلى واجهة المستخدم الرسومية (WebUI) على `http://localhost:7860` وخادم API على `http://localhost:8080`.
+سيقوم الأمر ببناء الصورة وتشغيل الحاوية. يمكنك الوصول إلى خادم API على `http://localhost:8080`.
 
 ### البناء اليدوي باستخدام Docker
 
 للمستخدمين المتقدمين الذين يرغبون في تخصيص عملية البناء:
 
 ```bash
-# بناء صورة واجهة المستخدم الرسومية (WebUI) مع دعم CUDA
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # بناء صورة خادم API مع دعم CUDA
 docker build \
     --platform linux/amd64 \
@@ -148,8 +131,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # بناء صورة التطوير
 docker build \
@@ -178,8 +161,6 @@ docker build \
 ### متغيرات البيئة
 
 - `COMPILE=1` - تمكين `torch.compile` لتسريع الاستدلال (حوالي 10 أضعاف)
-- `GRADIO_SERVER_NAME=0.0.0.0` - مضيف خادم واجهة المستخدم الرسومية (WebUI)
-- `GRADIO_SERVER_PORT=7860` - منفذ خادم واجهة المستخدم الرسومية (WebUI)
 - `API_SERVER_NAME=0.0.0.0` - مضيف خادم API
 - `API_SERVER_PORT=8080` - منفذ خادم API
 

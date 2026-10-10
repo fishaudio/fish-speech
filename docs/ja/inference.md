@@ -53,17 +53,70 @@ python fish_speech/models/dac/inference.py \
 
 その後、`fake.wav` ファイルが取得できます。
 
-## WebUI 推論
+## S3-drama
 
-### 1. Gradio WebUI
+S3-drama は S2-Pro と同じコマンドラインと API サーバーで動作します。モデルの種類はチェックポイントの `config.json` から自動的に判別されます。
 
-互換性を維持するため、以前の Gradio WebUI も引き続き利用可能です。
+!!! warning
+    S3-drama は NVIDIA GPU でのみ動作します。CPU、Apple MPS、AMD ROCm には対応しておらず、`--compile` も使用できません。
+
+| GPU | 動作モード | GPU メモリ |
+| --- | --- | --- |
+| SM89 以降（L40、H100、H20） | MoE エキスパートは FP8 のまま、CUDA グラフでデコード、GPU 1 枚 | 約 41 GB |
+| それ以前の GPU（V100、A100） | MoE エキスパートを逆量子化し、複数の GPU に分散 | 合計約 70 GB |
+
+### 重みのダウンロード
 
 ```bash
-python tools/run_webui.py # 加速が必要な場合は --compile
+hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 ```
 
-### 2. Awesome WebUI
+チェックポイントのディレクトリに `codec.pth` がない場合は、`checkpoints/s2-pro/codec.pth` の S2-Pro コーデックが使われます。
+
+### コマンドライン推論
+
+```bash
+python fish_speech/models/text2semantic/inference.py \
+    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --text "変換したいテキスト" \
+    --prompt-audio "reference.wav" \
+    --prompt-text "リファレンステキスト" \
+    --output "output.wav" \
+    --device cuda:0
+```
+
+`--output` を指定すると、デコードした音声がそのまま書き出されます。それ以前の GPU では、`--device cuda:0,cuda:1,cuda:2,cuda:3` のように複数のデバイスを指定してください。最後のデバイスがオーディオデコーダーとコーデックを担当します。`--device cuda` とだけ指定した場合は、認識されている GPU のうち先頭から最大 4 枚を使用します。
+
+### API サーバー
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --device cuda:0
+```
+
+Docker では、server イメージで S3 のチェックポイントを読み込みます。SM89 以降の GPU では以下のように GPU を 1 枚だけ公開し、それ以前の GPU では `--gpus all` を使用してください。
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### S2-Pro との違い
+
+- テキスト全体を一度に生成します。デフォルトでは 1 リクエストあたり最大 2048 フレーム（約 95 秒の音声）を生成し、これより大きい `max_new_tokens` は 10,240 フレームからプロンプト長を引いた値に制限されます。長いテキストは複数のリクエストに分けてください。
+- `chunk_length` と `repetition_penalty` は効果がありません。S3 には繰り返しを考慮したサンプリングが組み込まれています。デフォルトのサンプリング設定は temperature 1.0、top-p 0.9、top-k 30 です。
+- `streaming` を有効にすると、生成が終わってから音声がまとめて返されます。
+- `FISH_S3_FP8_EXPERTS=0` または `1` で逆量子化エキスパートまたは FP8 エキスパートを強制でき、`FISH_S3_CUDA_GRAPH=0` で CUDA グラフによるデコードを無効にできます。
+
+## WebUI 推論
+
+### Awesome WebUI
 
 Awesome WebUI は TypeScript で開発された、より豊富な機能と優れたユーザー体験を提供する最新の Web インターフェースです。
 
