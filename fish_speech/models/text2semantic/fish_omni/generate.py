@@ -32,6 +32,8 @@ S3_STRUCTURAL_TOKENS = (
     "<|semantic:",
 )
 SPEAKER_TAG_PATTERN = re.compile(r"<\|speaker:([0-9]+)\|>")
+# The tokenizer has one token per speaker, <|speaker:0|> to <|speaker:15|>.
+MAX_SPEAKER_ID = 15
 # The Unicode White_Space property; str.strip() without arguments also strips
 # U+001C..U+001F, which would change the empty check and the speaker-tag rule.
 UNICODE_WHITE_SPACE = "".join(
@@ -62,7 +64,7 @@ class S3PromptTooLongError(ValueError):
 
 
 def validate_s3_text(text: str, location: str) -> None:
-    """Non-empty, no structural tokens, and speaker 0 as the only speaker tag."""
+    """Non-empty, no structural tokens, and only canonical speaker tags 0..15."""
     if not text.strip(UNICODE_WHITE_SPACE):
         raise ValueError(f"{location}: text must not be empty")
     for token in S3_STRUCTURAL_TOKENS:
@@ -70,9 +72,11 @@ def validate_s3_text(text: str, location: str) -> None:
             raise ValueError(f"{location}: {token} is written by the prompt builder")
     for marker in re.finditer(r"<\|speaker", text):
         tag = SPEAKER_TAG_PATTERN.match(text, marker.start())
-        if tag is None or tag.group(1) != "0":
+        digits = tag.group(1) if tag else ""
+        if not digits or str(int(digits)) != digits or int(digits) > MAX_SPEAKER_ID:
             raise ValueError(
-                f"{location}: S3 supports only <|speaker:0|>; got {text!r}"
+                f"{location}: speaker tags must be <|speaker:0|> to "
+                f"<|speaker:{MAX_SPEAKER_ID}|>; got {text!r}"
             )
 
 

@@ -109,9 +109,9 @@ docker run --gpus device=0 \
 
 ### Differences from S2-Pro
 
-- Long text is split into chunks of about 300 UTF-8 bytes, at sentence ends where possible, and the chunks are generated one after another. The first chunk and the latest one are fed back as context to keep the voice consistent. By default each chunk produces at most 600 frames (about 28 seconds).
+- Long text is split into chunks of about 300 UTF-8 bytes with at most three speakers each, cut at sentence ends where possible, and the chunks are generated one after another. The first chunk and the latest one are fed back as context to keep the voices consistent. By default each chunk produces at most 600 frames (about 28 seconds).
 - Set `single_chunk` (`--single-chunk` on the command line) to generate the whole text in one pass instead, by default at most 2048 frames (about 95 seconds). In either mode, a larger `max_new_tokens` is capped at 10,240 frames minus the prompt length.
-- Only the `<|speaker:0|>` speaker tag is accepted.
+- Speaker tags `<|speaker:0|>` to `<|speaker:15|>` are accepted, and untagged text is speaker 0. To give speakers their own voices, start each reference transcript with that speaker's tag (for example `<|speaker:1|>`); the order of the references does not decide which speaker they belong to.
 - `chunk_length` and `repetition_penalty` have no effect; S3 has built-in repetition-aware sampling. Its default sampling is temperature 1.0, top-p 0.9, top-k 30.
 - With `streaming` enabled, audio is returned chunk by chunk.
 - `FISH_S3_FP8_EXPERTS=0` or `1` forces dequantized or FP8 experts, and `FISH_S3_CUDA_GRAPH=0` turns off CUDA-graph decoding.

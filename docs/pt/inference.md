@@ -109,9 +109,9 @@ docker run --gpus device=0 \
 
 ### Diferenças em relação ao S2-Pro
 
-- Textos longos são divididos em blocos de cerca de 300 bytes (UTF-8), de preferência no fim das frases, e os blocos são gerados um após o outro. O primeiro bloco e o mais recente são reenviados como contexto para manter a voz consistente. Por padrão, cada bloco produz no máximo 600 frames (cerca de 28 segundos).
+- Textos longos são divididos em blocos de cerca de 300 bytes (UTF-8) com no máximo três locutores cada, de preferência no fim das frases, e os blocos são gerados um após o outro. O primeiro bloco e o mais recente são reenviados como contexto para manter as vozes consistentes. Por padrão, cada bloco produz no máximo 600 frames (cerca de 28 segundos).
 - Defina `single_chunk` (`--single-chunk` na linha de comando) para gerar o texto inteiro de uma só vez, por padrão no máximo 2048 frames (cerca de 95 segundos). Em ambos os modos, um `max_new_tokens` maior é limitado a 10.240 frames menos o comprimento do prompt.
-- Apenas a tag de locutor `<|speaker:0|>` é aceita.
+- São aceitas as tags de locutor de `<|speaker:0|>` a `<|speaker:15|>`; texto sem tag é o locutor 0. Para dar a cada locutor a sua própria voz, comece a transcrição de cada áudio de referência com a tag desse locutor (por exemplo `<|speaker:1|>`); a ordem das referências não define o locutor.
 - `chunk_length` e `repetition_penalty` não têm efeito; o S3 tem amostragem com reconhecimento de repetição integrada. A amostragem padrão é temperature 1.0, top-p 0.9, top-k 30.
 - Com `streaming` ativado, o áudio é retornado bloco a bloco.
 - `FISH_S3_FP8_EXPERTS=0` ou `1` força especialistas desquantizados ou em FP8, e `FISH_S3_CUDA_GRAPH=0` desativa a decodificação com CUDA graphs.

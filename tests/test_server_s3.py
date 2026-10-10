@@ -116,7 +116,10 @@ class ErrorMappingTest(unittest.TestCase):
 
     def test_invalid_input_is_400_and_failures_are_500(self):
         self.assertEqual(
-            self.status_code_for(ValueError("S3 supports only <|speaker:0|>")), 400
+            self.status_code_for(
+                ValueError("speaker tags must be <|speaker:0|> to <|speaker:15|>")
+            ),
+            400,
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
 

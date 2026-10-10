@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ from torch.nn import functional as F
 from fish_speech.models.text2semantic import inference
 from fish_speech.models.text2semantic.fish_omni import generate as generate_module
 from fish_speech.models.text2semantic.fish_omni.backbone import FishOmniBackbone
+from fish_speech.models.text2semantic.fish_omni.chunking import split_s3_text
 from fish_speech.models.text2semantic.fish_omni.config import (
     AudioDecoderConfig,
     FishOmniConfig,
@@ -165,13 +167,48 @@ class S3PromptTest(unittest.TestCase):
         torch.testing.assert_close(audio[:, 1:].T, codes)
         torch.testing.assert_close(audio[:, 0], codes[0] + 32)
 
+    def test_speakers_0_to_15_are_kept_everywhere(self) -> None:
+        tokenizer, config = RecordingTokenizer(), tiny_omni_config()
+        codes = torch.tensor([[1], [2], [3]])
+        text = "<|speaker:15|> hi\n<|speaker:0|> yes"
+        build_s3_prompt(
+            text,
+            tokenizer,
+            config,
+            ["<|speaker:2|>ref"],
+            [codes],
+            history=[("<|speaker:3|> before", codes)],
+        )
+        self.assertIn(text, tokenizer.parts)
+        self.assertIn("<|speaker:3|> before", tokenizer.parts)
+        self.assertIn(
+            "\n\n[Reference 1]\nText: <|speaker:2|>ref\nSpeech: ", tokenizer.parts
+        )
+        with self.assertRaisesRegex(ValueError, "history 1"):
+            build_s3_prompt(
+                "hi", tokenizer, config, history=[("<|speaker:16|> no", codes)]
+            )
+
+    def test_multi_speaker_chunks_pass_validation(self) -> None:
+        tokenizer, config = RecordingTokenizer(), tiny_omni_config()
+        script = "".join(
+            f"<|speaker:{i % 5}|>Line {i} of the scene goes here. " for i in range(30)
+        )
+        chunks = split_s3_text(script)
+        self.assertGreater(len(chunks), 1)
+        for chunk in chunks:
+            build_s3_prompt(chunk, tokenizer, config)
+            self.assertLessEqual(len(set(re.findall(r"speaker:(\d+)", chunk))), 3)
+
     def test_invalid_text_codes_and_tokenizer(self) -> None:
         config = tiny_omni_config()
         for text in (
             " ",
             "hello <|voice|>",
-            "<|speaker:1|> hello",
+            "<|speaker:16|> hello",
             "<|speaker:00|> hi",
+            "<|speaker:01|> hi",
+            "<|speaker:x|> hi",
         ):
             with self.assertRaises(ValueError):
                 build_s3_prompt(text, RecordingTokenizer(), config)
