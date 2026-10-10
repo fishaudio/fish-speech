@@ -226,6 +226,14 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
 
         return response_queue
 
+    def sampling_defaults(self) -> dict[str, str | int | float]:
+        """What a request that leaves the sampling fields unset gets, for clients."""
+        return {
+            "model_family": self.model_family,
+            "chunk_length": ServeTTSRequest.model_fields["chunk_length"].default,
+            **SAMPLING_DEFAULTS[self.model_family],
+        }
+
     def resolve_sampling(self, req: ServeTTSRequest) -> dict[str, int | float]:
         """Request sampling fields, falling back to the model family's defaults."""
         params = dict(SAMPLING_DEFAULTS[self.model_family])

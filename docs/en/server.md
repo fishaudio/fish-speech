@@ -50,6 +50,7 @@ Expected response:
 - `POST /v1/tts` for text-to-speech generation
 - `POST /v1/vqgan/encode` for VQ encode
 - `POST /v1/vqgan/decode` for VQ decode
+- `GET /v1/tts/defaults` for the loaded model's sampling defaults, which apply to every field a `/v1/tts` request leaves out
 
 ### Python client example
 

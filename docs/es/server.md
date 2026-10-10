@@ -50,6 +50,7 @@ Respuesta esperada:
 * `POST /v1/tts` para generación de texto a voz (text-to-speech)
 * `POST /v1/vqgan/encode` para codificación VQ
 * `POST /v1/vqgan/decode` para decodificación VQ
+* `GET /v1/tts/defaults` para los valores de muestreo por defecto del modelo cargado, que se aplican a todo campo que una request a `/v1/tts` no incluya
 
 ### Ejemplo de cliente en Python
 

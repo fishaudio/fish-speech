@@ -82,6 +82,13 @@ class Health(HttpView):
         return JSONResponse({"status": "ok"})
 
 
+@routes.http.get("/v1/tts/defaults")
+async def tts_defaults():
+    """Sampling defaults of the loaded model, used for fields a request leaves unset."""
+    engine = request.app.state.model_manager.tts_inference_engine
+    return JSONResponse(engine.sampling_defaults())
+
+
 @routes.http.post("/v1/vqgan/encode")
 async def vqgan_encode(req: Annotated[ServeVQGANEncodeRequest, Body(exclusive=True)]):
     """

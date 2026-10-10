@@ -62,6 +62,31 @@ type ControlsState = {
   latency: LatencyMode
 }
 
+type SamplingKey =
+  | 'chunkLength'
+  | 'maxNewTokens'
+  | 'temperature'
+  | 'topP'
+  | 'repetitionPenalty'
+
+// GET /v1/tts/defaults: what the loaded model uses for fields a request leaves out.
+type ServerDefaults = {
+  model_family: 's2' | 's3'
+  chunk_length: number
+  max_new_tokens: number
+  temperature: number
+  top_p: number
+  repetition_penalty: number
+}
+
+const samplingFields: Record<SamplingKey, keyof ServerDefaults> = {
+  chunkLength: 'chunk_length',
+  maxNewTokens: 'max_new_tokens',
+  temperature: 'temperature',
+  topP: 'top_p',
+  repetitionPenalty: 'repetition_penalty',
+}
+
 type Metrics = {
   textLength: number
   ttftMs: number
@@ -154,42 +179,52 @@ function buildReferencesPayload(
   )
 }
 
+// Sampling fields the user has not changed are left out, so the server applies
+// the loaded model's own defaults.
+function buildSamplingPayload(controls: ControlsState, customized: SamplingKey[]) {
+  return Object.fromEntries(
+    customized.map((key) => [samplingFields[key], controls[key]]),
+  )
+}
+
 function buildPreviewPayload(
   inputText: string,
   controls: ControlsState,
+  customized: SamplingKey[],
   speakerGroups: SpeakerGroup[],
 ) {
   return {
     text: inputText,
-    chunk_length: controls.chunkLength,
-    max_new_tokens: controls.maxNewTokens,
     format: controls.format,
     latency: controls.latency,
     normalize: controls.normalize,
     references: buildReferencesPayload(speakerGroups, false),
-    temperature: controls.temperature,
-    top_p: controls.topP,
-    repetition_penalty: controls.repetitionPenalty,
+    ...buildSamplingPayload(controls, customized),
   }
 }
 
 function buildRequestPayload(
   inputText: string,
   controls: ControlsState,
+  customized: SamplingKey[],
   speakerGroups: SpeakerGroup[],
 ) {
   return {
     text: inputText,
-    chunk_length: controls.chunkLength,
-    max_new_tokens: controls.maxNewTokens,
     format: controls.format,
     latency: controls.latency,
     normalize: controls.normalize,
     references: buildReferencesPayload(speakerGroups, true),
-    temperature: controls.temperature,
-    top_p: controls.topP,
-    repetition_penalty: controls.repetitionPenalty,
+    ...buildSamplingPayload(controls, customized),
   }
+}
+
+function applyDefaults(controls: ControlsState, defaults: ServerDefaults): ControlsState {
+  const next = { ...controls }
+  for (const key of Object.keys(samplingFields) as SamplingKey[]) {
+    next[key] = defaults[samplingFields[key]] as number
+  }
+  return next
 }
 
 function createFileName(inputText: string) {
@@ -227,6 +262,10 @@ type SettingSliderProps = {
   min: number
   max: number
   step?: number
+  isDefault?: boolean
+  defaultKnown?: boolean
+  disabled?: boolean
+  hint?: string
   onValueChange: (value: number) => void
   formatValue?: (value: number) => string
 }
@@ -237,6 +276,10 @@ function SettingSlider({
   min,
   max,
   step = 1,
+  isDefault = false,
+  defaultKnown = true,
+  disabled = false,
+  hint,
   onValueChange,
   formatValue,
 }: SettingSliderProps) {
@@ -245,14 +288,18 @@ function SettingSlider({
       <div className="flex items-center justify-between gap-4">
         <Label>{label}</Label>
         <span className="text-sm text-muted-foreground">
-          {formatValue ? formatValue(value) : value}
+          {isDefault && !defaultKnown
+            ? 'model default'
+            : `${formatValue ? formatValue(value) : value}${isDefault ? ' (default)' : ''}`}
         </span>
       </div>
+      {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
       <Slider
         value={[value]}
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         onValueChange={(nextValue) => {
           const current = nextValue[0]
           if (typeof current === 'number') {
@@ -267,6 +314,8 @@ function SettingSlider({
 function App() {
   const [inputText, setInputText] = useState(defaultInputText)
   const [controls, setControls] = useState(initialControls)
+  const [customized, setCustomized] = useState<SamplingKey[]>([])
+  const [serverDefaults, setServerDefaults] = useState<ServerDefaults | null>(null)
   const [speakerGroups, setSpeakerGroups] = useState<SpeakerGroup[]>([initialSpeakerGroup])
   const [pendingReference, setPendingReference] = useState<PendingReference | null>(null)
   const [openSpeakerIds, setOpenSpeakerIds] = useState<number[]>([initialSpeakerGroup.id])
@@ -286,6 +335,39 @@ function App() {
   const mediaSourceUrlRef = useRef<string | null>(null)
 
   speakerGroupsRef.current = speakerGroups
+
+  useEffect(() => {
+    // Older servers have no such endpoint; requests then still omit unchanged
+    // sampling fields and the server applies its defaults.
+    fetch('/v1/tts/defaults')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((defaults: ServerDefaults | null) => {
+        if (!defaults) {
+          return
+        }
+        setServerDefaults(defaults)
+        setControls((current) => applyDefaults(current, defaults))
+      })
+      .catch(() => {})
+  }, [])
+
+  const isS3 = serverDefaults?.model_family === 's3'
+
+  function defaultState(key: SamplingKey) {
+    return { isDefault: !customized.includes(key), defaultKnown: serverDefaults !== null }
+  }
+
+  function setSampling(key: SamplingKey, value: number) {
+    setControls((current) => ({ ...current, [key]: value }))
+    setCustomized((current) => (current.includes(key) ? current : [...current, key]))
+  }
+
+  function resetSampling() {
+    setCustomized([])
+    if (serverDefaults) {
+      setControls((current) => applyDefaults(current, serverDefaults))
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -455,7 +537,7 @@ function App() {
 
   async function copyRequestPreview() {
     const requestPreview = JSON.stringify(
-      buildPreviewPayload(inputText, controls, speakerGroups),
+      buildPreviewPayload(inputText, controls, customized, speakerGroups),
       null,
       2,
     )
@@ -493,7 +575,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(buildRequestPayload(inputText, controls, speakerGroups)),
+        body: JSON.stringify(buildRequestPayload(inputText, controls, customized, speakerGroups)),
       })
 
       if (!response.ok || !response.body) {
@@ -623,7 +705,7 @@ function App() {
   }
 
   const requestPreview = JSON.stringify(
-    buildPreviewPayload(inputText, controls, speakerGroups),
+    buildPreviewPayload(inputText, controls, customized, speakerGroups),
     null,
     2,
   )
@@ -1065,29 +1147,41 @@ function App() {
 
                 <Separator className="bg-zinc-200" />
 
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-zinc-500">
+                    {serverDefaults
+                      ? `Unchanged settings use the ${serverDefaults.model_family.toUpperCase()} model's defaults.`
+                      : "Unchanged settings use the loaded model's defaults."}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-zinc-200 bg-white hover:bg-zinc-100"
+                    onClick={resetSampling}
+                    disabled={customized.length === 0}
+                  >
+                    Reset
+                  </Button>
+                </div>
                 <SettingSlider
                   label="Chunk Length"
                   value={controls.chunkLength}
                   min={100}
                   max={1000}
-                  onValueChange={(value) =>
-                    setControls((current) => ({
-                      ...current,
-                      chunkLength: value,
-                    }))
-                  }
+                  {...defaultState('chunkLength')}
+                  disabled={isS3}
+                  hint={isS3 ? 'S3 splits long text itself.' : undefined}
+                  onValueChange={(value) => setSampling('chunkLength', value)}
                 />
                 <SettingSlider
-                  label="Max New Tokens"
+                  label={isS3 ? 'Max New Tokens (per chunk)' : 'Max New Tokens'}
                   value={controls.maxNewTokens}
-                  min={256}
+                  min={0}
                   max={2048}
-                  onValueChange={(value) =>
-                    setControls((current) => ({
-                      ...current,
-                      maxNewTokens: value,
-                    }))
-                  }
+                  {...defaultState('maxNewTokens')}
+                  formatValue={(value) => (value === 0 ? 'auto' : String(value))}
+                  onValueChange={(value) => setSampling('maxNewTokens', value)}
                 />
                 <SettingSlider
                   label="Temperature"
@@ -1095,13 +1189,9 @@ function App() {
                   min={0.8}
                   max={1}
                   step={0.01}
+                  {...defaultState('temperature')}
                   formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) =>
-                    setControls((current) => ({
-                      ...current,
-                      temperature: value,
-                    }))
-                  }
+                  onValueChange={(value) => setSampling('temperature', value)}
                 />
                 <SettingSlider
                   label="Top P"
@@ -1109,13 +1199,9 @@ function App() {
                   min={0.8}
                   max={1}
                   step={0.01}
+                  {...defaultState('topP')}
                   formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) =>
-                    setControls((current) => ({
-                      ...current,
-                      topP: value,
-                    }))
-                  }
+                  onValueChange={(value) => setSampling('topP', value)}
                 />
                 <SettingSlider
                   label="Repetition Penalty"
@@ -1123,13 +1209,11 @@ function App() {
                   min={1}
                   max={1.2}
                   step={0.01}
+                  {...defaultState('repetitionPenalty')}
+                  disabled={isS3}
+                  hint={isS3 ? 'S3 has built-in repetition-aware sampling.' : undefined}
                   formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) =>
-                    setControls((current) => ({
-                      ...current,
-                      repetitionPenalty: value,
-                    }))
-                  }
+                  onValueChange={(value) => setSampling('repetitionPenalty', value)}
                 />
               </CardContent>
             </Card>

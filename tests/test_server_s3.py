@@ -68,6 +68,13 @@ class SamplingDefaultsTest(unittest.TestCase):
             ),
         )
 
+    def test_defaults_for_clients(self):
+        self.assertEqual(
+            make_engine("s3").sampling_defaults(),
+            {"model_family": "s3", "chunk_length": 200, **SAMPLING_DEFAULTS["s3"]},
+        )
+        self.assertEqual(make_engine("s2").sampling_defaults()["model_family"], "s2")
+
     def test_explicit_fields_win(self):
         req = ServeTTSRequest(text="hi", max_new_tokens=64, top_p=0.5, temperature=0.3)
         params = make_engine("s3").resolve_sampling(req)
