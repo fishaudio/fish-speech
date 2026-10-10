@@ -119,5 +119,12 @@
   "Realtime Transform Text": "实时规范化文本",
   "Normalization Result Preview (Currently Only Chinese)": "规范化结果预览",
   "Text Normalization": "文本规范化",
-  "Select Example Audio": "选择参考音频"
+  "Select Example Audio": "选择参考音频",
+  "Reference encoder device": "参考音频编码设备",
+  "Read local Token cache": "允许读取本地 Token 缓存",
+  "Save Tokens to local disk": "保存 Token 到本地磁盘",
+  "Force reference re-encoding": "强制参考音频重新编码",
+  "Only reference encoding changes device; cache hits may reuse either device's Tokens.": "仅参考编码切换设备；缓存命中可复用任一设备产生的 Token。",
+  "Bypass memory and disk reads; saving remains independent.": "绕过内存和磁盘读取；保存开关仍独立。",
+  "Disk switches do not disable memory cache. Different Token variants are preserved.": "磁盘开关不会关闭内存缓存；不同 Token 结果保留为独立变体。"
 }

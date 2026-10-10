@@ -93,6 +93,10 @@ class ServeTTSRequest(BaseModel):
     reference_id: str | None = None
     seed: int | None = None
     use_memory_cache: Literal["on", "off"] = "off"
+    reference_encoder_device: Literal["cpu", "gpu"] = "gpu"
+    read_disk_cache: bool = True
+    save_disk_cache: bool = False
+    force_reencode: bool = False
     # Normalize text for en & zh, this increase stability for numbers
     normalize: bool = True
     # not usually used below

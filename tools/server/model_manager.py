@@ -49,6 +49,11 @@ class ModelManager:
             compile=self.compile,
         )
 
+        self.tts_inference_engine.configure_reference_token_cache(
+            decoder_checkpoint_path,
+            decoder_config_name,
+        )
+
         # Warm up the models
         if self.mode == "tts":
             self.warm_up(self.tts_inference_engine)

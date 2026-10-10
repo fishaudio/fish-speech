@@ -1,6 +1,7 @@
+import inspect
 import io
+import os
 import re
-from hashlib import sha256
 from pathlib import Path
 from typing import Callable, Literal, Tuple
 
@@ -8,6 +9,10 @@ import torch
 import torchaudio
 from loguru import logger
 
+from fish_speech.inference_engine.reference_token_cache import (
+    ReferenceTokenCache,
+    codec_fingerprint,
+)
 from fish_speech.models.dac.modded_dac import DAC
 from fish_speech.utils.file import (
     AUDIO_EXTENSIONS,
@@ -26,6 +31,9 @@ class ReferenceLoader:
         Component of the TTSInferenceEngine class.
         Loads and manages the cache for the reference audio and text.
         """
+        self.reference_cache_events = []
+        self.reference_token_cache = None
+        self._reference_codec_config = None
         self.ref_by_id: dict = {}
         self.ref_by_hash: dict = {}
 
@@ -59,76 +67,100 @@ class ReferenceLoader:
                 "Only alphanumeric, hyphens, underscores, and spaces are allowed."
             )
 
-    def load_by_id(
-        self,
-        id: str,
-        use_cache: Literal["on", "off"],
-    ) -> Tuple:
-        self._validate_id(id)
-
-        # Load the references audio and text by id
-        ref_folder = Path("references") / id
-        ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(
-            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
+    def configure_reference_token_cache(self, checkpoint_path, config_name):
+        self._reference_codec_config = (str(checkpoint_path), config_name)
+        fingerprint, identity = codec_fingerprint(
+            checkpoint_path,
+            config_name,
+            inspect.getsource(type(self).load_audio),
+            self.decoder_model,
+            self.backend,
         )
+        quantizer = self.decoder_model.quantizer
+        limits = [quantizer.semantic_quantizer.codebook_size]
+        limits += [quantizer.quantizer.codebook_size] * len(
+            quantizer.quantizer.quantizers
+        )
+        self.reference_token_cache = ReferenceTokenCache(
+            os.environ.get("REFERENCE_TOKEN_CACHE_DIR", "references/.token_cache"),
+            fingerprint,
+            limits,
+            identity,
+        )
+        logger.info("Reference Codec Fingerprint: {}", fingerprint)
 
-        if use_cache == "off" or id not in self.ref_by_id:
-            # If the references are not already loaded, encode them
-            prompt_tokens = [
-                self.encode_reference(
-                    # decoder_model=self.decoder_model,
-                    reference_audio=audio_to_bytes(str(ref_audio)),
-                    enable_reference_audio=True,
+    def resolve_reference_tokens(
+        self,
+        audio_bytes,
+        encoder_device="gpu",
+        use_memory_cache="off",
+        read_disk_cache=True,
+        save_disk_cache=False,
+        force_reencode=False,
+    ):
+        if self.reference_token_cache is None:
+            # Third-party callers that construct an engine without checkpoint
+            # metadata retain temporary/memory encoding; never share disk tokens.
+            quantizer = self.decoder_model.quantizer
+            limits = [quantizer.semantic_quantizer.codebook_size]
+            limits += [quantizer.quantizer.codebook_size] * len(
+                quantizer.quantizer.quantizers
+            )
+            self.reference_token_cache = ReferenceTokenCache(
+                "references/.token_cache",
+                "unconfigured",
+                limits,
+            )
+        if self._reference_codec_config is None:
+            read_disk_cache = save_disk_cache = False
+        array, event = self.reference_token_cache.resolve(
+            audio_bytes,
+            lambda audio, device: self.encode_reference(
+                audio, True, encoder_device=device
+            ),
+            encoder_device=encoder_device,
+            use_memory_cache=use_memory_cache == "on",
+            read_disk_cache=read_disk_cache,
+            save_disk_cache=save_disk_cache,
+            force_reencode=force_reencode,
+        )
+        self.reference_cache_events.append(event)
+        return torch.from_numpy(array)
+
+    def load_by_id(self, id: str, use_cache: Literal["on", "off"], **options) -> Tuple:
+        self._validate_id(id)
+        ref_folder = Path("references") / id
+        if not ref_folder.is_dir():
+            raise FileNotFoundError("Saved reference voice does not exist")
+        ref_audios = list_files(ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        if not ref_audios:
+            raise ValueError("Saved reference voice contains no audio")
+        # IDs locate materials only; text is read afresh for every request.
+        tokens, texts = [], []
+        for path in ref_audios:
+            tokens.append(
+                self.resolve_reference_tokens(
+                    path.read_bytes(), use_memory_cache=use_cache, **options
                 )
-                for ref_audio in ref_audios
-            ]
-            prompt_texts = [
-                read_ref_text(str(ref_audio.with_suffix(".lab")))
-                for ref_audio in ref_audios
-            ]
-            self.ref_by_id[id] = (prompt_tokens, prompt_texts)
-
-        else:
-            # Reuse already encoded references
-            logger.info("Use same references")
-            prompt_tokens, prompt_texts = self.ref_by_id[id]
-
-        return prompt_tokens, prompt_texts
+            )
+            texts.append(read_ref_text(str(path.with_suffix(".lab"))))
+        return tokens, texts
 
     def load_by_hash(
         self,
         references: list[ServeReferenceAudio],
         use_cache: Literal["on", "off"],
+        **options,
     ) -> Tuple:
-        # Load the references audio and text by hash
-        audio_hashes = [sha256(ref.audio).hexdigest() for ref in references]
-
-        cache_used = False
-        prompt_tokens, prompt_texts = [], []
-        for i, ref in enumerate(references):
-            if use_cache == "off" or audio_hashes[i] not in self.ref_by_hash:
-                # If the references are not already loaded, encode them
-                prompt_tokens.append(
-                    self.encode_reference(
-                        reference_audio=ref.audio,
-                        enable_reference_audio=True,
-                    )
+        tokens, texts = [], []
+        for reference in references:
+            tokens.append(
+                self.resolve_reference_tokens(
+                    reference.audio, use_memory_cache=use_cache, **options
                 )
-                prompt_texts.append(ref.text)
-                self.ref_by_hash[audio_hashes[i]] = (prompt_tokens[-1], ref.text)
-
-            else:
-                # Reuse already encoded references
-                cached_token, cached_text = self.ref_by_hash[audio_hashes[i]]
-                prompt_tokens.append(cached_token)
-                prompt_texts.append(cached_text)
-                cache_used = True
-
-        if cache_used:
-            logger.info("Use same references")
-
-        return prompt_tokens, prompt_texts
+            )
+            texts.append(reference.text)
+        return tokens, texts
 
     def load_audio(self, reference_audio: bytes | str, sr: int):
         """
@@ -137,7 +169,19 @@ class ReferenceLoader:
         if isinstance(reference_audio, bytes):
             reference_audio = io.BytesIO(reference_audio)
 
-        waveform, original_sr = torchaudio.load(reference_audio, backend=self.backend)
+        try:
+            waveform, original_sr = torchaudio.load(
+                reference_audio, backend=self.backend
+            )
+        except ImportError:
+            # New torchaudio versions require optional torchcodec even when
+            # soundfile is requested. Keep the existing mono/resample pipeline.
+            import soundfile
+
+            data, original_sr = soundfile.read(
+                reference_audio, dtype="float32", always_2d=True
+            )
+            waveform = torch.from_numpy(data.T.copy())
 
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)

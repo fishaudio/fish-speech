@@ -91,6 +91,33 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                                     placeholder="Leave empty to use uploaded references",
                                 )
 
+                            reference_encoder_device = gr.Radio(
+                                label=i18n("Reference encoder device"),
+                                choices=["cpu", "gpu"],
+                                value="gpu",
+                                info=i18n(
+                                    "Only reference encoding changes device; cache hits may reuse either device's Tokens."
+                                ),
+                            )
+                            with gr.Row():
+                                read_disk_cache = gr.Checkbox(
+                                    label=i18n("Read local Token cache"), value=True
+                                )
+                                save_disk_cache = gr.Checkbox(
+                                    label=i18n("Save Tokens to local disk"), value=False
+                                )
+                            force_reencode = gr.Checkbox(
+                                label=i18n("Force reference re-encoding"),
+                                value=False,
+                                info=i18n(
+                                    "Bypass memory and disk reads; saving remains independent."
+                                ),
+                            )
+                            gr.Markdown(
+                                i18n(
+                                    "Disk switches do not disable memory cache. Different Token variants are preserved."
+                                )
+                            )
                             with gr.Row():
                                 use_memory_cache = gr.Radio(
                                     label=i18n("Use Memory Cache"),
@@ -132,9 +159,18 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                             variant="primary",
                         )
 
+        def infer_with_cache(*args):
+            return inference_fct(
+                *args[:-4],
+                reference_encoder_device=args[-4],
+                read_disk_cache=args[-3],
+                save_disk_cache=args[-2],
+                force_reencode=args[-1],
+            )
+
         # Submit
         generate.click(
-            inference_fct,
+            infer_with_cache,
             [
                 text,
                 reference_id,
@@ -147,6 +183,10 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                 temperature,
                 seed,
                 use_memory_cache,
+                reference_encoder_device,
+                read_disk_cache,
+                save_disk_cache,
+                force_reencode,
             ],
             [audio, error],
             concurrency_limit=1,
