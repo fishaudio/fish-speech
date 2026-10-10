@@ -22,8 +22,13 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
                     yield result.audio[1]
 
             case "error":
+                # ValueError: the model rejected the input (e.g. an invalid S3 prompt).
                 raise HTTPException(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    (
+                        HTTPStatus.BAD_REQUEST
+                        if isinstance(result.error, ValueError)
+                        else HTTPStatus.INTERNAL_SERVER_ERROR
+                    ),
                     content=str(result.error),
                 )
 

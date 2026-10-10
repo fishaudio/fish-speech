@@ -61,7 +61,6 @@ def _base_args(**overrides) -> dict:
         "num_codebooks": 2,
         "semantic_begin_id": 4,
         "semantic_end_id": 11,
-        "use_gradient_checkpointing": False,
     }
     args.update(overrides)
     return args

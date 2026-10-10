@@ -1,0 +1,455 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import torch
+from torch.nn import functional as F
+
+from fish_speech.models.text2semantic import inference
+from fish_speech.models.text2semantic.fish_omni.backbone import FishOmniBackbone
+from fish_speech.models.text2semantic.fish_omni.config import (
+    AudioDecoderConfig,
+    FishOmniConfig,
+    FishOmniTextConfig,
+)
+from fish_speech.models.text2semantic.fish_omni.generate import (
+    build_s3_prompt,
+    generate_s3,
+    resolve_s3_devices,
+    resolve_s3_dtype,
+)
+from fish_speech.models.text2semantic.fish_omni.model import (
+    FishOmniModel,
+    is_fish_omni_checkpoint,
+)
+from fish_speech.models.text2semantic.fish_omni.tower import (
+    TOWER_CHECKPOINT_PREFIXES,
+    FishOmniAudioDecoder,
+    FP32OutputLinear,
+    load_audio_decoder_weights,
+    sample_top_k_top_p,
+)
+from fish_speech.models.text2semantic.inference import (
+    generate_long,
+    init_model,
+    resolve_codec_path,
+)
+
+PROMPT = torch.tensor([[3, 0, 0, 0], [34, 2, 4, 5], [3, 0, 0, 0], [4, 0, 0, 0]])
+SAMPLER = "fish_speech.models.text2semantic.fish_omni.tower.sample_top_k_top_p"
+
+
+def tiny_omni_config() -> FishOmniConfig:
+    text = FishOmniTextConfig(
+        vocab_size=64,
+        hidden_size=16,
+        num_hidden_layers=2,
+        layer_types=["linear_attention", "full_attention"],
+        num_attention_heads=2,
+        num_key_value_heads=1,
+        head_dim=8,
+        rope_theta=10000.0,
+        partial_rotary_factor=0.5,
+        rms_norm_eps=1e-6,
+        max_position_embeddings=128,
+        linear_conv_kernel_dim=4,
+        linear_key_head_dim=4,
+        linear_value_head_dim=4,
+        linear_num_key_heads=1,
+        linear_num_value_heads=2,
+        num_experts=4,
+        num_experts_per_tok=2,
+        moe_intermediate_size=8,
+        shared_expert_intermediate_size=8,
+    )
+    audio_decoder = AudioDecoderConfig(
+        dim=16,
+        intermediate_size=32,
+        n_head=2,
+        n_local_heads=1,
+        head_dim=8,
+        norm_eps=1e-6,
+        rope_base=10000.0,
+        rotary_percent=0.5,
+        vocab_size=8,
+        num_codebooks=3,
+        shared_enrichment_layers=2,
+        vq_backbone_codebooks=1,
+    )
+    return FishOmniConfig(
+        text=text,
+        audio_decoder=audio_decoder,
+        semantic_start_token_id=32,
+        semantic_end_token_id=39,
+        eos_token_id=2,
+    )
+
+
+def randomized(module: torch.nn.Module) -> torch.nn.Module:
+    with torch.no_grad():
+        for parameter in module.parameters():
+            parameter.normal_(0, 0.1)
+    return module.eval()
+
+
+def greedy(logits: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    return logits.argmax(-1)
+
+
+class RecordingTokenizer:
+    """Records every literal it encodes; each one becomes two tokens."""
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+
+    def token_to_id(self, token: str) -> int | None:
+        return {"<|semantic:0|>": 32, "<|semantic:7|>": 39, "<|im_end|>": 2}.get(token)
+
+    def encode(self, text: str) -> SimpleNamespace:
+        self.parts.append(text)
+        return SimpleNamespace(ids=[3, 4])
+
+
+def tiny_omni_model() -> FishOmniModel:
+    config = tiny_omni_config()
+    backbone = randomized(FishOmniBackbone(config.text, dtype=torch.float32))
+    tower = randomized(FishOmniAudioDecoder(config, dtype=torch.float32))
+    return FishOmniModel(config, backbone, tower, RecordingTokenizer()).eval()
+
+
+class S3PromptTest(unittest.TestCase):
+    def test_no_reference_literal_boundaries(self) -> None:
+        tokenizer = RecordingTokenizer()
+        rows = build_s3_prompt("hello", tokenizer, tiny_omni_config())
+        self.assertEqual(
+            tokenizer.parts,
+            [
+                "<|im_start|>system\n",
+                "convert the provided text to speech",
+                "<|im_end|>\n",
+                "<|im_start|>user\n",
+                "<|speaker:0|> hello",
+                "<|im_end|>\n",
+                "<|im_start|>assistant\n<|voice|>",
+            ],
+        )
+        self.assertEqual(rows.shape, (14, 4))
+        self.assertFalse(rows[:, 1:].any())
+
+    def test_reference_codes_and_whitespace(self) -> None:
+        tokenizer = RecordingTokenizer()
+        codes = torch.tensor([[1, 2], [3, 4], [5, 6]])
+        rows = build_s3_prompt(
+            "<|speaker:0|>hello",
+            tokenizer,
+            tiny_omni_config(),
+            ["  <|speaker:0|> reference"],
+            [codes],
+        )
+        self.assertIn(
+            "convert the provided text to speech reference to the following:",
+            tokenizer.parts,
+        )
+        self.assertIn(
+            "\n\n[Reference 1]\nText: <|speaker:0|>   reference\nSpeech: ",
+            tokenizer.parts,
+        )
+        self.assertIn("<|speaker:0|>hello", tokenizer.parts)
+        audio = rows[(rows[:, 0] >= 32) & (rows[:, 0] <= 39)]
+        torch.testing.assert_close(audio[:, 1:].T, codes)
+        torch.testing.assert_close(audio[:, 0], codes[0] + 32)
+
+    def test_invalid_text_codes_and_tokenizer(self) -> None:
+        config = tiny_omni_config()
+        for text in (
+            " ",
+            "hello <|voice|>",
+            "<|speaker:1|> hello",
+            "<|speaker:00|> hi",
+        ):
+            with self.assertRaises(ValueError):
+                build_s3_prompt(text, RecordingTokenizer(), config)
+        for codes in (
+            torch.zeros(2, 3, dtype=torch.long),
+            torch.full((3, 2), 8),
+            torch.zeros(3, 2),
+        ):
+            with self.assertRaises(ValueError):
+                build_s3_prompt("hi", RecordingTokenizer(), config, ["ref"], [codes])
+        with self.assertRaisesRegex(ValueError, "transcript and codes"):
+            build_s3_prompt("hi", RecordingTokenizer(), config, ["ref"], [])
+        config.eos_token_id = 1
+        with self.assertRaisesRegex(ValueError, "tokenizer/config"):
+            build_s3_prompt("hello", RecordingTokenizer(), config)
+
+
+class TowerTest(unittest.TestCase):
+    def setUp(self) -> None:
+        torch.manual_seed(4)
+        self.config = tiny_omni_config()
+        self.tower = randomized(FishOmniAudioDecoder(self.config, dtype=torch.float32))
+
+    @torch.no_grad()
+    def test_q_gate_layout_and_interleaved_rope(self) -> None:
+        attention = self.tower.shared_layers[0].transformer_layer.attention
+        x, pos = torch.randn(3, 16), torch.arange(3)
+        q, gate, k, v = F.linear(x, attention.wqkv.weight).split([16, 16, 8, 8], -1)
+        q = attention.q_norm(q.reshape(3, 2, 8))
+        k = attention.k_norm(k.reshape(3, 1, 8))
+        angles = pos[:, None].float() / 10000.0 ** (torch.arange(2).float()[None] / 2)
+        for states in (q, k):
+            original = states.clone()
+            for pair in range(2):
+                c, s = angles[:, pair].cos()[:, None], angles[:, pair].sin()[:, None]
+                a, b = original[:, :, 2 * pair], original[:, :, 2 * pair + 1]
+                states[:, :, 2 * pair] = a * c - b * s
+                states[:, :, 2 * pair + 1] = a * s + b * c
+        q, k = q.transpose(0, 1), k.transpose(0, 1).repeat_interleave(2, 0)
+        v = v.reshape(3, 1, 8).transpose(0, 1).repeat_interleave(2, 0)
+        scores = (q @ k.transpose(-1, -2)) / 8**0.5
+        scores.masked_fill_(torch.ones(3, 3, dtype=torch.bool).triu(1), -torch.inf)
+        attended = (scores.softmax(-1) @ v).transpose(0, 1).reshape(3, 16)
+        expected = F.linear(attended * gate.sigmoid(), attention.wo.weight)
+        torch.testing.assert_close(attention(x, pos), expected)
+
+    @torch.no_grad()
+    def test_temporal_attention_cached_matches_full(self) -> None:
+        layer = self.tower.shared_layers[0]
+        hidden, codes = torch.randn(7, 16), torch.arange(7)
+        semantic = torch.tensor([False, True, True, False, True, True, True])
+        extra = torch.randn(7, 16)
+        expected = layer(hidden, codes, semantic, torch.arange(7), extra)
+        layer.transformer_layer.attention.setup_cache(12)
+        chunks = [
+            layer(
+                hidden[s:e], codes[s:e], semantic[s:e], torch.arange(s, e), extra[s:e]
+            )
+            for s, e in [(0, 3), (3, 4), (4, 7)]
+        ]
+        torch.testing.assert_close(torch.cat(chunks), expected, atol=1e-6, rtol=1e-5)
+
+    @torch.no_grad()
+    def test_shifted_prefill_matches_teacher_forced_steps(self) -> None:
+        frames = torch.zeros(7, 4, dtype=torch.long)
+        frames[2:, 1:] = torch.randint(0, 8, (5, 3))
+        frames[:, 0] = 3
+        frames[2:, 0] = frames[2:, 1] + 32
+        hidden = torch.randn(6, 16)
+        attentions = [
+            layer.transformer_layer.attention
+            for layer in (*self.tower.shared_layers, *self.tower.residual_layers)
+        ]
+        self.tower.setup_caches(10)
+        self.tower.prefill(hidden, torch.arange(6), frames[:-1], frames[1:])
+        expected = [attention.k_cache.clone() for attention in attentions]
+        self.tower.setup_caches(10)
+        for p in range(6):
+            self.tower.prefill(
+                hidden[p : p + 1],
+                torch.tensor([p]),
+                frames[p : p + 1],
+                frames[p + 1 : p + 2],
+            )
+        for attention, key in zip(attentions, expected):
+            torch.testing.assert_close(attention.k_cache, key, atol=1e-6, rtol=1e-5)
+
+    def test_loader_requires_all_weights_once(self) -> None:
+        to_checkpoint = {new: old for old, new in TOWER_CHECKPOINT_PREFIXES.items()}
+        weights = []
+        for name, tensor in self.tower.named_parameters():
+            new, old = next(
+                (new, old) for new, old in to_checkpoint.items() if name.startswith(new)
+            )
+            weights.append((old + name[len(new) :], tensor.detach()))
+        target = FishOmniAudioDecoder(self.config, dtype=torch.float32)
+        load_audio_decoder_weights(target, weights)
+        for actual, expected in zip(target.parameters(), self.tower.parameters()):
+            torch.testing.assert_close(actual, expected)
+        with self.assertRaisesRegex(ValueError, "not loaded"):
+            load_audio_decoder_weights(target, weights[:-1])
+        with self.assertRaisesRegex(ValueError, "twice"):
+            load_audio_decoder_weights(target, weights + weights[:1])
+        invalid = list(weights)
+        invalid[0] = (weights[0][0], torch.full_like(weights[0][1], torch.inf))
+        with self.assertRaises(FloatingPointError):
+            load_audio_decoder_weights(target, invalid)
+
+    def test_sampling_top_p_boundary_and_nonfinite(self) -> None:
+        logits = torch.tensor([[0.6, 0.3, 0.1]]).log().expand(100, -1)
+        self.assertFalse(sample_top_k_top_p(logits, 1.0, 3, 0.7).any())
+        with self.assertRaises(FloatingPointError):
+            sample_top_k_top_p(torch.tensor([[float("nan")]]), 1.0, 1, 1.0)
+
+
+class FP32OutputLinearTest(unittest.TestCase):
+    @torch.no_grad()
+    def check_wide_output(self, device: str) -> None:
+        linear = FP32OutputLinear(8, 4, bias=False, device=device, dtype=torch.float16)
+        linear.weight.fill_(100)
+        x = torch.full((2, 3, 8), 100.0, dtype=torch.float16, device=device)
+        self.assertFalse(torch.isfinite(F.linear(x, linear.weight)).all())
+        out = linear(x)
+        self.assertEqual(linear.weight.dtype, torch.float16)
+        self.assertEqual(out.dtype, torch.float32)
+        torch.testing.assert_close(out, torch.full_like(out, 80000))
+
+    def test_fp16_projection_retains_out_of_range_values(self) -> None:
+        self.check_wide_output("cpu")
+
+    @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable")
+    def test_cuda_fp16_gemm_with_fp32_output(self) -> None:
+        self.check_wide_output("cuda:0")
+
+
+class S3GenerationTest(unittest.TestCase):
+    def setUp(self) -> None:
+        torch.manual_seed(8)
+        self.model = tiny_omni_model()
+
+    def test_chunked_prefill_matches_whole_prefill_and_resets_cache(self) -> None:
+        with patch(SAMPLER, side_effect=greedy):
+            expected, reason = generate_s3(
+                self.model, PROMPT, max_new_tokens=4, prefill_chunk_size=128
+            )
+            actual, other_reason = generate_s3(
+                self.model, PROMPT, max_new_tokens=4, prefill_chunk_size=1
+            )
+        torch.testing.assert_close(actual, expected)
+        self.assertEqual(reason, other_reason)
+
+    @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
+    def test_cuda_graph_decode_matches_eager(self) -> None:
+        model = self.model.to("cuda:0")
+        results = {}
+        with patch(SAMPLER, side_effect=greedy):
+            for mode in ("0", "1", "1"):
+                with patch.dict("os.environ", {"FISH_S3_CUDA_GRAPH": mode}):
+                    frames, reason = generate_s3(model, PROMPT, max_new_tokens=6)
+                results.setdefault(mode, []).append((frames, reason))
+        self.assertIsNotNone(model.decode_graphs)
+        expected, reason = results["0"][0]
+        self.assertGreater(len(expected), 0)
+        for frames, other_reason in results["1"]:
+            torch.testing.assert_close(frames, expected)
+            self.assertEqual(other_reason, reason)
+
+    def test_eos_is_not_an_audio_frame(self) -> None:
+        eos_frame = torch.tensor([[2, 0, 0, 0]])
+        with patch.object(
+            self.model.audio_decoder, "decode_step", return_value=eos_frame
+        ) as step:
+            frames, reason = generate_s3(self.model, PROMPT, max_new_tokens=3)
+        self.assertEqual((frames.shape, reason, step.call_count), ((0, 4), "eos", 1))
+        self.assertEqual(step.call_args.args[2].item(), len(PROMPT) - 1)
+
+    def test_rejects_requests_beyond_the_context(self) -> None:
+        with self.assertRaisesRegex(ValueError, "does not fit"):
+            generate_s3(self.model, PROMPT, max_new_tokens=128)
+
+    def test_generate_long_dispatches_to_s3(self) -> None:
+        steps = [
+            torch.tensor([[33, 1, 2, 3]]),
+            torch.tensor([[35, 3, 4, 5]]),
+            torch.tensor([[2, 0, 0, 0]]),
+        ]
+        with patch.object(self.model.audio_decoder, "decode_step", side_effect=steps):
+            responses = list(
+                generate_long(
+                    model=self.model,
+                    device="cpu",
+                    decode_one_token=None,
+                    text="hi",
+                    max_new_tokens=5,
+                    prompt_text=["ref"],
+                    prompt_tokens=[torch.tensor([[1], [2], [3]])],
+                )
+            )
+        self.assertEqual([r.action for r in responses], ["sample", "next"])
+        torch.testing.assert_close(
+            responses[0].codes, torch.tensor([[1, 3], [2, 4], [3, 5]])
+        )
+        self.assertIn(
+            "\n\n[Reference 1]\nText: <|speaker:0|> ref\nSpeech: ",
+            self.model.tokenizer.parts,
+        )
+
+
+class S3DispatchTest(unittest.TestCase):
+    def test_device_layout(self) -> None:
+        with patch("torch.cuda.device_count", return_value=8):
+            self.assertEqual(
+                resolve_s3_devices("cuda"), (["cuda:0", "cuda:1", "cuda:2"], "cuda:3")
+            )
+            self.assertEqual(resolve_s3_devices("cuda:5"), (["cuda:5"], "cuda:5"))
+            self.assertEqual(
+                resolve_s3_devices("cuda:4, cuda:6"), (["cuda:4"], "cuda:6")
+            )
+            for bad in ("cpu", "cuda:8", "cuda:0,cuda:0"):
+                with self.assertRaises(ValueError):
+                    resolve_s3_devices(bad)
+        with patch("torch.cuda.device_count", return_value=2):
+            self.assertEqual(resolve_s3_devices("cuda"), (["cuda:0"], "cuda:1"))
+
+    def test_dtype_falls_back_to_float16_before_sm80(self) -> None:
+        with patch("torch.cuda.get_device_capability", return_value=(7, 0)):
+            self.assertEqual(
+                resolve_s3_dtype(torch.bfloat16, ["cuda:0"]), torch.float16
+            )
+        with patch("torch.cuda.get_device_capability", return_value=(8, 0)):
+            self.assertEqual(
+                resolve_s3_dtype(torch.bfloat16, ["cuda:0"]), torch.bfloat16
+            )
+        with self.assertRaises(ValueError):
+            resolve_s3_dtype(torch.float32, [])
+
+    def test_checkpoint_type_and_codec_path(self) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            s2, s3 = Path(root, "s2-pro"), Path(root, "s3-drama-fp8")
+            for path, model_type in ((s2, "fish_qwen3_omni"), (s3, "fish_omni")):
+                path.mkdir()
+                (path / "config.json").write_text(
+                    json.dumps({"model_type": model_type})
+                )
+            self.assertFalse(is_fish_omni_checkpoint(s2))
+            self.assertTrue(is_fish_omni_checkpoint(s3))
+            with self.assertRaises(FileNotFoundError):
+                resolve_codec_path(s3)
+            (s2 / "codec.pth").write_bytes(b"")
+            self.assertEqual(resolve_codec_path(s3), s2 / "codec.pth")
+            self.assertEqual(resolve_codec_path(s2), s2 / "codec.pth")
+            self.assertEqual(resolve_codec_path(s3, s2 / "codec.pth"), s2 / "codec.pth")
+            with self.assertRaises(FileNotFoundError):
+                resolve_codec_path(s3, Path(root, "missing.pth"))
+
+    def test_init_model_loads_fish_omni(self) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            Path(root, "config.json").write_text(
+                json.dumps({"model_type": "fish_omni"})
+            )
+            sentinel = object()
+            with (
+                patch.object(
+                    inference,
+                    "resolve_s3_devices",
+                    return_value=(["cuda:0"], "cuda:1"),
+                ),
+                patch.object(inference, "resolve_s3_dtype", return_value=torch.float16),
+                patch.object(
+                    FishOmniModel, "from_pretrained", return_value=sentinel
+                ) as load,
+            ):
+                self.assertEqual(
+                    init_model(root, "cuda", torch.bfloat16), (sentinel, None)
+                )
+                with self.assertRaisesRegex(ValueError, "compile"):
+                    init_model(root, "cuda", torch.bfloat16, compile=True)
+            load.assert_called_once_with(
+                root, devices=["cuda:0"], tower_device="cuda:1", dtype=torch.float16
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -40,16 +40,16 @@ COPY . /app
 # itself with --no-deps so pip does not try to pull a CUDA/CPU torch.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir \
-        numpy "transformers<=4.57.3" datasets lightning pytorch_lightning \
-        hydra-core natsort einops librosa rich "gradio>5.0.0" wandb grpcio kui \
-        uvicorn loguru loralib pyrootutils resampy "einx[torch]==0.2.2" zstandard \
+        numpy "transformers<=4.57.3" \
+        hydra-core natsort einops librosa "gradio>5.0.0" kui \
+        uvicorn loguru pyrootutils resampy "einx[torch]==0.2.2" \
         pydub "modelscope==1.17.1" "opencc-python-reimplemented==0.1.7" \
         silero-vad ormsgpack tiktoken "pydantic==2.9.2" cachetools \
         descript-audio-codec safetensors soundfile vector_quantize_pytorch \
     && pip install --no-cache-dir --no-build-isolation pyaudio \
     && pip install --no-cache-dir --no-deps -e . \
-    # descript-audiotools pins protobuf<3.20, but fish-speech's generated proto
-    # code needs >=3.20. Override after install (mirrors pyproject's uv override).
+    # descript-audiotools pins protobuf<3.20, which is too old for the rest of
+    # the stack. Override after install (mirrors pyproject's uv override).
     && pip install --no-cache-dir --no-deps --upgrade "protobuf>=4.25,<6.0"
 
 EXPOSE 7860 8080

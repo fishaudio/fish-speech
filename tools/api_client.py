@@ -84,26 +84,30 @@ def parse_args():
         choices=["normal", "balanced"],
         help="Used in api.fish.audio/v1/tts",
     )
+    # Sampling: unset means the server uses the loaded model family's defaults.
     parser.add_argument(
         "--max_new_tokens",
         type=int,
-        default=1024,
+        default=None,
         help="Maximum new tokens to generate. \n0 means no limit.",
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=300, help="Chunk length for synthesis"
+        "--chunk_length",
+        type=int,
+        default=300,
+        help="Chunk length for synthesis (S2-Pro only; S3 reads the text as one turn)",
     )
     parser.add_argument(
-        "--top_p", type=float, default=0.8, help="Top-p sampling for synthesis"
+        "--top_p", type=float, default=None, help="Top-p sampling for synthesis"
     )
     parser.add_argument(
         "--repetition_penalty",
         type=float,
-        default=1.1,
-        help="Repetition penalty for synthesis",
+        default=None,
+        help="Repetition penalty for synthesis (S2-Pro only)",
     )
     parser.add_argument(
-        "--temperature", type=float, default=0.8, help="Temperature for sampling"
+        "--temperature", type=float, default=None, help="Temperature for sampling"
     )
 
     # parser.add_argument("--streaming", type=bool, default=False, help="Enable streaming response")

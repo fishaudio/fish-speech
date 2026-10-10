@@ -97,10 +97,14 @@ class ServeTTSRequest(BaseModel):
     normalize: bool = True
     # not usually used below
     streaming: bool = False
-    max_new_tokens: int = 1024
-    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
-    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.1
-    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
+    # Sampling: None takes the loaded model family's default; max_new_tokens <= 0
+    # means no explicit limit.
+    max_new_tokens: int | None = None
+    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
+    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] | None = (
+        None
+    )
+    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
 
     class Config:
         # Allow arbitrary types for pytorch related types

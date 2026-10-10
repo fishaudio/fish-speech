@@ -5,16 +5,20 @@ import re
 import threading
 import time
 import traceback
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Optional, Tuple, Union
+from typing import Callable, Literal
 
 import click
 import numpy as np
 import torch
 import torch._inductor.config
+from hydra.utils import instantiate
 from loguru import logger
+from omegaconf import OmegaConf
+from torch.nn.utils.parametrize import is_parametrized, remove_parametrizations
 from tqdm import tqdm
 
 from fish_speech.content_sequence import (
@@ -22,6 +26,20 @@ from fish_speech.content_sequence import (
     VQPart,
 )
 from fish_speech.conversation import Conversation, Message
+from fish_speech.models.text2semantic.fish_omni.generate import (
+    S3_DEFAULT_MAX_NEW_TOKENS,
+    S3_DEFAULT_TEMPERATURE,
+    S3_DEFAULT_TOP_K,
+    S3_DEFAULT_TOP_P,
+    build_s3_prompt,
+    generate_s3,
+    resolve_s3_devices,
+    resolve_s3_dtype,
+)
+from fish_speech.models.text2semantic.fish_omni.model import (
+    FishOmniModel,
+    is_fish_omni_checkpoint,
+)
 from fish_speech.tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -83,7 +101,7 @@ def sample(
     temperature: torch.Tensor,
     top_p: torch.Tensor,
     top_k: int,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     probs = logits_to_probs(
         logits=logits[0, -1],
         temperature=temperature,
@@ -104,8 +122,8 @@ def decode_one_token_ar(
     semantic_logit_bias: torch.Tensor,
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
-    previous_tokens: Optional[torch.Tensor] = None,
-    kv_len: Optional[int] = None,
+    previous_tokens: torch.Tensor | None = None,
+    kv_len: int | None = None,
 ) -> torch.Tensor:
     forward_result = model.forward_generate(
         x,
@@ -196,7 +214,7 @@ def decode_n_tokens(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
-    kv_start_pos: Optional[int] = None,
+    kv_start_pos: int | None = None,
 ):
     if kv_start_pos is None:
         # Compatibility fallback for direct callers. The production generation
@@ -381,6 +399,20 @@ def generate(
 
 
 def init_model(checkpoint_path, device, precision, compile=False):
+    if is_fish_omni_checkpoint(checkpoint_path):
+        if compile:
+            raise ValueError("--compile is not supported for S3 checkpoints")
+        devices, tower_device = resolve_s3_devices(device)
+        dtype = resolve_s3_dtype(precision, [*devices, tower_device])
+        logger.info(
+            f"Using FishOmniModel (S3): backbone on {devices}, "
+            f"tower on {tower_device}, {dtype}"
+        )
+        model = FishOmniModel.from_pretrained(
+            checkpoint_path, devices=devices, tower_device=tower_device, dtype=dtype
+        )
+        return model, None
+
     model = DualARTransformer.from_pretrained(checkpoint_path, load_weights=True)
 
     model = model.to(device=device, dtype=precision)
@@ -414,17 +446,41 @@ def init_model(checkpoint_path, device, precision, compile=False):
     return model.eval(), decode_one_token
 
 
+def resolve_codec_path(
+    checkpoint_path: str | Path, codec_path: str | Path | None = None
+) -> Path:
+    """codec_path, else <checkpoint>/codec.pth, else (S3) the sibling S2-Pro codec."""
+    if codec_path is not None:
+        codec_path = Path(codec_path)
+        if not codec_path.is_file():
+            raise FileNotFoundError(f"codec checkpoint does not exist: {codec_path}")
+        return codec_path
+    checkpoint_path = Path(checkpoint_path)
+    candidate = checkpoint_path / "codec.pth"
+    if candidate.is_file():
+        return candidate
+    fallback = checkpoint_path.parent / "s2-pro" / "codec.pth"
+    if is_fish_omni_checkpoint(checkpoint_path) and fallback.is_file():
+        logger.info(
+            f"{checkpoint_path} has no codec.pth; using the S2-Pro codec {fallback}"
+        )
+        return fallback
+    raise FileNotFoundError(f"no codec.pth in {checkpoint_path}; pass --codec-path")
+
+
 @torch.inference_mode()
 def load_codec_model(codec_checkpoint_path, device, precision=torch.bfloat16):
-    """Load the DAC codec model for audio encoding/decoding."""
-    from hydra.utils import instantiate
-    from omegaconf import OmegaConf
+    """Load the DAC codec model for audio encoding/decoding.
 
+    Weight norm is folded in fp32 before the cast, which keeps FP16 exact enough.
+    """
     config_path = Path(__file__).parent.parent.parent / "configs" / "modded_dac_vq.yaml"
     cfg = OmegaConf.load(str(config_path))
     codec = instantiate(cfg)
 
-    state_dict = torch.load(codec_checkpoint_path, map_location="cpu")
+    state_dict = torch.load(
+        codec_checkpoint_path, map_location="cpu", mmap=True, weights_only=True
+    )
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
     if any("generator" in k for k in state_dict):
@@ -433,9 +489,21 @@ def load_codec_model(codec_checkpoint_path, device, precision=torch.bfloat16):
             for k, v in state_dict.items()
             if "generator." in k
         }
-    codec.load_state_dict(state_dict, strict=False)
+    rebuilt_buffers = {
+        f"{name}.{buffer}" if name else buffer
+        for name, module in codec.named_modules()
+        for buffer in module._non_persistent_buffers_set
+    }
+    state_dict = {k: v for k, v in state_dict.items() if k not in rebuilt_buffers}
+    codec.load_state_dict(state_dict, strict=True)
     codec.eval()
+    for module in list(codec.modules()):
+        if is_parametrized(module, "weight"):
+            remove_parametrizations(module, "weight", leave_parametrized=True)
+        elif hasattr(module, "weight_g"):
+            torch.nn.utils.remove_weight_norm(module)
     codec.to(device=device, dtype=precision)
+    logger.info(f"Loaded codec {codec_checkpoint_path} on {device} ({precision})")
     return codec
 
 
@@ -469,8 +537,8 @@ def decode_to_audio(codes, codec):
 @dataclass
 class GenerateResponse:
     action: Literal["sample", "next"]
-    codes: Optional[torch.Tensor] = None
-    text: Optional[str] = None
+    codes: torch.Tensor | None = None
+    text: str | None = None
 
 
 def split_text_by_speaker(text: str) -> list[str]:
@@ -545,7 +613,7 @@ def group_turns_into_batches(
 def generate_long(
     *,
     model,
-    device: Union[str, torch.device],
+    device: str | torch.device,
     decode_one_token: Callable,
     text: str,
     num_samples: int = 1,
@@ -557,11 +625,25 @@ def generate_long(
     compile: bool = False,
     iterative_prompt: bool = True,
     chunk_length: int = 512,
-    prompt_text: Optional[Union[str, list[str]]] = None,
-    prompt_tokens: Optional[Union[torch.Tensor, list[torch.Tensor]]] = None,
+    prompt_text: str | list[str] | None = None,
+    prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
+
+    if isinstance(model, FishOmniModel):
+        yield from generate_long_s3(
+            model=model,
+            text=text,
+            num_samples=num_samples,
+            max_new_tokens=max_new_tokens,
+            top_p=top_p,
+            top_k=top_k,
+            temperature=temperature,
+            prompt_text=prompt_text,
+            prompt_tokens=prompt_tokens,
+        )
+        return
 
     use_prompt = bool(prompt_text) and bool(prompt_tokens)
     if use_prompt and isinstance(prompt_text, str):
@@ -755,10 +837,77 @@ def generate_long(
         yield GenerateResponse(action="next")
 
 
+def generate_long_s3(
+    *,
+    model: FishOmniModel,
+    text: str,
+    num_samples: int = 1,
+    max_new_tokens: int = 0,
+    top_p: float = S3_DEFAULT_TOP_P,
+    top_k: int = S3_DEFAULT_TOP_K,
+    temperature: float = S3_DEFAULT_TEMPERATURE,
+    prompt_text: str | list[str] | None = None,
+    prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
+) -> Iterator[GenerateResponse]:
+    """S3 counterpart of generate_long: the whole text is one speaker-0 user turn.
+
+    max_new_tokens <= 0 means min(2048, remaining context).
+    """
+    if isinstance(prompt_text, str):
+        prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
+    prompt_text = list(prompt_text or [])
+    prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
+    prompt = build_s3_prompt(
+        text, model.tokenizer, model.config, prompt_text, prompt_tokens
+    )
+    if max_new_tokens <= 0:
+        max_new_tokens = min(
+            S3_DEFAULT_MAX_NEW_TOKENS,
+            model.config.text.max_position_embeddings - len(prompt),
+        )
+    logger.info(
+        f"S3 prompt: {len(prompt)} rows, {len(prompt_tokens)} reference(s), "
+        f"max_new_tokens={max_new_tokens}"
+    )
+    devices = {p.device for p in model.backbone.parameters()} | {model.device}
+    devices = sorted((d for d in devices if d.type == "cuda"), key=str)
+
+    for sample_idx in range(num_samples):
+        for device in devices:
+            torch.cuda.reset_peak_memory_stats(device)
+        t0 = time.perf_counter()
+        frames, finish_reason = generate_s3(
+            model,
+            prompt,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+        elapsed = time.perf_counter() - t0
+        logger.info(
+            f"Sample {sample_idx}: {len(frames)} frames in {elapsed:.2f}s "
+            f"({len(frames) / elapsed:.2f} frames/s), finish={finish_reason}"
+        )
+        peaks = (
+            f"{d}: {torch.cuda.max_memory_allocated(d) / 2**30:.1f} GiB"
+            for d in devices
+        )
+        logger.info(f"Peak GPU memory: {', '.join(peaks)}")
+        if finish_reason != "eos":
+            logger.warning("Reached max_new_tokens before EOS; audio may be truncated")
+        if len(frames):
+            codes = frames[:, 1:].T.contiguous()
+            yield GenerateResponse(action="sample", codes=codes, text=text)
+        else:
+            logger.warning("The model emitted EOS before any audio frame")
+        yield GenerateResponse(action="next")
+
+
 @dataclass
 class WrappedGenerateResponse:
     status: Literal["success", "error"]
-    response: Optional[Union[GenerateResponse, Exception]] = None
+    response: GenerateResponse | Exception | None = None
 
 
 @dataclass
@@ -775,18 +924,27 @@ def launch_thread_safe_queue(
 ):
     input_queue = queue.Queue()
     init_event = threading.Event()
+    init_errors: list[Exception] = []
 
     def worker():
-        model, decode_one_token = init_model(
-            checkpoint_path, device, precision, compile=compile
-        )
-        with torch.device(device):
-            model.setup_caches(
-                max_batch_size=1,
-                max_seq_len=model.config.max_seq_len,
-                dtype=next(model.parameters()).dtype,
+        try:
+            model, decode_one_token = init_model(
+                checkpoint_path, device, precision, compile=compile
             )
-        init_event.set()
+            # S3 sizes its caches per request (prompt rows + max_new_tokens).
+            if not isinstance(model, FishOmniModel):
+                with torch.device(device):
+                    model.setup_caches(
+                        max_batch_size=1,
+                        max_seq_len=model.config.max_seq_len,
+                        dtype=next(model.parameters()).dtype,
+                    )
+        except Exception as e:
+            # Re-raised by the caller, which would otherwise wait forever.
+            init_errors.append(e)
+            return
+        finally:
+            init_event.set()
 
         while True:
             item: GenerateRequest | None = input_queue.get()
@@ -817,6 +975,8 @@ def launch_thread_safe_queue(
 
     threading.Thread(target=worker, daemon=True).start()
     init_event.wait()
+    if init_errors:
+        raise init_errors[0]
 
     return input_queue
 
@@ -851,19 +1011,34 @@ def launch_thread_safe_queue(
     type=click.Path(path_type=Path, exists=True),
     default="checkpoints/s2-pro",
 )
-@click.option("--device", type=str, default="cuda")
+@click.option(
+    "--device",
+    type=str,
+    default="cuda",
+    help="S3 accepts a comma-separated list; the last device holds tower + codec.",
+)
+@click.option(
+    "--codec-path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Defaults to <checkpoint>/codec.pth (S3: checkpoints/s2-pro/codec.pth).",
+)
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
-@click.option("--half/--no-half", default=False)
+@click.option(
+    "--half/--no-half",
+    default=False,
+    help="float16 instead of bfloat16; S3 switches to float16 by itself before SM80.",
+)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--chunk-length", type=int, default=300)
 @click.option("--output-dir", type=Path, default="output")
 def main(
     text: str,
-    prompt_text: Optional[tuple[str, ...]],
-    prompt_tokens: Optional[tuple[Path, ...]],
-    prompt_audio: Optional[tuple[Path, ...]],
-    output: Optional[Path],
+    prompt_text: tuple[str, ...] | None,
+    prompt_tokens: tuple[Path, ...] | None,
+    prompt_audio: tuple[Path, ...] | None,
+    output: Path | None,
     num_samples: int,
     max_new_tokens: int,
     top_p: float,
@@ -871,6 +1046,7 @@ def main(
     temperature: float,
     checkpoint_path: Path,
     device: str,
+    codec_path: Path | None,
     compile: bool,
     seed: int,
     half: bool,
@@ -899,27 +1075,37 @@ def main(
     model, decode_one_token = init_model(
         checkpoint_path, device, precision, compile=compile
     )
-    with torch.device(device):
-        model.setup_caches(
-            max_batch_size=1,
-            max_seq_len=model.config.max_seq_len,
-            dtype=next(model.parameters()).dtype,
-        )
+    if isinstance(model, FishOmniModel):
+        # The codec shares the tower's device and runs in the model's dtype.
+        codec_device, codec_precision = str(model.device), model.dtype
+    else:
+        codec_device, codec_precision = device, precision
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=1,
+                max_seq_len=model.config.max_seq_len,
+                dtype=next(model.parameters()).dtype,
+            )
     if torch.cuda.is_available():
         torch.cuda.synchronize()
 
     logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
 
     codec = None
-    codec_checkpoint = checkpoint_path / "codec.pth"
+    # Resolved before generating, so a missing codec fails fast.
+    codec_checkpoint = (
+        resolve_codec_path(checkpoint_path, codec_path)
+        if prompt_audio or output
+        else None
+    )
 
     # Handle prompt: --prompt-audio takes priority over --prompt-tokens
     prompt_tokens_list = None
     if prompt_audio:
         logger.info("Loading codec model for audio encoding...")
-        codec = load_codec_model(codec_checkpoint, device, precision)
+        codec = load_codec_model(codec_checkpoint, codec_device, codec_precision)
         prompt_tokens_list = [
-            encode_audio(p, codec, device).cpu() for p in prompt_audio
+            encode_audio(p, codec, codec_device).cpu() for p in prompt_audio
         ]
         logger.info(f"Encoded {len(prompt_audio)} audio file(s) to VQ codes")
     elif prompt_tokens is not None:
@@ -965,8 +1151,10 @@ def main(
                 if output:
                     if codec is None:
                         logger.info("Loading codec model for audio decoding...")
-                        codec = load_codec_model(codec_checkpoint, device, precision)
-                    audio = decode_to_audio(merged_codes.to(device), codec)
+                        codec = load_codec_model(
+                            codec_checkpoint, codec_device, codec_precision
+                        )
+                    audio = decode_to_audio(merged_codes.to(codec_device), codec)
                     import soundfile as sf
 
                     out_path = (

@@ -25,16 +25,32 @@ def parse_args():
         "--llama-checkpoint-path",
         type=str,
         default="checkpoints/s2-pro",
+        help="S2-Pro (dual_ar) or S3 (fish_omni) checkpoint directory; "
+        "the model type is detected from its config.json.",
     )
     parser.add_argument(
         "--decoder-checkpoint-path",
         type=str,
-        default="checkpoints/s2-pro/codec.pth",
+        default=None,
+        help="DAC codec weights. Defaults to <checkpoint>/codec.pth; an S3 "
+        "checkpoint falls back to the sibling s2-pro/codec.pth.",
     )
     parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--half", action="store_true")
-    parser.add_argument("--compile", action="store_true")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="S3 only: plain 'cuda' takes the first min(4, visible) GPUs, or list "
+        "them ('cuda:0,cuda:1,...'); the last one holds the tower and the codec.",
+    )
+    parser.add_argument(
+        "--half",
+        action="store_true",
+        help="float16 instead of bfloat16 (S3 switches by itself before SM80).",
+    )
+    parser.add_argument(
+        "--compile", action="store_true", help="torch.compile (S2-Pro only)."
+    )
     parser.add_argument("--max-text-length", type=int, default=0)
     parser.add_argument("--listen", type=str, default="127.0.0.1:8080")
     parser.add_argument("--workers", type=int, default=1)

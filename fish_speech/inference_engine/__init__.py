@@ -1,6 +1,6 @@
 import gc
 import queue
-from typing import Generator
+from typing import Generator, Literal
 
 import numpy as np
 import torch
@@ -10,6 +10,11 @@ from fish_speech.inference_engine.reference_loader import ReferenceLoader
 from fish_speech.inference_engine.utils import InferenceResult, wav_chunk_header
 from fish_speech.inference_engine.vq_manager import VQManager
 from fish_speech.models.dac.modded_dac import DAC
+from fish_speech.models.text2semantic.fish_omni.generate import (
+    S3_DEFAULT_TEMPERATURE,
+    S3_DEFAULT_TOP_K,
+    S3_DEFAULT_TOP_P,
+)
 from fish_speech.models.text2semantic.inference import (
     GenerateRequest,
     GenerateResponse,
@@ -17,6 +22,28 @@ from fish_speech.models.text2semantic.inference import (
 )
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
+
+ModelFamily = Literal["s2", "s3"]
+
+# Used for every sampling field a request leaves unset (None).
+SAMPLING_DEFAULTS: dict[ModelFamily, dict[str, int | float]] = {
+    "s2": dict(
+        max_new_tokens=1024,
+        top_p=0.8,
+        top_k=30,
+        repetition_penalty=1.1,
+        temperature=0.8,
+    ),
+    # S3 reads the text as one turn (max_new_tokens=0: up to 2048 frames) and has
+    # built-in repetition-aware sampling instead of a repetition penalty.
+    "s3": dict(
+        max_new_tokens=0,
+        top_p=S3_DEFAULT_TOP_P,
+        top_k=S3_DEFAULT_TOP_K,
+        repetition_penalty=1.0,
+        temperature=S3_DEFAULT_TEMPERATURE,
+    ),
+}
 
 
 class TTSInferenceEngine(ReferenceLoader, VQManager):
@@ -27,14 +54,19 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         decoder_model: DAC,
         precision: torch.dtype,
         compile: bool,
+        model_family: ModelFamily = "s2",
     ) -> None:
 
         super().__init__()
+
+        if model_family not in SAMPLING_DEFAULTS:
+            raise ValueError(f"Unknown model family: {model_family!r}")
 
         self.llama_queue = llama_queue
         self.decoder_model = decoder_model
         self.precision = precision
         self.compile = compile
+        self.model_family = model_family
 
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, None]:
@@ -151,16 +183,13 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         # Prepare the request
         request = dict(
             device=self.decoder_model.device,
-            max_new_tokens=req.max_new_tokens,
             text=req.text,
-            top_p=req.top_p,
-            repetition_penalty=req.repetition_penalty,
-            temperature=req.temperature,
             compile=self.compile,
             iterative_prompt=req.chunk_length > 0,
             chunk_length=req.chunk_length,
             prompt_tokens=prompt_tokens,
             prompt_text=prompt_texts,
+            **self.resolve_sampling(req),
         )
 
         # Create a queue to get the response
@@ -175,6 +204,20 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         )
 
         return response_queue
+
+    def resolve_sampling(self, req: ServeTTSRequest) -> dict[str, int | float]:
+        """Request sampling fields, falling back to the model family's defaults."""
+        params = dict(SAMPLING_DEFAULTS[self.model_family])
+        for name in ("max_new_tokens", "top_p", "repetition_penalty", "temperature"):
+            value = getattr(req, name)
+            if value is not None:
+                params[name] = value
+
+        if self.model_family == "s3" and req.repetition_penalty not in (None, 1.0):
+            logger.warning(
+                "S3 ignores repetition_penalty (repetition-aware sampling is built in)"
+            )
+        return params
 
     def get_audio_segment(self, result: GenerateResponse) -> np.ndarray:
         """
