@@ -127,6 +127,20 @@ class ReferenceSpeakerTest(unittest.TestCase):
         )
         self.assertEqual(self.load_texts("s3", ServeTTSRequest(text="hi")), [])
 
+    def test_cached_audio_uses_the_current_transcript(self):
+        engine = make_engine("s3")
+        codes = torch.zeros(2, 3)
+        with patch.object(engine, "encode_reference", return_value=codes) as encode:
+            for text, speaker in (("Old.", None), ("New.", 3)):
+                ref = ServeReferenceAudio(audio=b"a", text=text, speaker=speaker)
+                req = ServeTTSRequest(
+                    text="hi", references=[ref], use_memory_cache="on"
+                )
+                tokens, texts = engine.load_references(req)
+        self.assertEqual(encode.call_count, 1)
+        self.assertIs(tokens[0], codes)
+        self.assertEqual(texts, ["<|speaker:3|> New."])
+
     def test_speaker_must_be_0_to_15(self):
         for speaker in (-1, 16, "1"):
             with self.assertRaises(ValidationError):

@@ -69,6 +69,7 @@ plugins:
         - zh
         - ja
         - pt
+        - es
         - ko
         - ar
   - i18n:
@@ -99,6 +100,14 @@ plugins:
             - Introdução: pt/index.md
             - Instalação: pt/install.md
             - Inferência: pt/inference.md
+        - locale: es
+          name: Español
+          build: true
+          nav:
+            - Introducción: es/index.md
+            - Instalación: es/install.md
+            - Inferencia: es/inference.md
+            - Servidor: es/server.md
         - locale: ko
           name: 한국어
           build: true
