@@ -22,6 +22,7 @@ from fish_speech.content_sequence import (
     VQPart,
 )
 from fish_speech.conversation import Conversation, Message
+from fish_speech.text.pa_normalize import normalize_punjabi
 from fish_speech.tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -559,6 +560,7 @@ def generate_long(
     chunk_length: int = 512,
     prompt_text: Optional[Union[str, list[str]]] = None,
     prompt_tokens: Optional[Union[torch.Tensor, list[torch.Tensor]]] = None,
+    punjabi_normalize: bool = False,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
@@ -579,6 +581,13 @@ def generate_long(
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     tokenizer = model.tokenizer
     max_length = model.config.max_seq_len
+
+    # normalizing Gurmukhi input into a diacritic-aware Latin form before tokenization
+    if punjabi_normalize:
+        text = normalize_punjabi(text)
+        if prompt_text:
+            prompt_text = [normalize_punjabi(t) for t in prompt_text]
+        logger.info(f"Punjabi normalization enabled; text is now: {text!r}")
 
     # Build base conversation with system message
     base_conversation = Conversation()
@@ -858,6 +867,15 @@ def launch_thread_safe_queue(
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--chunk-length", type=int, default=300)
 @click.option("--output-dir", type=Path, default="output")
+@click.option(
+    "--punjabi-normalize/--no-punjabi-normalize",
+    default=False,
+    help=(
+        "Transliterate Gurmukhi input into a diacritic-aware Latin "
+        "form before tokenization. Off by default; has no effect on "
+        "non-Gurmukhi text."
+    ),
+)
 def main(
     text: str,
     prompt_text: Optional[tuple[str, ...]],
@@ -877,6 +895,7 @@ def main(
     iterative_prompt: bool,
     chunk_length: int,
     output_dir: Path,
+    punjabi_normalize: bool,
 ) -> None:
     os.makedirs(output_dir, exist_ok=True)
     precision = torch.half if half else torch.bfloat16
@@ -945,6 +964,7 @@ def main(
         chunk_length=chunk_length,
         prompt_text=list(prompt_text) if prompt_text else None,
         prompt_tokens=prompt_tokens_list,
+        punjabi_normalize=punjabi_normalize,
     )
 
     idx = 0
