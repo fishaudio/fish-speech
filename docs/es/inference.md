@@ -126,4 +126,38 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 
 ## Inferencia con WebUI
 
-Próximamente.
+### Awesome WebUI
+
+Awesome WebUI es una interfaz web moderna basada en TypeScript, con más funciones y una mejor experiencia de usuario.
+
+Las imágenes Docker del servidor ya incluyen la WebUI compilada: abre `http://localhost:8080/ui` cuando el contenedor esté en marcha. Los pasos siguientes son para ejecutarla desde el código fuente.
+
+**Compilar la WebUI:**
+
+Necesitas Node.js y npm en tu máquina o servidor.
+
+1. Entra en el directorio `awesome_webui`:
+   ```bash
+   cd awesome_webui
+   ```
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Compila la WebUI:
+   ```bash
+   npm run build
+   ```
+
+**Iniciar el servidor:**
+
+Después de compilar la WebUI, vuelve a la raíz del proyecto e inicia el servidor API:
+
+```bash
+python tools/api_server.py --listen 0.0.0.0:8888 --compile
+```
+
+**Acceso:**
+
+Con el servidor en marcha, abre en el navegador:
+`http://localhost:8888/ui`

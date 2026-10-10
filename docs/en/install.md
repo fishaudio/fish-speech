@@ -111,7 +111,7 @@ CUDA_VER=12.9.0          # CUDA base image version (e.g. 12.6.0 for older driver
 UV_EXTRA=cu129           # PyTorch CUDA variant (cu126, cu128, cu129) — must match CUDA_VER
 ```
 
-The command will build the image and run the container. You can access the API server at `http://localhost:8080`.
+The command will build the image and run the container. You can access the API server at `http://localhost:8080` and the WebUI at `http://localhost:8080/ui`.
 
 ### Manual Docker Build
 

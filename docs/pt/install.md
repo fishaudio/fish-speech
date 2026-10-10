@@ -109,7 +109,7 @@ API_PORT=8080            # Porta do servidor API
 UV_VERSION=0.8.15        # Versão do gestor de pacotes UV
 ```
 
-O comando irá construir a imagem e executar o contentor. Pode aceder ao servidor API em `http://localhost:8080`.
+O comando irá construir a imagem e executar o contentor. Pode aceder ao servidor API em `http://localhost:8080` e à WebUI em `http://localhost:8080/ui`.
 
 ### Construção Manual com Docker
 

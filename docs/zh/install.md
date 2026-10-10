@@ -109,7 +109,7 @@ API_PORT=8080             # API Server 端口
 UV_VERSION=0.8.15         # UV 包管理器版本
 ```
 
-命令执行后会自动构建镜像并启动容器。你可以通过 `http://localhost:8080` 访问 API Server。
+命令执行后会自动构建镜像并启动容器。你可以通过 `http://localhost:8080` 访问 API Server，通过 `http://localhost:8080/ui` 访问 WebUI。
 
 ### 手动 Docker 构建
 

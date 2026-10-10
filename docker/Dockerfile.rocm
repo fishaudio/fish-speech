@@ -17,6 +17,15 @@
 
 ARG ROCM_VERSION=7.2.3
 ARG BASE_IMAGE=rocm/pytorch:rocm${ROCM_VERSION}_ubuntu24.04_py3.12_pytorch_release_2.9.1
+ARG NODE_VER=22
+
+# Awesome WebUI, built into a single index.html that the server serves at /ui
+FROM node:${NODE_VER}-slim AS webui-build
+WORKDIR /webui
+COPY awesome_webui/package.json awesome_webui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY awesome_webui/ ./
+RUN npm run build
 
 FROM ${BASE_IMAGE} AS app-base
 
@@ -63,6 +72,8 @@ ENV COMPILE=1
 # API Server
 ##############################################################
 FROM app-base AS server
+
+COPY --from=webui-build /webui/dist /app/awesome_webui/dist
 
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080

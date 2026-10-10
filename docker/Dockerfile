@@ -52,6 +52,7 @@ ARG BACKEND=cuda
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
 ARG UV_VERSION=0.8.15
+ARG NODE_VER=22
 
 # Create non-root user early for security
 ARG USERNAME=fish
@@ -107,6 +108,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 ARG UV_VERSION
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
+
+# Awesome WebUI, built into a single index.html that the server serves at /ui
+ARG NODE_VER
+FROM node:${NODE_VER}-slim AS webui-build
+WORKDIR /webui
+COPY awesome_webui/package.json awesome_webui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY awesome_webui/ ./
+RUN npm run build
 
 ##############################################################
 # Shared app base stage
@@ -267,6 +277,10 @@ RUN printf '%s\n' \
 # API Server
 FROM app-base AS server
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+ARG USER_UID
+ARG USER_GID
+COPY --from=webui-build --chown=${USER_UID}:${USER_GID} /webui/dist /app/awesome_webui/dist
 
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080

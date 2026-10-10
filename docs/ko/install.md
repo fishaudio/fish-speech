@@ -109,7 +109,7 @@ API_PORT=8080            # API 서버 포트
 UV_VERSION=0.8.15        # UV 패키지 관리자 버전
 ```
 
-이 명령은 이미지를 빌드하고 컨테이너를 실행합니다. API 서버는 `http://localhost:8080`에서 접근할 수 있습니다.
+이 명령은 이미지를 빌드하고 컨테이너를 실행합니다. API 서버는 `http://localhost:8080`, WebUI는 `http://localhost:8080/ui`에서 접근할 수 있습니다.
 
 ### 수동 Docker 빌드
 

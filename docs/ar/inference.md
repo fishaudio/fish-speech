@@ -130,6 +130,8 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 
 تعد Awesome WebUI واجهة ويب حديثة تعتمد على TypeScript، وتوفر ميزات أغنى وتجربة مستخدم أفضل.
 
+تتضمن صور Docker الخاصة بالخادم واجهة WebUI مبنية مسبقًا: افتح `http://localhost:8080/ui` بعد تشغيل الحاوية. الخطوات أدناه مخصصة للتشغيل من الشيفرة المصدرية.
+
 **بناء WebUI:**
 
 يجب أن يكون لديك Node.js و npm مثبتين على جهازك المحلي أو الخادم.

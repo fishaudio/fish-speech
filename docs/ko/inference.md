@@ -130,6 +130,8 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 
 Awesome WebUI는 TypeScript 기반으로 개발된 현대적인 웹 인터페이스로, 더 풍부한 기능과 향상된 사용자 경험을 제공합니다.
 
+server Docker 이미지에는 빌드된 WebUI가 포함되어 있어, 컨테이너 실행 후 `http://localhost:8080/ui`를 열면 바로 사용할 수 있습니다. 아래 단계는 소스에서 실행할 때의 방법입니다.
+
 **WebUI 빌드:**
 
 로컬 또는 서버에 Node.js와 npm이 설치되어 있어야 합니다.

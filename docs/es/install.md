@@ -112,7 +112,7 @@ CUDA_VER=12.9.0          # Versión base de imagen CUDA (ej. 12.6.0 para drivers
 UV_EXTRA=cu129           # Variante CUDA de PyTorch (cu126, cu128, cu129) — debe coincidir con CUDA_VER
 ```
 
-El comando construirá la imagen y ejecutará el contenedor. Puedes acceder al servidor API en `http://localhost:8080`.
+El comando construirá la imagen y ejecutará el contenedor. Puedes acceder al servidor API en `http://localhost:8080` y a la WebUI en `http://localhost:8080/ui`.
 
 ### Construcción manual con Docker
 
