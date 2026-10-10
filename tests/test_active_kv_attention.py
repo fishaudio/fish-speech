@@ -355,6 +355,27 @@ class ActiveKVAutoregressiveDecodeTest(unittest.TestCase):
 
         torch.testing.assert_close(active_output, full_output, rtol=0, atol=0)
 
+    def test_max_new_tokens_one_and_unbounded(self) -> None:
+        def run(max_new_tokens: int) -> torch.Tensor:
+            with patch(
+                "fish_speech.models.text2semantic.inference.tqdm",
+                side_effect=lambda values, **_kwargs: values,
+            ):
+                return generate(
+                    model=self._model(),
+                    prompt=self._prompt(),
+                    max_new_tokens=max_new_tokens,
+                    audio_masks=None,
+                    audio_parts=None,
+                    temperature=0.8,
+                    top_p=0.8,
+                    top_k=1,
+                )
+
+        self.assertEqual(run(1).shape[1], PROMPT_LENGTH + 1)
+        # Negative means no limit, like 0.
+        torch.testing.assert_close(run(-1), run(0), rtol=0, atol=0)
+
     def test_legacy_decode_callback_remains_supported(self) -> None:
         model = self._model()
 

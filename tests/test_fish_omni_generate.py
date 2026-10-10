@@ -546,6 +546,7 @@ class S3GenerationTest(unittest.TestCase):
         histories = [
             [text for text, _ in call.kwargs["history"]]
             for call in build.call_args_list
+            if "history" in call.kwargs
         ]
         budgets = [call.kwargs["max_new_tokens"] for call in run.call_args_list]
         return responses, histories, budgets
@@ -567,6 +568,15 @@ class S3GenerationTest(unittest.TestCase):
         self.assertEqual([r.action for r in responses], ["sample", "next"])
         self.assertEqual(responses[0].text, "one two")
         self.assertEqual((histories, budgets), ([[]], [9]))
+
+    def test_bad_text_in_a_later_chunk_fails_before_generating(self) -> None:
+        chunk_prompt = inference.build_s3_chunk_prompt
+        with patch.object(
+            inference, "build_s3_chunk_prompt", wraps=chunk_prompt
+        ) as build:
+            with self.assertRaisesRegex(InvalidInputError, "speaker tags"):
+                self.run_chunked(["fine", "<|speaker:16|> bad"])
+        build.assert_not_called()
 
     def test_history_is_dropped_when_the_prompt_would_be_too_long(self) -> None:
         rows = len(build_s3_prompt("x", self.model.tokenizer, self.model.config))

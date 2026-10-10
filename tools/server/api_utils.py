@@ -1,8 +1,13 @@
+import io
 from argparse import ArgumentParser
 from http import HTTPStatus
 from typing import Annotated, Any
 
+import numpy as np
 import ormsgpack
+import soundfile as sf
+import torch
+import torchaudio
 from baize.datastructures import ContentType
 from kui.asgi import (
     HTTPException,
@@ -94,6 +99,21 @@ async def inference_async(req: ServeTTSRequest, engine: TTSInferenceEngine):
 
 async def buffer_to_async_generator(buffer):
     yield buffer
+
+
+def encode_audio(audio: np.ndarray, sample_rate: int, audio_format: str) -> bytes:
+    """A mono float waveform as a wav, mp3, opus or headerless 16-bit pcm file."""
+    buffer = io.BytesIO()
+    if audio_format == "pcm":
+        sf.write(buffer, audio, sample_rate, format="RAW", subtype="PCM_16")
+    elif audio_format == "opus":
+        # Opus takes only 8, 12, 16, 24 or 48 kHz.
+        waveform = torch.from_numpy(np.asarray(audio, dtype=np.float32))
+        waveform = torchaudio.functional.resample(waveform, sample_rate, 48000)
+        sf.write(buffer, waveform.numpy(), 48000, format="OGG", subtype="OPUS")
+    else:
+        sf.write(buffer, audio, sample_rate, format=audio_format)
+    return buffer.getvalue()
 
 
 def get_content_type(audio_format):

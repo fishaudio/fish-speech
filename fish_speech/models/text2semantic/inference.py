@@ -278,6 +278,9 @@ def decode_n_tokens(
         if cur_token[0, 0, -1] == im_end_id:
             break
 
+    if not new_tokens:  # num_new_tokens <= 0
+        return cur_token.new_empty((model.config.num_codebooks + 1, 0))
+
     del cur_token
 
     return torch.cat(new_tokens, dim=1)
@@ -309,7 +312,8 @@ def generate(
             f"Input sequence length {T} exceeds max_seq_len {model.config.max_seq_len}"
         )
 
-    if max_new_tokens:
+    # max_new_tokens <= 0 means up to the context length.
+    if max_new_tokens > 0:
         if T + max_new_tokens > model.config.max_seq_len:
             max_new_tokens = model.config.max_seq_len - T
 
@@ -880,6 +884,17 @@ def generate_long_s3(
     prompt_text = list(prompt_text or [])
     prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
     chunks = [text] if single_chunk else split_s3_text(text) or [text]
+    # Reject bad text in any chunk before generating: failing at a later chunk
+    # would waste the earlier ones, and cut a stream short after it started.
+    capacity = S3DecodeGraphs.graph_capacity(model)
+    for chunk in chunks:
+        rows = len(
+            build_s3_prompt(
+                chunk, model.tokenizer, model.config, prompt_text, prompt_tokens
+            )
+        )
+        if rows >= capacity:
+            raise InvalidInputError(f"prompt has {rows} rows; no room left to generate")
     requested = max_new_tokens
     if requested <= 0:
         requested = (
@@ -900,7 +915,7 @@ def generate_long_s3(
             )
             # The caches grow to fit a request and never shrink, and growing them
             # drops the captured CUDA graphs, so no request may exceed this.
-            limit = S3DecodeGraphs.graph_capacity(model) - len(prompt)
+            limit = capacity - len(prompt)
             if limit < 1:
                 raise InvalidInputError(
                     f"prompt has {len(prompt)} rows; no room left to generate"

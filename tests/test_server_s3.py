@@ -1,8 +1,10 @@
+import io
 import queue
 import unittest
 from unittest.mock import patch
 
 import numpy as np
+import soundfile as sf
 import torch
 from kui.asgi import HTTPException
 from pydantic import ValidationError
@@ -13,6 +15,7 @@ from fish_speech.models.text2semantic import inference
 from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import S3PromptTooLongError
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
+from tools.server.api_utils import encode_audio
 from tools.server.inference import inference_wrapper
 from tools.server.model_utils import batch_vqgan_decode
 
@@ -180,6 +183,20 @@ class ErrorMappingTest(unittest.TestCase):
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
+
+
+class EncodeAudioTest(unittest.TestCase):
+    def test_every_request_format_encodes(self):
+        audio = np.sin(np.linspace(0, 200, 4410)).astype(np.float32)
+        pcm = encode_audio(audio, 44100, "pcm")
+        decoded = np.frombuffer(pcm, np.int16) / 32768
+        np.testing.assert_allclose(decoded, audio, atol=1e-4)
+        wav, rate = sf.read(io.BytesIO(encode_audio(audio, 44100, "wav")))
+        self.assertEqual((len(wav), rate), (4410, 44100))
+        opus, rate = sf.read(io.BytesIO(encode_audio(audio, 44100, "opus")))
+        self.assertEqual(rate, 48000)
+        self.assertAlmostEqual(len(opus) / rate, 0.1, delta=0.02)
+        self.assertGreater(len(encode_audio(audio, 44100, "mp3")), 0)
 
 
 class VQGANDecodeTest(unittest.TestCase):

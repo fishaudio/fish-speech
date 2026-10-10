@@ -105,9 +105,14 @@ python tools/api_server.py \
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
     -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
+```
+
+مع Docker Compose، اضبط المتغيرات نفسها؛ يُبقي `DEVICE=cuda:0` نموذج S3 على وحدة GPU واحدة، وإن لم يُضبط فتُستخدم حتى أربع وحدات GPU:
+
+```bash
+LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### الاختلافات عن S2-Pro

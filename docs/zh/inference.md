@@ -105,9 +105,14 @@ python tools/api_server.py \
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
     -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
+```
+
+使用 Docker Compose 时设置同样的环境变量；`DEVICE=cuda:0` 让 S3 只用一张卡，不设置则最多使用四张卡：
+
+```bash
+LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### 与 S2-Pro 的区别

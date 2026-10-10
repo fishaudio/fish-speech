@@ -1,4 +1,3 @@
-import io
 import os
 import re
 import shutil
@@ -9,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 import ormsgpack
-import soundfile as sf
 import torch
 from kui.asgi import (
     Body,
@@ -38,6 +36,7 @@ from fish_speech.utils.schema import (
 )
 from tools.server.api_utils import (
     buffer_to_async_generator,
+    encode_audio,
     format_response,
     get_content_type,
     inference_async,
@@ -180,16 +179,10 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
             )
         else:
             fake_audios = next(inference(req, engine))
-            buffer = io.BytesIO()
-            sf.write(
-                buffer,
-                fake_audios,
-                sample_rate,
-                format=req.format,
-            )
-
             return StreamResponse(
-                iterable=buffer_to_async_generator(buffer.getvalue()),
+                iterable=buffer_to_async_generator(
+                    encode_audio(fake_audios, sample_rate, req.format)
+                ),
                 headers={
                     "Content-Disposition": f"attachment; filename=audio.{req.format}",
                 },

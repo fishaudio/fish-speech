@@ -1,6 +1,6 @@
 ## 요구 사양
 
-- GPU 메모리: 24GB (추론 시)
+- GPU 메모리: S2-Pro 추론 시 24GB, S3-drama는 SM89 이상 GPU 1개에서 약 41 GB, 이전 세대 GPU에서는 합계 약 70 GB
 - 시스템: Linux, WSL
 
 ## 시스템 설정
@@ -76,7 +76,7 @@ API 서버에 대해 GPU(기본값 CUDA 12.6) 및 CPU 버전의 Docker 이미지
 
 - Docker 및 Docker Compose 설치
 - NVIDIA Docker 런타임 설치 (GPU 지원용)
-- CUDA 추론을 위한 최소 24GB의 GPU 메모리
+- CUDA 추론을 위한 최소 24GB의 GPU 메모리 (S2-Pro 기준, S3-drama는 더 필요합니다. 위 참조)
 
 ### Docker Compose 사용
 

@@ -39,7 +39,6 @@
 #       --gpus device=0 \
 #       -v ./checkpoints:/app/checkpoints \
 #       -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-#       -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
 #       -p 8080:8080 \
 #       -it fish-speech-server:cuda
 
@@ -235,9 +234,11 @@ RUN printf '%s\n' \
     '    fi' \
     '}' \
     '' \
-    '# Build device arguments' \
+    '# Build device arguments: DEVICE (e.g. cuda:0, or cuda:0,cuda:1) wins' \
     'build_device_args() {' \
-    '    if [ "${BACKEND:-}" = "cpu" ]; then' \
+    '    if [ -n "${DEVICE:-}" ]; then' \
+    '        echo "--device ${DEVICE}"' \
+    '    elif [ "${BACKEND:-}" = "cpu" ]; then' \
     '        echo "--device cpu"' \
     '    fi' \
     '}' \
@@ -270,7 +271,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080
 ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
-ARG DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"
+# Empty: <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth
+ARG DECODER_CHECKPOINT_PATH=""
 ARG DECODER_CONFIG_NAME="modded_dac_vq"
 
 # Expose port
@@ -293,6 +295,10 @@ RUN printf '%s\n' \
     '' \
     'DEVICE_ARGS=$(build_device_args)' \
     'COMPILE_ARGS=$(build_compile_args "$@")' \
+    'DECODER_ARGS=()' \
+    'if [ -n "${DECODER_CHECKPOINT_PATH:-}" ]; then' \
+    '    DECODER_ARGS=(--decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}")' \
+    'fi' \
     '' \
     'log "Device args: ${DEVICE_ARGS:-none}"' \
     'log "Compile args: ${COMPILE_ARGS}"' \
@@ -301,13 +307,14 @@ RUN printf '%s\n' \
     'exec uv run tools/api_server.py \' \
     '  --listen "${API_SERVER_NAME}:${API_SERVER_PORT}" \' \
     '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
-    '  --decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}" \' \
+    '  "${DECODER_ARGS[@]}" \' \
     '  --decoder-config-name "${DECODER_CONFIG_NAME}" \' \
     '  ${DEVICE_ARGS} ${COMPILE_ARGS}' \
     > /app/start_server.sh && chmod +x /app/start_server.sh
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# S3 takes several minutes to load and capture its CUDA graphs.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=600s --retries=3 \
     CMD curl -f http://localhost:${API_SERVER_PORT}/v1/health || exit 1
 
 ENTRYPOINT ["/app/start_server.sh"]

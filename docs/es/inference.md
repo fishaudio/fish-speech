@@ -105,9 +105,14 @@ Con Docker, ejecuta la imagen del servidor apuntando al checkpoint de S3. En tar
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
     -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
+```
+
+Con Docker Compose, define las mismas variables; `DEVICE=cuda:0` mantiene S3 en una sola GPU y, si no se define, se usan hasta cuatro GPUs:
+
+```bash
+LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### Diferencias con S2-Pro

@@ -1,6 +1,6 @@
 ## 系统要求
 
-- GPU 显存：24GB（用于推理）
+- GPU 显存：S2-Pro 推理需要 24GB；S3-drama 在单张 SM89 及以上显卡上约需 41 GB，在较早的显卡上合计约需 70 GB
 - 系统：Linux、WSL
 
 ## 系统设置
@@ -76,7 +76,7 @@ Fish Audio S2 系列模型提供多种 Docker 部署方式，适配不同场景�
 
 - 已安装 Docker 和 Docker Compose
 - （GPU 场景）已安装 NVIDIA Docker runtime
-- CUDA 推理建议至少 24GB 显存
+- CUDA 推理建议至少 24GB 显存（S2-Pro；S3-drama 需要更多，见上文）
 
 # 使用 Docker Compose
 

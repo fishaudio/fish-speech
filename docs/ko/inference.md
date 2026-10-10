@@ -105,9 +105,14 @@ Docker에서는 server 이미지로 S3 체크포인트를 불러옵니다. SM89 
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
     -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-    -e DECODER_CHECKPOINT_PATH=checkpoints/s3-drama-fp8/codec.pth \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
+```
+
+Docker Compose에서는 같은 환경 변수를 설정합니다. `DEVICE=cuda:0`이면 S3가 GPU 하나만 사용하고, 설정하지 않으면 최대 4개의 GPU를 사용합니다.
+
+```bash
+LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### S2-Pro와의 차이점

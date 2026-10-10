@@ -95,6 +95,9 @@ type PendingReference = {
   text: string
 }
 
+// The server accepts <|speaker:0|> to <|speaker:15|>.
+const MAX_SPEAKERS = 16
+
 const initialControls: ControlsState = {
   chunkLength: 1000,
   maxNewTokens: 2048,
@@ -139,9 +142,11 @@ function buildReferencesPayload(
   speakerGroups: SpeakerGroup[],
   includeBinaryAudio: boolean,
 ) {
-  return speakerGroups.flatMap((speakerGroup) =>
+  // Speaker N is the Nth group; the server tags transcripts that have no tag.
+  return speakerGroups.flatMap((speakerGroup, speaker) =>
     speakerGroup.references.map((reference) => ({
       text: reference.text,
+      speaker,
       audio: includeBinaryAudio
         ? arrayBufferToBase64(reference.audio)
         : '<audio binary data>',
@@ -822,6 +827,7 @@ function App() {
                     variant="outline"
                     className="border-zinc-200 bg-white hover:bg-zinc-100"
                     onClick={addSpeaker}
+                    disabled={speakerGroups.length >= MAX_SPEAKERS}
                   >
                     <Plus className="size-4" />
                     Add Speaker
