@@ -346,6 +346,28 @@ class S3GenerationTest(unittest.TestCase):
         self.assertEqual((frames.shape, reason, step.call_count), ((0, 4), "eos", 1))
         self.assertEqual(step.call_args.args[2].item(), len(PROMPT) - 1)
 
+    def test_ras_resamples_repeated_audio_tokens_but_not_eos(self) -> None:
+        # Main candidates are [eos=2, semantic 32..39]; the prompt's main column holds
+        # the semantic token 34 and an eos, both inside the RAS window.
+        prompt = torch.tensor([[3, 0, 0, 0], [34, 2, 4, 5], [2, 0, 0, 0], [4, 0, 0, 0]])
+
+        def sampler(first_index: int):
+            def sample(logits, temperature, top_k, top_p, check_finite=True):
+                if logits.shape[-1] != 9:  # a codebook head
+                    return logits.argmax(-1)
+                # The RAS retry is the draw made with check_finite=False.
+                index = first_index if check_finite else 5  # retry draws token 36
+                return torch.full(logits.shape[:-1], index, dtype=torch.long)
+
+            return sample
+
+        with patch(SAMPLER, side_effect=sampler(0)):  # first draw: eos
+            frames, reason = generate_s3(self.model, prompt, max_new_tokens=3)
+        self.assertEqual((frames.shape, reason), ((0, 4), "eos"))
+        with patch(SAMPLER, side_effect=sampler(3)):  # first draw: 34, a repeat
+            frames, reason = generate_s3(self.model, prompt, max_new_tokens=1)
+        self.assertEqual((frames[0, 0].item(), reason), (36, "length"))
+
     def test_rejects_requests_beyond_the_context(self) -> None:
         with self.assertRaisesRegex(ValueError, "does not fit"):
             generate_s3(self.model, PROMPT, max_new_tokens=128)

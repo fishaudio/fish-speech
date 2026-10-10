@@ -368,7 +368,10 @@ class FishOmniAudioDecoder(nn.Module):
                 check_finite=False,
             )
         ]
+        # Only audio tokens are resampled, as in S2: the window starts with prompt rows,
+        # which hold the user turn's eos, and a stop must not be redrawn.
         repeated = (history[-RAS_WINDOW_FRAMES:] == first[:, None]).any(-1)
+        repeated &= self.is_semantic(first)
         main = torch.where(repeated, retry, first)
         c0 = (main - self.semantic_begin).clamp(0, self.config.vocab_size - 1)
         semantic = self.is_semantic(main)
