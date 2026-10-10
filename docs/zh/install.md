@@ -19,10 +19,11 @@ conda create -n fish-speech python=3.12
 conda activate fish-speech
 
 # GPU 安装（选择 CUDA 版本：cu126、cu128、cu129）
-pip install -e .[cu129]
+# 使用 cu126 或 cu128 时，请同时替换下面两个命令中的 "cu129"。
+pip install --extra-index-url https://download.pytorch.org/whl/cu129 -e ".[cu129]"
 
 # 仅 CPU 安装
-pip install -e .[cpu]
+pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[cpu]"
 
 # 默认安装（使用 PyTorch 默认索引）
 pip install -e .

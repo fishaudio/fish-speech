@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from fish_speech.tokenizer import (
+    AUDIO_EMBED_TOKEN,
     IM_END_TOKEN,
     MODALITY_TOKENS,
     FishTokenizer,
@@ -328,6 +329,8 @@ class ContentSequence:
         tokenizer: FishTokenizer,
         ignore_loss_tokens: list[str] = [],
         merge_semantic_tokens: bool = False,
+        merge_audio_tokens: bool = False,
+        use_color: bool = True,
     ):
         """
         Visualize the encoded sequence with color-coded tokens.
@@ -349,41 +352,69 @@ class ContentSequence:
 
         def print_in_blue(x):
             nonlocal blue_idx
-            color = colors["blue"] if blue_idx % 2 == 0 else colors["cyan"]
-            print(f"{color}{x}\033[0m", end="")
+            if use_color:
+                color = colors["blue"] if blue_idx % 2 == 0 else colors["cyan"]
+                print(f"{color}{x}\033[0m", end="")
+            else:
+                print(x, end="")
             blue_idx += 1
 
         def print_in_green(x):
             nonlocal green_idx
-            color = colors["green"] if green_idx % 2 == 0 else colors["dark_green"]
-            print(f"{color}{x}\033[0m", end="")
+            if use_color:
+                color = colors["green"] if green_idx % 2 == 0 else colors["dark_green"]
+                print(f"{color}{x}\033[0m", end="")
+            else:
+                print(x, end="")
             green_idx += 1
 
-        def print_semantic_token(x, count):
-            val = f"[<|semantic|>x{count}]"
-            if x == -100:
+        def print_merged_token(name: str, label: int, count: int):
+            val = f"[<|{name}|>x{count}]"
+            if label == -100:
                 print_in_green(val)
             else:
                 print_in_blue(val)
 
-        count_semantic_tokens = 0
-        semantic_label = None
+        audio_token_id = (
+            tokenizer.get_token_id(AUDIO_EMBED_TOKEN) if merge_audio_tokens else None
+        )
+        merged_kind = None
+        merged_label = None
+        merged_count = 0
+
+        def flush_merged_tokens():
+            nonlocal merged_kind, merged_label, merged_count
+            if merged_kind is not None:
+                assert merged_label is not None
+                print_merged_token(merged_kind, merged_label, merged_count)
+                merged_kind = None
+                merged_label = None
+                merged_count = 0
 
         for tok, lab in zip(encoded.tokens, encoded.labels):
             token_id = int(tok.item())
+            label = int(lab.item())
 
-            if merge_semantic_tokens:
-                if (
-                    tokenizer.semantic_begin_id <= token_id <= tokenizer.semantic_end_id
-                    and (semantic_label is None or semantic_label == lab)
-                ):
-                    count_semantic_tokens += 1
-                    semantic_label = lab
-                    continue
-                elif count_semantic_tokens > 0:
-                    print_semantic_token(semantic_label, count_semantic_tokens)
-                    count_semantic_tokens = 0
-                    semantic_label = None
+            token_kind = None
+            if (
+                merge_semantic_tokens
+                and tokenizer.semantic_begin_id <= token_id <= tokenizer.semantic_end_id
+            ):
+                token_kind = "semantic"
+            elif merge_audio_tokens and token_id == audio_token_id:
+                token_kind = "audio_pad"
+
+            if token_kind is not None:
+                if token_kind == merged_kind and label == merged_label:
+                    merged_count += 1
+                else:
+                    flush_merged_tokens()
+                    merged_kind = token_kind
+                    merged_label = label
+                    merged_count = 1
+                continue
+
+            flush_merged_tokens()
 
             # Use HF decode
             val = tokenizer.decode([token_id])
@@ -392,12 +423,11 @@ class ContentSequence:
             if not val:
                 val = f"<{token_id}>"
 
-            if lab == -100:
+            if label == -100:
                 print_in_green(val)
             else:
                 print_in_blue(val)
 
-        if merge_semantic_tokens and count_semantic_tokens > 0:
-            print_semantic_token(semantic_label, count_semantic_tokens)
+        flush_merged_tokens()
 
         print()
