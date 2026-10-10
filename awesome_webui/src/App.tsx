@@ -220,10 +220,17 @@ function buildRequestPayload(
   }
 }
 
-function applyDefaults(controls: ControlsState, defaults: ServerDefaults): ControlsState {
+// Settings in keep (changed by the user) are left alone.
+function applyDefaults(
+  controls: ControlsState,
+  defaults: ServerDefaults,
+  keep: SamplingKey[] = [],
+): ControlsState {
   const next = { ...controls }
   for (const key of Object.keys(samplingFields) as SamplingKey[]) {
-    next[key] = defaults[samplingFields[key]] as number
+    if (!keep.includes(key)) {
+      next[key] = defaults[samplingFields[key]] as number
+    }
   }
   return next
 }
@@ -316,6 +323,8 @@ function App() {
   const [inputText, setInputText] = useState(defaultInputText)
   const [controls, setControls] = useState(initialControls)
   const [customized, setCustomized] = useState<SamplingKey[]>([])
+  const customizedRef = useRef<SamplingKey[]>([])
+  customizedRef.current = customized
   const [serverDefaults, setServerDefaults] = useState<ServerDefaults | null>(null)
   const [speakerGroups, setSpeakerGroups] = useState<SpeakerGroup[]>([initialSpeakerGroup])
   const [pendingReference, setPendingReference] = useState<PendingReference | null>(null)
@@ -347,7 +356,8 @@ function App() {
           return
         }
         setServerDefaults(defaults)
-        setControls((current) => applyDefaults(current, defaults))
+        // The user may have moved a slider while this request was pending.
+        setControls((current) => applyDefaults(current, defaults, customizedRef.current))
       })
       .catch(() => {})
   }, [])
@@ -1176,7 +1186,7 @@ function App() {
                   onValueChange={(value) => setSampling('chunkLength', value)}
                 />
                 <SettingSlider
-                  label={isS3 ? 'Max New Tokens (per chunk)' : 'Max New Tokens'}
+                  label="Max New Tokens (per chunk)"
                   value={controls.maxNewTokens}
                   min={0}
                   max={2048}

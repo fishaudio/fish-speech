@@ -32,8 +32,8 @@ from fish_speech.utils.schema import ServeTTSRequest
 ModelFamily = Literal["s2", "s3"]
 
 # Used for every sampling field a request leaves unset (None): the official Fish
-# Audio SDK's defaults, the same for both families. S3 applies max_new_tokens to
-# each chunk.
+# Audio SDK's defaults, the same for both families. max_new_tokens applies to
+# each text chunk.
 _SDK_DEFAULTS = dict(
     max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
     top_p=DEFAULT_TOP_P,

@@ -98,7 +98,7 @@ def parse_args():
         "--max_new_tokens",
         type=int,
         default=None,
-        help="Maximum new tokens to generate (per chunk for S3). Unset uses the "
+        help="Maximum new tokens to generate per text chunk. Unset uses the "
         "server's default, 1024; 0 means the model's own cap (S2-Pro: the context "
         "length; S3: 600 per chunk, 2048 with --single_chunk).",
     )
@@ -268,7 +268,18 @@ if __name__ == "__main__":
             with open(audio_path, "wb") as audio_file:
                 audio_file.write(audio_content)
 
-            audio = AudioSegment.from_file(audio_path, format=args.format)
+            if args.format == "pcm":  # headerless 16-bit mono
+                audio = AudioSegment.from_file(
+                    audio_path,
+                    format="raw",
+                    sample_width=2,
+                    frame_rate=args.rate,
+                    channels=1,
+                )
+            else:  # opus comes in an Ogg container
+                audio = AudioSegment.from_file(
+                    audio_path, format="ogg" if args.format == "opus" else args.format
+                )
             if args.play:
                 play(audio)
             print(f"Audio has been saved to '{audio_path}'.")

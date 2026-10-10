@@ -291,6 +291,15 @@ def decode_n_tokens(
     return torch.cat(new_tokens, dim=1)
 
 
+def generated_codes(
+    y: torch.Tensor, prompt_length: int, im_end_id: int
+) -> torch.Tensor:
+    """The codebook rows after the prompt, without the closing <|im_end|> frame;
+    a batch that ran out of max_new_tokens has none, so its last frame is audio."""
+    end = y.size(1) - int(y[0, -1].item() == im_end_id)
+    return y[1:, prompt_length:end].clone()
+
+
 @torch.no_grad()
 @torch.inference_mode()
 def generate(
@@ -830,23 +839,31 @@ def generate_long(
                 f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
             )
 
-            # Extract generated codes
-            codes = y[1:, prompt_length:-1].clone()
-            assert (codes >= 0).all(), f"Negative code found: {codes}"
-
-            # Add assistant message with generated codes back to conversation
-            conversation.append(
-                Message(
-                    role="assistant",
-                    parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
-                    cal_loss=False,
-                    modality="voice",
-                    add_im_start=True,
-                    add_im_end=True,
-                )
+            codes = generated_codes(
+                y, prompt_length, tokenizer.get_token_id(IM_END_TOKEN)
             )
+            assert (codes >= 0).all(), f"Negative code found: {codes}"
+            if codes.size(1) == y.size(1) - prompt_length:
+                logger.warning(
+                    "Reached max_new_tokens before EOS; audio may be truncated"
+                )
 
-            yield GenerateResponse(action="sample", codes=codes, text=batch_text)
+            if codes.size(1) == 0:
+                logger.warning("The model emitted EOS before any audio frame")
+                conversation.messages.pop()  # this batch's unanswered user turn
+            else:
+                # Add assistant message with generated codes back to conversation
+                conversation.append(
+                    Message(
+                        role="assistant",
+                        parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
+                        cal_loss=False,
+                        modality="voice",
+                        add_im_start=True,
+                        add_im_end=True,
+                    )
+                )
+                yield GenerateResponse(action="sample", codes=codes, text=batch_text)
 
             # Cleanup
             del y, encoded
@@ -1090,7 +1107,7 @@ def launch_thread_safe_queue(
     "--max-new-tokens",
     type=int,
     default=DEFAULT_MAX_NEW_TOKENS,
-    help="Per chunk for S3; 0 means the model's own cap (S2-Pro: the context "
+    help="Per text chunk; 0 means the model's own cap (S2-Pro: the context "
     "length; S3: 600 per chunk, 2048 with --single-chunk).",
 )
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
