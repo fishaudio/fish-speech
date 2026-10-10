@@ -65,6 +65,9 @@ S3-drama usa la misma línea de comandos y el mismo servidor API que S2-Pro; el 
 | SM89 o posterior (L40, H100, H20) | Expertos MoE en FP8, decodificación con CUDA graphs, una sola GPU | unos 41 GB |
 | GPUs anteriores (V100, A100) | Expertos MoE descuantizados y repartidos entre varias GPUs | unos 70 GB en total |
 
+!!! note
+    La V100 y otras GPUs anteriores a SM80 no admiten bfloat16, así que S3 usa float16 en ellas (manteniendo el flujo residual en fp32). Esta ruta aún no se ha probado en hardware real; si obtienes silencio, ruido o un error "non-finite logits", abre un issue.
+
 ### Descargar pesos
 
 ```bash
@@ -111,7 +114,7 @@ docker run --gpus device=0 \
 
 - Los textos largos se dividen en fragmentos de unos 300 bytes (UTF-8) con como máximo tres hablantes cada uno, preferiblemente al final de las frases, y los fragmentos se generan uno tras otro. El primer fragmento y el más reciente se vuelven a pasar como contexto para mantener las voces coherentes. Por defecto, cada fragmento produce como máximo 600 frames (unos 28 segundos).
 - Activa `single_chunk` (`--single-chunk` en la línea de comandos) para generar todo el texto de una vez, por defecto como máximo 2048 frames (unos 95 segundos). En ambos modos, un `max_new_tokens` mayor se limita a 10.240 frames menos la longitud del prompt.
-- Se aceptan las etiquetas de hablante de `<|speaker:0|>` a `<|speaker:15|>`; el texto sin etiqueta es el hablante 0. Para que cada hablante tenga su propia voz, empieza la transcripción de cada audio de referencia con la etiqueta de ese hablante (por ejemplo `<|speaker:1|>`); el orden de las referencias no determina el hablante.
+- Se aceptan las etiquetas de hablante de `<|speaker:0|>` a `<|speaker:15|>`; el texto sin etiqueta es el hablante 0. Para que cada hablante tenga su propia voz, define el campo `speaker` de cada audio de referencia (`--reference_speaker` en `tools/api_client.py`), que añade la etiqueta a las transcripciones que no empiezan con una, o empieza tú mismo la transcripción con la etiqueta de ese hablante (por ejemplo `<|speaker:1|>`); el orden de las referencias no determina el hablante.
 - `chunk_length` y `repetition_penalty` no tienen efecto; S3 incorpora muestreo con detección de repeticiones. El muestreo por defecto es temperature 1.0, top-p 0.9, top-k 30.
 - Con `streaming` activado, el audio se devuelve fragmento a fragmento.
 - `FISH_S3_FP8_EXPERTS=0` o `1` fuerza expertos descuantizados o en FP8, y `FISH_S3_CUDA_GRAPH=0` desactiva la decodificación con CUDA graphs.

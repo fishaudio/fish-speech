@@ -5,11 +5,14 @@ from unittest.mock import patch
 import numpy as np
 import torch
 from kui.asgi import HTTPException
+from pydantic import ValidationError
 
 from fish_speech.inference_engine import SAMPLING_DEFAULTS, TTSInferenceEngine
 from fish_speech.inference_engine.utils import InferenceResult
 from fish_speech.models.text2semantic import inference
-from fish_speech.utils.schema import ServeTTSRequest
+from fish_speech.models.text2semantic.errors import InvalidInputError
+from fish_speech.models.text2semantic.fish_omni.generate import S3PromptTooLongError
+from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 from tools.server.inference import inference_wrapper
 from tools.server.model_utils import batch_vqgan_decode
 
@@ -97,6 +100,40 @@ class SamplingDefaultsTest(unittest.TestCase):
             make_engine("s1")
 
 
+class ReferenceSpeakerTest(unittest.TestCase):
+    def references(self) -> list[ServeReferenceAudio]:
+        return [
+            ServeReferenceAudio(audio=b"a", text=" Hello.", speaker=2),
+            ServeReferenceAudio(audio=b"b", text="<|speaker:5|> Hi.", speaker=1),
+            ServeReferenceAudio(audio=b"c", text="Plain."),
+        ]
+
+    def load_texts(self, family: str, req: ServeTTSRequest) -> list[str]:
+        engine = make_engine(family)
+        with patch.object(engine, "encode_reference", return_value=torch.zeros(2, 3)):
+            tokens, texts = engine.load_references(req)
+        self.assertEqual(len(tokens), len(texts))
+        return texts
+
+    def test_speaker_tags_untagged_transcripts(self):
+        req = ServeTTSRequest(text="hi", references=self.references())
+        self.assertEqual(
+            self.load_texts("s3", req),
+            ["<|speaker:2|>  Hello.", "<|speaker:5|> Hi.", "Plain."],
+        )
+        self.assertEqual(
+            self.load_texts("s2", req),
+            ["<|speaker:2|> Hello.", "<|speaker:5|> Hi.", "Plain."],
+        )
+        self.assertEqual(self.load_texts("s3", ServeTTSRequest(text="hi")), [])
+
+    def test_speaker_must_be_0_to_15(self):
+        for speaker in (-1, 16, "1"):
+            with self.assertRaises(ValidationError):
+                ServeReferenceAudio(audio=b"a", text="Hello.", speaker=speaker)
+        self.assertIsNone(ServeReferenceAudio(audio=b"a", text="Hello.").speaker)
+
+
 class LaunchQueueTest(unittest.TestCase):
     def test_model_load_failure_is_raised_not_hung(self):
         with patch.object(inference, "init_model", side_effect=RuntimeError("boom")):
@@ -117,9 +154,16 @@ class ErrorMappingTest(unittest.TestCase):
     def test_invalid_input_is_400_and_failures_are_500(self):
         self.assertEqual(
             self.status_code_for(
-                ValueError("speaker tags must be <|speaker:0|> to <|speaker:15|>")
+                InvalidInputError(
+                    "speaker tags must be <|speaker:0|> to <|speaker:15|>"
+                )
             ),
             400,
+        )
+        self.assertEqual(self.status_code_for(S3PromptTooLongError("too long")), 400)
+        # Other ValueErrors are internal failures, not the client's fault.
+        self.assertEqual(
+            self.status_code_for(ValueError("tokenizer/config mismatch")), 500
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
 

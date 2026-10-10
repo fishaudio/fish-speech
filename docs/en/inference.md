@@ -65,6 +65,9 @@ S3-drama uses the same command line and API server as S2-Pro; the model type is 
 | SM89 or newer (L40, H100, H20) | MoE experts stay in FP8, CUDA-graph decoding, one GPU | about 41 GB |
 | Older GPUs (V100, A100) | MoE experts dequantized and spread over several GPUs | about 70 GB in total |
 
+!!! note
+    V100 and other GPUs older than SM80 have no bfloat16, so S3 switches to float16 there (keeping the residual stream in fp32). This path has not been tested on real hardware yet; if you get silence, noise or a "non-finite logits" error, please open an issue.
+
 ### Download weights
 
 ```bash
@@ -111,7 +114,7 @@ docker run --gpus device=0 \
 
 - Long text is split into chunks of about 300 UTF-8 bytes with at most three speakers each, cut at sentence ends where possible, and the chunks are generated one after another. The first chunk and the latest one are fed back as context to keep the voices consistent. By default each chunk produces at most 600 frames (about 28 seconds).
 - Set `single_chunk` (`--single-chunk` on the command line) to generate the whole text in one pass instead, by default at most 2048 frames (about 95 seconds). In either mode, a larger `max_new_tokens` is capped at 10,240 frames minus the prompt length.
-- Speaker tags `<|speaker:0|>` to `<|speaker:15|>` are accepted, and untagged text is speaker 0. To give speakers their own voices, start each reference transcript with that speaker's tag (for example `<|speaker:1|>`); the order of the references does not decide which speaker they belong to.
+- Speaker tags `<|speaker:0|>` to `<|speaker:15|>` are accepted, and untagged text is speaker 0. To give speakers their own voices, set each reference's `speaker` field (`--reference_speaker` in `tools/api_client.py`), which tags a transcript that does not start with a speaker tag, or start the transcript with that speaker's tag yourself (for example `<|speaker:1|>`); the order of the references does not decide which speaker they belong to.
 - `chunk_length` and `repetition_penalty` have no effect; S3 has built-in repetition-aware sampling. Its default sampling is temperature 1.0, top-p 0.9, top-k 30.
 - With `streaming` enabled, audio is returned chunk by chunk.
 - `FISH_S3_FP8_EXPERTS=0` or `1` forces dequantized or FP8 experts, and `FISH_S3_CUDA_GRAPH=0` turns off CUDA-graph decoding.

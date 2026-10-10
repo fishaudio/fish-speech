@@ -9,6 +9,7 @@ from loguru import logger
 from tokenizers import Tokenizer
 from tqdm import tqdm
 
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.config import FishOmniConfig
 from fish_speech.models.text2semantic.fish_omni.model import FishOmniModel
 from fish_speech.models.text2semantic.fish_omni.tower import (
@@ -59,22 +60,24 @@ S3_GRAPH_KV_BUCKETS = (1024, 2048, 4096, S3_GRAPH_CAPACITY)
 FinishReason = Literal["eos", "length"]
 
 
-class S3PromptTooLongError(ValueError):
+class S3PromptTooLongError(InvalidInputError):
     """The prompt has more than S3_MAX_PROMPT_ROWS rows."""
 
 
 def validate_s3_text(text: str, location: str) -> None:
     """Non-empty, no structural tokens, and only canonical speaker tags 0..15."""
     if not text.strip(UNICODE_WHITE_SPACE):
-        raise ValueError(f"{location}: text must not be empty")
+        raise InvalidInputError(f"{location}: text must not be empty")
     for token in S3_STRUCTURAL_TOKENS:
         if token in text:
-            raise ValueError(f"{location}: {token} is written by the prompt builder")
+            raise InvalidInputError(
+                f"{location}: {token} is written by the prompt builder"
+            )
     for marker in re.finditer(r"<\|speaker", text):
         tag = SPEAKER_TAG_PATTERN.match(text, marker.start())
         digits = tag.group(1) if tag else ""
         if not digits or str(int(digits)) != digits or int(digits) > MAX_SPEAKER_ID:
-            raise ValueError(
+            raise InvalidInputError(
                 f"{location}: speaker tags must be <|speaker:0|> to "
                 f"<|speaker:{MAX_SPEAKER_ID}|>; got {text!r}"
             )
@@ -112,7 +115,7 @@ def build_s3_prompt(
         if tokenizer.token_to_id(token) != expected:
             raise ValueError(f"tokenizer/config mismatch for {token}")
     if len(prompt_texts) != len(prompt_tokens):
-        raise ValueError("every reference needs both a transcript and codes")
+        raise InvalidInputError("every reference needs both a transcript and codes")
     validate_s3_text(text, "text")
 
     def check_codes(codes: torch.Tensor, location: str) -> None:
@@ -123,12 +126,14 @@ def build_s3_prompt(
             or codes.shape[0] != num_codebooks
             or codes.shape[1] == 0
         ):
-            raise ValueError(
+            raise InvalidInputError(
                 f"{location}: codes must be integer [{num_codebooks}, frames >= 1]; "
                 f"got {codes.dtype} {tuple(codes.shape)}"
             )
         if codes.min() < 0 or codes.max() >= codebook_size:
-            raise ValueError(f"{location}: codes must be in [0, {codebook_size})")
+            raise InvalidInputError(
+                f"{location}: codes must be in [0, {codebook_size})"
+            )
 
     segments: list[str | torch.Tensor] = [
         "<|im_start|>system\n",
@@ -201,6 +206,10 @@ def generate_s3(
     The tower cache of prompt row p is filled with frame p + 1 as its label; the
     last prompt row has none yet, so the first decode step writes that slot.
     """
+    # The sampler keeps the top-ranked token whatever top_k is, so top_k < 1 would
+    # silently turn into greedy decoding.
+    if top_k < 1:
+        raise InvalidInputError(f"top_k must be at least 1; got {top_k}")
     backbone, tower = model.backbone, model.audio_decoder
     prompt_rows = len(prompt)
     capacity = prompt_rows + max_new_tokens

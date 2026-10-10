@@ -121,7 +121,10 @@ class FishOmniTextConfig:
             num_key_value_heads=data["num_key_value_heads"],
             head_dim=data["head_dim"],
             rope_theta=rope["rope_theta"],
-            partial_rotary_factor=rope.get("partial_rotary_factor", 1.0),
+            # Older configs keep the factor at the top level; 0.25 is the HF default.
+            partial_rotary_factor=rope.get(
+                "partial_rotary_factor", data.get("partial_rotary_factor", 0.25)
+            ),
             rms_norm_eps=data["rms_norm_eps"],
             max_position_embeddings=data["max_position_embeddings"],
             linear_conv_kernel_dim=data["linear_conv_kernel_dim"],

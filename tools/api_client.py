@@ -62,6 +62,15 @@ def parse_args():
         help="Reference text for voice synthesis",
     )
     parser.add_argument(
+        "--reference_speaker",
+        "-rs",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Speaker ID (0-15) of each reference audio, written as <|speaker:N|> "
+        "before reference texts that do not start with a speaker tag",
+    )
+    parser.add_argument(
         "--output",
         "-o",
         type=str,
@@ -171,16 +180,25 @@ if __name__ == "__main__":
             byte_audios.append(audio_bytes)
 
         ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
+        ref_speakers = args.reference_speaker or [None] * len(ref_audios)
+        if len(ref_speakers) != len(ref_audios):
+            raise SystemExit(
+                "--reference_speaker must be given once per --reference_audio, got "
+                f"{len(ref_speakers)} speaker(s) and {len(ref_audios)} audio(s)."
+            )
     else:
         byte_audios = []
         ref_texts = []
+        ref_speakers = []
         pass  # in api.py
 
     data = {
         "text": args.text,
         "references": [
-            ServeReferenceAudio(audio=ref_audio, text=ref_text)
-            for ref_text, ref_audio in zip(ref_texts, byte_audios)
+            ServeReferenceAudio(audio=ref_audio, text=ref_text, speaker=speaker)
+            for ref_text, ref_audio, speaker in zip(
+                ref_texts, byte_audios, ref_speakers
+            )
         ],
         "reference_id": idstr,
         "format": args.format,

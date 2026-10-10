@@ -26,6 +26,7 @@ from fish_speech.content_sequence import (
     VQPart,
 )
 from fish_speech.conversation import Conversation, Message
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.chunking import (
     S3_CHUNK_MAX_NEW_TOKENS,
     S3History,
@@ -304,7 +305,7 @@ def generate(
     prompt = prompt[None].repeat(num_samples, 1, 1)
 
     if T >= model.config.max_seq_len:
-        raise ValueError(
+        raise InvalidInputError(
             f"Input sequence length {T} exceeds max_seq_len {model.config.max_seq_len}"
         )
 
@@ -787,7 +788,7 @@ def generate_long(
                 )
 
             if encoded.size(1) > max_length - 2048:
-                raise ValueError(
+                raise InvalidInputError(
                     f"Prompt is too long: {encoded.size(1)} > {max_length - 2048}"
                 )
 
@@ -901,7 +902,7 @@ def generate_long_s3(
             # drops the captured CUDA graphs, so no request may exceed this.
             limit = S3DecodeGraphs.graph_capacity(model) - len(prompt)
             if limit < 1:
-                raise ValueError(
+                raise InvalidInputError(
                     f"prompt has {len(prompt)} rows; no room left to generate"
                 )
             if max_new_tokens > limit:

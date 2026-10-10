@@ -4,6 +4,7 @@ import numpy as np
 from kui.asgi import HTTPException
 
 from fish_speech.inference_engine import TTSInferenceEngine
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.utils.schema import ServeTTSRequest
 
 AMPLITUDE = 32768  # Needs an explaination
@@ -22,11 +23,12 @@ def inference_wrapper(req: ServeTTSRequest, engine: TTSInferenceEngine):
                     yield result.audio[1]
 
             case "error":
-                # ValueError: the model rejected the input (e.g. an invalid S3 prompt).
+                # Only input the model rejects is the client's fault; anything else,
+                # including other ValueErrors, is a server error.
                 raise HTTPException(
                     (
                         HTTPStatus.BAD_REQUEST
-                        if isinstance(result.error, ValueError)
+                        if isinstance(result.error, InvalidInputError)
                         else HTTPStatus.INTERNAL_SERVER_ERROR
                     ),
                     content=str(result.error),

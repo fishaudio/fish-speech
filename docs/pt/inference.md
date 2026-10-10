@@ -65,6 +65,9 @@ O S3-drama usa a mesma linha de comando e o mesmo servidor API do S2-Pro; o tipo
 | SM89 ou mais recente (L40, H100, H20) | Especialistas MoE mantidos em FP8, decodificação com CUDA graphs, uma GPU | cerca de 41 GB |
 | GPUs mais antigas (V100, A100) | Especialistas MoE desquantizados e distribuídos por várias GPUs | cerca de 70 GB no total |
 
+!!! note
+    A V100 e outras GPUs anteriores à SM80 não suportam bfloat16, então o S3 passa a usar float16 nelas (mantendo o fluxo residual em fp32). Esse caminho ainda não foi testado em hardware real; se você obtiver silêncio, ruído ou um erro "non-finite logits", abra uma issue.
+
 ### Baixar pesos
 
 ```bash
@@ -111,7 +114,7 @@ docker run --gpus device=0 \
 
 - Textos longos são divididos em blocos de cerca de 300 bytes (UTF-8) com no máximo três locutores cada, de preferência no fim das frases, e os blocos são gerados um após o outro. O primeiro bloco e o mais recente são reenviados como contexto para manter as vozes consistentes. Por padrão, cada bloco produz no máximo 600 frames (cerca de 28 segundos).
 - Defina `single_chunk` (`--single-chunk` na linha de comando) para gerar o texto inteiro de uma só vez, por padrão no máximo 2048 frames (cerca de 95 segundos). Em ambos os modos, um `max_new_tokens` maior é limitado a 10.240 frames menos o comprimento do prompt.
-- São aceitas as tags de locutor de `<|speaker:0|>` a `<|speaker:15|>`; texto sem tag é o locutor 0. Para dar a cada locutor a sua própria voz, comece a transcrição de cada áudio de referência com a tag desse locutor (por exemplo `<|speaker:1|>`); a ordem das referências não define o locutor.
+- São aceitas as tags de locutor de `<|speaker:0|>` a `<|speaker:15|>`; texto sem tag é o locutor 0. Para dar a cada locutor a sua própria voz, defina o campo `speaker` de cada áudio de referência (`--reference_speaker` em `tools/api_client.py`), que adiciona a tag às transcrições que não começam com uma, ou comece você mesmo a transcrição com a tag desse locutor (por exemplo `<|speaker:1|>`); a ordem das referências não define o locutor.
 - `chunk_length` e `repetition_penalty` não têm efeito; o S3 tem amostragem com reconhecimento de repetição integrada. A amostragem padrão é temperature 1.0, top-p 0.9, top-k 30.
 - Com `streaming` ativado, o áudio é retornado bloco a bloco.
 - `FISH_S3_FP8_EXPERTS=0` ou `1` força especialistas desquantizados ou em FP8, e `FISH_S3_CUDA_GRAPH=0` desativa a decodificação com CUDA graphs.

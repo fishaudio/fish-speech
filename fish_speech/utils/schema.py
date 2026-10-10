@@ -60,6 +60,10 @@ class ServeVQGANDecodeResponse(BaseModel):
 class ServeReferenceAudio(BaseModel):
     audio: bytes
     text: str
+    # The speaker this reference voices. A transcript that does not start with a
+    # <|speaker:N|> tag gets this one; None keeps the model's default (S2-Pro: the
+    # reference's position, S3: speaker 0).
+    speaker: Annotated[int, Field(ge=0, le=15, strict=True)] | None = None
 
     @model_validator(mode="before")
     def decode_audio(cls, values):
@@ -75,7 +79,10 @@ class ServeReferenceAudio(BaseModel):
         return values
 
     def __repr__(self) -> str:
-        return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
+        return (
+            f"ServeReferenceAudio(text={self.text!r}, speaker={self.speaker}, "
+            f"audio_size={len(self.audio)})"
+        )
 
 
 class ServeTTSRequest(BaseModel):

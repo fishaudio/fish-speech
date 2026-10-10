@@ -796,7 +796,7 @@ wheels = [
 
 [[package]]
 name = "fish-speech"
-version = "2.0.0"
+version = "3.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "cachetools" },

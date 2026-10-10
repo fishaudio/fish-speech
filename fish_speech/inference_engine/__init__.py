@@ -14,6 +14,8 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
     S3_DEFAULT_TEMPERATURE,
     S3_DEFAULT_TOP_K,
     S3_DEFAULT_TOP_P,
+    SPEAKER_TAG_PATTERN,
+    UNICODE_WHITE_SPACE,
 )
 from fish_speech.models.text2semantic.inference import (
     GenerateRequest,
@@ -69,6 +71,32 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         self.compile = compile
         self.model_family = model_family
 
+    def load_references(self, req: ServeTTSRequest) -> tuple[list, list[str]]:
+        """Reference codes and transcripts, by reference_id or else by the uploaded
+        references, whose speaker field tags their transcripts."""
+        if req.reference_id is not None:
+            return self.load_by_id(req.reference_id, req.use_memory_cache)
+        if not req.references:
+            return [], []
+        prompt_tokens, prompt_texts = self.load_by_hash(
+            req.references, req.use_memory_cache
+        )
+        prompt_texts = [
+            self.tag_reference_text(text, ref.speaker)
+            for ref, text in zip(req.references, prompt_texts)
+        ]
+        return prompt_tokens, prompt_texts
+
+    def tag_reference_text(self, text: str, speaker: int | None) -> str:
+        """Prefix <|speaker:N|> unless speaker is None or a tag already leads text."""
+        if speaker is None or SPEAKER_TAG_PATTERN.match(
+            text.lstrip(UNICODE_WHITE_SPACE)
+        ):
+            return text
+        # The models' own formats: S3 puts a space after the tag, S2-Pro does not.
+        separator = " " if self.model_family == "s3" else ""
+        return f"<|speaker:{speaker}|>{separator}{text}"
+
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, None]:
         """
@@ -78,16 +106,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         - Decodes the VQ tokens to audio.
         """
 
-        ref_id: str | None = req.reference_id
-        prompt_tokens, prompt_texts = [], []
-        # Load the reference audio and text based on id or hash
-        if ref_id is not None:
-            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
-
-        elif req.references:
-            prompt_tokens, prompt_texts = self.load_by_hash(
-                req.references, req.use_memory_cache
-            )
+        prompt_tokens, prompt_texts = self.load_references(req)
 
         # Set the random seed if provided
         if req.seed is not None:

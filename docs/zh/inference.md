@@ -65,6 +65,9 @@ S3-drama 与 S2-Pro 共用同一套命令行和 API Server，模型类型会根�
 | SM89 及以上（L40、H100、H20） | MoE 专家保持 FP8，使用 CUDA graph 解码，单卡运行 | 约 41 GB |
 | 较早的 GPU（V100、A100） | MoE 专家反量化后分布到多张卡上 | 合计约 70 GB |
 
+!!! note
+    V100 等 SM80 之前的显卡不支持 bfloat16，S3 会自动改用 float16（残差流保持 fp32）。这条路径尚未在真实硬件上测试过；如果出现静音、噪声或 "non-finite logits" 报错，请提交 issue。
+
 ### 下载权重
 
 ```bash
@@ -111,7 +114,7 @@ docker run --gpus device=0 \
 
 - 长文本会切成约 300 字节（UTF-8）、每块最多 3 个说话人的块，尽量在句末断开，再逐块依次生成；第一块和最近一块会作为上下文喂回模型，保持音色一致。默认每块最多生成 600 帧（约 28 秒）。
 - 设置 `single_chunk`（命令行用 `--single-chunk`）可以整段一次生成，默认最多 2048 帧（约 95 秒）。两种模式下，更大的 `max_new_tokens` 都会被限制在 10,240 帧减去 prompt 长度以内。
-- 支持 `<|speaker:0|>` 到 `<|speaker:15|>` 的说话人标签，没写标签的文本算作 speaker 0。要让不同说话人用各自的声音，请在每段参考音频的转写文本开头写上对应的说话人标签（例如 `<|speaker:1|>`）；参考音频的先后顺序并不决定它属于哪个说话人。
+- 支持 `<|speaker:0|>` 到 `<|speaker:15|>` 的说话人标签，没写标签的文本算作 speaker 0。要让不同说话人用各自的声音，请给每段参考音频设置 `speaker` 字段（`tools/api_client.py` 中为 `--reference_speaker`），它会给开头没有说话人标签的转写文本补上标签；也可以直接在转写文本开头写上对应的标签（例如 `<|speaker:1|>`）。参考音频的先后顺序并不决定它属于哪个说话人。
 - `chunk_length` 和 `repetition_penalty` 不起作用，S3 内置了重复感知采样。默认采样参数为 temperature 1.0、top-p 0.9、top-k 30。
 - 开启 `streaming` 时，音频按块依次返回。
 - `FISH_S3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_S3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。

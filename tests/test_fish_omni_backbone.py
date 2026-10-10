@@ -195,6 +195,20 @@ class BackboneMatchesHuggingFaceTest(unittest.TestCase):
             )
 
 
+class RotaryConfigTest(unittest.TestCase):
+    def test_partial_rotary_factor_matches_hf(self) -> None:
+        data = tiny_hf_config().to_dict()
+        rope = data["rope_parameters"]
+        self.assertEqual(FishOmniTextConfig.from_dict(data).partial_rotary_factor, 0.5)
+        factor = rope.pop("partial_rotary_factor")
+        data.pop("partial_rotary_factor", None)
+        self.assertEqual(FishOmniTextConfig.from_dict(data).partial_rotary_factor, 0.25)
+        data["partial_rotary_factor"] = factor
+        self.assertEqual(
+            FishOmniTextConfig.from_dict(data).partial_rotary_factor, factor
+        )
+
+
 class GatedDeltaRuleTest(unittest.TestCase):
     @torch.no_grad()
     def test_chunked_matches_recurrent_with_initial_state(self) -> None:

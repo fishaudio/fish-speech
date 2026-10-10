@@ -10,6 +10,7 @@ import torch
 from torch.nn import functional as F
 
 from fish_speech.models.text2semantic import inference
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni import generate as generate_module
 from fish_speech.models.text2semantic.fish_omni.backbone import FishOmniBackbone
 from fish_speech.models.text2semantic.fish_omni.chunking import split_s3_text
@@ -436,6 +437,11 @@ class S3GenerationTest(unittest.TestCase):
     def test_rejects_requests_beyond_the_context(self) -> None:
         with self.assertRaisesRegex(ValueError, "does not fit"):
             generate_s3(self.model, PROMPT, max_new_tokens=128)
+
+    def test_rejects_top_k_below_one(self) -> None:
+        for top_k in (0, -1):
+            with self.assertRaisesRegex(InvalidInputError, "top_k"):
+                generate_s3(self.model, PROMPT, max_new_tokens=1, top_k=top_k)
 
     def test_generate_long_dispatches_to_s3(self) -> None:
         steps = [
