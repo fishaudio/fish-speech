@@ -29,6 +29,8 @@ LIMITATION:
     - the schwa rule for deletion was derived from a single sentence, not a full phonological model, so it will get some real words wrong — there's no code fix that gets this to 100%, since even published Hindi schwa-deletion research doesn't reach that. Closing the gap means testing against a much bigger set of real words and native-speaker corrections over time, not a one-time patch.
 """
 
+import unicodedata
+
 INDEPENDENT_VOWELS = {
     "ਅ": "a",
     "ਆ": "ā",
@@ -254,6 +256,9 @@ def normalize_punjabi(text: str) -> str:
     punctuation) pass through unchanged, so this is safe to run on
     mixed-script input — only Gurmukhi runs are rewritten.
     """
+    text = unicodedata.normalize("NFC", text)
+    # this ensures every one-character nukta letter becomes base letter plus nukta before any of the code looks at it.
+
     out = []
     i, n = 0, len(text)
     while i < n:
