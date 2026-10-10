@@ -202,6 +202,10 @@ COPY --chown=${USER_UID}:${USER_GID} . .
 # Install the local package after copying source code
 RUN uv sync --extra ${UV_EXTRA} --frozen
 
+# The environment was synced with --extra ${UV_EXTRA}. A plain `uv run` would
+# re-sync it to the default extras and download another torch at every start.
+ENV UV_NO_SYNC=1
+
 # Create common entrypoint script
 RUN printf '%s\n' \
     '#!/bin/bash' \
