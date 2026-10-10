@@ -1,10 +1,10 @@
 """Regression coverage for reference uploads from macOS Voice Memos."""
 
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -29,11 +29,26 @@ class ReferenceAudioTests(unittest.TestCase):
             self.skipTest("FFmpeg is not installed")
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "reference.m4a"
-            subprocess.run([
-                ffmpeg, "-nostdin", "-loglevel", "error", "-f", "lavfi",
-                "-i", "sine=frequency=440:duration=0.25", "-ar", "48000",
-                "-ac", "2", "-c:a", "aac", str(path),
-            ], check=True)
+            subprocess.run(
+                [
+                    ffmpeg,
+                    "-nostdin",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "sine=frequency=440:duration=0.25",
+                    "-ar",
+                    "48000",
+                    "-ac",
+                    "2",
+                    "-c:a",
+                    "aac",
+                    str(path),
+                ],
+                check=True,
+            )
             data = path.read_bytes()
             # Exercise a seekable M4A with metadata stored after its media.
             self.assertGreater(data.index(b"moov"), data.index(b"mdat"))

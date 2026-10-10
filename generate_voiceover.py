@@ -22,7 +22,9 @@ def generate(text, output, reference_audio=None, reference_text="", seed=42):
     if destination.suffix.lower() != ".wav":
         raise ValueError("Output must have a .wav extension.")
     if destination.exists():
-        raise FileExistsError(f"Output already exists; choose a new filename: {destination}")
+        raise FileExistsError(
+            f"Output already exists; choose a new filename: {destination}"
+        )
     reference = None
     if reference_audio:
         reference = Path(reference_audio).expanduser().resolve()
@@ -44,13 +46,24 @@ def generate(text, output, reference_audio=None, reference_text="", seed=42):
                     "wait for http://127.0.0.1:7860, then retry."
                 ) from exc
             result = client.predict(
-                text, "", handle_file(str(reference)) if reference else None,
-                reference_text, 1024, 200, 0.8, 1.1, 0.8, seed, "on",
+                text,
+                "",
+                handle_file(str(reference)) if reference else None,
+                reference_text,
+                1024,
+                200,
+                0.8,
+                1.1,
+                0.8,
+                seed,
+                "on",
                 api_name="/partial",
             )
         audio_file, error = result
         if error or not audio_file:
-            raise RuntimeError(f"Voice generation failed: {error or 'No audio returned'}")
+            raise RuntimeError(
+                f"Voice generation failed: {error or 'No audio returned'}"
+            )
         audio, sample_rate = sf.read(audio_file, dtype="float32", always_2d=True)
         if not audio.size or not np.isfinite(audio).all() or not np.any(audio):
             raise RuntimeError("The server returned empty, silent, or invalid audio.")
@@ -78,8 +91,14 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     try:
-        text = args.text if args.text is not None else args.text_file.read_text(encoding="utf-8")
-        result = generate(text, args.output, args.reference_audio, args.reference_text, args.seed)
+        text = (
+            args.text
+            if args.text is not None
+            else args.text_file.read_text(encoding="utf-8")
+        )
+        result = generate(
+            text, args.output, args.reference_audio, args.reference_text, args.seed
+        )
     except Exception as exc:
         print(f"Voiceover error: {exc}", file=sys.stderr)
         return 1

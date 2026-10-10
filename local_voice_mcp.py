@@ -31,11 +31,18 @@ def voice_server_status() -> dict[str, Any]:
             config = json.load(response)
         title = config.get("title", "")
         ready = "S1 Mini" in title
-        return {"ready": ready, "url": URL, "title": title,
-                "message": "Ready" if ready else "Port 7860 is serving another app."}
+        return {
+            "ready": ready,
+            "url": URL,
+            "title": title,
+            "message": "Ready" if ready else "Port 7860 is serving another app.",
+        }
     except (OSError, urllib.error.URLError, ValueError) as exc:
-        return {"ready": False, "url": URL,
-                "message": f"Start Fish Speech.command and wait for the web UI. ({exc})"}
+        return {
+            "ready": False,
+            "url": URL,
+            "message": f"Start Fish Speech.command and wait for the web UI. ({exc})",
+        }
 
 
 @mcp.tool()
@@ -58,13 +65,23 @@ def generate_voiceover(
         raise ValueError("output_path must be an absolute path ending in .wav.")
     if len(text) > 2000:
         raise ValueError("Split narration into sections of at most 2000 characters.")
-    command = [str(ROOT / "venv/bin/python"), str(ROOT / "generate_voiceover.py"),
-               "--text", text, "--output", output_path, "--seed", str(seed)]
+    command = [
+        str(ROOT / "venv/bin/python"),
+        str(ROOT / "generate_voiceover.py"),
+        "--text",
+        text,
+        "--output",
+        output_path,
+        "--seed",
+        str(seed),
+    ]
     if reference_audio_path:
         command.extend(["--reference-audio", reference_audio_path])
     if reference_text:
         command.extend(["--reference-text", reference_text])
-    result = subprocess.run(command, capture_output=True, text=True, timeout=900, cwd=ROOT)
+    result = subprocess.run(
+        command, capture_output=True, text=True, timeout=900, cwd=ROOT
+    )
     if result.returncode:
         raise RuntimeError(result.stderr.strip()[-2000:] or "Voice generation failed.")
     return json.loads(result.stdout)
