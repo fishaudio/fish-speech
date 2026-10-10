@@ -19,10 +19,11 @@ conda create -n fish-speech python=3.12
 conda activate fish-speech
 
 # GPU版のインストール (CUDAバージョンを選択: cu126, cu128, cu129)
-pip install -e .[cu129]
+# cu126 または cu128 を使用する場合は、下記の "cu129" を両方置き換えてください。
+pip install --extra-index-url https://download.pytorch.org/whl/cu129 -e ".[cu129]"
 
 # CPU版のみのインストール
-pip install -e .[cpu]
+pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[cpu]"
 
 # デフォルトインストール (PyTorchのデフォルトインデックスを使用)
 pip install -e .

@@ -19,10 +19,11 @@ conda create -n fish-speech python=3.12
 conda activate fish-speech
 
 # تثبيت نسخة GPU (اختر إصدار CUDA الخاص بك: cu126, cu128, cu129)
-pip install -e .[cu129]
+# استبدل كلتا قيمتي "cu129" عند استخدام cu126 أو cu128.
+pip install --extra-index-url https://download.pytorch.org/whl/cu129 -e ".[cu129]"
 
 # تثبيت نسخة CPU فقط
-pip install -e .[cpu]
+pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[cpu]"
 
 # التثبيت الافتراضي (يستخدم فهرس PyTorch الافتراضي)
 pip install -e .
