@@ -27,18 +27,6 @@ class ServeAudioPart(BaseModel):
     audio: bytes
 
 
-class ServeRequest(BaseModel):
-    # Raw content sequence dict that we can use with ContentSequence(**content)
-    content: dict
-    max_new_tokens: int = 600
-    top_p: float = 0.7
-    repetition_penalty: float = 1.2
-    temperature: float = 0.7
-    streaming: bool = False
-    num_samples: int = 1
-    early_stop_threshold: float = 1.0
-
-
 class ServeVQGANEncodeRequest(BaseModel):
     # The audio here should be in wav, mp3, etc
     audios: list[bytes]

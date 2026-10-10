@@ -114,20 +114,7 @@ class ModelManager:
         logger.info("Decoder model loaded.")
 
     def warm_up(self, tts_inference_engine) -> None:
-        if self.model_family == "s3":
-            # S3 uses its own sampling defaults.
-            request = ServeTTSRequest(text="Hello world.", references=[], format="wav")
-        else:
-            request = ServeTTSRequest(
-                text="Hello world.",
-                references=[],
-                reference_id=None,
-                max_new_tokens=1024,
-                chunk_length=200,
-                top_p=0.7,
-                repetition_penalty=1.2,
-                temperature=0.7,
-                format="wav",
-            )
+        # Unset sampling fields take the shared defaults for either model.
+        request = ServeTTSRequest(text="Hello world.", format="wav")
         list(inference(request, tts_inference_engine))
         logger.info("Models warmed up.")
