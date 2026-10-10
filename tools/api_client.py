@@ -98,9 +98,9 @@ def parse_args():
         "--max_new_tokens",
         type=int,
         default=None,
-        help="Maximum new tokens to generate. Unset uses the model's default; "
-        "0 means the model's own cap (S2-Pro: the context length; S3: 600 per "
-        "chunk, 2048 with --single_chunk).",
+        help="Maximum new tokens to generate (per chunk for S3). Unset uses the "
+        "server's default, 1024; 0 means the model's own cap (S2-Pro: the context "
+        "length; S3: 600 per chunk, 2048 with --single_chunk).",
     )
     parser.add_argument(
         "--single_chunk",
@@ -110,7 +110,7 @@ def parse_args():
     parser.add_argument(
         "--chunk_length",
         type=int,
-        default=300,
+        default=200,
         help="Chunk length for synthesis (S2-Pro only; S3 uses ~300-byte chunks)",
     )
     parser.add_argument(

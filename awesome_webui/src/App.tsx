@@ -123,12 +123,13 @@ type PendingReference = {
 // The server accepts <|speaker:0|> to <|speaker:15|>.
 const MAX_SPEAKERS = 16
 
+// Shown until the server's defaults arrive: the official Fish Audio SDK's.
 const initialControls: ControlsState = {
-  chunkLength: 1000,
-  maxNewTokens: 2048,
-  temperature: 0.9,
-  topP: 0.9,
-  repetitionPenalty: 1.05,
+  chunkLength: 200,
+  maxNewTokens: 1024,
+  temperature: 0.7,
+  topP: 0.7,
+  repetitionPenalty: 1.2,
   normalize: false,
   format: 'mp3',
   latency: 'normal',
@@ -1186,7 +1187,7 @@ function App() {
                 <SettingSlider
                   label="Temperature"
                   value={controls.temperature}
-                  min={0.8}
+                  min={0.1}
                   max={1}
                   step={0.01}
                   {...defaultState('temperature')}
@@ -1196,7 +1197,7 @@ function App() {
                 <SettingSlider
                   label="Top P"
                   value={controls.topP}
-                  min={0.8}
+                  min={0.1}
                   max={1}
                   step={0.01}
                   {...defaultState('topP')}
@@ -1206,8 +1207,8 @@ function App() {
                 <SettingSlider
                   label="Repetition Penalty"
                   value={controls.repetitionPenalty}
-                  min={1}
-                  max={1.2}
+                  min={0.9}
+                  max={2}
                   step={0.01}
                   {...defaultState('repetitionPenalty')}
                   disabled={isS3}

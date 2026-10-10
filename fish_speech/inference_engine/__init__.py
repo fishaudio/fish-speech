@@ -11,9 +11,6 @@ from fish_speech.inference_engine.utils import InferenceResult, wav_chunk_header
 from fish_speech.inference_engine.vq_manager import VQManager
 from fish_speech.models.dac.modded_dac import DAC
 from fish_speech.models.text2semantic.fish_omni.generate import (
-    S3_DEFAULT_TEMPERATURE,
-    S3_DEFAULT_TOP_K,
-    S3_DEFAULT_TOP_P,
     SPEAKER_TAG_PATTERN,
     UNICODE_WHITE_SPACE,
 )
@@ -22,30 +19,31 @@ from fish_speech.models.text2semantic.inference import (
     GenerateResponse,
     WrappedGenerateResponse,
 )
+from fish_speech.models.text2semantic.sampling import (
+    DEFAULT_MAX_NEW_TOKENS,
+    DEFAULT_REPETITION_PENALTY,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+)
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
 
 ModelFamily = Literal["s2", "s3"]
 
-# Used for every sampling field a request leaves unset (None).
+# Used for every sampling field a request leaves unset (None): the official Fish
+# Audio SDK's defaults, the same for both families. S3 applies max_new_tokens to
+# each chunk.
+_SDK_DEFAULTS = dict(
+    max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
+    top_p=DEFAULT_TOP_P,
+    top_k=DEFAULT_TOP_K,
+    repetition_penalty=DEFAULT_REPETITION_PENALTY,
+    temperature=DEFAULT_TEMPERATURE,
+)
 SAMPLING_DEFAULTS: dict[ModelFamily, dict[str, int | float]] = {
-    "s2": dict(
-        max_new_tokens=1024,
-        top_p=0.8,
-        top_k=30,
-        repetition_penalty=1.1,
-        temperature=0.8,
-    ),
-    # S3 chunks long text itself (max_new_tokens=0: 600 frames per chunk, 2048 with
-    # single_chunk) and has built-in repetition-aware sampling instead of a
-    # repetition penalty.
-    "s3": dict(
-        max_new_tokens=0,
-        top_p=S3_DEFAULT_TOP_P,
-        top_k=S3_DEFAULT_TOP_K,
-        repetition_penalty=1.0,
-        temperature=S3_DEFAULT_TEMPERATURE,
-    ),
+    "s2": dict(_SDK_DEFAULTS),
+    "s3": dict(_SDK_DEFAULTS),
 }
 
 
@@ -242,7 +240,9 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             if value is not None:
                 params[name] = value
 
-        if self.model_family == "s3" and req.repetition_penalty not in (None, 1.0):
+        # The SDK always sends its default; only warn about a value someone chose.
+        unset = (None, 1.0, DEFAULT_REPETITION_PENALTY)
+        if self.model_family == "s3" and req.repetition_penalty not in unset:
             logger.warning(
                 "S3 ignores repetition_penalty (repetition-aware sampling is built in)"
             )

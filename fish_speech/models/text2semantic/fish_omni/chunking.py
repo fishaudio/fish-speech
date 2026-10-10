@@ -21,7 +21,8 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
 # A threshold, not a hard cap: a protected span longer than this stays whole.
 S3_CHUNK_BYTES = 300
 S3_CHUNK_MAX_SPEAKERS = 3
-# Default frames per chunk, about 27.9 s at 2048 samples per frame and 44.1 kHz.
+# Frames per chunk for max_new_tokens <= 0, about 27.9 s at 2048 samples per
+# frame and 44.1 kHz.
 S3_CHUNK_MAX_NEW_TOKENS = 600
 # History besides the pinned first chunk.
 S3_HISTORY_RECENT_TURNS = 1

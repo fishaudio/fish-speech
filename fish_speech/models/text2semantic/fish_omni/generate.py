@@ -16,6 +16,11 @@ from fish_speech.models.text2semantic.fish_omni.tower import (
     RAS_WINDOW_FRAMES,
     TowerAttention,
 )
+from fish_speech.models.text2semantic.sampling import (
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+)
 
 S3_TTS_INSTRUCTION = "convert the provided text to speech"
 S3_REFERENCE_INSTRUCTION = (
@@ -48,10 +53,6 @@ S3_MAX_PROMPT_ROWS = 8192
 S3_DEFAULT_MAX_NEW_TOKENS = 2048
 S3_PREFILL_CHUNK_SIZE = 128
 S3_MAX_DEFAULT_DEVICES = 4
-# Sampling recommended for the S3 family by its model card.
-S3_DEFAULT_TEMPERATURE = 1.0
-S3_DEFAULT_TOP_P = 0.9
-S3_DEFAULT_TOP_K = 30
 # CUDA-graph decode: caches hold the largest default request, with one graph per
 # attended cache length; a step replays the smallest bucket covering its position.
 S3_GRAPH_CAPACITY = S3_MAX_PROMPT_ROWS + S3_DEFAULT_MAX_NEW_TOKENS
@@ -196,9 +197,9 @@ def generate_s3(
     prompt: torch.Tensor,
     *,
     max_new_tokens: int,
-    temperature: float = S3_DEFAULT_TEMPERATURE,
-    top_k: int = S3_DEFAULT_TOP_K,
-    top_p: float = S3_DEFAULT_TOP_P,
+    temperature: float = DEFAULT_TEMPERATURE,
+    top_k: int = DEFAULT_TOP_K,
+    top_p: float = DEFAULT_TOP_P,
     prefill_chunk_size: int = S3_PREFILL_CHUNK_SIZE,
 ) -> tuple[torch.Tensor, FinishReason]:
     """Sample frames after the prompt rows; returns CPU [frames, 1 + N] without EOS.

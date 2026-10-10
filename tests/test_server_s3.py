@@ -57,16 +57,16 @@ class SamplingDefaultsTest(unittest.TestCase):
         for family in ("s2", "s3"):
             params = make_engine(family).resolve_sampling(req)
             self.assertEqual(params, SAMPLING_DEFAULTS[family])
-        self.assertEqual(
-            make_engine("s3").resolve_sampling(req),
-            dict(
-                max_new_tokens=0,
-                top_p=0.9,
-                top_k=30,
-                repetition_penalty=1.0,
-                temperature=1.0,
-            ),
+        # The official Fish Audio SDK's defaults, for both families.
+        sdk = dict(
+            max_new_tokens=1024,
+            top_p=0.7,
+            top_k=30,
+            repetition_penalty=1.2,
+            temperature=0.7,
         )
+        self.assertEqual(make_engine("s2").resolve_sampling(req), sdk)
+        self.assertEqual(make_engine("s3").resolve_sampling(req), sdk)
 
     def test_defaults_for_clients(self):
         self.assertEqual(
@@ -86,10 +86,12 @@ class SamplingDefaultsTest(unittest.TestCase):
 
     def test_s3_warns_about_repetition_penalty(self):
         with patch("fish_speech.inference_engine.logger") as log:
+            for family in ("s3", "s2"):
+                make_engine(family).resolve_sampling(
+                    ServeTTSRequest(text="hi", repetition_penalty=1.3)
+                )
+            # The SDK sends its default, 1.2, with every request.
             make_engine("s3").resolve_sampling(
-                ServeTTSRequest(text="hi", repetition_penalty=1.2)
-            )
-            make_engine("s2").resolve_sampling(
                 ServeTTSRequest(text="hi", repetition_penalty=1.2)
             )
         self.assertEqual(log.warning.call_count, 1)
@@ -98,8 +100,8 @@ class SamplingDefaultsTest(unittest.TestCase):
         engine = make_engine("s3")
         engine.send_Llama_request(ServeTTSRequest(text="hi"), [], [])
         sent = engine.llama_queue.get_nowait().request
-        self.assertEqual(sent["temperature"], 1.0)
-        self.assertEqual(sent["max_new_tokens"], 0)
+        self.assertEqual(sent["temperature"], 0.7)
+        self.assertEqual(sent["max_new_tokens"], 1024)
         self.assertEqual(sent["text"], "hi")
         self.assertFalse(sent["single_chunk"])
         engine.send_Llama_request(ServeTTSRequest(text="hi", single_chunk=True), [], [])

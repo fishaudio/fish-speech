@@ -520,6 +520,7 @@ class S3GenerationTest(unittest.TestCase):
         torch.testing.assert_close(prompt[start : start + 2], audio)
 
     def run_chunked(self, chunks: list[str], **kwargs) -> tuple[list, list, list]:
+        kwargs.setdefault("max_new_tokens", 0)  # the per-chunk / single_chunk caps
         frame, eos = torch.tensor([[33, 1, 2, 3]]), torch.tensor([[2, 0, 0, 0]])
         with (
             patch.object(inference, "split_s3_text", return_value=chunks) as split,

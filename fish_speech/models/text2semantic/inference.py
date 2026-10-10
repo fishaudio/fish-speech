@@ -34,9 +34,6 @@ from fish_speech.models.text2semantic.fish_omni.chunking import (
 )
 from fish_speech.models.text2semantic.fish_omni.generate import (
     S3_DEFAULT_MAX_NEW_TOKENS,
-    S3_DEFAULT_TEMPERATURE,
-    S3_DEFAULT_TOP_K,
-    S3_DEFAULT_TOP_P,
     S3DecodeGraphs,
     S3PromptTooLongError,
     build_s3_prompt,
@@ -47,6 +44,14 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
 from fish_speech.models.text2semantic.fish_omni.model import (
     FishOmniModel,
     is_fish_omni_checkpoint,
+)
+from fish_speech.models.text2semantic.sampling import (
+    DEFAULT_CHUNK_LENGTH,
+    DEFAULT_MAX_NEW_TOKENS,
+    DEFAULT_REPETITION_PENALTY,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
 )
 from fish_speech.tokenizer import IM_END_TOKEN
 
@@ -347,9 +352,9 @@ def generate(
     empty[:, :T] = prompt
     seq = empty
 
-    temp_val = sampling_kwargs.get("temperature", 1.0)
-    top_p_val = sampling_kwargs.get("top_p", 0.9)
-    top_k_val = sampling_kwargs.get("top_k", 30)
+    temp_val = sampling_kwargs.get("temperature", DEFAULT_TEMPERATURE)
+    top_p_val = sampling_kwargs.get("top_p", DEFAULT_TOP_P)
+    top_k_val = sampling_kwargs.get("top_k", DEFAULT_TOP_K)
 
     temperature = torch.tensor(temp_val, device=device, dtype=dtype)
     top_p = torch.tensor(top_p_val, device=device, dtype=dtype)
@@ -635,14 +640,14 @@ def generate_long(
     decode_one_token: Callable,
     text: str,
     num_samples: int = 1,
-    max_new_tokens: int = 0,
-    top_p: float = 0.9,
-    top_k: int = 30,
-    repetition_penalty: float = 1.1,
-    temperature: float = 1.0,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+    top_p: float = DEFAULT_TOP_P,
+    top_k: int = DEFAULT_TOP_K,
+    repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
+    temperature: float = DEFAULT_TEMPERATURE,
     compile: bool = False,
     iterative_prompt: bool = True,
-    chunk_length: int = 512,
+    chunk_length: int = DEFAULT_CHUNK_LENGTH,
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
@@ -862,10 +867,10 @@ def generate_long_s3(
     model: FishOmniModel,
     text: str,
     num_samples: int = 1,
-    max_new_tokens: int = 0,
-    top_p: float = S3_DEFAULT_TOP_P,
-    top_k: int = S3_DEFAULT_TOP_K,
-    temperature: float = S3_DEFAULT_TEMPERATURE,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+    top_p: float = DEFAULT_TOP_P,
+    top_k: int = DEFAULT_TOP_K,
+    temperature: float = DEFAULT_TEMPERATURE,
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
@@ -1084,10 +1089,16 @@ def launch_thread_safe_queue(
 )
 @click.option("--output", type=click.Path(path_type=Path), default=None)
 @click.option("--num-samples", type=int, default=1)
-@click.option("--max-new-tokens", type=int, default=0)
-@click.option("--top-p", type=float, default=0.9)
-@click.option("--top-k", type=int, default=30)
-@click.option("--temperature", type=float, default=1.0)
+@click.option(
+    "--max-new-tokens",
+    type=int,
+    default=DEFAULT_MAX_NEW_TOKENS,
+    help="Per chunk for S3; 0 means the model's own cap (S2-Pro: the context "
+    "length; S3: 600 per chunk, 2048 with --single-chunk).",
+)
+@click.option("--top-p", type=float, default=DEFAULT_TOP_P)
+@click.option("--top-k", type=int, default=DEFAULT_TOP_K)
+@click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
@@ -1113,7 +1124,7 @@ def launch_thread_safe_queue(
     help="float16 instead of bfloat16; S3 switches to float16 by itself before SM80.",
 )
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
-@click.option("--chunk-length", type=int, default=300)
+@click.option("--chunk-length", type=int, default=DEFAULT_CHUNK_LENGTH)
 @click.option(
     "--single-chunk/--no-single-chunk",
     default=False,

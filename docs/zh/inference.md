@@ -117,10 +117,10 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 
 ### 与 S2-Pro 的区别
 
-- 长文本会切成约 300 字节（UTF-8）、每块最多 3 个说话人的块，尽量在句末断开，再逐块依次生成；第一块和最近一块会作为上下文喂回模型，保持音色一致。默认每块最多生成 600 帧（约 28 秒）。
-- 设置 `single_chunk`（命令行用 `--single-chunk`）可以整段一次生成，默认最多 2048 帧（约 95 秒）。两种模式下，更大的 `max_new_tokens` 都会被限制在 10,240 帧减去 prompt 长度以内。
+- 长文本会切成约 300 字节（UTF-8）、每块最多 3 个说话人的块，尽量在句末断开，再逐块依次生成；第一块和最近一块会作为上下文喂回模型，保持音色一致。默认每块最多生成 1024 帧（约 47 秒）。
+- 设置 `single_chunk`（命令行用 `--single-chunk`）可以整段一次生成，此时默认的 1024 帧上限作用于整段文本，长文本请调大 `max_new_tokens`，或设为 0 以使用 2048 帧（约 95 秒）。两种模式下，更大的 `max_new_tokens` 都会被限制在 10,240 帧减去 prompt 长度以内。
 - 支持 `<|speaker:0|>` 到 `<|speaker:15|>` 的说话人标签，没写标签的文本算作 speaker 0。要让不同说话人用各自的声音，请给每段参考音频设置 `speaker` 字段（`tools/api_client.py` 中为 `--reference_speaker`），它会给开头没有说话人标签的转写文本补上标签；也可以直接在转写文本开头写上对应的标签（例如 `<|speaker:1|>`）。参考音频的先后顺序并不决定它属于哪个说话人。
-- `chunk_length` 和 `repetition_penalty` 不起作用，S3 内置了重复感知采样。默认采样参数为 temperature 1.0、top-p 0.9、top-k 30。
+- `chunk_length` 和 `repetition_penalty` 不起作用，S3 内置了重复感知采样。默认采样参数与 S2-Pro 相同，沿用官方 Fish Audio SDK：temperature 0.7、top-p 0.7、top-k 30。
 - 开启 `streaming` 时，音频按块依次返回。
 - `FISH_S3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_S3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。
 
