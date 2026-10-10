@@ -14,8 +14,9 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
-    "torch==2.8.0",
-    "torchaudio==2.8.0",
+    "torch==2.10.0",
+    "torchaudio==2.10.0",
+    "torchcodec==0.10.0",
     "transformers<=4.57.3",
     "datasets==2.18.0",
     "lightning>=2.1.0",
@@ -49,27 +50,6 @@ dependencies = [
     "safetensors"
 ]
 
-[project.optional-dependencies]
-stable = [
-    "torch==2.8.0",
-    "torchaudio",
-]
-cpu = [
-  "torch==2.8.0",
-  "torchaudio",
-]
-cu126 = [
-  "torch==2.8.0",
-  "torchaudio",
-]
-cu128 = [
-  "torch==2.8.0",
-  "torchaudio",
-]
-cu129 = [
-  "torch==2.8.0",
-  "torchaudio",
-]
 
 [tool.uv]
 override-dependencies = [
@@ -77,48 +57,17 @@ override-dependencies = [
     # but fish-speech's generated proto code requires >=3.20; cap at <6 for API stability
     "protobuf>=3.20.0,<6.0.0",
 ]
-conflicts = [
-  [
-    { extra = "cpu" },
-    { extra = "cu126" },
-    { extra = "cu128" },
-    { extra = "cu129" },
-  ],
-]
-
 [tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu", extra = "cpu" },
-  { index = "pytorch-cu126", extra = "cu126" },
-  { index = "pytorch-cu128", extra = "cu128" },
-  { index = "pytorch-cu129", extra = "cu129" },
-]
-torchaudio = [
-  { index = "pytorch-cpu", extra = "cpu" },
-  { index = "pytorch-cu126", extra = "cu126" },
-  { index = "pytorch-cu128", extra = "cu128" },
-  { index = "pytorch-cu129", extra = "cu129" },
-]
+# Default to CUDA 13 for the DGX Spark-focused configuration.
+torch = { index = "pytorch-cu130" }
+torchaudio = { index = "pytorch-cu130" }
+torchcodec = { index = "pytorch-cu130" }
 
 [[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu129"
-url = "https://download.pytorch.org/whl/cu129"
-explicit = true
 
 [build-system]
 requires = ["setuptools", "setuptools-scm"]

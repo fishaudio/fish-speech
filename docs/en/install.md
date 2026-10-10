@@ -1,5 +1,9 @@
 ## Requirements
 
+**DGX Spark (GB10 / Linux ARM64):** use the [DGX Spark guide](dgx-spark.md)
+and `uv sync --locked --python 3.12 --extra cu130`. The generic CUDA 12
+instructions below describe the original upstream environments.
+
 - GPU Memory: 24GB (Inference)
 - System: Linux, WSL
 
@@ -25,12 +29,12 @@ pip install --extra-index-url https://download.pytorch.org/whl/cu129 -e ".[cu129
 # CPU-only installation
 pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[cpu]"
 
-# Default installation (uses PyTorch default index)
-pip install -e .
+# Upstream stable installation (PyTorch 2.8 from the default index)
+pip install -e ".[stable]"
 
 # If you encounter an error during installation due to pyaudio, consider using the following command:
 # conda install pyaudio
-# Then run pip install -e . again
+# Then run pip install -e ".[stable]" again
 ```
 
 ### UV
@@ -44,6 +48,10 @@ uv sync --python 3.12 --extra cu129
 # CPU-only installation
 uv sync --python 3.12 --extra cpu
 ```
+Choose an explicit backend extra. A bare installation without an extra does not
+select a complete supported audio stack; use `stable` for the original PyTorch
+2.8 profile or `cu130` with uv for the DGX Spark profile.
+
 ### Intel Arc XPU support
 
 For Intel Arc GPU users, install with XPU support:
