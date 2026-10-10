@@ -4,15 +4,16 @@
 # The checkpoints are NOT bundled — mount them at /app/checkpoints.
 #
 # Build:
-#   docker build -f docker/Dockerfile.rocm --target webui -t fish-speech-webui:rocm .
 #   docker build -f docker/Dockerfile.rocm --target server -t fish-speech-server:rocm .
 #
-# Run (webui):
+# Run:
 #   docker run --device=/dev/kfd --device=/dev/dri \
 #       --group-add video --group-add render \
 #       -e ROCBLAS_USE_HIPBLASLT=0 \
 #       -v ./checkpoints:/app/checkpoints \
-#       -p 7860:7860 fish-speech-webui:rocm
+#       -p 8080:8080 fish-speech-server:rocm
+#
+# Only S2-Pro runs on ROCm; S3 checkpoints need CUDA.
 
 ARG ROCM_VERSION=7.2.3
 ARG BASE_IMAGE=rocm/pytorch:rocm${ROCM_VERSION}_ubuntu24.04_py3.12_pytorch_release_2.9.1
@@ -40,11 +41,11 @@ COPY . /app
 # itself with --no-deps so pip does not try to pull a CUDA/CPU torch.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir \
-        numpy "transformers<=4.57.3" \
-        hydra-core natsort einops librosa "gradio>5.0.0" kui \
+        numpy "transformers==5.19.0" "tokenizers==0.23.2" \
+        hydra-core natsort einops librosa kui \
         uvicorn loguru pyrootutils resampy "einx[torch]==0.2.2" \
         pydub "modelscope==1.17.1" "opencc-python-reimplemented==0.1.7" \
-        silero-vad ormsgpack tiktoken "pydantic==2.9.2" cachetools \
+        silero-vad ormsgpack "tiktoken>=0.8.0" "pydantic==2.9.2" cachetools \
         descript-audio-codec safetensors soundfile vector_quantize_pytorch \
     && pip install --no-cache-dir --no-build-isolation pyaudio \
     && pip install --no-cache-dir --no-deps -e . \
@@ -52,34 +53,11 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     # the stack. Override after install (mirrors pyproject's uv override).
     && pip install --no-cache-dir --no-deps --upgrade "protobuf>=4.25,<6.0"
 
-EXPOSE 7860 8080
+EXPOSE 8080
 
 # torch.compile is enabled by default (verified working on gfx1201/RDNA4).
 # Set COMPILE=0 to disable.
 ENV COMPILE=1
-
-##############################################################
-# Gradio WebUI
-##############################################################
-FROM app-base AS webui
-
-ARG GRADIO_SERVER_NAME="0.0.0.0"
-ARG GRADIO_SERVER_PORT=7860
-ENV GRADIO_SERVER_NAME=${GRADIO_SERVER_NAME} \
-    GRADIO_SERVER_PORT=${GRADIO_SERVER_PORT}
-
-RUN printf '%s\n' \
-    '#!/bin/bash' \
-    'set -e' \
-    'ARGS=()' \
-    'if [ "${COMPILE:-0}" = "1" ] || [ "${COMPILE:-}" = "true" ]; then ARGS+=(--compile); fi' \
-    'exec python tools/run_webui.py \' \
-    '  --llama-checkpoint-path checkpoints/s2-pro \' \
-    '  --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \' \
-    '  --decoder-config-name modded_dac_vq "${ARGS[@]}"' \
-    > /app/start_webui.sh && chmod +x /app/start_webui.sh
-
-ENTRYPOINT ["/app/start_webui.sh"]
 
 ##############################################################
 # API Server
