@@ -22,6 +22,7 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
     resolve_s3_devices,
     resolve_s3_dtype,
 )
+from fish_speech.models.text2semantic.fish_omni.layers import ZeroCenteredRMSNorm
 from fish_speech.models.text2semantic.fish_omni.model import (
     FishOmniModel,
     is_fish_omni_checkpoint,
@@ -30,6 +31,7 @@ from fish_speech.models.text2semantic.fish_omni.tower import (
     TOWER_CHECKPOINT_PREFIXES,
     FishOmniAudioDecoder,
     FP32OutputLinear,
+    TowerAttention,
     load_audio_decoder_weights,
     sample_top_k_top_p,
 )
@@ -345,6 +347,32 @@ class S3GenerationTest(unittest.TestCase):
             frames, reason = generate_s3(self.model, PROMPT, max_new_tokens=3)
         self.assertEqual((frames.shape, reason, step.call_count), ((0, 4), "eos", 1))
         self.assertEqual(step.call_args.args[2].item(), len(PROMPT) - 1)
+
+    def test_tower_always_applies_zero_centered_qk_norm(self) -> None:
+        # Released S3 configs say attention_qk_norm=false, but training ran q/k norm
+        # scaled by (1 + weight); a plain RMSNorm or skipping it would both be wrong.
+        norm = ZeroCenteredRMSNorm(4, 1e-6, dtype=torch.float32)
+        with torch.no_grad():
+            norm.weight.copy_(torch.tensor([0.0, 0.5, -0.5, 1.0]))
+        x = torch.tensor([[1.0, -2.0, 3.0, -4.0]])
+        rms = torch.sqrt(x.pow(2).mean(-1, keepdim=True) + 1e-6)
+        torch.testing.assert_close(norm(x), x / rms * (1 + norm.weight))
+
+        tower = self.model.audio_decoder
+        attentions = [m for m in tower.modules() if isinstance(m, TowerAttention)]
+        self.assertTrue(attentions)
+        for attention in attentions:
+            for qk_norm in (attention.q_norm, attention.k_norm):
+                self.assertIsInstance(qk_norm, ZeroCenteredRMSNorm)
+                self.assertEqual(qk_norm.eps, self.model.config.audio_decoder.norm_eps)
+        q_norm, k_norm = attentions[0].q_norm, attentions[0].k_norm
+        with (
+            patch(SAMPLER, side_effect=greedy),
+            patch.object(q_norm, "forward", wraps=q_norm.forward) as q_call,
+            patch.object(k_norm, "forward", wraps=k_norm.forward) as k_call,
+        ):
+            generate_s3(self.model, PROMPT, max_new_tokens=1)
+        self.assertTrue(q_call.called and k_call.called)
 
     def test_ras_resamples_repeated_audio_tokens_but_not_eos(self) -> None:
         # Main candidates are [eos=2, semantic 32..39]; the prompt's main column holds
