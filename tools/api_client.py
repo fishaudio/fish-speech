@@ -89,7 +89,8 @@ def parse_args():
         "--max_new_tokens",
         type=int,
         default=None,
-        help="Maximum new tokens to generate. \n0 means no limit.",
+        help="Maximum new tokens to generate. Unset uses the model's default; "
+        "0 means the model's own cap (S2-Pro: the context length, S3: 2048).",
     )
     parser.add_argument(
         "--chunk_length",
@@ -195,7 +196,9 @@ if __name__ == "__main__":
     response = requests.post(
         args.url,
         params={"format": "msgpack"},
-        data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+        # Unset (None) fields are left out so servers that predate optional sampling
+        # fields fall back to their own defaults instead of rejecting null.
+        data=ormsgpack.packb(pydantic_data.model_dump(exclude_none=True)),
         stream=args.streaming,
         headers={
             "authorization": f"Bearer {args.api_key}",

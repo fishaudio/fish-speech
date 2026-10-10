@@ -20,8 +20,12 @@ GEMM_NUM_STAGES = 3
 
 
 def fp8_gemm_supported(devices: Iterable[str | torch.device]) -> bool:
-    """Every device is a CUDA SM89+ GPU (FP8 tensor cores) and Triton is available."""
-    if triton is None or not torch.cuda.is_available():
+    """Every device is a CUDA SM89+ GPU (FP8 tensor cores) and Triton is available.
+
+    ROCm also reports its GPUs as "cuda" with a capability, but the kernels use the
+    e4m3fn format, which AMD GPUs lack (MI300 uses fnuz, RDNA3 has no FP8).
+    """
+    if triton is None or not torch.cuda.is_available() or torch.version.hip:
         return False
     devices = [torch.device(device) for device in devices]
     return all(

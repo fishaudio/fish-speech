@@ -31,6 +31,7 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
     S3_DEFAULT_TEMPERATURE,
     S3_DEFAULT_TOP_K,
     S3_DEFAULT_TOP_P,
+    S3DecodeGraphs,
     build_s3_prompt,
     generate_s3,
     resolve_s3_devices,
@@ -449,7 +450,10 @@ def init_model(checkpoint_path, device, precision, compile=False):
 def resolve_codec_path(
     checkpoint_path: str | Path, codec_path: str | Path | None = None
 ) -> Path:
-    """codec_path, else <checkpoint>/codec.pth, else (S3) the sibling S2-Pro codec."""
+    """codec_path, else <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth.
+
+    S3 uses the S2-Pro codec, and fine-tuned S2-Pro directories may not carry one.
+    """
     if codec_path is not None:
         codec_path = Path(codec_path)
         if not codec_path.is_file():
@@ -460,12 +464,15 @@ def resolve_codec_path(
     if candidate.is_file():
         return candidate
     fallback = checkpoint_path.parent / "s2-pro" / "codec.pth"
-    if is_fish_omni_checkpoint(checkpoint_path) and fallback.is_file():
+    if fallback.is_file():
         logger.info(
             f"{checkpoint_path} has no codec.pth; using the S2-Pro codec {fallback}"
         )
         return fallback
-    raise FileNotFoundError(f"no codec.pth in {checkpoint_path}; pass --codec-path")
+    raise FileNotFoundError(
+        f"no codec.pth in {checkpoint_path} or {fallback.parent}; pass the codec "
+        "path (--codec-path for the CLI, --decoder-checkpoint-path for the server)"
+    )
 
 
 @torch.inference_mode()
@@ -851,7 +858,8 @@ def generate_long_s3(
 ) -> Iterator[GenerateResponse]:
     """S3 counterpart of generate_long: the whole text is one speaker-0 user turn.
 
-    max_new_tokens <= 0 means min(2048, remaining context).
+    max_new_tokens <= 0 means 2048. Larger requests are clamped so prompt rows plus
+    max_new_tokens stay within the CUDA-graph capacity.
     """
     if isinstance(prompt_text, str):
         prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
@@ -860,11 +868,19 @@ def generate_long_s3(
     prompt = build_s3_prompt(
         text, model.tokenizer, model.config, prompt_text, prompt_tokens
     )
+    # The caches grow to fit a request and never shrink, and growing them drops the
+    # captured CUDA graphs, so a client-chosen max_new_tokens must not exceed this.
+    limit = S3DecodeGraphs.graph_capacity(model) - len(prompt)
+    if limit < 1:
+        raise ValueError(f"prompt has {len(prompt)} rows; no room left to generate")
     if max_new_tokens <= 0:
-        max_new_tokens = min(
-            S3_DEFAULT_MAX_NEW_TOKENS,
-            model.config.text.max_position_embeddings - len(prompt),
+        max_new_tokens = min(S3_DEFAULT_MAX_NEW_TOKENS, limit)
+    elif max_new_tokens > limit:
+        logger.warning(
+            f"max_new_tokens={max_new_tokens} exceeds the {limit} frames left after "
+            f"the {len(prompt)}-row prompt; clamping"
         )
+        max_new_tokens = limit
     logger.info(
         f"S3 prompt: {len(prompt)} rows, {len(prompt_tokens)} reference(s), "
         f"max_new_tokens={max_new_tokens}"
@@ -1021,7 +1037,7 @@ def launch_thread_safe_queue(
     "--codec-path",
     type=click.Path(path_type=Path, exists=True, dir_okay=False),
     default=None,
-    help="Defaults to <checkpoint>/codec.pth (S3: checkpoints/s2-pro/codec.pth).",
+    help="Defaults to <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth.",
 )
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)

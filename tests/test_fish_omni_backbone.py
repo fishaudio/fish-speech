@@ -1,5 +1,6 @@
 import re
 import unittest
+from unittest.mock import patch
 
 import torch
 from torch.nn import functional as F
@@ -8,6 +9,7 @@ from transformers.models.qwen3_5_moe.configuration_qwen3_5_moe import (
 )
 from transformers.models.qwen3_5_moe.modeling_qwen3_5_moe import Qwen3_5MoeForCausalLM
 
+from fish_speech.models.text2semantic.fish_omni import fp8_moe
 from fish_speech.models.text2semantic.fish_omni.backbone import (
     FishOmniBackbone,
     load_backbone_weights,
@@ -217,6 +219,24 @@ class Fp8ExpertsTest(unittest.TestCase):
         hidden, intermediate, count = 2 * FP8_BLOCK_SIZE, FP8_BLOCK_SIZE, 6
         self.experts = MoEExperts(count, hidden, intermediate, fp8=True, device="cpu")
         self.w13, self.w2 = randomize_fp8_experts(self.experts)
+
+    def test_gemm_gate_needs_sm89_cuda_not_rocm(self) -> None:
+        with (
+            patch.object(fp8_moe, "triton", object()),
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_capability", return_value=(9, 4)),
+        ):
+            with patch.object(torch.version, "hip", None):
+                self.assertTrue(fp8_gemm_supported(["cuda:0"]))
+            with patch.object(torch.version, "hip", "7.2.0"):
+                self.assertFalse(fp8_gemm_supported(["cuda:0"]))
+        with (
+            patch.object(fp8_moe, "triton", object()),
+            patch("torch.cuda.is_available", return_value=True),
+            patch("torch.cuda.get_device_capability", return_value=(8, 0)),
+            patch.object(torch.version, "hip", None),
+        ):
+            self.assertFalse(fp8_gemm_supported(["cuda:0"]))
 
     def test_block_dequantization(self) -> None:
         experts = self.experts

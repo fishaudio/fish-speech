@@ -32,8 +32,8 @@ def parse_args():
         "--decoder-checkpoint-path",
         type=str,
         default=None,
-        help="DAC codec weights. Defaults to <checkpoint>/codec.pth; an S3 "
-        "checkpoint falls back to the sibling s2-pro/codec.pth.",
+        help="DAC codec weights. Defaults to <checkpoint>/codec.pth, else the "
+        "sibling s2-pro/codec.pth.",
     )
     parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
     parser.add_argument(

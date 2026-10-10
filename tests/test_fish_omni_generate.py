@@ -9,6 +9,7 @@ import torch
 from torch.nn import functional as F
 
 from fish_speech.models.text2semantic import inference
+from fish_speech.models.text2semantic.fish_omni import generate as generate_module
 from fish_speech.models.text2semantic.fish_omni.backbone import FishOmniBackbone
 from fish_speech.models.text2semantic.fish_omni.config import (
     AudioDecoderConfig,
@@ -376,6 +377,30 @@ class S3GenerationTest(unittest.TestCase):
             self.model.tokenizer.parts,
         )
 
+    def test_generate_long_clamps_max_new_tokens_to_graph_capacity(self) -> None:
+        eos_frame = torch.tensor([[2, 0, 0, 0]])
+        for capacity in (40, 1_000_000):  # graph capacity, then the 128-row context
+            with (
+                patch.object(generate_module, "S3_GRAPH_CAPACITY", capacity),
+                patch.object(
+                    self.model.audio_decoder, "decode_step", return_value=eos_frame
+                ),
+                patch.object(inference, "generate_s3", wraps=generate_s3) as run,
+            ):
+                list(
+                    generate_long(
+                        model=self.model,
+                        device="cpu",
+                        decode_one_token=None,
+                        text="hi",
+                        max_new_tokens=100_000,
+                    )
+                )
+            prompt_rows = len(run.call_args.args[1])
+            limit = min(capacity, 128) - prompt_rows
+            self.assertEqual(run.call_args.kwargs["max_new_tokens"], limit)
+            self.assertLessEqual(self.model.cache_capacity, min(capacity, 128))
+
 
 class S3DispatchTest(unittest.TestCase):
     def test_device_layout(self) -> None:
@@ -421,6 +446,10 @@ class S3DispatchTest(unittest.TestCase):
             self.assertEqual(resolve_codec_path(s3), s2 / "codec.pth")
             self.assertEqual(resolve_codec_path(s2), s2 / "codec.pth")
             self.assertEqual(resolve_codec_path(s3, s2 / "codec.pth"), s2 / "codec.pth")
+            # A fine-tuned S2-Pro directory without its own codec uses the sibling one.
+            finetuned = Path(root, "my-s2-finetune")
+            finetuned.mkdir()
+            self.assertEqual(resolve_codec_path(finetuned), s2 / "codec.pth")
             with self.assertRaises(FileNotFoundError):
                 resolve_codec_path(s3, Path(root, "missing.pth"))
 

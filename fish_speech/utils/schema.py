@@ -98,7 +98,7 @@ class ServeTTSRequest(BaseModel):
     # not usually used below
     streaming: bool = False
     # Sampling: None takes the loaded model family's default; max_new_tokens <= 0
-    # means no explicit limit.
+    # means the model's own cap (S2-Pro: the context length, S3: 2048 frames).
     max_new_tokens: int | None = None
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] | None = (
