@@ -1,11 +1,15 @@
 ## 系统要求
 
-- GPU 显存：S2-Pro 推理需要 24GB；S3-drama 在单张 SM89 及以上显卡上约需 41 GB，在较早的显卡上合计约需 70 GB
+| 模型 | GPU 显存 | 显卡 |
+| --- | --- | --- |
+| Drama 3 | 至少 32 GB | NVIDIA GPU |
+| S2-Pro | 至少 24 GB | NVIDIA GPU 或 CPU |
+
 - 系统：Linux、WSL
 
 ## 系统设置
 
-Fish Audio S2 支持多种安装方式。请选择最适合你当前开发环境的方案。
+Fish Audio Drama 3 与 S2-Pro 共用同一套安装方式。请选择最适合你当前开发环境的方案。
 
 **前置依赖**：先安装音频处理所需的系统依赖：
 ```bash
@@ -47,7 +51,7 @@ uv sync --python 3.12 --extra cpu
 
 ### Intel Arc XPU 支持
 
-如果你使用 Intel Arc GPU，可按以下方式安装 XPU 支持：
+如果你使用 Intel Arc GPU，可按以下方式安装 XPU 支持（仅 S2-Pro，Drama 3 需要 NVIDIA GPU）：
 
 ```bash
 conda create -n fish-speech python=3.12
@@ -66,19 +70,62 @@ pip install -e .
 !!! warning
     `compile` 选项暂不支持 Windows 和 macOS。若你希望启用 compile，请手动安装 Triton。
 
+## 下载权重
+
+两个模型共用同一套命令行和 API Server，模型类型由权重目录里的 `config.json` 自动识别。请把它们放在同一个 `checkpoints` 目录下。
+
+### Drama 3
+
+```bash
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
+```
+
+如果权重目录中没有 `codec.pth`，会改用 `checkpoints/s2-pro/codec.pth` 中的 S2-Pro codec，所以 S2-Pro 建议一并下载。
+
+### S2-Pro
+
+```bash
+hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
+```
+
+下载好权重后，用法见[推理](inference.md)。
+
 ## Docker 设置
 
-Fish Audio S2 系列模型提供多种 Docker 部署方式，适配不同场景。你可以直接使用 Docker Hub 预构建镜像，也可以用 Docker Compose 本地构建，或手动构建自定义镜像。
+Drama 3 与 S2-Pro 提供多种 Docker 部署方式，适配不同场景。你可以直接使用 Docker Hub 预构建镜像，也可以用 Docker Compose 本地构建，或手动构建自定义镜像。
 
-我们提供 API Server 的 GPU（默认 CUDA126）和 CPU 镜像。你可以直接用 Docker Hub 镜像，也可以在本地构建。如果你只想使用预构建镜像，请参考[inference guide](inference.md)。
+我们提供 API Server 的 GPU（默认 CUDA126）和 CPU 镜像。镜像已内置 WebUI，容器起来后打开 `http://localhost:8080/ui` 即可访问界面。GPU 镜像可运行两个模型，CPU 镜像仅支持 S2-Pro。
 
 ### 前置条件
 
 - 已安装 Docker 和 Docker Compose
-- （GPU 场景）已安装 NVIDIA Docker runtime
-- CUDA 推理建议至少 24GB 显存（S2-Pro；S3-drama 需要更多，见上文）
+- （GPU 场景）已安装 NVIDIA Docker runtime（Drama 3 必须）
+- 显存：Drama 3 约 41 GB 起步，S2-Pro 建议至少 24 GB
 
-# 使用 Docker Compose
+### 运行预构建镜像
+
+Drama 3：在 SM89 及以上的显卡上只暴露一张卡，较早的显卡请使用 `--gpus all`：
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+S2-Pro：
+
+```bash
+docker run --gpus all \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s2-pro \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s2-pro/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### 使用 Docker Compose
 
 如果你需要开发或自定义，推荐使用 Docker Compose 在本地构建并运行：
 
@@ -87,13 +134,16 @@ Fish Audio S2 系列模型提供多种 Docker 部署方式，适配不同场景�
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# 启动 API Server
+# 启动 API Server（默认加载 checkpoints/s2-pro）
 docker compose --profile server up
 
-# 启用 compile 优化启动 API Server
+# 加载 Drama 3，并用 DEVICE 把它固定在单张卡上（不设置则最多使用四张）
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
+
+# 启用 compile 优化启动 API Server（仅 S2-Pro）
 COMPILE=1 docker compose --profile server up
 
-# 仅 CPU 部署
+# 仅 CPU 部署（仅 S2-Pro）
 BACKEND=cpu docker compose --profile server up
 ```
 
@@ -161,6 +211,9 @@ docker build \
 ### 环境变量
 
 - `COMPILE=1` - 启用 `torch.compile`，可提升推理速度（约 10 倍）
+- `LLAMA_CHECKPOINT_PATH` - 主模型权重路径，例如 `checkpoints/drama-3` 或 `checkpoints/s2-pro`
+- `DECODER_CHECKPOINT_PATH` - codec 权重路径，留空则由服务端按权重目录自行查找
+- `DEVICE` - 推理设备，例如 `cuda:0`；Drama 3 设置为单张卡时只用它，留空最多使用四张卡
 - `API_SERVER_NAME=0.0.0.0` - API 服务地址
 - `API_SERVER_PORT=8080` - API 服务端口
 

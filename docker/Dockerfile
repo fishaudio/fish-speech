@@ -33,12 +33,12 @@
 #       -p 8080:8080 \
 #       -it fish-speech-server:cuda
 
-# E.g. running the server with S3-drama (CUDA only, COMPILE must stay 0; expose
+# E.g. running the server with Drama 3 (CUDA only, COMPILE must stay 0; expose
 # one GPU on SM89+ cards for the single-GPU FP8 mode, several on older ones):
 #   docker run \
 #       --gpus device=0 \
 #       -v ./checkpoints:/app/checkpoints \
-#       -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+#       -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
 #       -p 8080:8080 \
 #       -it fish-speech-server:cuda
 
@@ -327,7 +327,7 @@ RUN printf '%s\n' \
     > /app/start_server.sh && chmod +x /app/start_server.sh
 
 # Health check
-# S3 takes several minutes to load and capture its CUDA graphs.
+# Drama 3 takes several minutes to load and capture its CUDA graphs.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=600s --retries=3 \
     CMD curl -f http://localhost:${API_SERVER_PORT}/v1/health || exit 1
 

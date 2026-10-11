@@ -1,4 +1,4 @@
-"""Sampling defaults for S2-Pro and S3: those of the official Fish Audio SDK
+"""Sampling defaults for S2-Pro and Drama 3: those of the official Fish Audio SDK
 (fish-audio-sdk TTSConfig). The SDK has no top_k; both models use 30."""
 
 DEFAULT_MAX_NEW_TOKENS = 1024  # per text chunk

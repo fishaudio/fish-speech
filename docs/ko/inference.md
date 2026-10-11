@@ -53,12 +53,12 @@ python fish_speech/models/dac/inference.py \
 
 이후 `fake.wav` 파일을 얻게 됩니다.
 
-## S3-drama
+## Drama 3
 
-S3-drama는 S2-Pro와 같은 명령줄 및 API 서버를 사용합니다. 모델 종류는 체크포인트의 `config.json`에서 자동으로 판별됩니다.
+Drama 3는 S2-Pro와 같은 명령줄 및 API 서버를 사용합니다. 모델 종류는 체크포인트의 `config.json`에서 자동으로 판별됩니다.
 
 !!! warning
-    S3-drama는 NVIDIA GPU에서만 실행됩니다. CPU, Apple MPS, AMD ROCm은 지원하지 않으며 `--compile`도 사용할 수 없습니다.
+    Drama 3는 NVIDIA GPU에서만 실행됩니다. CPU, Apple MPS, AMD ROCm은 지원하지 않으며 `--compile`도 사용할 수 없습니다.
 
 | GPU | 실행 방식 | GPU 메모리 |
 | --- | --- | --- |
@@ -66,12 +66,12 @@ S3-drama는 S2-Pro와 같은 명령줄 및 API 서버를 사용합니다. 모델
 | 이전 세대 GPU(V100, A100) | MoE 전문가를 역양자화하여 여러 GPU에 분산 | 합계 약 70 GB |
 
 !!! note
-    V100 등 SM80 이전 GPU는 bfloat16을 지원하지 않으므로 S3는 자동으로 float16(잔차 스트림은 fp32 유지)으로 실행됩니다. 이 경로는 아직 실제 하드웨어에서 테스트되지 않았습니다. 무음이나 노이즈가 나오거나 "non-finite logits" 오류가 발생하면 issue를 등록해 주세요.
+    V100 등 SM80 이전 GPU는 bfloat16을 지원하지 않으므로 Drama 3는 자동으로 float16(잔차 스트림은 fp32 유지)으로 실행됩니다. 이 경로는 아직 실제 하드웨어에서 테스트되지 않았습니다. 무음이나 노이즈가 나오거나 "non-finite logits" 오류가 발생하면 issue를 등록해 주세요.
 
 ### 가중치 다운로드
 
 ```bash
-hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
 ```
 
 체크포인트 디렉터리에 `codec.pth`가 없으면 `checkpoints/s2-pro/codec.pth`의 S2-Pro 코덱을 사용합니다.
@@ -80,7 +80,7 @@ hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
-    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --checkpoint-path checkpoints/drama-3 \
     --text "변환하려는 텍스트" \
     --prompt-audio "reference.wav" \
     --prompt-text "참조 텍스트" \
@@ -95,24 +95,24 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python tools/api_server.py \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --llama-checkpoint-path checkpoints/drama-3 \
     --device cuda:0
 ```
 
-Docker에서는 server 이미지로 S3 체크포인트를 불러옵니다. SM89 이상 GPU에서는 아래처럼 GPU 하나만 노출하고, 이전 세대 GPU에서는 `--gpus all`을 사용하세요.
+Docker에서는 server 이미지로 Drama 3 체크포인트를 불러옵니다. SM89 이상 GPU에서는 아래처럼 GPU 하나만 노출하고, 이전 세대 GPU에서는 `--gpus all`을 사용하세요.
 
 ```bash
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
 ```
 
-Docker Compose에서는 같은 환경 변수를 설정합니다. `DEVICE=cuda:0`이면 S3가 GPU 하나만 사용하고, 설정하지 않으면 최대 4개의 GPU를 사용합니다.
+Docker Compose에서는 같은 환경 변수를 설정합니다. `DEVICE=cuda:0`이면 Drama 3가 GPU 하나만 사용하고, 설정하지 않으면 최대 4개의 GPU를 사용합니다.
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### S2-Pro와의 차이점
@@ -122,7 +122,7 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 - 화자 태그는 `<|speaker:0|>`부터 `<|speaker:15|>`까지 사용할 수 있으며, 태그가 없는 텍스트는 speaker 0으로 처리됩니다. 화자마다 다른 목소리를 쓰려면 각 참조 오디오에 `speaker` 필드(`tools/api_client.py`에서는 `--reference_speaker`)를 지정하세요. 앞에 화자 태그가 없는 전사 텍스트에는 해당 태그가 붙습니다. 전사 텍스트 앞에 태그(예: `<|speaker:1|>`)를 직접 써도 됩니다. 참조 오디오의 순서로는 화자가 정해지지 않습니다.
 - `chunk_length`는 적용되지 않습니다. `repetition_penalty`는 호환성을 위해 받기만 하며 S2-Pro와 마찬가지로 무시됩니다. 두 모델 모두 반복 인식 샘플링이 내장되어 있습니다. 기본 샘플링 설정은 S2-Pro와 마찬가지로 공식 Fish Audio SDK를 따르는 temperature 0.7, top-p 0.7, top-k 30입니다.
 - `streaming`을 켜면 오디오가 청크 단위로 반환됩니다.
-- `FISH_S3_FP8_EXPERTS=0` 또는 `1`로 역양자화 전문가 또는 FP8 전문가를 강제할 수 있고, `FISH_S3_CUDA_GRAPH=0`으로 CUDA 그래프 디코딩을 끌 수 있습니다.
+- `FISH_DRAMA3_FP8_EXPERTS=0` 또는 `1`로 역양자화 전문가 또는 FP8 전문가를 강제할 수 있고, `FISH_DRAMA3_CUDA_GRAPH=0`으로 CUDA 그래프 디코딩을 끌 수 있습니다.
 
 ## WebUI 추론
 

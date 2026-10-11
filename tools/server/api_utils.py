@@ -30,7 +30,7 @@ def parse_args():
         "--llama-checkpoint-path",
         type=str,
         default="checkpoints/s2-pro",
-        help="S2-Pro (dual_ar) or S3 (fish_omni) checkpoint directory; "
+        help="S2-Pro (dual_ar) or Drama 3 (fish_omni) checkpoint directory; "
         "the model type is detected from its config.json.",
     )
     parser.add_argument(
@@ -45,13 +45,13 @@ def parse_args():
         "--device",
         type=str,
         default="cuda",
-        help="S3 only: plain 'cuda' takes the first min(4, visible) GPUs, or list "
+        help="Drama 3 only: plain 'cuda' takes the first min(4, visible) GPUs, or list "
         "them ('cuda:0,cuda:1,...'); the last one holds the tower and the codec.",
     )
     parser.add_argument(
         "--half",
         action="store_true",
-        help="float16 instead of bfloat16 (S3 switches by itself before SM80).",
+        help="float16 instead of bfloat16 (Drama 3 switches by itself before SM80).",
     )
     parser.add_argument(
         "--compile", action="store_true", help="torch.compile (S2-Pro only)."

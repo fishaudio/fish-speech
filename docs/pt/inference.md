@@ -53,12 +53,12 @@ python fish_speech/models/dac/inference.py \
 
 Depois disso, você obterá um arquivo `fake.wav`.
 
-## S3-drama
+## Drama 3
 
-O S3-drama usa a mesma linha de comando e o mesmo servidor API do S2-Pro; o tipo de modelo é detectado a partir do `config.json` do checkpoint.
+O Drama 3 usa a mesma linha de comando e o mesmo servidor API do S2-Pro; o tipo de modelo é detectado a partir do `config.json` do checkpoint.
 
 !!! warning
-    O S3-drama funciona apenas em GPUs NVIDIA. CPU, Apple MPS e AMD ROCm não são suportados, e `--compile` também não.
+    O Drama 3 funciona apenas em GPUs NVIDIA. CPU, Apple MPS e AMD ROCm não são suportados, e `--compile` também não.
 
 | GPU | Modo | Memória da GPU |
 | --- | --- | --- |
@@ -66,12 +66,12 @@ O S3-drama usa a mesma linha de comando e o mesmo servidor API do S2-Pro; o tipo
 | GPUs mais antigas (V100, A100) | Especialistas MoE desquantizados e distribuídos por várias GPUs | cerca de 70 GB no total |
 
 !!! note
-    A V100 e outras GPUs anteriores à SM80 não suportam bfloat16, então o S3 passa a usar float16 nelas (mantendo o fluxo residual em fp32). Esse caminho ainda não foi testado em hardware real; se você obtiver silêncio, ruído ou um erro "non-finite logits", abra uma issue.
+    A V100 e outras GPUs anteriores à SM80 não suportam bfloat16, então o Drama 3 passa a usar float16 nelas (mantendo o fluxo residual em fp32). Esse caminho ainda não foi testado em hardware real; se você obtiver silêncio, ruído ou um erro "non-finite logits", abra uma issue.
 
 ### Baixar pesos
 
 ```bash
-hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
 ```
 
 Se o diretório do checkpoint não tiver `codec.pth`, será usado o codec do S2-Pro em `checkpoints/s2-pro/codec.pth`.
@@ -80,7 +80,7 @@ Se o diretório do checkpoint não tiver `codec.pth`, será usado o codec do S2-
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
-    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --checkpoint-path checkpoints/drama-3 \
     --text "O texto que você deseja converter" \
     --prompt-audio "reference.wav" \
     --prompt-text "Seu texto de referência" \
@@ -95,24 +95,24 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python tools/api_server.py \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --llama-checkpoint-path checkpoints/drama-3 \
     --device cuda:0
 ```
 
-Com Docker, execute a imagem do servidor apontando para o checkpoint do S3. Em placas SM89 ou mais recentes, exponha uma única GPU como abaixo; em placas mais antigas, use `--gpus all`:
+Com Docker, execute a imagem do servidor apontando para o checkpoint do Drama 3. Em placas SM89 ou mais recentes, exponha uma única GPU como abaixo; em placas mais antigas, use `--gpus all`:
 
 ```bash
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
 ```
 
-Com o Docker Compose, defina as mesmas variáveis; `DEVICE=cuda:0` mantém o S3 em uma GPU, e sem ela são usadas até quatro GPUs:
+Com o Docker Compose, defina as mesmas variáveis; `DEVICE=cuda:0` mantém o Drama 3 em uma GPU, e sem ela são usadas até quatro GPUs:
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### Diferenças em relação ao S2-Pro
@@ -122,7 +122,7 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 - São aceitas as tags de locutor de `<|speaker:0|>` a `<|speaker:15|>`; texto sem tag é o locutor 0. Para dar a cada locutor a sua própria voz, defina o campo `speaker` de cada áudio de referência (`--reference_speaker` em `tools/api_client.py`), que adiciona a tag às transcrições que não começam com uma, ou comece você mesmo a transcrição com a tag desse locutor (por exemplo `<|speaker:1|>`); a ordem das referências não define o locutor.
 - `chunk_length` não tem efeito. `repetition_penalty` é aceito por compatibilidade, mas ignorado, assim como no S2-Pro: os dois modelos usam amostragem com reconhecimento de repetição integrada. A amostragem padrão segue o SDK oficial da Fish Audio, como no S2-Pro: temperature 0.7, top-p 0.7, top-k 30.
 - Com `streaming` ativado, o áudio é retornado bloco a bloco.
-- `FISH_S3_FP8_EXPERTS=0` ou `1` força especialistas desquantizados ou em FP8, e `FISH_S3_CUDA_GRAPH=0` desativa a decodificação com CUDA graphs.
+- `FISH_DRAMA3_FP8_EXPERTS=0` ou `1` força especialistas desquantizados ou em FP8, e `FISH_DRAMA3_CUDA_GRAPH=0` desativa a decodificação com CUDA graphs.
 
 ## Inferência WebUI
 

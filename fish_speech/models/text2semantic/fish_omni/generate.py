@@ -22,14 +22,14 @@ from fish_speech.models.text2semantic.sampling import (
     DEFAULT_TOP_P,
 )
 
-S3_TTS_INSTRUCTION = "convert the provided text to speech"
-S3_REFERENCE_INSTRUCTION = (
+DRAMA3_TTS_INSTRUCTION = "convert the provided text to speech"
+DRAMA3_REFERENCE_INSTRUCTION = (
     "convert the provided text to speech reference to the following:"
 )
-S3_MESSAGE_END = "<|im_end|>\n"
-S3_GENERATION_START = "<|im_start|>assistant\n<|voice|>"
+DRAMA3_MESSAGE_END = "<|im_end|>\n"
+DRAMA3_GENERATION_START = "<|im_start|>assistant\n<|voice|>"
 # Only the prompt builder writes these; other special tokens in caller text are content.
-S3_STRUCTURAL_TOKENS = (
+DRAMA3_STRUCTURAL_TOKENS = (
     "<|im_start|>",
     "<|im_end|>",
     "<|voice|>",
@@ -49,27 +49,27 @@ UNICODE_WHITE_SPACE = "".join(
         + (0x2028, 0x2029, 0x202F, 0x205F, 0x3000),
     )
 )
-S3_MAX_PROMPT_ROWS = 8192
-S3_DEFAULT_MAX_NEW_TOKENS = 2048
-S3_PREFILL_CHUNK_SIZE = 128
-S3_MAX_DEFAULT_DEVICES = 4
+DRAMA3_MAX_PROMPT_ROWS = 8192
+DRAMA3_DEFAULT_MAX_NEW_TOKENS = 2048
+DRAMA3_PREFILL_CHUNK_SIZE = 128
+DRAMA3_MAX_DEFAULT_DEVICES = 4
 # CUDA-graph decode: caches hold the largest default request, with one graph per
 # attended cache length; a step replays the smallest bucket covering its position.
-S3_GRAPH_CAPACITY = S3_MAX_PROMPT_ROWS + S3_DEFAULT_MAX_NEW_TOKENS
-S3_GRAPH_KV_BUCKETS = (1024, 2048, 4096, S3_GRAPH_CAPACITY)
+DRAMA3_GRAPH_CAPACITY = DRAMA3_MAX_PROMPT_ROWS + DRAMA3_DEFAULT_MAX_NEW_TOKENS
+DRAMA3_GRAPH_KV_BUCKETS = (1024, 2048, 4096, DRAMA3_GRAPH_CAPACITY)
 
 FinishReason = Literal["eos", "length"]
 
 
-class S3PromptTooLongError(InvalidInputError):
-    """The prompt has more than S3_MAX_PROMPT_ROWS rows."""
+class Drama3PromptTooLongError(InvalidInputError):
+    """The prompt has more than DRAMA3_MAX_PROMPT_ROWS rows."""
 
 
-def validate_s3_text(text: str, location: str) -> None:
+def validate_drama3_text(text: str, location: str) -> None:
     """Non-empty, no structural tokens, and only canonical speaker tags 0..15."""
     if not text.strip(UNICODE_WHITE_SPACE):
         raise InvalidInputError(f"{location}: text must not be empty")
-    for token in S3_STRUCTURAL_TOKENS:
+    for token in DRAMA3_STRUCTURAL_TOKENS:
         if token in text:
             raise InvalidInputError(
                 f"{location}: {token} is written by the prompt builder"
@@ -91,7 +91,7 @@ def with_speaker_tag(text: str) -> str:
     return text
 
 
-def build_s3_prompt(
+def build_drama3_prompt(
     text: str,
     tokenizer: Tokenizer,
     config: FishOmniConfig,
@@ -117,7 +117,7 @@ def build_s3_prompt(
             raise ValueError(f"tokenizer/config mismatch for {token}")
     if len(prompt_texts) != len(prompt_tokens):
         raise InvalidInputError("every reference needs both a transcript and codes")
-    validate_s3_text(text, "text")
+    validate_drama3_text(text, "text")
 
     def check_codes(codes: torch.Tensor, location: str) -> None:
         if (
@@ -138,12 +138,12 @@ def build_s3_prompt(
 
     segments: list[str | torch.Tensor] = [
         "<|im_start|>system\n",
-        S3_REFERENCE_INSTRUCTION if prompt_tokens else S3_TTS_INSTRUCTION,
+        DRAMA3_REFERENCE_INSTRUCTION if prompt_tokens else DRAMA3_TTS_INSTRUCTION,
     ]
 
     for index, (transcript, codes) in enumerate(zip(prompt_texts, prompt_tokens), 1):
         location = f"reference {index}"
-        validate_s3_text(transcript, location)
+        validate_drama3_text(transcript, location)
         check_codes(codes, location)
         # The tag must follow "Text: " directly; leading white space moves behind it.
         tagged = with_speaker_tag(transcript)
@@ -152,24 +152,24 @@ def build_s3_prompt(
         leading = tagged[: len(tagged) - len(body)]
         transcript = tag.group(0) + leading + body[tag.end() :]
         segments += [f"\n\n[Reference {index}]\nText: {transcript}\nSpeech: ", codes]
-    segments.append(S3_MESSAGE_END)
+    segments.append(DRAMA3_MESSAGE_END)
     for index, (turn_text, codes) in enumerate(history, 1):
         location = f"history {index}"
-        validate_s3_text(turn_text, location)
+        validate_drama3_text(turn_text, location)
         check_codes(codes, location)
         segments += [
             "<|im_start|>user\n",
             with_speaker_tag(turn_text),
-            S3_MESSAGE_END,
-            S3_GENERATION_START,
+            DRAMA3_MESSAGE_END,
+            DRAMA3_GENERATION_START,
             codes,
-            S3_MESSAGE_END,
+            DRAMA3_MESSAGE_END,
         ]
     segments += [
         "<|im_start|>user\n",
         with_speaker_tag(text),
-        S3_MESSAGE_END,
-        S3_GENERATION_START,
+        DRAMA3_MESSAGE_END,
+        DRAMA3_GENERATION_START,
     ]
 
     rows = []
@@ -184,15 +184,15 @@ def build_s3_prompt(
             main = codes[:1] + config.semantic_start_token_id
             rows.append(torch.cat((main, codes)).T)
     rows = torch.cat(rows)
-    if len(rows) > S3_MAX_PROMPT_ROWS:
-        raise S3PromptTooLongError(
-            f"prompt has {len(rows)} rows; at most {S3_MAX_PROMPT_ROWS}"
+    if len(rows) > DRAMA3_MAX_PROMPT_ROWS:
+        raise Drama3PromptTooLongError(
+            f"prompt has {len(rows)} rows; at most {DRAMA3_MAX_PROMPT_ROWS}"
         )
     return rows
 
 
 @torch.inference_mode()
-def generate_s3(
+def generate_drama3(
     model: FishOmniModel,
     prompt: torch.Tensor,
     *,
@@ -200,7 +200,7 @@ def generate_s3(
     temperature: float = DEFAULT_TEMPERATURE,
     top_k: int = DEFAULT_TOP_K,
     top_p: float = DEFAULT_TOP_P,
-    prefill_chunk_size: int = S3_PREFILL_CHUNK_SIZE,
+    prefill_chunk_size: int = DRAMA3_PREFILL_CHUNK_SIZE,
 ) -> tuple[torch.Tensor, FinishReason]:
     """Sample frames after the prompt rows; returns CPU [frames, 1 + N] without EOS.
 
@@ -219,9 +219,9 @@ def generate_s3(
             f"max_new_tokens={max_new_tokens} does not fit after {prompt_rows} "
             "prompt rows"
         )
-    graphs = S3DecodeGraphs.for_model(model, capacity)
+    graphs = Drama3DecodeGraphs.for_model(model, capacity)
     if graphs is None:
-        ensure_s3_caches(model, capacity)
+        ensure_drama3_caches(model, capacity)
     frames = torch.zeros(
         (capacity, prompt.shape[1]), dtype=torch.long, device=tower.device
     )
@@ -246,7 +246,7 @@ def generate_s3(
                 frames[start + 1 : paired_end + 1],
             )
     logger.info(
-        f"S3 prefill: {prompt_rows} rows in {time.perf_counter() - started:.2f}s"
+        f"Drama 3 prefill: {prompt_rows} rows in {time.perf_counter() - started:.2f}s"
     )
 
     hidden = hidden[-1:]
@@ -286,7 +286,7 @@ def generate_s3(
     return frames[prompt_rows : prompt_rows + produced].cpu(), finish_reason
 
 
-def ensure_s3_caches(model: FishOmniModel, capacity: int) -> None:
+def ensure_drama3_caches(model: FishOmniModel, capacity: int) -> None:
     """Grow the backbone and tower caches to capacity rows, reused across requests.
 
     Stale rows past a request's positions are masked out.
@@ -302,11 +302,11 @@ def ensure_s3_caches(model: FishOmniModel, capacity: int) -> None:
     model.cache_capacity = capacity
 
 
-class S3DecodeGraphs:
+class Drama3DecodeGraphs:
     """CUDA graphs of one decode step: lm_head -> tower (sample a frame) -> backbone.
 
     Eager decode is bound by kernel launches (thousands of small kernels per step).
-    Captured once for a model on a single CUDA device; FISH_S3_CUDA_GRAPH=0 disables.
+    Captured once for a model on a single CUDA device; FISH_DRAMA3_CUDA_GRAPH=0 disables.
     """
 
     def __init__(self, model: FishOmniModel) -> None:
@@ -330,16 +330,16 @@ class S3DecodeGraphs:
         self.graphs: dict[int, torch.cuda.CUDAGraph] = {}
         self.pool = torch.cuda.graph_pool_handle()
         capacity = self.graph_capacity(model)
-        self.buckets = tuple(sorted({min(b, capacity) for b in S3_GRAPH_KV_BUCKETS}))
+        self.buckets = tuple(sorted({min(b, capacity) for b in DRAMA3_GRAPH_KV_BUCKETS}))
 
     @staticmethod
     def graph_capacity(model: FishOmniModel) -> int:
-        return min(S3_GRAPH_CAPACITY, model.config.text.max_position_embeddings)
+        return min(DRAMA3_GRAPH_CAPACITY, model.config.text.max_position_embeddings)
 
     @classmethod
-    def for_model(cls, model: FishOmniModel, capacity: int) -> "S3DecodeGraphs | None":
+    def for_model(cls, model: FishOmniModel, capacity: int) -> "Drama3DecodeGraphs | None":
         """The model's graphs (captured on first use), or None to decode eagerly."""
-        if os.environ.get("FISH_S3_CUDA_GRAPH", "1") == "0":
+        if os.environ.get("FISH_DRAMA3_CUDA_GRAPH", "1") == "0":
             return None
         if capacity > cls.graph_capacity(model):
             return None
@@ -349,14 +349,14 @@ class S3DecodeGraphs:
             return None
         if model.decode_graphs is None:
             # Captured before the first request's prefill, which resets the caches.
-            ensure_s3_caches(model, cls.graph_capacity(model))
+            ensure_drama3_caches(model, cls.graph_capacity(model))
             graphs = cls(model)
             started = time.perf_counter()
             with torch.cuda.device(model.audio_decoder.device):
                 for kv_len in graphs.buckets:
                     graphs.capture(kv_len)
             logger.info(
-                f"S3 decode CUDA graphs: kv buckets {graphs.buckets} captured in "
+                f"Drama 3 decode CUDA graphs: kv buckets {graphs.buckets} captured in "
                 f"{time.perf_counter() - started:.1f}s"
             )
             model.decode_graphs = graphs
@@ -451,7 +451,7 @@ class S3DecodeGraphs:
         return sampled, main
 
 
-def resolve_s3_devices(device: str) -> tuple[list[str], str]:
+def resolve_drama3_devices(device: str) -> tuple[list[str], str]:
     """Split "cuda:0,cuda:1,..." into backbone devices and the tower (+ codec) device.
 
     The last device holds the tower; a single device holds everything. Plain "cuda"
@@ -461,9 +461,9 @@ def resolve_s3_devices(device: str) -> tuple[list[str], str]:
     if not specs:
         raise ValueError("no device given")
     if len(specs) == 1 and specs[0] == "cuda":
-        count = min(torch.cuda.device_count(), S3_MAX_DEFAULT_DEVICES)
+        count = min(torch.cuda.device_count(), DRAMA3_MAX_DEFAULT_DEVICES)
         if count == 0:
-            raise RuntimeError("S3 inference needs CUDA, but no GPU is visible")
+            raise RuntimeError("Drama 3 inference needs CUDA, but no GPU is visible")
         specs = [f"cuda:{index}" for index in range(count)]
     for spec in specs:
         parsed = torch.device(spec)
@@ -472,7 +472,7 @@ def resolve_s3_devices(device: str) -> tuple[list[str], str]:
             or parsed.index is None
             or parsed.index >= torch.cuda.device_count()
         ):
-            raise ValueError(f"S3 needs available cuda:N devices; got {spec!r}")
+            raise ValueError(f"Drama 3 needs available cuda:N devices; got {spec!r}")
     if len(set(specs)) != len(specs):
         raise ValueError(f"duplicate devices in {device!r}")
     if len(specs) == 1:
@@ -480,15 +480,15 @@ def resolve_s3_devices(device: str) -> tuple[list[str], str]:
     return specs[:-1], specs[-1]
 
 
-def resolve_s3_dtype(precision: torch.dtype, devices: list[str]) -> torch.dtype:
-    """bfloat16 needs SM80+; on older GPUs (V100) S3 runs in float16 instead."""
+def resolve_drama3_dtype(precision: torch.dtype, devices: list[str]) -> torch.dtype:
+    """bfloat16 needs SM80+; on older GPUs (V100) Drama 3 runs in float16 instead."""
     if precision not in (torch.float16, torch.bfloat16):
-        raise ValueError(f"S3 runs in float16 or bfloat16; got {precision}")
+        raise ValueError(f"Drama 3 runs in float16 or bfloat16; got {precision}")
     if precision == torch.bfloat16 and any(
         torch.cuda.get_device_capability(device) < (8, 0) for device in devices
     ):
         logger.warning(
-            "bfloat16 needs SM80+; running S3 in float16 with an fp32 residual stream"
+            "bfloat16 needs SM80+; running Drama 3 in float16 with an fp32 residual stream"
         )
         return torch.float16
     return precision

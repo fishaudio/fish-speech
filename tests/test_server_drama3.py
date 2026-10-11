@@ -14,7 +14,7 @@ from fish_speech.inference_engine import SAMPLING_DEFAULTS, TTSInferenceEngine
 from fish_speech.inference_engine.utils import InferenceResult
 from fish_speech.models.text2semantic import inference
 from fish_speech.models.text2semantic.errors import InvalidInputError
-from fish_speech.models.text2semantic.fish_omni.generate import S3PromptTooLongError
+from fish_speech.models.text2semantic.fish_omni.generate import Drama3PromptTooLongError
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 from tools.server.api_utils import encode_audio, inference_async
 from tools.server.inference import inference_wrapper
@@ -55,7 +55,7 @@ def make_engine(family: str) -> TTSInferenceEngine:
 class SamplingDefaultsTest(unittest.TestCase):
     def test_unset_fields_take_the_family_defaults(self):
         req = ServeTTSRequest(text="hi")
-        for family in ("s2", "s3"):
+        for family in ("s2", "drama3"):
             params = make_engine(family).resolve_sampling(req)
             self.assertEqual(params, SAMPLING_DEFAULTS[family])
         # The official Fish Audio SDK's defaults, for both families.
@@ -67,18 +67,18 @@ class SamplingDefaultsTest(unittest.TestCase):
             temperature=0.7,
         )
         self.assertEqual(make_engine("s2").resolve_sampling(req), sdk)
-        self.assertEqual(make_engine("s3").resolve_sampling(req), sdk)
+        self.assertEqual(make_engine("drama3").resolve_sampling(req), sdk)
 
     def test_defaults_for_clients(self):
         self.assertEqual(
-            make_engine("s3").sampling_defaults(),
-            {"model_family": "s3", "chunk_length": 200, **SAMPLING_DEFAULTS["s3"]},
+            make_engine("drama3").sampling_defaults(),
+            {"model_family": "drama3", "chunk_length": 200, **SAMPLING_DEFAULTS["drama3"]},
         )
         self.assertEqual(make_engine("s2").sampling_defaults()["model_family"], "s2")
 
     def test_explicit_fields_win(self):
         req = ServeTTSRequest(text="hi", max_new_tokens=64, top_p=0.5, temperature=0.3)
-        params = make_engine("s3").resolve_sampling(req)
+        params = make_engine("drama3").resolve_sampling(req)
         self.assertEqual(
             (params["max_new_tokens"], params["top_p"], params["temperature"]),
             (64, 0.5, 0.3),
@@ -87,18 +87,18 @@ class SamplingDefaultsTest(unittest.TestCase):
 
     def test_warns_that_repetition_penalty_is_ignored(self):
         with patch("fish_speech.inference_engine.logger") as log:
-            for family in ("s3", "s2"):
+            for family in ("drama3", "s2"):
                 make_engine(family).resolve_sampling(
                     ServeTTSRequest(text="hi", repetition_penalty=1.3)
                 )
             # The SDK sends its default, 1.2, with every request.
-            make_engine("s3").resolve_sampling(
+            make_engine("drama3").resolve_sampling(
                 ServeTTSRequest(text="hi", repetition_penalty=1.2)
             )
         self.assertEqual(log.warning.call_count, 2)
 
     def test_request_is_forwarded_with_resolved_sampling(self):
-        engine = make_engine("s3")
+        engine = make_engine("drama3")
         engine.send_Llama_request(ServeTTSRequest(text="hi"), [], [])
         sent = engine.llama_queue.get_nowait().request
         self.assertEqual(sent["temperature"], 0.7)
@@ -131,17 +131,17 @@ class ReferenceSpeakerTest(unittest.TestCase):
     def test_speaker_tags_untagged_transcripts(self):
         req = ServeTTSRequest(text="hi", references=self.references())
         self.assertEqual(
-            self.load_texts("s3", req),
+            self.load_texts("drama3", req),
             ["<|speaker:2|>  Hello.", "<|speaker:5|> Hi.", "Plain."],
         )
         self.assertEqual(
             self.load_texts("s2", req),
             ["<|speaker:2|> Hello.", "<|speaker:5|> Hi.", "Plain."],
         )
-        self.assertEqual(self.load_texts("s3", ServeTTSRequest(text="hi")), [])
+        self.assertEqual(self.load_texts("drama3", ServeTTSRequest(text="hi")), [])
 
     def test_cached_audio_uses_the_current_transcript(self):
-        engine = make_engine("s3")
+        engine = make_engine("drama3")
         codes = torch.zeros(2, 3)
         with patch.object(engine, "encode_reference", return_value=codes) as encode:
             for text, speaker in (("Old.", None), ("New.", 3)):
@@ -187,7 +187,7 @@ class ErrorMappingTest(unittest.TestCase):
             ),
             400,
         )
-        self.assertEqual(self.status_code_for(S3PromptTooLongError("too long")), 400)
+        self.assertEqual(self.status_code_for(Drama3PromptTooLongError("too long")), 400)
         # Other ValueErrors are internal failures, not the client's fault.
         self.assertEqual(
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
@@ -197,7 +197,7 @@ class ErrorMappingTest(unittest.TestCase):
 
 class StreamingTest(unittest.TestCase):
     def test_stream_is_a_wav_file(self):
-        engine = make_engine("s3")
+        engine = make_engine("drama3")
         segments = [np.full(3, 0.5, np.float32), np.array([1.0, -1.0], np.float32)]
         replies = queue.Queue()
         for _ in segments:

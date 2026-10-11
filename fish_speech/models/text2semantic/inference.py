@@ -28,18 +28,18 @@ from fish_speech.content_sequence import (
 from fish_speech.conversation import Conversation, Message
 from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.chunking import (
-    S3_CHUNK_MAX_NEW_TOKENS,
-    S3History,
-    split_s3_text,
+    DRAMA3_CHUNK_MAX_NEW_TOKENS,
+    Drama3History,
+    split_drama3_text,
 )
 from fish_speech.models.text2semantic.fish_omni.generate import (
-    S3_DEFAULT_MAX_NEW_TOKENS,
-    S3DecodeGraphs,
-    S3PromptTooLongError,
-    build_s3_prompt,
-    generate_s3,
-    resolve_s3_devices,
-    resolve_s3_dtype,
+    DRAMA3_DEFAULT_MAX_NEW_TOKENS,
+    Drama3DecodeGraphs,
+    Drama3PromptTooLongError,
+    build_drama3_prompt,
+    generate_drama3,
+    resolve_drama3_devices,
+    resolve_drama3_dtype,
 )
 from fish_speech.models.text2semantic.fish_omni.model import (
     FishOmniModel,
@@ -427,11 +427,11 @@ def generate(
 def init_model(checkpoint_path, device, precision, compile=False):
     if is_fish_omni_checkpoint(checkpoint_path):
         if compile:
-            raise ValueError("--compile is not supported for S3 checkpoints")
-        devices, tower_device = resolve_s3_devices(device)
-        dtype = resolve_s3_dtype(precision, [*devices, tower_device])
+            raise ValueError("--compile is not supported for Drama 3 checkpoints")
+        devices, tower_device = resolve_drama3_devices(device)
+        dtype = resolve_drama3_dtype(precision, [*devices, tower_device])
         logger.info(
-            f"Using FishOmniModel (S3): backbone on {devices}, "
+            f"Using FishOmniModel (Drama 3): backbone on {devices}, "
             f"tower on {tower_device}, {dtype}"
         )
         model = FishOmniModel.from_pretrained(
@@ -472,7 +472,7 @@ def resolve_codec_path(
 ) -> Path:
     """codec_path, else <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth.
 
-    S3 uses the S2-Pro codec, and fine-tuned S2-Pro directories may not carry one.
+    Drama 3 uses the S2-Pro codec, and fine-tuned S2-Pro directories may not carry one.
     """
     if codec_path is not None:
         codec_path = Path(codec_path)
@@ -662,7 +662,7 @@ def generate_long(
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
 
     if isinstance(model, FishOmniModel):
-        yield from generate_long_s3(
+        yield from generate_long_drama3(
             model=model,
             text=text,
             num_samples=num_samples,
@@ -876,7 +876,7 @@ def generate_long(
         yield GenerateResponse(action="next")
 
 
-def generate_long_s3(
+def generate_long_drama3(
     *,
     model: FishOmniModel,
     text: str,
@@ -889,9 +889,9 @@ def generate_long_s3(
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
 ) -> Iterator[GenerateResponse]:
-    """S3 counterpart of generate_long, chunked like the hosted server.
+    """Drama 3 counterpart of generate_long, chunked like the hosted server.
 
-    The text is split by split_s3_text and the chunks are generated one after
+    The text is split by split_drama3_text and the chunks are generated one after
     another, each yielded as soon as it is done; the first chunk and the latest one
     go back into the next prompt as history. single_chunk generates the whole text
     in one pass instead. max_new_tokens <= 0 means 600 frames per chunk (2048 with
@@ -902,13 +902,13 @@ def generate_long_s3(
         prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
     prompt_text = list(prompt_text or [])
     prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
-    chunks = [text] if single_chunk else split_s3_text(text) or [text]
+    chunks = [text] if single_chunk else split_drama3_text(text) or [text]
     # Reject bad text in any chunk before generating: failing at a later chunk
     # would waste the earlier ones, and cut a stream short after it started.
-    capacity = S3DecodeGraphs.graph_capacity(model)
+    capacity = Drama3DecodeGraphs.graph_capacity(model)
     for chunk in chunks:
         rows = len(
-            build_s3_prompt(
+            build_drama3_prompt(
                 chunk, model.tokenizer, model.config, prompt_text, prompt_tokens
             )
         )
@@ -917,19 +917,19 @@ def generate_long_s3(
     requested = max_new_tokens
     if requested <= 0:
         requested = (
-            S3_DEFAULT_MAX_NEW_TOKENS if single_chunk else S3_CHUNK_MAX_NEW_TOKENS
+            DRAMA3_DEFAULT_MAX_NEW_TOKENS if single_chunk else DRAMA3_CHUNK_MAX_NEW_TOKENS
         )
     logger.info(
-        f"S3: {len(chunks)} chunk(s), {len(prompt_tokens)} reference(s), "
+        f"Drama 3: {len(chunks)} chunk(s), {len(prompt_tokens)} reference(s), "
         f"max_new_tokens={requested} per chunk"
     )
     devices = {p.device for p in model.backbone.parameters()} | {model.device}
     devices = sorted((d for d in devices if d.type == "cuda"), key=str)
 
     for sample_idx in range(num_samples):
-        history = S3History()
+        history = Drama3History()
         for chunk_idx, chunk in enumerate(chunks):
-            prompt = build_s3_chunk_prompt(
+            prompt = build_drama3_chunk_prompt(
                 model, chunk, prompt_text, prompt_tokens, history
             )
             # The caches grow to fit a request and never shrink, and growing them
@@ -949,7 +949,7 @@ def generate_long_s3(
             for device in devices:
                 torch.cuda.reset_peak_memory_stats(device)
             t0 = time.perf_counter()
-            frames, finish_reason = generate_s3(
+            frames, finish_reason = generate_drama3(
                 model,
                 prompt,
                 max_new_tokens=budget,
@@ -981,18 +981,18 @@ def generate_long_s3(
         yield GenerateResponse(action="next")
 
 
-def build_s3_chunk_prompt(
+def build_drama3_chunk_prompt(
     model: FishOmniModel,
     text: str,
     prompt_text: list[str],
     prompt_tokens: list[torch.Tensor],
-    history: S3History,
+    history: Drama3History,
 ) -> torch.Tensor:
-    """The prompt for one chunk with as much history as fits S3_MAX_PROMPT_ROWS."""
+    """The prompt for one chunk with as much history as fits DRAMA3_MAX_PROMPT_ROWS."""
     error = None
     for turns in history.candidates():
         try:
-            return build_s3_prompt(
+            return build_drama3_prompt(
                 text,
                 model.tokenizer,
                 model.config,
@@ -1000,7 +1000,7 @@ def build_s3_chunk_prompt(
                 prompt_tokens,
                 history=turns,
             )
-        except S3PromptTooLongError as too_long:
+        except Drama3PromptTooLongError as too_long:
             error = too_long
     raise error
 
@@ -1032,7 +1032,7 @@ def launch_thread_safe_queue(
             model, decode_one_token = init_model(
                 checkpoint_path, device, precision, compile=compile
             )
-            # S3 sizes its caches per request (prompt rows + max_new_tokens).
+            # Drama 3 sizes its caches per request (prompt rows + max_new_tokens).
             if not isinstance(model, FishOmniModel):
                 with torch.device(device):
                     model.setup_caches(
@@ -1108,7 +1108,7 @@ def launch_thread_safe_queue(
     type=int,
     default=DEFAULT_MAX_NEW_TOKENS,
     help="Per text chunk; 0 means the model's own cap (S2-Pro: the context "
-    "length; S3: 600 per chunk, 2048 with --single-chunk).",
+    "length; Drama 3: 600 per chunk, 2048 with --single-chunk).",
 )
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
 @click.option("--top-k", type=int, default=DEFAULT_TOP_K)
@@ -1122,7 +1122,7 @@ def launch_thread_safe_queue(
     "--device",
     type=str,
     default="cuda",
-    help="S3 accepts a comma-separated list; the last device holds tower + codec.",
+    help="Drama 3 accepts a comma-separated list; the last device holds tower + codec.",
 )
 @click.option(
     "--codec-path",
@@ -1135,14 +1135,14 @@ def launch_thread_safe_queue(
 @click.option(
     "--half/--no-half",
     default=False,
-    help="float16 instead of bfloat16; S3 switches to float16 by itself before SM80.",
+    help="float16 instead of bfloat16; Drama 3 switches to float16 by itself before SM80.",
 )
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
 @click.option("--chunk-length", type=int, default=DEFAULT_CHUNK_LENGTH)
 @click.option(
     "--single-chunk/--no-single-chunk",
     default=False,
-    help="S3: generate the whole text in one pass instead of chunks.",
+    help="Drama 3: generate the whole text in one pass instead of chunks.",
 )
 @click.option("--output-dir", type=Path, default="output")
 def main(

@@ -22,16 +22,16 @@ Opciones comunes:
 * `--api-key`: requerir autenticación mediante bearer token
 * `--workers`: establecer la cantidad de procesos worker
 
-### Iniciar el servidor con S3-drama
+### Iniciar el servidor con Drama 3
 
 ```bash
 python tools/api_server.py \
-  --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+  --llama-checkpoint-path checkpoints/drama-3 \
   --listen 0.0.0.0:8080 \
   --device cuda:0
 ```
 
-El tipo de modelo se detecta a partir del checkpoint, así que cada request a este servidor usa S3-drama. S3-drama necesita una GPU NVIDIA y no admite `--compile`. Consulta [S3-drama](inference.md#s3-drama) para ver los requisitos de GPU y en qué se diferencian las requests respecto a S2-Pro.
+El tipo de modelo se detecta a partir del checkpoint, así que cada request a este servidor usa Drama 3. Drama 3 necesita una GPU NVIDIA y no admite `--compile`. Consulta [Drama 3](inference.md#drama-3) para ver los requisitos de GPU y en qué se diferencian las requests respecto a S2-Pro.
 
 ### Verificación de estado (health check)
 

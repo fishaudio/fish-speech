@@ -3,10 +3,10 @@ import unittest
 import torch
 
 from fish_speech.models.text2semantic.fish_omni.chunking import (
-    S3History,
+    Drama3History,
     parse_speaker_segments,
     split_by_length,
-    split_s3_text,
+    split_drama3_text,
     utf8_len,
 )
 
@@ -58,7 +58,7 @@ class SplitByLengthTest(unittest.TestCase):
         self.assertTrue(any("[laughing]" in chunk for chunk in chunks))
 
 
-class SplitS3TextTest(unittest.TestCase):
+class SplitDrama3TextTest(unittest.TestCase):
     def test_parse_speaker_segments(self) -> None:
         self.assertEqual(
             parse_speaker_segments("intro <|speaker:1|>Hi<|speaker:2|> Yo"),
@@ -71,7 +71,7 @@ class SplitS3TextTest(unittest.TestCase):
             "<|speaker:2|>C1<|speaker:3|>D1"
         )
         self.assertEqual(
-            split_s3_text(text, max_bytes=300, max_speakers=3),
+            split_drama3_text(text, max_bytes=300, max_speakers=3),
             [
                 "<|speaker:0|> A1\n<|speaker:1|> B1\n<|speaker:0|> A2\n<|speaker:2|> C1",
                 "<|speaker:3|> D1",
@@ -80,20 +80,20 @@ class SplitS3TextTest(unittest.TestCase):
 
     def test_long_segments_are_cut_and_keep_their_tag(self) -> None:
         long = "This sentence is long enough. " * 10
-        chunks = split_s3_text(f"<|speaker:0|>{long}<|speaker:0|>Short.", 100)
+        chunks = split_drama3_text(f"<|speaker:0|>{long}<|speaker:0|>Short.", 100)
         self.assertGreater(len(chunks), 2)
         segments = [segment for chunk in chunks for segment in chunk.split("\n")]
         self.assertTrue(all(s.startswith("<|speaker:0|> ") for s in segments))
         self.assertTrue(chunks[-1].endswith("Short."))
 
     def test_untagged_text_is_split_by_length(self) -> None:
-        self.assertEqual(split_s3_text("Hello."), ["Hello."])
-        self.assertEqual(split_s3_text("  "), [])
+        self.assertEqual(split_drama3_text("Hello."), ["Hello."])
+        self.assertEqual(split_drama3_text("  "), [])
 
 
-class S3HistoryTest(unittest.TestCase):
+class Drama3HistoryTest(unittest.TestCase):
     def test_pins_the_first_chunk_and_keeps_the_latest(self) -> None:
-        history = S3History(recent_turns=1)
+        history = Drama3History(recent_turns=1)
         self.assertEqual(list(history.candidates()), [[]])
         for index in range(3):
             history.push(f"chunk {index}", torch.full((2, 1), index))

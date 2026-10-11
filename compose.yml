@@ -11,7 +11,7 @@ services:
       COMPILE: ${COMPILE:-0}
       LLAMA_CHECKPOINT_PATH: ${LLAMA_CHECKPOINT_PATH:-checkpoints/s2-pro}
       DECODER_CHECKPOINT_PATH: ${DECODER_CHECKPOINT_PATH:-}
-      # e.g. cuda:0 to keep S3 on one GPU; unset uses up to four
+      # e.g. cuda:0 to keep Drama 3 on one GPU; unset uses up to four
       DEVICE: ${DEVICE:-}
     profiles: ["server"]
     ports:

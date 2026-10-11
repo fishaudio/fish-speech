@@ -71,7 +71,7 @@ type SamplingKey =
 
 // GET /v1/tts/defaults: what the loaded model uses for fields a request leaves out.
 type ServerDefaults = {
-  model_family: 's2' | 's3'
+  model_family: 's2' | 'drama3'
   chunk_length: number
   max_new_tokens: number
   temperature: number
@@ -362,7 +362,7 @@ function App() {
       .catch(() => {})
   }, [])
 
-  const isS3 = serverDefaults?.model_family === 's3'
+  const isDrama3 = serverDefaults?.model_family === 'drama3'
 
   function defaultState(key: SamplingKey) {
     return { isDefault: !customized.includes(key), defaultKnown: serverDefaults !== null }
@@ -1181,8 +1181,8 @@ function App() {
                   min={100}
                   max={1000}
                   {...defaultState('chunkLength')}
-                  disabled={isS3}
-                  hint={isS3 ? 'S3 splits long text itself.' : undefined}
+                  disabled={isDrama3}
+                  hint={isDrama3 ? 'Drama 3 splits long text itself.' : undefined}
                   onValueChange={(value) => setSampling('chunkLength', value)}
                 />
                 <SettingSlider
@@ -1222,7 +1222,7 @@ function App() {
                   step={0.01}
                   {...defaultState('repetitionPenalty')}
                   disabled
-                  hint="Ignored: S2-Pro and S3 use repetition-aware sampling."
+                  hint="Ignored: S2-Pro and Drama 3 use repetition-aware sampling."
                   formatValue={(value) => value.toFixed(2)}
                   onValueChange={(value) => setSampling('repetitionPenalty', value)}
                 />

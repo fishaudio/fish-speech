@@ -4,8 +4,8 @@ from loguru import logger
 from fish_speech.inference_engine import ModelFamily, TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
 from fish_speech.models.text2semantic.fish_omni.generate import (
-    resolve_s3_devices,
-    resolve_s3_dtype,
+    resolve_drama3_devices,
+    resolve_drama3_dtype,
 )
 from fish_speech.models.text2semantic.fish_omni.model import is_fish_omni_checkpoint
 from fish_speech.models.text2semantic.inference import (
@@ -18,7 +18,7 @@ from tools.server.inference import inference_wrapper as inference
 
 
 class ModelManager:
-    """Loads one TTS model (S2-Pro or multi-GPU-capable S3) plus the DAC codec."""
+    """Loads one TTS model (S2-Pro or multi-GPU-capable Drama 3) plus the DAC codec."""
 
     def __init__(
         self,
@@ -37,20 +37,20 @@ class ModelManager:
         self.compile = compile
         self.precision = torch.half if half else torch.bfloat16
         self.model_family: ModelFamily = (
-            "s3" if is_fish_omni_checkpoint(llama_checkpoint_path) else "s2"
+            "drama3" if is_fish_omni_checkpoint(llama_checkpoint_path) else "s2"
         )
 
         decoder_checkpoint_path = resolve_codec_path(
             llama_checkpoint_path, decoder_checkpoint_path
         )
 
-        if self.model_family == "s3":
+        if self.model_family == "drama3":
             # The codec lives with the tower (last device), in the model's dtype.
-            devices, tower_device = resolve_s3_devices(device)
-            self.precision = resolve_s3_dtype(self.precision, [*devices, tower_device])
+            devices, tower_device = resolve_drama3_devices(device)
+            self.precision = resolve_drama3_dtype(self.precision, [*devices, tower_device])
             self.device = tower_device
             logger.info(
-                f"S3 checkpoint: backbone on {devices}, tower + codec on "
+                f"Drama 3 checkpoint: backbone on {devices}, tower + codec on "
                 f"{tower_device}, {self.precision}"
             )
         elif torch.backends.mps.is_available():
@@ -60,10 +60,10 @@ class ModelManager:
             self.device = "cpu"
             logger.info("CUDA is not available, running on CPU.")
 
-        # Load the TTS models (S3 spreads over the full device list)
+        # Load the TTS models (Drama 3 spreads over the full device list)
         self.load_llama_model(
             llama_checkpoint_path,
-            device if self.model_family == "s3" else self.device,
+            device if self.model_family == "drama3" else self.device,
             self.precision,
             self.compile,
             self.mode,
@@ -100,7 +100,7 @@ class ModelManager:
         logger.info("LLAMA model loaded.")
 
     def load_decoder_model(self, config_name, checkpoint_path, device) -> None:
-        if self.model_family == "s3":
+        if self.model_family == "drama3":
             # Folds weight norm before the cast, which float16 (pre-SM80) needs.
             self.decoder_model = load_codec_model(
                 checkpoint_path, device, self.precision

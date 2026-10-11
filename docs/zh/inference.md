@@ -1,21 +1,25 @@
 # 推理
 
-Fish Audio S2 模型需要较大的显存，我们推荐您使用至少24GB的GPU进行推理。
+Fish Audio 提供两个模型：**S2-Pro** 和 **Drama 3**。两者共用同一套命令行和 API Server，模型类型由权重目录里的 `config.json` 自动识别，因此下面每一节都按「任务 → 两种模型的命令」组织。
 
-## 下载权重
+开始前请先完成[安装](install.md)，并下载好[模型权重](install.md#下载权重)。
 
-首先您需要下载模型权重：
+!!! warning "Drama 3 的运行限制"
+    Drama 3 只能在 NVIDIA GPU 上运行，不支持 CPU、Apple MPS 和 AMD ROCm，也不支持 `--compile`。显存需求见[系统要求](install.md#系统要求)。
 
-```bash
-hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
-```
+!!! note
+    V100 等 SM80 之前的显卡不支持 bfloat16，Drama 3 会自动改用 float16（残差流保持 fp32）。这条路径尚未在真实硬件上测试过；如果出现静音、噪声或 "non-finite logits" 报错，请提交 issue。
 
 ## 命令行推理
 
-!!! note
-    如果您计划让模型随机选择音色，可以跳过此步骤。
+### S2-Pro
 
-### 1. 从参考音频获取 VQ tokens
+S2-Pro 走「VQ tokens → Semantic tokens → 音频」三步流水线。
+
+!!! note
+    如果您计划让模型随机选择音色，可以跳过第 1 步。
+
+**1. 从参考音频获取 VQ tokens**
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -25,7 +29,7 @@ python fish_speech/models/dac/inference.py \
 
 您应该会得到一个 `fake.npy` 和一个 `fake.wav`。
 
-### 2. 从文本生成 Semantic tokens：
+**2. 从文本生成 Semantic tokens**
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -38,49 +42,28 @@ python fish_speech/models/text2semantic/inference.py \
 此命令将在工作目录中创建一个 `codes_N` 文件，其中 N 是从 0 开始的整数。
 
 !!! note
-    您可能希望使用 `--compile` 来融合 CUDA 内核以实现更快的推理，但是我们更推荐您使用我们sglang的推理加速优化。
+    您可能希望使用 `--compile` 来融合 CUDA 内核以实现更快的推理，但是我们更推荐您使用我们 sglang 的推理加速优化。
     相应地，如果您不计划使用加速，可以注释掉 `--compile` 参数。
 
 !!! info
     对于不支持 bf16 的 GPU，您可能需要使用 `--half` 参数。
 
-### 3. 从语义令牌生成声音：
+**3. 从语义令牌生成声音**
 
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy" \
 ```
 
-之后你会得到一个fake.wav文件。
+之后你会得到一个 `fake.wav` 文件。
 
-## S3-drama
+### Drama 3
 
-S3-drama 与 S2-Pro 共用同一套命令行和 API Server，模型类型会根据权重目录中的 `config.json` 自动识别。
-
-!!! warning
-    S3-drama 只能在 NVIDIA GPU 上运行，不支持 CPU、Apple MPS 和 AMD ROCm，也不支持 `--compile`。
-
-| GPU | 运行方式 | 显存 |
-| --- | --- | --- |
-| SM89 及以上（L40、H100、H20） | MoE 专家保持 FP8，使用 CUDA graph 解码，单卡运行 | 约 41 GB |
-| 较早的 GPU（V100、A100） | MoE 专家反量化后分布到多张卡上 | 合计约 70 GB |
-
-!!! note
-    V100 等 SM80 之前的显卡不支持 bfloat16，S3 会自动改用 float16（残差流保持 fp32）。这条路径尚未在真实硬件上测试过；如果出现静音、噪声或 "non-finite logits" 报错，请提交 issue。
-
-### 下载权重
-
-```bash
-hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
-```
-
-如果权重目录中没有 `codec.pth`，会改用 `checkpoints/s2-pro/codec.pth` 中的 S2-Pro codec。
-
-### 命令行推理
+Drama 3 一步到位，`--output` 直接写出解码后的音频：
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
-    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --checkpoint-path checkpoints/drama-3 \
     --text "您想要转换的文本" \
     --prompt-audio "reference.wav" \
     --prompt-text "您的参考文本" \
@@ -88,41 +71,93 @@ python fish_speech/models/text2semantic/inference.py \
     --device cuda:0
 ```
 
-`--output` 会直接写出解码后的音频。在较早的 GPU 上，可以指定多张卡，例如 `--device cuda:0,cuda:1,cuda:2,cuda:3`，最后一张卡负责音频解码器和 codec。只写 `--device cuda` 时，最多使用前四张可见的 GPU。
+在较早的 GPU 上可以指定多张卡，例如 `--device cuda:0,cuda:1,cuda:2,cuda:3`，最后一张卡负责音频解码器和 codec。只写 `--device cuda` 时，最多使用前四张可见的 GPU。
 
-### API Server
+## API Server
+
+### 启动 S2-Pro
 
 ```bash
 python tools/api_server.py \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --llama-checkpoint-path checkpoints/s2-pro \
+    --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \
+    --decoder-config-name modded_dac_vq
+```
+
+### 启动 Drama 3
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/drama-3 \
     --device cuda:0
 ```
 
-使用 Docker 时，用 server 镜像加载 S3 权重。在 SM89 及以上的显卡上，按下面的方式只暴露一张卡；较早的显卡请使用 `--gpus all`：
+!!! note
+    Drama 3 不支持 `--compile`；在较早的 GPU 上用 `--device` 列出多张卡，最后一张卡负责音频解码器和 codec。
+
+两个模型共用这些启动参数：
+
+- `--compile`：启用 `torch.compile` 优化（仅 S2-Pro）
+- `--half`：使用 fp16 模式
+- `--api-key`：要求 bearer token 鉴权
+- `--workers`：设置工作进程数
+
+健康检查：
 
 ```bash
-docker run --gpus device=0 \
-    -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
-    -p 8080:8080 \
-    fishaudio/fish-speech:server-cuda
+curl -X GET http://127.0.0.1:8080/v1/health
 ```
 
-使用 Docker Compose 时设置同样的环境变量；`DEVICE=cuda:0` 让 S3 只用一张卡，不设置则最多使用四张卡：
+返回 `{"status":"ok"}` 即表示服务正常。
+
+### 发送请求
+
+使用哪个模型取决于服务端启动时加载的权重，请求里没有单独的模型字段。
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
+python tools/api_client.py \
+    --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello from Fish Speech" \
+    --output demo
 ```
 
-### 与 S2-Pro 的区别
+常用参数：
 
-- 长文本会切成约 300 字节（UTF-8）、每块最多 3 个说话人的块，尽量在句末断开，再逐块依次生成；第一块和最近一块会作为上下文喂回模型，保持音色一致。默认每块最多生成 1024 帧（约 47 秒）。
-- 设置 `single_chunk`（命令行用 `--single-chunk`）可以整段一次生成，此时默认的 1024 帧上限作用于整段文本，长文本请调大 `max_new_tokens`，或设为 0 以使用 2048 帧（约 95 秒）。两种模式下，更大的 `max_new_tokens` 都会被限制在 10,240 帧减去 prompt 长度以内。
-- 支持 `<|speaker:0|>` 到 `<|speaker:15|>` 的说话人标签，没写标签的文本算作 speaker 0。要让不同说话人用各自的声音，请给每段参考音频设置 `speaker` 字段（`tools/api_client.py` 中为 `--reference_speaker`），它会给开头没有说话人标签的转写文本补上标签；也可以直接在转写文本开头写上对应的标签（例如 `<|speaker:1|>`）。参考音频的先后顺序并不决定它属于哪个说话人。
-- `chunk_length` 不起作用。`repetition_penalty` 为兼容而保留，但和 S2-Pro 一样不生效：两个模型都使用内置的重复感知采样。默认采样参数与 S2-Pro 相同，沿用官方 Fish Audio SDK：temperature 0.7、top-p 0.7、top-k 30。
-- 开启 `streaming` 时，音频按块依次返回。
-- `FISH_S3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_S3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。
+| 参数 | 说明 |
+| --- | --- |
+| `--reference_audio` / `--reference_text` | 参考音频与对应转写文本，两者数量必须一致 |
+| `--reference_speaker` | 每段参考音频的说话人 ID（0–15），会写成 `<\|speaker:N\|>` 前缀（Drama 3 的主要用法） |
+| `--reference_id` | 使用已保存的参考音色，例如 `my-speaker` |
+| `--format` | 输出格式：`wav`、`pcm`、`mp3`、`opus`，默认 `wav` |
+| `--streaming` | 流式返回音频 |
+| `--single_chunk` | 整段一次生成，不分块（仅 Drama 3） |
+| `--chunk_length` | 分块长度，默认 200（仅 S2-Pro） |
+| `--max_new_tokens` | 每块最多生成的帧数，留空用服务端默认 1024；设为 0 使用模型自身上限 |
+| `--temperature` / `--top_p` | 采样参数，留空使用模型默认（0.7 / 0.7） |
+| `--seed` | 固定随机种子（不能用来固定音色） |
+| `--api_key` | 服务端开启 `--api-key` 时必填 |
+
+!!! note
+    `repetition_penalty` 仅为兼容而保留，S2-Pro 和 Drama 3 都不使用它，两者都采用内置的重复感知采样。
+
+!!! tip
+    用 Docker 启动服务见 [Docker 设置](install.md#docker-设置)（server 镜像已内置 WebUI，容器起来后打开 `http://localhost:8080/ui`）。
+
+## 模型差异
+
+| 项目 | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| 硬件 | GPU / CPU | 仅 NVIDIA GPU，不支持 `--compile` |
+| 长文本 | 按 `chunk_length` 分块 | 自动按约 300 字节（UTF-8）、每块最多 3 个说话人切分，尽量在句末断开；第一块和最近一块回喂作为上下文 |
+| 单次长度上限 | 上下文长度 | 每块 1024 帧（约 47 秒）；`single_chunk` 整段生成时为 2048 帧（约 95 秒）；两者都被限制在 10,240 帧减去 prompt 长度以内 |
+| 说话人 | 参考音频的顺序决定角色 | `<\|speaker:0\|>`–`<\|speaker:15\|>` 标签决定角色，参考音频顺序无关 |
+| `chunk_length` | 生效 | 不起作用 |
+| 采样默认值 | temperature 0.7、top-p 0.7、top-k 30 | 同左 |
+| `repetition_penalty` | 忽略 | 忽略 |
+
+Drama 3 还有两个环境变量：`FISH_DRAMA3_FP8_EXPERTS=0` 或 `1` 可强制使用反量化或 FP8 专家，`FISH_DRAMA3_CUDA_GRAPH=0` 可关闭 CUDA graph 解码。
 
 ## WebUI 推理
 

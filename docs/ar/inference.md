@@ -53,12 +53,12 @@ python fish_speech/models/dac/inference.py \
 
 بعد ذلك ستحصل على ملف `fake.wav`.
 
-## S3-drama
+## Drama 3
 
-يستخدم S3-drama سطر الأوامر وخادم API نفسيهما المستخدمين مع S2-Pro، ويُحدَّد نوع النموذج تلقائيًا من ملف `config.json` في مجلد الأوزان.
+يستخدم Drama 3 سطر الأوامر وخادم API نفسيهما المستخدمين مع S2-Pro، ويُحدَّد نوع النموذج تلقائيًا من ملف `config.json` في مجلد الأوزان.
 
 !!! warning
-    يعمل S3-drama على وحدات معالجة الرسومات من NVIDIA فقط. لا يدعم وحدة المعالجة المركزية (CPU) ولا Apple MPS ولا AMD ROCm، كما لا يدعم `--compile`.
+    يعمل Drama 3 على وحدات معالجة الرسومات من NVIDIA فقط. لا يدعم وحدة المعالجة المركزية (CPU) ولا Apple MPS ولا AMD ROCm، كما لا يدعم `--compile`.
 
 | GPU | طريقة التشغيل | ذاكرة GPU |
 | --- | --- | --- |
@@ -66,12 +66,12 @@ python fish_speech/models/dac/inference.py \
 | وحدات أقدم (V100، A100) | يُلغى تكميم خبراء MoE وتُوزَّع على عدة وحدات GPU | نحو 70 GB إجمالًا |
 
 !!! note
-    لا تدعم V100 وغيرها من وحدات GPU الأقدم من SM80 صيغة bfloat16، لذلك يعمل S3 عليها بصيغة float16 (مع إبقاء التدفق المتبقي بصيغة fp32). لم يُختبر هذا المسار بعد على عتاد حقيقي؛ إذا ظهر صمت أو ضوضاء أو خطأ "non-finite logits" فيُرجى فتح issue.
+    لا تدعم V100 وغيرها من وحدات GPU الأقدم من SM80 صيغة bfloat16، لذلك يعمل Drama 3 عليها بصيغة float16 (مع إبقاء التدفق المتبقي بصيغة fp32). لم يُختبر هذا المسار بعد على عتاد حقيقي؛ إذا ظهر صمت أو ضوضاء أو خطأ "non-finite logits" فيُرجى فتح issue.
 
 ### تحميل الأوزان
 
 ```bash
-hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
 ```
 
 إذا لم يحتوِ مجلد الأوزان على `codec.pth`، فسيُستخدم مُرمِّز S2-Pro الموجود في `checkpoints/s2-pro/codec.pth`.
@@ -80,7 +80,7 @@ hf download fishaudio/s3-drama-it-fp8 --local-dir checkpoints/s3-drama-fp8
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
-    --checkpoint-path checkpoints/s3-drama-fp8 \
+    --checkpoint-path checkpoints/drama-3 \
     --text "النص الذي تريد تحويله" \
     --prompt-audio "reference.wav" \
     --prompt-text "النص المرجعي الخاص بك" \
@@ -95,24 +95,24 @@ python fish_speech/models/text2semantic/inference.py \
 ```bash
 python tools/api_server.py \
     --listen 0.0.0.0:8080 \
-    --llama-checkpoint-path checkpoints/s3-drama-fp8 \
+    --llama-checkpoint-path checkpoints/drama-3 \
     --device cuda:0
 ```
 
-مع Docker، شغِّل صورة الخادم مع أوزان S3. على البطاقات SM89 أو الأحدث، اعرض وحدة GPU واحدة فقط كما في المثال أدناه؛ وعلى البطاقات الأقدم استخدم `--gpus all`:
+مع Docker، شغِّل صورة الخادم مع أوزان Drama 3. على البطاقات SM89 أو الأحدث، اعرض وحدة GPU واحدة فقط كما في المثال أدناه؛ وعلى البطاقات الأقدم استخدم `--gpus all`:
 
 ```bash
 docker run --gpus device=0 \
     -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
     -p 8080:8080 \
     fishaudio/fish-speech:server-cuda
 ```
 
-مع Docker Compose، اضبط المتغيرات نفسها؛ يُبقي `DEVICE=cuda:0` نموذج S3 على وحدة GPU واحدة، وإن لم يُضبط فتُستخدم حتى أربع وحدات GPU:
+مع Docker Compose، اضبط المتغيرات نفسها؛ يُبقي `DEVICE=cuda:0` نموذج Drama 3 على وحدة GPU واحدة، وإن لم يُضبط فتُستخدم حتى أربع وحدات GPU:
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --profile server up
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
 ```
 
 ### الاختلافات عن S2-Pro
@@ -122,7 +122,7 @@ LLAMA_CHECKPOINT_PATH=checkpoints/s3-drama-fp8 DEVICE=cuda:0 docker compose --pr
 - تُقبل وسوم المتحدثين من `<|speaker:0|>` إلى `<|speaker:15|>`، ويُعدّ النص غير الموسوم للمتحدث 0. لإعطاء كل متحدث صوته الخاص، حدِّد الحقل `speaker` لكل تسجيل مرجعي (`--reference_speaker` في `tools/api_client.py`)، فيُضاف الوسم إلى النص الذي لا يبدأ بوسم متحدث، أو ابدأ النص بنفسك بوسم ذلك المتحدث (مثل `<|speaker:1|>`)؛ فترتيب التسجيلات المرجعية لا يحدد المتحدث.
 - لا تأثير للخيار `chunk_length`. ويُقبل `repetition_penalty` للتوافق لكنه يُتجاهل كما في S2-Pro، إذ يستخدم النموذجان أخذ عينات مدركًا للتكرار مدمجًا. تتبع إعدادات أخذ العينات الافتراضية حزمة SDK الرسمية من Fish Audio كما في S2-Pro: temperature 0.7 وtop-p 0.7 وtop-k 30.
 - عند تفعيل `streaming`، يُعاد الصوت مقطعًا تلو الآخر.
-- يفرض `FISH_S3_FP8_EXPERTS=0` أو `1` استخدام خبراء غير مكمَّمين أو بصيغة FP8، ويُعطِّل `FISH_S3_CUDA_GRAPH=0` فك الترميز باستخدام CUDA graphs.
+- يفرض `FISH_DRAMA3_FP8_EXPERTS=0` أو `1` استخدام خبراء غير مكمَّمين أو بصيغة FP8، ويُعطِّل `FISH_DRAMA3_CUDA_GRAPH=0` فك الترميز باستخدام CUDA graphs.
 
 ## استنتاج WebUI
 

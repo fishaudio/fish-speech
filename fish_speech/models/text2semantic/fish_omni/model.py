@@ -30,7 +30,7 @@ from fish_speech.models.text2semantic.fish_omni.tower import (
 )
 
 if TYPE_CHECKING:
-    from fish_speech.models.text2semantic.fish_omni.generate import S3DecodeGraphs
+    from fish_speech.models.text2semantic.fish_omni.generate import Drama3DecodeGraphs
 
 AUDIO_DECODER_PREFIXES = (
     "audio_decoder.",
@@ -40,7 +40,7 @@ AUDIO_DECODER_PREFIXES = (
 
 
 class FishOmniModel(nn.Module):
-    """S3 TTS model: backbone (over one or more devices) + codebook tower + tokenizer."""
+    """Drama 3 TTS model: backbone (over one or more devices) + codebook tower + tokenizer."""
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class FishOmniModel(nn.Module):
         self.tokenizer = tokenizer
         # Decode state reused across requests; managed by fish_omni.generate.
         self.cache_capacity = 0
-        self.decode_graphs: "S3DecodeGraphs | None" = None
+        self.decode_graphs: "Drama3DecodeGraphs | None" = None
 
     @property
     def dtype(self) -> torch.dtype:
@@ -79,13 +79,13 @@ class FishOmniModel(nn.Module):
         """Load backbone (spread over devices), tower and tokenizer.
 
         FP8 checkpoint experts stay FP8 when every backbone device is SM89+ and are
-        dequantized to dtype otherwise; env FISH_S3_FP8_EXPERTS=0/1 forces either way.
+        dequantized to dtype otherwise; env FISH_DRAMA3_FP8_EXPERTS=0/1 forces either way.
         """
         checkpoint_dir = Path(checkpoint_dir)
         with open(checkpoint_dir / "config.json", encoding="utf-8") as f:
             config = FishOmniConfig.from_dict(json.load(f))
         fp8_available = config.fp8_experts and fp8_gemm_supported(devices)
-        forced = os.environ.get("FISH_S3_FP8_EXPERTS", "").strip()
+        forced = os.environ.get("FISH_DRAMA3_FP8_EXPERTS", "").strip()
         fp8_experts = forced == "1" if forced in ("0", "1") else fp8_available
         if fp8_experts and not fp8_available:
             raise ValueError(

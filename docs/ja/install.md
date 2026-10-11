@@ -1,6 +1,6 @@
 ## 必要条件
 
-- GPUメモリ: S2-Pro の推論には 24GB。S3-drama は SM89 以降の GPU 1 枚で約 41 GB、それ以前の GPU では合計約 70 GB
+- GPUメモリ: S2-Pro の推論には 24GB。Drama 3 は SM89 以降の GPU 1 枚で約 41 GB、それ以前の GPU では合計約 70 GB
 - システム: Linux, WSL
 
 ## システムセットアップ
@@ -76,7 +76,7 @@ APIサーバーについて、GPU（デフォルトはCUDA 12.6）版とCPU版�
 
 - DockerとDocker Composeがインストール済みであること
 - NVIDIA Dockerランタイムがインストール済みであること（GPUサポート用）
-- CUDAによる推論のために、少なくとも24GBのGPUメモリがあること（S2-Pro の場合。S3-drama はさらに必要です。上記参照）
+- CUDAによる推論のために、少なくとも24GBのGPUメモリがあること（S2-Pro の場合。Drama 3 はさらに必要です。上記参照）
 
 ### Docker Composeの使用
 

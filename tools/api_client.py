@@ -100,18 +100,18 @@ def parse_args():
         default=None,
         help="Maximum new tokens to generate per text chunk. Unset uses the "
         "server's default, 1024; 0 means the model's own cap (S2-Pro: the context "
-        "length; S3: 600 per chunk, 2048 with --single_chunk).",
+        "length; Drama 3: 600 per chunk, 2048 with --single_chunk).",
     )
     parser.add_argument(
         "--single_chunk",
         action="store_true",
-        help="S3 only: generate the whole text in one pass instead of chunks",
+        help="Drama 3 only: generate the whole text in one pass instead of chunks",
     )
     parser.add_argument(
         "--chunk_length",
         type=int,
         default=200,
-        help="Chunk length for synthesis (S2-Pro only; S3 uses ~300-byte chunks)",
+        help="Chunk length for synthesis (S2-Pro only; Drama 3 uses ~300-byte chunks)",
     )
     parser.add_argument(
         "--top_p", type=float, default=None, help="Top-p sampling for synthesis"
@@ -120,7 +120,7 @@ def parse_args():
         "--repetition_penalty",
         type=float,
         default=None,
-        help="Accepted for compatibility; S2-Pro and S3 ignore it and use "
+        help="Accepted for compatibility; S2-Pro and Drama 3 ignore it and use "
         "repetition-aware sampling",
     )
     parser.add_argument(

@@ -29,7 +29,7 @@ from fish_speech.models.text2semantic.sampling import (
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
 
-ModelFamily = Literal["s2", "s3"]
+ModelFamily = Literal["s2", "drama3"]
 
 # Used for every sampling field a request leaves unset (None): the official Fish
 # Audio SDK's defaults, the same for both families. max_new_tokens applies to
@@ -43,7 +43,7 @@ _SDK_DEFAULTS = dict(
 )
 SAMPLING_DEFAULTS: dict[ModelFamily, dict[str, int | float]] = {
     "s2": dict(_SDK_DEFAULTS),
-    "s3": dict(_SDK_DEFAULTS),
+    "drama3": dict(_SDK_DEFAULTS),
 }
 
 
@@ -91,8 +91,8 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             text.lstrip(UNICODE_WHITE_SPACE)
         ):
             return text
-        # The models' own formats: S3 puts a space after the tag, S2-Pro does not.
-        separator = " " if self.model_family == "s3" else ""
+        # The models' own formats: Drama 3 puts a space after the tag, S2-Pro does not.
+        separator = " " if self.model_family == "drama3" else ""
         return f"<|speaker:{speaker}|>{separator}{text}"
 
     @torch.inference_mode()
@@ -244,7 +244,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         # about a value someone chose.
         if req.repetition_penalty not in (None, 1.0, DEFAULT_REPETITION_PENALTY):
             logger.warning(
-                "repetition_penalty is ignored: S2-Pro and S3 use repetition-aware "
+                "repetition_penalty is ignored: S2-Pro and Drama 3 use repetition-aware "
                 "sampling instead"
             )
         return params

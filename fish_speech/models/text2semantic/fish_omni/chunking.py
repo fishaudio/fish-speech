@@ -1,7 +1,7 @@
-"""Long-text chunking for S3, modeled on the hosted inference server.
+"""Long-text chunking for Drama 3, modeled on the hosted inference server.
 
-Text is cut into chunks of about S3_CHUNK_BYTES UTF-8 bytes with at most
-S3_CHUNK_MAX_SPEAKERS speakers, preferring sentence ends, then clause marks, then
+Text is cut into chunks of about DRAMA3_CHUNK_BYTES UTF-8 bytes with at most
+DRAMA3_CHUNK_MAX_SPEAKERS speakers, preferring sentence ends, then clause marks, then
 spaces. Each chunk is generated on its own; the first chunk and the latest one go
 back into the next prompt as user text plus assistant audio, which keeps the voice
 consistent across chunks.
@@ -19,13 +19,13 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
 )
 
 # A threshold, not a hard cap: a protected span longer than this stays whole.
-S3_CHUNK_BYTES = 300
-S3_CHUNK_MAX_SPEAKERS = 3
+DRAMA3_CHUNK_BYTES = 300
+DRAMA3_CHUNK_MAX_SPEAKERS = 3
 # Frames per chunk for max_new_tokens <= 0, about 27.9 s at 2048 samples per
 # frame and 44.1 kHz.
-S3_CHUNK_MAX_NEW_TOKENS = 600
+DRAMA3_CHUNK_MAX_NEW_TOKENS = 600
 # History besides the pinned first chunk.
-S3_HISTORY_RECENT_TURNS = 1
+DRAMA3_HISTORY_RECENT_TURNS = 1
 
 SENTENCE_ENDS = frozenset(".!?;。！？；…\n")
 CLAUSE_MARKS = frozenset(",:，：、")
@@ -103,7 +103,7 @@ def _break_by_length(pieces: list[Piece], length: int) -> list[Piece]:
     return out
 
 
-def split_by_length(text: str, length: int = S3_CHUNK_BYTES) -> list[str]:
+def split_by_length(text: str, length: int = DRAMA3_CHUNK_BYTES) -> list[str]:
     """Chunks of about length bytes, packed sentence by sentence.
 
     Text is cut at every sentence end; a sentence still longer than length is cut
@@ -143,10 +143,10 @@ def parse_speaker_segments(text: str) -> list[tuple[str, str]]:
     return segments
 
 
-def split_s3_text(
+def split_drama3_text(
     text: str,
-    max_bytes: int = S3_CHUNK_BYTES,
-    max_speakers: int = S3_CHUNK_MAX_SPEAKERS,
+    max_bytes: int = DRAMA3_CHUNK_BYTES,
+    max_speakers: int = DRAMA3_CHUNK_MAX_SPEAKERS,
 ) -> list[str]:
     """Generation chunks for text, in order.
 
@@ -181,11 +181,11 @@ def split_s3_text(
     return chunks
 
 
-class S3History:
+class Drama3History:
     """Context for the next chunk: the first chunk stays pinned, plus the latest
-    S3_HISTORY_RECENT_TURNS chunks."""
+    DRAMA3_HISTORY_RECENT_TURNS chunks."""
 
-    def __init__(self, recent_turns: int = S3_HISTORY_RECENT_TURNS) -> None:
+    def __init__(self, recent_turns: int = DRAMA3_HISTORY_RECENT_TURNS) -> None:
         self.pinned: HistoryTurn | None = None
         self.recent: deque[HistoryTurn] = deque(maxlen=recent_turns)
 

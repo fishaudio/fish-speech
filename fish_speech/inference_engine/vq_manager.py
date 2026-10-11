@@ -17,7 +17,7 @@ class VQManager:
         logger.info(f"VQ features: {codes.shape}")
 
         if isinstance(self.decoder_model, DAC):
-            # S3 hands over its codes on the CPU.
+            # Drama 3 hands over its codes on the CPU.
             codes = codes.to(self.decoder_model.device)
             return self.decoder_model.from_indices(codes[None])[0].squeeze()
 

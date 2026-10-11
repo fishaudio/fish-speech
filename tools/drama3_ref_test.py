@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ref-text", help="exact transcript of the reference audio")
     parser.add_argument("--text", "-t", action="append", help="text to synthesize")
     parser.add_argument("--repeat", type=int, default=1, help="requests per text")
-    parser.add_argument("--out-dir", "-o", default="outputs/s3_ref_test")
+    parser.add_argument("--out-dir", "-o", default="outputs/drama3_ref_test")
     parser.add_argument(
         "--format", default="wav", choices=["wav", "mp3", "opus", "pcm"]
     )

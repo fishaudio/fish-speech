@@ -50,7 +50,7 @@ class ServeReferenceAudio(BaseModel):
     text: str
     # The speaker this reference voices. A transcript that does not start with a
     # <|speaker:N|> tag gets this one; None keeps the model's default (S2-Pro: the
-    # reference's position, S3: speaker 0).
+    # reference's position, Drama 3: speaker 0).
     speaker: Annotated[int, Field(ge=0, le=15, strict=True)] | None = None
 
     @model_validator(mode="before")
@@ -76,7 +76,7 @@ class ServeReferenceAudio(BaseModel):
 class ServeTTSRequest(BaseModel):
     text: str
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
-    # S3 only: generate the whole text in one pass instead of ~300-byte chunks.
+    # Drama 3 only: generate the whole text in one pass instead of ~300-byte chunks.
     single_chunk: bool = False
     # Audio format
     format: Literal["wav", "pcm", "mp3", "opus"] = "wav"
@@ -97,7 +97,7 @@ class ServeTTSRequest(BaseModel):
     # Sampling: None takes the official Fish Audio SDK's default (max_new_tokens
     # 1024 per text chunk; top_p 0.7; repetition_penalty 1.2; temperature 0.7).
     # max_new_tokens <= 0 means the model's own cap (S2-Pro: the context length;
-    # S3: 600 frames per chunk, or 2048 with single_chunk). repetition_penalty is
+    # Drama 3: 600 frames per chunk, or 2048 with single_chunk). repetition_penalty is
     # accepted for compatibility and ignored: both models use repetition-aware
     # sampling.
     max_new_tokens: int | None = None

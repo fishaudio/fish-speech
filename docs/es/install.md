@@ -1,6 +1,6 @@
 ## Requisitos
 
-* Memoria GPU: 24GB para inferencia con S2-Pro; S3-drama necesita unos 41 GB en una GPU SM89 o posterior, o unos 70 GB en total en GPUs anteriores
+* Memoria GPU: 24GB para inferencia con S2-Pro; Drama 3 necesita unos 41 GB en una GPU SM89 o posterior, o unos 70 GB en total en GPUs anteriores
 * Sistema: Linux, WSL
 
 ## Configuración del sistema
@@ -77,7 +77,7 @@ Proporcionamos imágenes Docker para el servidor API en GPU (CUDA126 por defecto
 
 * Docker y Docker Compose instalados
 * Runtime de NVIDIA Docker (para soporte GPU)
-* Al menos 24GB de memoria GPU para inferencia con CUDA (S2-Pro; S3-drama necesita más, ver arriba)
+* Al menos 24GB de memoria GPU para inferencia con CUDA (S2-Pro; Drama 3 necesita más, ver arriba)
 
 # Usar docker compose
 

@@ -82,7 +82,7 @@ class TowerAttention(nn.Module):
         self.wo = nn.Linear(q_width, config.dim, **linear)
         # Always on, whatever audio_decoder_config.attention_qk_norm says: training runs
         # q/k norm in the audio decoder, but the exporter never writes that field, so
-        # released S3 configs carry its default false. Keep the (1 + weight) scale too:
+        # released Drama 3 configs carry its default false. Keep the (1 + weight) scale too:
         # exported weights are zero-centered, not pre-shifted by one.
         self.q_norm = ZeroCenteredRMSNorm(config.head_dim, config.norm_eps, **norm)
         self.k_norm = ZeroCenteredRMSNorm(config.head_dim, config.norm_eps, **norm)

@@ -13,17 +13,17 @@ from fish_speech.models.text2semantic import inference
 from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni import generate as generate_module
 from fish_speech.models.text2semantic.fish_omni.backbone import FishOmniBackbone
-from fish_speech.models.text2semantic.fish_omni.chunking import split_s3_text
+from fish_speech.models.text2semantic.fish_omni.chunking import split_drama3_text
 from fish_speech.models.text2semantic.fish_omni.config import (
     AudioDecoderConfig,
     FishOmniConfig,
     FishOmniTextConfig,
 )
 from fish_speech.models.text2semantic.fish_omni.generate import (
-    build_s3_prompt,
-    generate_s3,
-    resolve_s3_devices,
-    resolve_s3_dtype,
+    build_drama3_prompt,
+    generate_drama3,
+    resolve_drama3_devices,
+    resolve_drama3_dtype,
 )
 from fish_speech.models.text2semantic.fish_omni.layers import ZeroCenteredRMSNorm
 from fish_speech.models.text2semantic.fish_omni.model import (
@@ -126,10 +126,10 @@ def tiny_omni_model() -> FishOmniModel:
     return FishOmniModel(config, backbone, tower, RecordingTokenizer()).eval()
 
 
-class S3PromptTest(unittest.TestCase):
+class Drama3PromptTest(unittest.TestCase):
     def test_no_reference_literal_boundaries(self) -> None:
         tokenizer = RecordingTokenizer()
-        rows = build_s3_prompt("hello", tokenizer, tiny_omni_config())
+        rows = build_drama3_prompt("hello", tokenizer, tiny_omni_config())
         self.assertEqual(
             tokenizer.parts,
             [
@@ -148,7 +148,7 @@ class S3PromptTest(unittest.TestCase):
     def test_reference_codes_and_whitespace(self) -> None:
         tokenizer = RecordingTokenizer()
         codes = torch.tensor([[1, 2], [3, 4], [5, 6]])
-        rows = build_s3_prompt(
+        rows = build_drama3_prompt(
             "<|speaker:0|>hello",
             tokenizer,
             tiny_omni_config(),
@@ -172,7 +172,7 @@ class S3PromptTest(unittest.TestCase):
         tokenizer, config = RecordingTokenizer(), tiny_omni_config()
         codes = torch.tensor([[1], [2], [3]])
         text = "<|speaker:15|> hi\n<|speaker:0|> yes"
-        build_s3_prompt(
+        build_drama3_prompt(
             text,
             tokenizer,
             config,
@@ -186,7 +186,7 @@ class S3PromptTest(unittest.TestCase):
             "\n\n[Reference 1]\nText: <|speaker:2|>ref\nSpeech: ", tokenizer.parts
         )
         with self.assertRaisesRegex(ValueError, "history 1"):
-            build_s3_prompt(
+            build_drama3_prompt(
                 "hi", tokenizer, config, history=[("<|speaker:16|> no", codes)]
             )
 
@@ -195,10 +195,10 @@ class S3PromptTest(unittest.TestCase):
         script = "".join(
             f"<|speaker:{i % 5}|>Line {i} of the scene goes here. " for i in range(30)
         )
-        chunks = split_s3_text(script)
+        chunks = split_drama3_text(script)
         self.assertGreater(len(chunks), 1)
         for chunk in chunks:
-            build_s3_prompt(chunk, tokenizer, config)
+            build_drama3_prompt(chunk, tokenizer, config)
             self.assertLessEqual(len(set(re.findall(r"speaker:(\d+)", chunk))), 3)
 
     def test_invalid_text_codes_and_tokenizer(self) -> None:
@@ -212,19 +212,19 @@ class S3PromptTest(unittest.TestCase):
             "<|speaker:x|> hi",
         ):
             with self.assertRaises(ValueError):
-                build_s3_prompt(text, RecordingTokenizer(), config)
+                build_drama3_prompt(text, RecordingTokenizer(), config)
         for codes in (
             torch.zeros(2, 3, dtype=torch.long),
             torch.full((3, 2), 8),
             torch.zeros(3, 2),
         ):
             with self.assertRaises(ValueError):
-                build_s3_prompt("hi", RecordingTokenizer(), config, ["ref"], [codes])
+                build_drama3_prompt("hi", RecordingTokenizer(), config, ["ref"], [codes])
         with self.assertRaisesRegex(ValueError, "transcript and codes"):
-            build_s3_prompt("hi", RecordingTokenizer(), config, ["ref"], [])
+            build_drama3_prompt("hi", RecordingTokenizer(), config, ["ref"], [])
         config.eos_token_id = 1
         with self.assertRaisesRegex(ValueError, "tokenizer/config"):
-            build_s3_prompt("hello", RecordingTokenizer(), config)
+            build_drama3_prompt("hello", RecordingTokenizer(), config)
 
 
 class TowerTest(unittest.TestCase):
@@ -345,17 +345,17 @@ class FP32OutputLinearTest(unittest.TestCase):
         self.check_wide_output("cuda:0")
 
 
-class S3GenerationTest(unittest.TestCase):
+class Drama3GenerationTest(unittest.TestCase):
     def setUp(self) -> None:
         torch.manual_seed(8)
         self.model = tiny_omni_model()
 
     def test_chunked_prefill_matches_whole_prefill_and_resets_cache(self) -> None:
         with patch(SAMPLER, side_effect=greedy):
-            expected, reason = generate_s3(
+            expected, reason = generate_drama3(
                 self.model, PROMPT, max_new_tokens=4, prefill_chunk_size=128
             )
-            actual, other_reason = generate_s3(
+            actual, other_reason = generate_drama3(
                 self.model, PROMPT, max_new_tokens=4, prefill_chunk_size=1
             )
         torch.testing.assert_close(actual, expected)
@@ -367,8 +367,8 @@ class S3GenerationTest(unittest.TestCase):
         results = {}
         with patch(SAMPLER, side_effect=greedy):
             for mode in ("0", "1", "1"):
-                with patch.dict("os.environ", {"FISH_S3_CUDA_GRAPH": mode}):
-                    frames, reason = generate_s3(model, PROMPT, max_new_tokens=6)
+                with patch.dict("os.environ", {"FISH_DRAMA3_CUDA_GRAPH": mode}):
+                    frames, reason = generate_drama3(model, PROMPT, max_new_tokens=6)
                 results.setdefault(mode, []).append((frames, reason))
         self.assertIsNotNone(model.decode_graphs)
         expected, reason = results["0"][0]
@@ -382,12 +382,12 @@ class S3GenerationTest(unittest.TestCase):
         with patch.object(
             self.model.audio_decoder, "decode_step", return_value=eos_frame
         ) as step:
-            frames, reason = generate_s3(self.model, PROMPT, max_new_tokens=3)
+            frames, reason = generate_drama3(self.model, PROMPT, max_new_tokens=3)
         self.assertEqual((frames.shape, reason, step.call_count), ((0, 4), "eos", 1))
         self.assertEqual(step.call_args.args[2].item(), len(PROMPT) - 1)
 
     def test_tower_always_applies_zero_centered_qk_norm(self) -> None:
-        # Released S3 configs say attention_qk_norm=false, but training ran q/k norm
+        # Released Drama 3 configs say attention_qk_norm=false, but training ran q/k norm
         # scaled by (1 + weight); a plain RMSNorm or skipping it would both be wrong.
         norm = ZeroCenteredRMSNorm(4, 1e-6, dtype=torch.float32)
         with torch.no_grad():
@@ -409,7 +409,7 @@ class S3GenerationTest(unittest.TestCase):
             patch.object(q_norm, "forward", wraps=q_norm.forward) as q_call,
             patch.object(k_norm, "forward", wraps=k_norm.forward) as k_call,
         ):
-            generate_s3(self.model, PROMPT, max_new_tokens=1)
+            generate_drama3(self.model, PROMPT, max_new_tokens=1)
         self.assertTrue(q_call.called and k_call.called)
 
     def test_ras_resamples_repeated_audio_tokens_but_not_eos(self) -> None:
@@ -428,22 +428,22 @@ class S3GenerationTest(unittest.TestCase):
             return sample
 
         with patch(SAMPLER, side_effect=sampler(0)):  # first draw: eos
-            frames, reason = generate_s3(self.model, prompt, max_new_tokens=3)
+            frames, reason = generate_drama3(self.model, prompt, max_new_tokens=3)
         self.assertEqual((frames.shape, reason), ((0, 4), "eos"))
         with patch(SAMPLER, side_effect=sampler(3)):  # first draw: 34, a repeat
-            frames, reason = generate_s3(self.model, prompt, max_new_tokens=1)
+            frames, reason = generate_drama3(self.model, prompt, max_new_tokens=1)
         self.assertEqual((frames[0, 0].item(), reason), (36, "length"))
 
     def test_rejects_requests_beyond_the_context(self) -> None:
         with self.assertRaisesRegex(ValueError, "does not fit"):
-            generate_s3(self.model, PROMPT, max_new_tokens=128)
+            generate_drama3(self.model, PROMPT, max_new_tokens=128)
 
     def test_rejects_top_k_below_one(self) -> None:
         for top_k in (0, -1):
             with self.assertRaisesRegex(InvalidInputError, "top_k"):
-                generate_s3(self.model, PROMPT, max_new_tokens=1, top_k=top_k)
+                generate_drama3(self.model, PROMPT, max_new_tokens=1, top_k=top_k)
 
-    def test_generate_long_dispatches_to_s3(self) -> None:
+    def test_generate_long_dispatches_to_drama3(self) -> None:
         steps = [
             torch.tensor([[33, 1, 2, 3]]),
             torch.tensor([[35, 3, 4, 5]]),
@@ -474,11 +474,11 @@ class S3GenerationTest(unittest.TestCase):
         eos_frame = torch.tensor([[2, 0, 0, 0]])
         for capacity in (40, 1_000_000):  # graph capacity, then the 128-row context
             with (
-                patch.object(generate_module, "S3_GRAPH_CAPACITY", capacity),
+                patch.object(generate_module, "DRAMA3_GRAPH_CAPACITY", capacity),
                 patch.object(
                     self.model.audio_decoder, "decode_step", return_value=eos_frame
                 ),
-                patch.object(inference, "generate_s3", wraps=generate_s3) as run,
+                patch.object(inference, "generate_drama3", wraps=generate_drama3) as run,
             ):
                 list(
                     generate_long(
@@ -497,8 +497,8 @@ class S3GenerationTest(unittest.TestCase):
     def test_prompt_writes_history_as_completed_turns(self) -> None:
         tokenizer, config = self.model.tokenizer, self.model.config
         codes = torch.tensor([[1, 2], [3, 4], [5, 6]])
-        plain = build_s3_prompt("now", tokenizer, config)
-        prompt = build_s3_prompt("now", tokenizer, config, history=[("before", codes)])
+        plain = build_drama3_prompt("now", tokenizer, config)
+        prompt = build_drama3_prompt("now", tokenizer, config, history=[("before", codes)])
         self.assertEqual(
             tokenizer.parts[-9:],
             [
@@ -523,16 +523,16 @@ class S3GenerationTest(unittest.TestCase):
         kwargs.setdefault("max_new_tokens", 0)  # the per-chunk / single_chunk caps
         frame, eos = torch.tensor([[33, 1, 2, 3]]), torch.tensor([[2, 0, 0, 0]])
         with (
-            patch.object(inference, "split_s3_text", return_value=chunks) as split,
-            patch.object(inference, "S3_CHUNK_MAX_NEW_TOKENS", 7),
-            patch.object(inference, "S3_DEFAULT_MAX_NEW_TOKENS", 9),
+            patch.object(inference, "split_drama3_text", return_value=chunks) as split,
+            patch.object(inference, "DRAMA3_CHUNK_MAX_NEW_TOKENS", 7),
+            patch.object(inference, "DRAMA3_DEFAULT_MAX_NEW_TOKENS", 9),
             patch.object(
                 self.model.audio_decoder,
                 "decode_step",
                 side_effect=[frame, eos] * len(chunks),
             ),
-            patch.object(inference, "build_s3_prompt", wraps=build_s3_prompt) as build,
-            patch.object(inference, "generate_s3", wraps=generate_s3) as run,
+            patch.object(inference, "build_drama3_prompt", wraps=build_drama3_prompt) as build,
+            patch.object(inference, "generate_drama3", wraps=generate_drama3) as run,
         ):
             responses = list(
                 generate_long(
@@ -552,7 +552,7 @@ class S3GenerationTest(unittest.TestCase):
         budgets = [call.kwargs["max_new_tokens"] for call in run.call_args_list]
         return responses, histories, budgets
 
-    def test_generate_long_s3_chunks_with_history(self) -> None:
+    def test_generate_long_drama3_chunks_with_history(self) -> None:
         responses, histories, budgets = self.run_chunked(["one", "two", "three"])
         self.assertEqual([r.action for r in responses], ["sample"] * 3 + ["next"])
         self.assertEqual([r.text for r in responses[:3]], ["one", "two", "three"])
@@ -571,72 +571,72 @@ class S3GenerationTest(unittest.TestCase):
         self.assertEqual((histories, budgets), ([[]], [9]))
 
     def test_bad_text_in_a_later_chunk_fails_before_generating(self) -> None:
-        chunk_prompt = inference.build_s3_chunk_prompt
+        chunk_prompt = inference.build_drama3_chunk_prompt
         with patch.object(
-            inference, "build_s3_chunk_prompt", wraps=chunk_prompt
+            inference, "build_drama3_chunk_prompt", wraps=chunk_prompt
         ) as build:
             with self.assertRaisesRegex(InvalidInputError, "speaker tags"):
                 self.run_chunked(["fine", "<|speaker:16|> bad"])
         build.assert_not_called()
 
     def test_history_is_dropped_when_the_prompt_would_be_too_long(self) -> None:
-        rows = len(build_s3_prompt("x", self.model.tokenizer, self.model.config))
-        with patch.object(generate_module, "S3_MAX_PROMPT_ROWS", rows):
+        rows = len(build_drama3_prompt("x", self.model.tokenizer, self.model.config))
+        with patch.object(generate_module, "DRAMA3_MAX_PROMPT_ROWS", rows):
             responses, histories, _ = self.run_chunked(["one", "two"])
         self.assertEqual([r.action for r in responses], ["sample", "sample", "next"])
         self.assertEqual(histories, [[], ["one"], []])
 
 
-class S3DispatchTest(unittest.TestCase):
+class Drama3DispatchTest(unittest.TestCase):
     def test_device_layout(self) -> None:
         with patch("torch.cuda.device_count", return_value=8):
             self.assertEqual(
-                resolve_s3_devices("cuda"), (["cuda:0", "cuda:1", "cuda:2"], "cuda:3")
+                resolve_drama3_devices("cuda"), (["cuda:0", "cuda:1", "cuda:2"], "cuda:3")
             )
-            self.assertEqual(resolve_s3_devices("cuda:5"), (["cuda:5"], "cuda:5"))
+            self.assertEqual(resolve_drama3_devices("cuda:5"), (["cuda:5"], "cuda:5"))
             self.assertEqual(
-                resolve_s3_devices("cuda:4, cuda:6"), (["cuda:4"], "cuda:6")
+                resolve_drama3_devices("cuda:4, cuda:6"), (["cuda:4"], "cuda:6")
             )
             for bad in ("cpu", "cuda:8", "cuda:0,cuda:0"):
                 with self.assertRaises(ValueError):
-                    resolve_s3_devices(bad)
+                    resolve_drama3_devices(bad)
         with patch("torch.cuda.device_count", return_value=2):
-            self.assertEqual(resolve_s3_devices("cuda"), (["cuda:0"], "cuda:1"))
+            self.assertEqual(resolve_drama3_devices("cuda"), (["cuda:0"], "cuda:1"))
 
     def test_dtype_falls_back_to_float16_before_sm80(self) -> None:
         with patch("torch.cuda.get_device_capability", return_value=(7, 0)):
             self.assertEqual(
-                resolve_s3_dtype(torch.bfloat16, ["cuda:0"]), torch.float16
+                resolve_drama3_dtype(torch.bfloat16, ["cuda:0"]), torch.float16
             )
         with patch("torch.cuda.get_device_capability", return_value=(8, 0)):
             self.assertEqual(
-                resolve_s3_dtype(torch.bfloat16, ["cuda:0"]), torch.bfloat16
+                resolve_drama3_dtype(torch.bfloat16, ["cuda:0"]), torch.bfloat16
             )
         with self.assertRaises(ValueError):
-            resolve_s3_dtype(torch.float32, [])
+            resolve_drama3_dtype(torch.float32, [])
 
     def test_checkpoint_type_and_codec_path(self) -> None:
         with tempfile.TemporaryDirectory() as root:
-            s2, s3 = Path(root, "s2-pro"), Path(root, "s3-drama-fp8")
-            for path, model_type in ((s2, "fish_qwen3_omni"), (s3, "fish_omni")):
+            s2, drama3 = Path(root, "s2-pro"), Path(root, "drama-3")
+            for path, model_type in ((s2, "fish_qwen3_omni"), (drama3, "fish_omni")):
                 path.mkdir()
                 (path / "config.json").write_text(
                     json.dumps({"model_type": model_type})
                 )
             self.assertFalse(is_fish_omni_checkpoint(s2))
-            self.assertTrue(is_fish_omni_checkpoint(s3))
+            self.assertTrue(is_fish_omni_checkpoint(drama3))
             with self.assertRaises(FileNotFoundError):
-                resolve_codec_path(s3)
+                resolve_codec_path(drama3)
             (s2 / "codec.pth").write_bytes(b"")
-            self.assertEqual(resolve_codec_path(s3), s2 / "codec.pth")
+            self.assertEqual(resolve_codec_path(drama3), s2 / "codec.pth")
             self.assertEqual(resolve_codec_path(s2), s2 / "codec.pth")
-            self.assertEqual(resolve_codec_path(s3, s2 / "codec.pth"), s2 / "codec.pth")
+            self.assertEqual(resolve_codec_path(drama3, s2 / "codec.pth"), s2 / "codec.pth")
             # A fine-tuned S2-Pro directory without its own codec uses the sibling one.
             finetuned = Path(root, "my-s2-finetune")
             finetuned.mkdir()
             self.assertEqual(resolve_codec_path(finetuned), s2 / "codec.pth")
             with self.assertRaises(FileNotFoundError):
-                resolve_codec_path(s3, Path(root, "missing.pth"))
+                resolve_codec_path(drama3, Path(root, "missing.pth"))
 
     def test_init_model_loads_fish_omni(self) -> None:
         with tempfile.TemporaryDirectory() as root:
@@ -647,10 +647,10 @@ class S3DispatchTest(unittest.TestCase):
             with (
                 patch.object(
                     inference,
-                    "resolve_s3_devices",
+                    "resolve_drama3_devices",
                     return_value=(["cuda:0"], "cuda:1"),
                 ),
-                patch.object(inference, "resolve_s3_dtype", return_value=torch.float16),
+                patch.object(inference, "resolve_drama3_dtype", return_value=torch.float16),
                 patch.object(
                     FishOmniModel, "from_pretrained", return_value=sentinel
                 ) as load,

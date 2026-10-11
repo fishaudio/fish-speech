@@ -13,7 +13,7 @@
 #       -v ./checkpoints:/app/checkpoints \
 #       -p 8080:8080 fish-speech-server:rocm
 #
-# Only S2-Pro runs on ROCm; S3 checkpoints need CUDA.
+# Only S2-Pro runs on ROCm; Drama 3 checkpoints need CUDA.
 
 ARG ROCM_VERSION=7.2.3
 ARG BASE_IMAGE=rocm/pytorch:rocm${ROCM_VERSION}_ubuntu24.04_py3.12_pytorch_release_2.9.1
