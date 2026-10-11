@@ -1,21 +1,25 @@
 # Inference
 
-The Fish Audio S2 model requires a large amount of VRAM. We recommend using a GPU with at least 24GB for inference.
+Fish Audio ships two models: **S2-Pro** and **Drama 3**. They share the same command line and API server, and the model type is read from the checkpoint's `config.json`, so every section below is organized as "task → command for each model".
 
-## Download Weights
+Finish [Installation](install.md) and download the [model weights](install.md#download-weights) first.
 
-First, you need to download the model weights:
+!!! warning "Drama 3 runtime limits"
+    Drama 3 runs on NVIDIA GPUs only: CPU, Apple MPS and AMD ROCm are not supported, and neither is `--compile`. See [Requirements](install.md#requirements) for GPU memory.
 
-```bash
-hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
-```
+!!! note
+    V100 and other GPUs older than SM80 have no bfloat16, so Drama 3 switches to float16 there (keeping the residual stream in fp32). This path has not been tested on real hardware yet; if you get silence, noise or a "non-finite logits" error, please open an issue.
 
 ## Command Line Inference
 
-!!! note
-    If you plan to let the model randomly choose a voice timbre, you can skip this step.
+### S2-Pro
 
-### 1. Get VQ tokens from reference audio
+S2-Pro uses a three-step pipeline: "VQ tokens → Semantic tokens → audio".
+
+!!! note
+    If you plan to let the model randomly choose a voice timbre, you can skip step 1.
+
+**1. Get VQ tokens from reference audio**
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -25,7 +29,7 @@ python fish_speech/models/dac/inference.py \
 
 You should get a `fake.npy` and a `fake.wav`.
 
-### 2. Generate Semantic tokens from text:
+**2. Generate Semantic tokens from text**
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -44,7 +48,7 @@ This command will create a `codes_N` file in the working directory, where N is a
 !!! info
     For GPUs that do not support bf16, you may need to use the `--half` parameter.
 
-### 3. Generate vocals from semantic tokens:
+**3. Generate vocals from semantic tokens**
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -53,30 +57,9 @@ python fish_speech/models/dac/inference.py \
 
 After that, you will get a `fake.wav` file.
 
-## Drama 3
+### Drama 3
 
-Drama 3 uses the same command line and API server as S2-Pro; the model type is read from the checkpoint's `config.json`.
-
-!!! warning
-    Drama 3 runs on NVIDIA GPUs only. CPU, Apple MPS and AMD ROCm are not supported, and neither is `--compile`.
-
-| GPU | Mode | GPU memory |
-| --- | --- | --- |
-| SM89 or newer (L40, H100, H20) | MoE experts stay in FP8, CUDA-graph decoding, one GPU | about 41 GB |
-| Older GPUs (V100, A100) | MoE experts dequantized and spread over several GPUs | about 70 GB in total |
-
-!!! note
-    V100 and other GPUs older than SM80 have no bfloat16, so Drama 3 switches to float16 there (keeping the residual stream in fp32). This path has not been tested on real hardware yet; if you get silence, noise or a "non-finite logits" error, please open an issue.
-
-### Download weights
-
-```bash
-hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
-```
-
-If the checkpoint directory has no `codec.pth`, the S2-Pro codec at `checkpoints/s2-pro/codec.pth` is used.
-
-### Command line inference
+Drama 3 does it in one command; `--output` writes the decoded audio directly:
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -88,9 +71,21 @@ python fish_speech/models/text2semantic/inference.py \
     --device cuda:0
 ```
 
-`--output` writes the decoded audio directly. On older GPUs, list several devices, for example `--device cuda:0,cuda:1,cuda:2,cuda:3`; the last one holds the audio decoder and the codec. Plain `--device cuda` uses up to the first four visible GPUs.
+On older GPUs, list several devices, for example `--device cuda:0,cuda:1,cuda:2,cuda:3`; the last one holds the audio decoder and the codec. Plain `--device cuda` uses up to the first four visible GPUs.
 
-### API server
+## API Server
+
+### Start S2-Pro
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s2-pro \
+    --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \
+    --decoder-config-name modded_dac_vq
+```
+
+### Start Drama 3
 
 ```bash
 python tools/api_server.py \
@@ -99,30 +94,99 @@ python tools/api_server.py \
     --device cuda:0
 ```
 
-With Docker, run the server image against the Drama 3 checkpoint. On SM89 or newer cards, expose a single GPU as below; on older cards, use `--gpus all`:
+!!! note
+    Drama 3 does not support `--compile`. On older GPUs, list several devices with `--device`; the last one holds the audio decoder and the codec.
+
+Both models share these startup options:
+
+- `--compile`: enable `torch.compile` optimization (S2-Pro only)
+- `--half`: use fp16 mode
+- `--api-key`: require bearer token authentication
+- `--workers`: set the worker process count
+- `--max-text-length`: cap the text length of a single request; 0 means no limit
+
+Health check:
 
 ```bash
-docker run --gpus device=0 \
-    -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
-    -p 8080:8080 \
-    fishaudio/fish-speech:server-cuda
+curl -X GET http://127.0.0.1:8080/v1/health
 ```
 
-With Docker Compose, set the same variables; `DEVICE=cuda:0` keeps Drama 3 on one GPU, and leaving it unset uses up to four GPUs:
+A response of `{"status":"ok"}` means the server is up.
+
+### API endpoints
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/v1/tts` | Text-to-speech; the request body is msgpack |
+| `GET` | `/v1/tts/defaults` | Sampling defaults of the loaded model |
+| `GET` | `/v1/health` | Health check |
+| `POST` | `/v1/vqgan/encode` | Reference audio → VQ tokens |
+| `POST` | `/v1/vqgan/decode` | VQ tokens → audio |
+| `POST` | `/v1/references/add` | Save a reference voice; form fields `id`, `audio` (file), `text` |
+| `GET` | `/v1/references/list` | List saved voices |
+| `POST` | `/v1/references/update` | Rename; form fields `old_reference_id`, `new_reference_id` |
+| `DELETE` | `/v1/references/delete` | Delete; form field `reference_id` |
+| `GET` | `/ui` | WebUI (built into the Docker image; build it first when running from source) |
+
+Once a voice is saved, use it with `--reference_id` (the audio field needs its MIME type, otherwise the server cannot read it):
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
+curl -X POST http://127.0.0.1:8080/v1/references/add \
+    -F id=my-speaker \
+    -F "audio=@reference.wav;type=audio/wav" \
+    -F text="Transcript of the reference audio"
+
+python tools/api_client.py --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello" --reference_id my-speaker --output demo
 ```
 
-### Differences from S2-Pro
+### Send a request
 
-- Long text is split into chunks of about 300 UTF-8 bytes with at most three speakers each, cut at sentence ends where possible, and the chunks are generated one after another. The first chunk and the latest one are fed back as context to keep the voices consistent. By default each chunk produces at most 1024 frames (about 47 seconds).
-- Set `single_chunk` (`--single-chunk` on the command line) to generate the whole text in one pass instead; the 1024-frame default then covers the whole text, so raise `max_new_tokens` for longer text, or set it to 0 for 2048 frames (about 95 seconds). In either mode, a larger `max_new_tokens` is capped at 10,240 frames minus the prompt length.
-- Speaker tags `<|speaker:0|>` to `<|speaker:15|>` are accepted, and untagged text is speaker 0. To give speakers their own voices, set each reference's `speaker` field (`--reference_speaker` in `tools/api_client.py`), which tags a transcript that does not start with a speaker tag, or start the transcript with that speaker's tag yourself (for example `<|speaker:1|>`); the order of the references does not decide which speaker they belong to.
-- `chunk_length` has no effect. `repetition_penalty` is accepted for compatibility but ignored, as with S2-Pro: both models use built-in repetition-aware sampling. Default sampling follows the official Fish Audio SDK, as for S2-Pro: temperature 0.7, top-p 0.7, top-k 30.
-- With `streaming` enabled, audio is returned chunk by chunk.
-- `FISH_DRAMA3_FP8_EXPERTS=0` or `1` forces dequantized or FP8 experts, and `FISH_DRAMA3_CUDA_GRAPH=0` turns off CUDA-graph decoding.
+Which model is used depends on the weights the server loaded at startup; there is no per-request model field.
+
+```bash
+python tools/api_client.py \
+    --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello from Fish Speech" \
+    --output demo
+```
+
+Common arguments:
+
+| Argument | Description |
+| --- | --- |
+| `--reference_audio` / `--reference_text` | Reference audio and its transcript; both need the same number of values |
+| `--reference_speaker` | Speaker ID (0–15) of each reference audio, written as a `<\|speaker:N\|>` prefix (the main Drama 3 usage) |
+| `--reference_id` | Use a saved reference voice, e.g. `my-speaker` |
+| `--format` | Output format: `wav`, `pcm`, `mp3` or `opus`; defaults to `wav` |
+| `--streaming` | Stream the audio back |
+| `--single_chunk` | Generate the whole text in one pass, without chunking (Drama 3 only) |
+| `--chunk_length` | Chunk length, 200 by default (S2-Pro only) |
+| `--max_new_tokens` | Maximum frames per chunk; unset uses the server default of 1024, 0 uses the model's own cap |
+| `--temperature` / `--top_p` | Sampling; unset uses the model defaults (0.7 / 0.7) |
+| `--seed` | Fix the random seed (it does not fix the timbre) |
+| `--api_key` | Required when the server runs with `--api-key` |
+| `--no-play` | Do not play the audio afterwards (it plays by default; needed on machines without an audio device) |
+
+!!! note
+    `repetition_penalty` is accepted for compatibility only; S2-Pro and Drama 3 both ignore it and use built-in repetition-aware sampling.
+
+!!! tip
+    To start the server with Docker, see [Docker Setup](install.md#docker-setup) (the server image already includes the WebUI: open `http://localhost:8080/ui` once it is running).
+
+## Model differences
+
+| Item | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| Hardware | GPU / CPU | NVIDIA GPU only, no `--compile` |
+| Long text | Chunked by `chunk_length` | Split automatically into chunks of about 300 UTF-8 bytes with at most three speakers, cut at sentence ends where possible; the first chunk and the latest one are fed back as context |
+| Length limit per pass | Context length | 1024 frames per chunk (about 47 seconds); 2048 frames (about 95 seconds) with `single_chunk`; both are capped at 10,240 frames minus the prompt length |
+| Speakers | The order of the references decides the role | `<\|speaker:0\|>`–`<\|speaker:15\|>` tags decide the role; reference order does not matter |
+| `chunk_length` | Takes effect | No effect |
+| Sampling defaults | temperature 0.7, top-p 0.7, top-k 30 | Same |
+| `repetition_penalty` | Ignored | Ignored |
+
+Drama 3 also has two environment variables: `FISH_DRAMA3_FP8_EXPERTS=0` or `1` forces dequantized or FP8 experts, and `FISH_DRAMA3_CUDA_GRAPH=0` turns off CUDA-graph decoding.
 
 ## WebUI Inference
 
@@ -151,7 +215,7 @@ You need to have Node.js and npm installed on your local machine or server.
 
 **Start Backend Server:**
 
-After building the WebUI, return to the project root and start the API server:
+After building the WebUI, return to the project root and start the API server (`--compile` is S2-Pro only; drop it when loading Drama 3):
 
 ```bash
 python tools/api_server.py --listen 0.0.0.0:8888 --compile

@@ -1,11 +1,18 @@
 ## Requirements
 
-- GPU Memory: 24GB for S2-Pro inference; Drama 3 needs about 41 GB on one SM89 or newer GPU, or about 70 GB in total on older GPUs
+| Model | GPU memory | GPU |
+| --- | --- | --- |
+| Drama 3 | at least 32 GB | NVIDIA GPU only: no CPU, Apple MPS or AMD ROCm, and no `--compile` |
+| S2-Pro | at least 24 GB | NVIDIA GPU or CPU |
+
 - System: Linux, WSL
+
+!!! note
+    Peak Drama 3 memory measured on a single H20 is about 41 GB, so leave some headroom. V100 and other GPUs older than SM80 have no bfloat16, so Drama 3 switches to float16 there (keeping the residual stream in fp32).
 
 ## System Setup
 
-Fish Audio S2 supports multiple installation methods. Choose the one that best fits your development environment.
+Fish Audio Drama 3 and S2-Pro share the same installation. Choose the one that best fits your development environment.
 
 **Prerequisites**: Install system dependencies for audio processing:
 ``` bash
@@ -46,7 +53,7 @@ uv sync --python 3.12 --extra cpu
 ```
 ### Intel Arc XPU support
 
-For Intel Arc GPU users, install with XPU support:
+For Intel Arc GPU users, install with XPU support (S2-Pro only; Drama 3 needs an NVIDIA GPU):
 
 ```bash
 conda create -n fish-speech python=3.12
@@ -65,20 +72,68 @@ pip install -e .
 !!! warning
     The `compile` option is not supported on Windows and macOS. If you want to run with compile, you need to install Triton manually.
 
+## Download Weights
+
+Both models share the same command line and API server; the model type is read from the checkpoint's `config.json`. Keep them in the same `checkpoints` directory.
+
+Downloading needs the Hugging Face CLI:
+
+```bash
+pip install -U "huggingface_hub[cli]"
+```
+
+### Drama 3
+
+```bash
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
+```
+
+If the checkpoint directory has no `codec.pth`, the S2-Pro codec at `checkpoints/s2-pro/codec.pth` is used, so download S2-Pro as well.
+
+### S2-Pro
+
+```bash
+hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
+```
+
+Once the weights are downloaded, see [Inference](inference.md).
 
 ## Docker Setup
 
-Fish Audio S2 series model provides multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
+Drama 3 and S2-Pro provide multiple Docker deployment options to suit different needs. You can use pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images.
 
-We provide Docker images for the API server on both GPU (CUDA126 by default) and CPU. You can use the pre-built images from Docker Hub, build locally with Docker Compose, or manually build custom images. If you want to build locally, follow the instructions below. If you only want to use pre-built images, follow the [inference guide](inference.md).
+We provide Docker images for the API server on both GPU (CUDA126 by default) and CPU. The images already include the WebUI: open `http://localhost:8080/ui` once the container is running. The GPU image runs both models; the CPU image only supports S2-Pro.
 
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- NVIDIA Docker runtime (for GPU support)
-- At least 24GB GPU memory for CUDA inference with S2-Pro (more for Drama 3, see above)
+- NVIDIA Docker runtime (for GPU support; required by Drama 3)
+- GPU memory: at least 32 GB for Drama 3, 24 GB recommended for S2-Pro
 
-# Use docker compose
+### Run the pre-built image
+
+Drama 3: on SM89 or newer cards expose a single GPU as below; on older cards use `--gpus all`:
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+S2-Pro:
+
+```bash
+docker run --gpus all \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s2-pro \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s2-pro/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+### Use docker compose
 
 For development or customization, you can use Docker Compose to build and run locally:
 
@@ -87,13 +142,16 @@ For development or customization, you can use Docker Compose to build and run lo
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# Start API server
+# Start API server (loads checkpoints/s2-pro by default)
 docker compose --profile server up
 
-# Start API server with compile optimization  
+# Load Drama 3 and pin it to one GPU with DEVICE (up to four are used when unset)
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
+
+# Start API server with compile optimization (S2-Pro only)
 COMPILE=1 docker compose --profile server up
 
-# For CPU-only deployment
+# For CPU-only deployment (S2-Pro only)
 BACKEND=cpu docker compose --profile server up
 ```
 
@@ -163,6 +221,11 @@ Both methods require mounting these directories:
 ### Environment Variables
 
 - `COMPILE=1` - Enable torch.compile for faster inference (~10x speedup)
+- `LLAMA_CHECKPOINT_PATH` - Main model weights path, e.g. `checkpoints/drama-3` or `checkpoints/s2-pro`
+- `DECODER_CHECKPOINT_PATH` - Codec weights path; leave empty and the server resolves it from the checkpoint directory
+- `DEVICE` - Inference device, e.g. `cuda:0`; Drama 3 uses just that card when set, up to four when unset
+- `FISH_DRAMA3_FP8_EXPERTS=0` or `1` - Force dequantized or FP8 experts for Drama 3 (chosen from the GPU by default)
+- `FISH_DRAMA3_CUDA_GRAPH=0` - Disable Drama 3 CUDA-graph decoding
 - `API_SERVER_NAME=0.0.0.0` - API server host  
 - `API_SERVER_PORT=8080` - API server port
 
@@ -174,7 +237,7 @@ Both methods require mounting these directories:
 
 ### AMD ROCm support
 
-Fish Speech runs on AMD GPUs via ROCm. The ROCm image is based on the official `rocm/pytorch` image, which already ships a gfx-tuned PyTorch, so no separate torch install is needed. Verified on RDNA4 (Radeon AI PRO R9700 / gfx1201) with ROCm 7.2.3; RDNA3 (gfx1100/gfx1101) should also work.
+Fish Speech runs on AMD GPUs via ROCm (S2-Pro only; Drama 3 checkpoints need CUDA). The ROCm image is based on the official `rocm/pytorch` image, which already ships a gfx-tuned PyTorch, so no separate torch install is needed. Verified on RDNA4 (Radeon AI PRO R9700 / gfx1201) with ROCm 7.2.3; RDNA3 (gfx1100/gfx1101) should also work.
 
 **Prerequisites:**
 

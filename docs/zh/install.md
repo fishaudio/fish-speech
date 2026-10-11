@@ -2,7 +2,7 @@
 
 | 模型 | GPU 显存 | 显卡 |
 | --- | --- | --- |
-| Drama 3 | 至少 32 GB | NVIDIA GPU |
+| Drama 3 | 至少 32 GB | 仅 NVIDIA GPU，不支持 CPU、Apple MPS、AMD ROCm，也不支持 `--compile` |
 | S2-Pro | 至少 24 GB | NVIDIA GPU 或 CPU |
 
 - 系统：Linux、WSL
@@ -74,6 +74,12 @@ pip install -e .
 
 两个模型共用同一套命令行和 API Server，模型类型由权重目录里的 `config.json` 自动识别。请把它们放在同一个 `checkpoints` 目录下。
 
+下载需要 Hugging Face 命令行工具：
+
+```bash
+pip install -U "huggingface_hub[cli]"
+```
+
 ### Drama 3
 
 ```bash
@@ -100,7 +106,7 @@ Drama 3 与 S2-Pro 提供多种 Docker 部署方式，适配不同场景。你�
 
 - 已安装 Docker 和 Docker Compose
 - （GPU 场景）已安装 NVIDIA Docker runtime（Drama 3 必须）
-- 显存：Drama 3 约 41 GB 起步，S2-Pro 建议至少 24 GB
+- 显存：Drama 3 至少 32 GB，S2-Pro 建议至少 24 GB
 
 ### 运行预构建镜像
 
@@ -214,6 +220,8 @@ docker build \
 - `LLAMA_CHECKPOINT_PATH` - 主模型权重路径，例如 `checkpoints/drama-3` 或 `checkpoints/s2-pro`
 - `DECODER_CHECKPOINT_PATH` - codec 权重路径，留空则由服务端按权重目录自行查找
 - `DEVICE` - 推理设备，例如 `cuda:0`；Drama 3 设置为单张卡时只用它，留空最多使用四张卡
+- `FISH_DRAMA3_FP8_EXPERTS=0` 或 `1` - 强制 Drama 3 使用反量化或 FP8 专家（默认按显卡自动选择）
+- `FISH_DRAMA3_CUDA_GRAPH=0` - 关闭 Drama 3 的 CUDA graph 解码
 - `API_SERVER_NAME=0.0.0.0` - API 服务地址
 - `API_SERVER_PORT=8080` - API 服务端口
 

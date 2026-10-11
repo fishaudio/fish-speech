@@ -30,8 +30,11 @@
 </div>
 
 <div align="center">
+    <a target="_blank" href="https://huggingface.co/fishaudio/drama-3">
+        <img alt="HuggingFace Drama 3" src="https://img.shields.io/badge/🤗%20-Drama%203-orange"/>
+    </a>
     <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
-        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+        <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
@@ -53,43 +56,79 @@
 
 ### For Human
 
-Here are the official documents for Fish Audio S2, follow the instructions to get started easily.
-
-- [Installation](https://speech.fish.audio/install/)
-- [Command Line Inference](https://speech.fish.audio/inference/#command-line-inference)
-- [WebUI Inference](https://speech.fish.audio/inference/#webui-inference)
-- [Server Inference](https://speech.fish.audio/server/)
-- [Docker Setup](https://speech.fish.audio/install/#docker-setup)
+- [Installation](https://speech.fish.audio/install/): environment setup, download weights, Docker deployment
+- [Inference](https://speech.fish.audio/inference/): command line, API server, WebUI
 
 > [!IMPORTANT]
-> **For SGLang server, please read [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
+> **We strongly recommend SGLang-Omni for users who care about efficiency; see the [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
 >
 > **For vLLM Omni server, please read [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md) and the [User Guide](https://github.com/vllm-project/vllm-omni/blob/main/docs/user_guide/examples/online_serving/text_to_speech.md#fish-speech-s2-pro).**
 
 ### For LLM Agent
 
 ```
-Install and configure Fish-Audio S2 by following the instructions here: https://speech.fish.audio/install/
+Install and configure Fish Audio Drama 3 (or S2-Pro) by following the instructions here: https://speech.fish.audio/install/
 ```
 
-## Fish Audio S2 Pro
-**State-of-the-art multilingual text-to-speech (TTS) system, redefining the boundaries of voice generation.**
+## Models
 
-Fish Audio S2 Pro is the most advanced multimodal model developed by [Fish Audio](https://fish.audio/). Trained on over **10 million hours** of audio data covering more than **80 languages**, S2 Pro combines a **Dual-Autoregressive (Dual-AR)** architecture with reinforcement learning (RL) alignment to generate speech that is exceptionally natural, realistic, and emotionally rich, leading the competition among both open-source and closed-source systems.
-
-The core strength of S2 Pro lies in its support for **sub-word level** fine-grained control of prosody and emotion using natural language tags (e.g., `[whisper]`, `[excited]`, `[angry]`), while natively supporting multi-speaker and multi-turn conversation generation.
-
-Visit the [Fish Audio website](https://fish.audio/) for a live playground, or read our [technical report](https://arxiv.org/abs/2603.08823) and [blog post](https://fish.audio/blog/fish-audio-open-sources-s2/) for more details.
-
-### Model Variants
-
-| Model | Size | Availability | Description |
+| Model | Size | Weights | Description |
 |------|------|-------------|-------------|
-| S2-Pro | 4B parameters | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Full-featured flagship model with maximum quality and stability |
+| **Drama 3** | 35B-A3B (3B active per token) | [HuggingFace](https://huggingface.co/fishaudio/drama-3) | New-generation flagship for multi-character scenes and long content, with multi-turn revision and local editing |
+| S2-Pro | 4B parameters | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | Previous-generation flagship with faster inference |
 
-More details of the model can be found in the [technical report](https://arxiv.org/abs/2411.01156).
+The model type is detected from the checkpoint's `config.json`, and both share the same command line and API server.
 
-## Benchmark Results
+---
+
+## Fish Audio Drama 3
+
+**The new-generation voice model, upgraded across the board over S2-Pro.**
+
+Like the S2 series, Drama 3 supports multi-speaker generation, voice cloning and natural-language control, but it makes clear advances in long-form audio, interaction and editability.
+
+### Key features
+
+- **Multi-turn director revision**: guide the previous take directly ("gentler, and a bit sadder"), and the model regenerates it with that context instead of starting over.
+- **Infilling and precise editing**: edit audio the way you edit text — replace a single word ("Wednesday" → "Thursday") while the surrounding timbre and transitions stay natural.
+- **Scene-style multi-character production**: voice a complete scene with several characters straight from a script description, with streaming support for long text.
+- **Long dialogues and long speech**: built for long recordings and extended sessions, keeping characters and timbre stable throughout.
+- **Stronger expressiveness**: laughter, crying, whispers and dramatic emotion are no longer flattened by the reference, so the delivery is much closer to a real performance.
+- **Multilingual voice cloning**: sets a new level of SOTA for cross-lingual cloning error rates (CER / WER).
+- **Natural-language tag control**: inline tags such as `[whisper]`, `[angry]` and `[laughing]` control emotion and prosody.
+
+### What changed compared with S2-Pro
+
+| Capability | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| Multi-speaker | Supported | Supported, as scene-style multi-character production |
+| Voice cloning | Supported | Supported, with lower multilingual error rates |
+| Inline natural-language instructions | Supported | Supported |
+| Local editing / infilling | Not supported | Supported |
+| Multi-turn director revision | Not supported | Supported |
+| Long content | Chunked generation | Long dialogues and long speech, with streaming |
+| Strong emotion (laughter, crying, whispers) | Moderate | Stronger |
+
+### Results
+
+Drama 3 takes a clear leap over S2 on public benchmarks: multilingual voice cloning (MiniMax Multilingual Testset), free-form speech editing (Ming-Freeform) and multi-turn emotion revision (Step-Audio-Edit), where control precision, multilingual error rates (CER / WER) and style accuracy all surpass the previous generation.
+
+---
+
+## Fish Audio S2-Pro
+
+Our previous-generation flagship: natural-language controllable and emotionally expressive speech, about a hundred languages, and small enough to deploy on a consumer GPU.
+
+- **Inline natural-language instructions**: tags such as `[pause]`, `[excited]` and `[whisper]` control prosody and emotion anywhere in the text.
+- **Native multi-speaker generation**: speaker IDs separate the characters inside one text, so you no longer generate and concatenate one speaker at a time.
+- **Rapid voice cloning**: 10–30 seconds of reference audio is enough to reproduce a timbre.
+- **Single pass**: long audio can be streamed out in one go.
+- **Production streaming**: RTF 0.195 on a single H200, about 100 ms to first audio.
+
+Visit the [Fish Audio website](https://fish.audio/) for a live playground, and read the [blog post](https://fish.audio/blog/fish-audio-open-sources-s2/) and [technical report](https://arxiv.org/abs/2603.08823) for more details.
+
+<details>
+<summary><b>S2-Pro benchmark results (click to expand)</b></summary>
 
 | Benchmark | Fish Audio S2 |
 |------|------|
@@ -104,64 +143,9 @@ More details of the model can be found in the [technical report](https://arxiv.o
 
 On Seed-TTS Eval, S2 achieves the lowest WER among all evaluated models including closed-source systems: Qwen3-TTS (0.77/1.24), MiniMax Speech-02 (0.99/1.90), Seed-TTS (1.12/2.25). On the Audio Turing Test, 0.515 surpasses Seed-TTS (0.417) by 24% and MiniMax-Speech (0.387) by 33%. On EmergentTTS-Eval, S2 achieves particularly strong results in paralinguistics (91.61% win rate), questions (84.41%), and syntactic complexity (83.39%).
 
-## Highlights
-
 <img src="./docs/assets/totalability.png" width=200%>
 
-### Fine-Grained Inline Control via Natural Language
-
-S2 Pro brings unprecedented "soul" to speech. Using simple `[tag]` syntax, you can precisely embed emotional instructions at any position in the text.
-- **15,000+ Unique Tags Supported**: Not limited to fixed presets; S2 supports **free-form text descriptions**. Try `[whisper in small voice]`, `[professional broadcast tone]`, or `[pitch up]`.
-- **Rich Emotion Library**:
-  `[pause]` `[emphasis]` `[laughing]` `[inhale]` `[chuckle]` `[tsk]` `[singing]` `[excited]` `[laughing tone]` `[interrupting]` `[chuckling]` `[excited tone]` `[volume up]` `[echo]` `[angry]` `[low volume]` `[sigh]` `[low voice]` `[whisper]` `[screaming]` `[shouting]` `[loud]` `[surprised]` `[short pause]` `[exhale]` `[delight]` `[panting]` `[audience laughter]` `[with strong accent]` `[volume down]` `[clearing throat]` `[sad]` `[moaning]` `[shocked]`
-
-### Innovative Dual-Autoregressive (Dual-AR) Architecture
-
-S2 Pro adopts a master-slave Dual-AR architecture consisting of a decoder-only transformer and an RVQ audio codec (10 codebooks, ~21 Hz):
-
-- **Slow AR (4B parameters)**: Operates along the time axis, predicting the primary semantic codebook.
-- **Fast AR (400M parameters)**: Generates the remaining 9 residual codebooks at each time step, reconstructing exquisite acoustic details.
-
-This asymmetric design achieves peak audio fidelity while significantly boosting inference speed.
-
-### Reinforcement Learning (RL) Alignment
-
-S2 Pro utilizes **Group Relative Policy Optimization (GRPO)** for post-training alignment. We use the same model suite for data cleaning and annotation directly as Reward Models, perfectly resolving the distribution mismatch between pre-training data and post-training objectives.
-- **Multi-Dimensional Reward Signals**: Comprehensively evaluates semantic accuracy, instruction adherence, acoustic preference scoring, and timbre similarity to ensure every second of generated speech feels intuitive to humans.
-
-### Extreme Streaming Performance (Powered by SGLang)
-
-As the Dual-AR architecture is structurally isomorphic to standard LLMs, S2 Pro natively supports all SGLang inference acceleration features, including Continuous Batching, Paged KV Cache, CUDA Graph, and RadixAttention-based Prefix Caching.
-
-**Performance on a single NVIDIA H200 GPU:**
-- **Real-Time Factor (RTF)**: 0.195
-- **Time-to-First-Audio (TTFA)**: ~100 ms
-- **Extreme Throughput**: 3,000+ acoustic tokens/s while maintaining RTF < 0.5
-
-### Robust Multilingual Support
-
-S2 Pro supports over 80 languages without requiring phonemes or language-specific preprocessing:
-
-- **Tier 1**: Japanese (ja), English (en), Chinese (zh)
-- **Tier 2**: Korean (ko), Spanish (es), Portuguese (pt), Arabic (ar), Russian (ru), French (fr), German (de)
-- **Global Coverage**: sv, it, tr, no, nl, cy, eu, ca, da, gl, ta, hu, fi, pl, et, hi, la, ur, th, vi, jw, bn, yo, xsl, cs, sw, nn, he, ms, uk, id, kk, bg, lv, my, tl, sk, ne, fa, af, el, bo, hr, ro, sn, mi, yi, am, be, km, is, az, sd, br, sq, ps, mn, ht, ml, sr, sa, te, ka, bs, pa, lt, kn, si, hy, mr, as, gu, fo, etc.
-
-### Native Multi-Speaker Generation
-
-<img src="./docs/assets/chattemplate.png" width=200%>
-
-Fish Audio S2 allows users to upload reference audio containing multiple speakers, and the model processes each speaker's features via the `<|speaker:i|>` token. You can then control the model's performance via speaker ID tokens, enabling a single generation to include multiple speakers. There is no longer a need to upload separate reference audio for each individual speaker.
-
-### Multi-Turn Generation
-
-Thanks to the expansion of the model context, our model can now leverage previous information to improve the expressiveness of subsequent generated content, thereby increasing the naturalness of the dialogue.
-
-### Rapid Voice Cloning
-
-Fish Audio S2 supports accurate voice cloning using short reference samples (typically 10-30 seconds). The model captures timbre, speaking style, and emotional tendencies, producing realistic and consistent cloned voices without additional fine-tuning.
-For SGLang Server usage, please refer to the [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
-
----
+</details>
 
 ## Credits
 

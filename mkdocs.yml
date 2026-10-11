@@ -58,7 +58,6 @@ nav:
   - Introduction: en/index.md
   - Installation: en/install.md
   - Inference: en/inference.md
-  - Server: en/server.md
 
 # Plugins
 plugins:
@@ -107,7 +106,6 @@ plugins:
             - Introducción: es/index.md
             - Instalación: es/install.md
             - Inferencia: es/inference.md
-            - Servidor: es/server.md
         - locale: ko
           name: 한국어
           build: true

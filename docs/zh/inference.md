@@ -103,6 +103,7 @@ python tools/api_server.py \
 - `--half`：使用 fp16 模式
 - `--api-key`：要求 bearer token 鉴权
 - `--workers`：设置工作进程数
+- `--max-text-length`：限制单次请求的文本长度，0 表示不限制
 
 健康检查：
 
@@ -111,6 +112,33 @@ curl -X GET http://127.0.0.1:8080/v1/health
 ```
 
 返回 `{"status":"ok"}` 即表示服务正常。
+
+### API 端点
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/v1/tts` | 文本转语音，请求体为 msgpack |
+| `GET` | `/v1/tts/defaults` | 当前加载模型的采样默认值 |
+| `GET` | `/v1/health` | 健康检查 |
+| `POST` | `/v1/vqgan/encode` | 参考音频 → VQ tokens |
+| `POST` | `/v1/vqgan/decode` | VQ tokens → 音频 |
+| `POST` | `/v1/references/add` | 保存参考音色，表单字段 `id`、`audio`（文件）、`text` |
+| `GET` | `/v1/references/list` | 列出已保存的音色 |
+| `POST` | `/v1/references/update` | 重命名，表单字段 `old_reference_id`、`new_reference_id` |
+| `DELETE` | `/v1/references/delete` | 删除，表单字段 `reference_id` |
+| `GET` | `/ui` | WebUI（Docker 镜像已内置，源码运行需先构建） |
+
+保存参考音色后，请求时用 `--reference_id` 引用即可（音频字段要带 MIME 类型，否则服务端无法识别）：
+
+```bash
+curl -X POST http://127.0.0.1:8080/v1/references/add \
+    -F id=my-speaker \
+    -F "audio=@reference.wav;type=audio/wav" \
+    -F text="参考音频的转写文本"
+
+python tools/api_client.py --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello" --reference_id my-speaker --output demo
+```
 
 ### 发送请求
 
@@ -138,6 +166,7 @@ python tools/api_client.py \
 | `--temperature` / `--top_p` | 采样参数，留空使用模型默认（0.7 / 0.7） |
 | `--seed` | 固定随机种子（不能用来固定音色） |
 | `--api_key` | 服务端开启 `--api-key` 时必填 |
+| `--no-play` | 合成后不播放音频（默认会播放；无音频设备的机器上请加上） |
 
 !!! note
     `repetition_penalty` 仅为兼容而保留，S2-Pro 和 Drama 3 都不使用它，两者都采用内置的重复感知采样。
@@ -186,7 +215,7 @@ server Docker 镜像已内置构建好的 WebUI，容器启动后直接打开 `h
 
 **启动后端服务器：**
 
-WebUI 构建完成后，返回项目根目录，启动 API 服务器：
+WebUI 构建完成后，返回项目根目录，启动 API 服务器（`--compile` 仅 S2-Pro，加载 Drama 3 时去掉）：
 
 ```bash
 python tools/api_server.py --listen 0.0.0.0:8888 --compile

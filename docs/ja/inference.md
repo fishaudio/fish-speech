@@ -1,21 +1,25 @@
 # 推論
 
-Fish Audio S2 モデルは大きなビデオメモリを必要とします。推論には少なくとも 24GB の GPU を使用することをお勧めします。
+Fish Audio は 2 つのモデルを提供しています：**S2-Pro** と **Drama 3**。両者は同じコマンドラインと API サーバーを共有し、モデル種別は重みディレクトリの `config.json` から自動判定されるため、以下の各節は「タスク → 各モデルのコマンド」の順で構成しています。
 
-## 重みのダウンロード
+まず[インストール](install.md)を完了し、[モデルの重み](install.md#重みのダウンロード)をダウンロードしてください。
 
-まず、モデルの重みをダウンロードする必要があります：
+!!! warning "Drama 3 の実行制限"
+    Drama 3 は NVIDIA GPU でのみ動作します。CPU、Apple MPS、AMD ROCm には非対応で、`--compile` も使用できません。GPU メモリは[必要条件](install.md#必要条件)を参照してください。
 
-```bash
-hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
-```
+!!! note
+    V100 など SM80 より前の GPU には bfloat16 がないため、Drama 3 は float16 に切り替わります（残差ストリームは fp32 のまま）。この経路は実機では未検証です。無音・ノイズ・"non-finite logits" エラーが出た場合は issue を報告してください。
 
 ## コマンドライン推論
 
-!!! note
-    モデルに音声をランダムに選択させる場合は、このステップをスキップできます。
+### S2-Pro
 
-### 1. リファレンスオーディオから VQ トークンを取得する
+S2-Pro は「VQ トークン → Semantic トークン → 音声」の 3 ステップです。
+
+!!! note
+    モデルに音色をランダムに選ばせる場合は、ステップ 1 をスキップできます。
+
+**1. リファレンスオーディオから VQ トークンを取得する**
 
 ```bash
 python fish_speech/models/dac/inference.py \
@@ -23,9 +27,9 @@ python fish_speech/models/dac/inference.py \
     --checkpoint-path "checkpoints/s2-pro/codec.pth"
 ```
 
-`fake.npy` と `fake.wav` が生成されるはずです。
+`fake.npy` と `fake.wav` が得られます。
 
-### 2. テキストから Semantic トークンを生成する：
+**2. テキストから Semantic トークンを生成する**
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -35,48 +39,27 @@ python fish_speech/models/text2semantic/inference.py \
     # --compile
 ```
 
-このコマンドは、作業ディレクトリに `codes_N` ファイルを作成します。ここで N は 0 から始まる整数です。
+作業ディレクトリに `codes_N` ファイルが作成されます（N は 0 から始まる整数）。
 
 !!! note
-    より高速な推論のために CUDA カーネルを融合する `--compile` を使用したい場合がありますが、私たちの sglang 推論加速最適化を使用することをお勧めします。
-    同様に、加速を使用する予定がない場合は、`--compile` パラメータをコメントアウトしてください。
+    `--compile` で CUDA カーネルを融合し、推論を高速化できます。ただし弊社の sglang による推論高速化の利用を推奨します。
+    高速化を使わない場合は、`--compile` パラメータをコメントアウトしてください。
 
 !!! info
-    bf16 をサポートしていない GPU の場合、`--half` パラメータを使用する必要があるかもしれません。
+    bf16 非対応の GPU では `--half` パラメータが必要な場合があります。
 
-### 3. セマンティックトークンから音声を生成する：
+**3. セマンティックトークンから音声を生成する**
 
 ```bash
 python fish_speech/models/dac/inference.py \
     -i "codes_0.npy" \
 ```
 
-その後、`fake.wav` ファイルが取得できます。
+`fake.wav` ファイルが得られます。
 
-## Drama 3
+### Drama 3
 
-Drama 3 は S2-Pro と同じコマンドラインと API サーバーで動作します。モデルの種類はチェックポイントの `config.json` から自動的に判別されます。
-
-!!! warning
-    Drama 3 は NVIDIA GPU でのみ動作します。CPU、Apple MPS、AMD ROCm には対応しておらず、`--compile` も使用できません。
-
-| GPU | 動作モード | GPU メモリ |
-| --- | --- | --- |
-| SM89 以降（L40、H100、H20） | MoE エキスパートは FP8 のまま、CUDA グラフでデコード、GPU 1 枚 | 約 41 GB |
-| それ以前の GPU（V100、A100） | MoE エキスパートを逆量子化し、複数の GPU に分散 | 合計約 70 GB |
-
-!!! note
-    V100 など SM80 より前の GPU は bfloat16 に対応していないため、Drama 3 は自動的に float16（残差ストリームは fp32 のまま）で動作します。この経路は実機ではまだテストされていません。無音やノイズが出る場合や "non-finite logits" エラーが出る場合は、issue を作成してください。
-
-### 重みのダウンロード
-
-```bash
-hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
-```
-
-チェックポイントのディレクトリに `codec.pth` がない場合は、`checkpoints/s2-pro/codec.pth` の S2-Pro コーデックが使われます。
-
-### コマンドライン推論
+Drama 3 は 1 コマンドで完結し、`--output` がデコード済みの音声を直接書き出します：
 
 ```bash
 python fish_speech/models/text2semantic/inference.py \
@@ -88,9 +71,21 @@ python fish_speech/models/text2semantic/inference.py \
     --device cuda:0
 ```
 
-`--output` を指定すると、デコードした音声がそのまま書き出されます。それ以前の GPU では、`--device cuda:0,cuda:1,cuda:2,cuda:3` のように複数のデバイスを指定してください。最後のデバイスがオーディオデコーダーとコーデックを担当します。`--device cuda` とだけ指定した場合は、認識されている GPU のうち先頭から最大 4 枚を使用します。
+古い GPU では `--device cuda:0,cuda:1,cuda:2,cuda:3` のように複数枚を指定できます。最後の 1 枚が音声デコーダと codec を担当します。`--device cuda` のみの場合は、可視な GPU のうち最大 4 枚を使用します。
 
-### API サーバー
+## API サーバー
+
+### S2-Pro の起動
+
+```bash
+python tools/api_server.py \
+    --listen 0.0.0.0:8080 \
+    --llama-checkpoint-path checkpoints/s2-pro \
+    --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \
+    --decoder-config-name modded_dac_vq
+```
+
+### Drama 3 の起動
 
 ```bash
 python tools/api_server.py \
@@ -99,38 +94,107 @@ python tools/api_server.py \
     --device cuda:0
 ```
 
-Docker では、server イメージで Drama 3 のチェックポイントを読み込みます。SM89 以降の GPU では以下のように GPU を 1 枚だけ公開し、それ以前の GPU では `--gpus all` を使用してください。
+!!! note
+    Drama 3 は `--compile` に非対応です。古い GPU では `--device` に複数枚を列挙してください。最後の 1 枚が音声デコーダと codec を担当します。
+
+両モデルで共通の起動オプション：
+
+- `--compile`：`torch.compile` による最適化を有効化（S2-Pro のみ）
+- `--half`：fp16 モードを使用
+- `--api-key`：bearer トークン認証を要求
+- `--workers`：ワーカープロセス数を設定
+- `--max-text-length`：1 リクエストのテキスト長を制限（0 は無制限）
+
+ヘルスチェック：
 
 ```bash
-docker run --gpus device=0 \
-    -v ./checkpoints:/app/checkpoints \
-    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
-    -p 8080:8080 \
-    fishaudio/fish-speech:server-cuda
+curl -X GET http://127.0.0.1:8080/v1/health
 ```
 
-Docker Compose では同じ環境変数を設定します。`DEVICE=cuda:0` で Drama 3 を GPU 1 枚に限定でき、未設定の場合は最大 4 枚の GPU を使います。
+`{"status":"ok"}` が返れば正常です。
+
+### API エンドポイント
+
+| メソッド | パス | 説明 |
+| --- | --- | --- |
+| `POST` | `/v1/tts` | テキスト音声変換（リクエストボディは msgpack） |
+| `GET` | `/v1/tts/defaults` | 読み込まれたモデルのサンプリング既定値 |
+| `GET` | `/v1/health` | ヘルスチェック |
+| `POST` | `/v1/vqgan/encode` | リファレンス音声 → VQ トークン |
+| `POST` | `/v1/vqgan/decode` | VQ トークン → 音声 |
+| `POST` | `/v1/references/add` | リファレンス音声を保存（フォーム項目 `id`、`audio`（ファイル）、`text`） |
+| `GET` | `/v1/references/list` | 保存済み音声の一覧 |
+| `POST` | `/v1/references/update` | リネーム（フォーム項目 `old_reference_id`、`new_reference_id`） |
+| `DELETE` | `/v1/references/delete` | 削除（フォーム項目 `reference_id`） |
+| `GET` | `/ui` | WebUI（Docker イメージには組み込み済み。ソース実行では要先ビルド） |
+
+保存した音声は `--reference_id` で参照できます（音声フィールドには MIME タイプが必要です。指定しないとサーバーが認識できません）：
 
 ```bash
-LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
+curl -X POST http://127.0.0.1:8080/v1/references/add \
+    -F id=my-speaker \
+    -F "audio=@reference.wav;type=audio/wav" \
+    -F text="リファレンス音声の書き起こし"
+
+python tools/api_client.py --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello" --reference_id my-speaker --output demo
 ```
 
-### S2-Pro との違い
+### リクエストの送信
 
-- 長いテキストは約 300 バイト（UTF-8）、1 チャンクあたり最大 3 話者のチャンクに分割され（できるだけ文末で区切ります）、順番に生成されます。最初のチャンクと直前のチャンクがコンテキストとしてモデルに戻され、声の一貫性を保ちます。デフォルトでは 1 チャンクあたり最大 1024 フレーム（約 47 秒）を生成します。
-- `single_chunk`（コマンドラインでは `--single-chunk`）を指定すると、テキスト全体を一度に生成します。この場合、デフォルトの 1024 フレームの上限がテキスト全体に適用されるため、長いテキストでは `max_new_tokens` を大きくするか、0 にして 2048 フレーム（約 95 秒）を使用してください。どちらのモードでも、これより大きい `max_new_tokens` は 10,240 フレームからプロンプト長を引いた値に制限されます。
-- 話者タグは `<|speaker:0|>` から `<|speaker:15|>` まで使用でき、タグのないテキストは speaker 0 として扱われます。話者ごとに別の声を使うには、各参照音声に `speaker` フィールド（`tools/api_client.py` では `--reference_speaker`）を指定してください。先頭に話者タグのない書き起こしにはそのタグが付けられます。書き起こしの先頭に直接タグ（例：`<|speaker:1|>`）を書くこともできます。参照音声の順番では話者は決まりません。
-- `chunk_length` は効果がありません。`repetition_penalty` は互換性のために受け付けますが、S2-Pro と同様に無視されます。どちらのモデルも繰り返しを考慮したサンプリングを内蔵しています。デフォルトのサンプリング設定は S2-Pro と同じく公式 Fish Audio SDK に合わせた temperature 0.7、top-p 0.7、top-k 30 です。
-- `streaming` を有効にすると、音声はチャンクごとに返されます。
-- `FISH_DRAMA3_FP8_EXPERTS=0` または `1` で逆量子化エキスパートまたは FP8 エキスパートを強制でき、`FISH_DRAMA3_CUDA_GRAPH=0` で CUDA グラフによるデコードを無効にできます。
+どのモデルが使われるかはサーバー起動時に読み込んだ重みで決まり、リクエスト側にモデル指定フィールドはありません。
+
+```bash
+python tools/api_client.py \
+    --url http://127.0.0.1:8080/v1/tts \
+    --text "Hello from Fish Speech" \
+    --output demo
+```
+
+主なパラメータ：
+
+| パラメータ | 説明 |
+| --- | --- |
+| `--reference_audio` / `--reference_text` | リファレンス音声とその書き起こし。両者の数は一致させる必要があります |
+| `--reference_speaker` | 各リファレンス音声の話者 ID（0–15）。`<\|speaker:N\|>` プレフィックスとして付与（Drama 3 の主な使い方） |
+| `--reference_id` | 保存済みのリファレンス音声を使用（例：`my-speaker`） |
+| `--format` | 出力形式：`wav`、`pcm`、`mp3`、`opus`（既定値 `wav`） |
+| `--streaming` | 音声をストリームで返す |
+| `--single_chunk` | 分割せず全体を一度に生成（Drama 3 のみ） |
+| `--chunk_length` | チャンク長、既定値 200（S2-Pro のみ） |
+| `--max_new_tokens` | チャンクあたりの最大フレーム数。未指定はサーバー既定の 1024、0 はモデルの上限 |
+| `--temperature` / `--top_p` | サンプリング。未指定はモデルの既定値（0.7 / 0.7） |
+| `--seed` | 乱数シードを固定（音色の固定には使えません） |
+| `--api_key` | サーバーが `--api-key` を有効にしている場合は必須 |
+| `--no-play` | 生成後に音声を再生しない（既定は再生。オーディオ機器のない環境では指定） |
+
+!!! note
+    `repetition_penalty` は互換性のために残されていますが、S2-Pro と Drama 3 はどちらも使用せず、内蔵の繰り返し認識サンプリングを使います。
+
+!!! tip
+    Docker でサーバーを起動する場合は [Dockerセットアップ](install.md#dockerセットアップ)を参照してください（server イメージには WebUI が組み込み済みで、起動後 `http://localhost:8080/ui` を開けます）。
+
+## モデルの違い
+
+| 項目 | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| ハードウェア | GPU / CPU | NVIDIA GPU のみ、`--compile` 非対応 |
+| 長文 | `chunk_length` で分割 | 約 300 バイト（UTF-8）・最大 3 話者のチャンクに自動分割し、可能な限り文末で切断。最初と最新のチャンクをコンテキストとして再入力 |
+| 1 回あたりの長さ上限 | コンテキスト長 | チャンクごとに 1024 フレーム（約 47 秒）。`single_chunk` 時は 2048 フレーム（約 95 秒）。いずれも「10,240 フレーム − プロンプト長」が上限 |
+| 話者 | リファレンスの順序が役割を決める | `<\|speaker:0\|>`–`<\|speaker:15\|>` タグが役割を決め、リファレンスの順序は無関係 |
+| `chunk_length` | 有効 | 無効 |
+| サンプリング既定値 | temperature 0.7、top-p 0.7、top-k 30 | 同じ |
+| `repetition_penalty` | 無視 | 無視 |
+
+Drama 3 には環境変数が 2 つあります：`FISH_DRAMA3_FP8_EXPERTS=0` または `1` で逆量子化 / FP8 の専門家を強制、`FISH_DRAMA3_CUDA_GRAPH=0` で CUDA graph デコードを無効化します。
 
 ## WebUI 推論
 
 ### Awesome WebUI
 
-Awesome WebUI は TypeScript で開発された、より豊富な機能と優れたユーザー体験を提供する最新の Web インターフェースです。
+Awesome WebUI は TypeScript で構築されたモダンな Web インターフェースで、より豊富な機能と優れた操作性を提供します。
 
-server の Docker イメージにはビルド済みの WebUI が含まれているため、コンテナ起動後に `http://localhost:8080/ui` を開くだけで使えます。以下の手順はソースから実行する場合のものです。
+server Docker イメージにはビルド済みの WebUI が組み込まれており、コンテナ起動後に `http://localhost:8080/ui` を開くだけで利用できます。以下の手順はソースから実行する場合のものです。
 
 **WebUI のビルド：**
 
@@ -151,7 +215,7 @@ server の Docker イメージにはビルド済みの WebUI が含まれてい�
 
 **バックエンドサーバーの起動：**
 
-WebUI のビルドが完了したら、プロジェクトのルートに戻り、API サーバーを起動します：
+ビルド後、プロジェクトルートに戻って API サーバーを起動します（`--compile` は S2-Pro のみ。Drama 3 を読み込む場合は外してください）：
 
 ```bash
 python tools/api_server.py --listen 0.0.0.0:8888 --compile
@@ -159,5 +223,5 @@ python tools/api_server.py --listen 0.0.0.0:8888 --compile
 
 **アクセス：**
 
-サーバーが起動したら、ブラウザから以下のアドレスにアクセスして体験できます：
+サーバー起動後、ブラウザで以下のアドレスにアクセスしてください：
 `http://localhost:8888/ui`
