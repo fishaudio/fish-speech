@@ -156,7 +156,7 @@ Common arguments:
 | Argument | Description |
 | --- | --- |
 | `--reference_audio` / `--reference_text` | Reference audio and its transcript; both need the same number of values |
-| `--reference_speaker` | Speaker ID (0–15) of each reference audio, written as a `<\|speaker:N\|>` prefix (the main Drama 3 usage) |
+| `--reference_speaker` | Speaker ID (0–15) of each reference audio, written as a <code>&lt;&#124;speaker:N&#124;&gt;</code> prefix (the main Drama 3 usage) |
 | `--reference_id` | Use a saved reference voice, e.g. `my-speaker` |
 | `--format` | Output format: `wav`, `pcm`, `mp3` or `opus`; defaults to `wav` |
 | `--streaming` | Stream the audio back |
@@ -180,8 +180,8 @@ Common arguments:
 | --- | --- | --- |
 | Hardware | GPU / CPU | NVIDIA GPU only, no `--compile` |
 | Long text | Chunked by `chunk_length` | Split automatically into chunks of about 300 UTF-8 bytes with at most three speakers, cut at sentence ends where possible; the first chunk and the latest one are fed back as context |
-| Length limit per pass | Context length | 1024 frames per chunk (about 47 seconds); 2048 frames (about 95 seconds) with `single_chunk`; both are capped at 10,240 frames minus the prompt length |
-| Speakers | The order of the references decides the role | `<\|speaker:0\|>`–`<\|speaker:15\|>` tags decide the role; reference order does not matter |
+| Length limit per pass | 1024 frames per batch by default; `max_new_tokens=0` runs up to the context length | 1024 frames (about 47 seconds) per chunk by default, which with `single_chunk` covers the whole text; `max_new_tokens=0` means 600 frames per chunk, or 2048 (about 95 seconds) with `single_chunk`; always capped at 10,240 frames minus the prompt length |
+| Speakers | The order of the references decides the role | <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> tags decide the role; reference order does not matter |
 | `chunk_length` | Takes effect | No effect |
 | Sampling defaults | temperature 0.7, top-p 0.7, top-k 30 | Same |
 | `repetition_penalty` | Ignored | Ignored |

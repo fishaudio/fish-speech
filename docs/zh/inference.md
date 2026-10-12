@@ -156,7 +156,7 @@ python tools/api_client.py \
 | 参数 | 说明 |
 | --- | --- |
 | `--reference_audio` / `--reference_text` | 参考音频与对应转写文本，两者数量必须一致 |
-| `--reference_speaker` | 每段参考音频的说话人 ID（0–15），会写成 `<\|speaker:N\|>` 前缀（Drama 3 的主要用法） |
+| `--reference_speaker` | 每段参考音频的说话人 ID（0–15），会写成 <code>&lt;&#124;speaker:N&#124;&gt;</code> 前缀（Drama 3 的主要用法） |
 | `--reference_id` | 使用已保存的参考音色，例如 `my-speaker` |
 | `--format` | 输出格式：`wav`、`pcm`、`mp3`、`opus`，默认 `wav` |
 | `--streaming` | 流式返回音频 |
@@ -180,8 +180,8 @@ python tools/api_client.py \
 | --- | --- | --- |
 | 硬件 | GPU / CPU | 仅 NVIDIA GPU，不支持 `--compile` |
 | 长文本 | 按 `chunk_length` 分块 | 自动按约 300 字节（UTF-8）、每块最多 3 个说话人切分，尽量在句末断开；第一块和最近一块回喂作为上下文 |
-| 单次长度上限 | 上下文长度 | 每块 1024 帧（约 47 秒）；`single_chunk` 整段生成时为 2048 帧（约 95 秒）；两者都被限制在 10,240 帧减去 prompt 长度以内 |
-| 说话人 | 参考音频的顺序决定角色 | `<\|speaker:0\|>`–`<\|speaker:15\|>` 标签决定角色，参考音频顺序无关 |
+| 单次长度上限 | 默认每批 1024 帧；`max_new_tokens=0` 时一直生成到上下文用完 | 默认每块 1024 帧（约 47 秒），`single_chunk` 时整段文本也是 1024 帧；`max_new_tokens=0` 时每块 600 帧，`single_chunk` 时 2048 帧（约 95 秒）；始终不超过 10,240 帧减去 prompt 长度 |
+| 说话人 | 参考音频的顺序决定角色 | <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> 标签决定角色，参考音频顺序无关 |
 | `chunk_length` | 生效 | 不起作用 |
 | 采样默认值 | temperature 0.7、top-p 0.7、top-k 30 | 同左 |
 | `repetition_penalty` | 忽略 | 忽略 |

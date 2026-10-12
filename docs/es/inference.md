@@ -156,7 +156,7 @@ Parámetros habituales:
 | Parámetro | Descripción |
 | --- | --- |
 | `--reference_audio` / `--reference_text` | Audio de referencia y su transcripción; ambos necesitan el mismo número de valores |
-| `--reference_speaker` | ID de hablante (0–15) de cada audio de referencia, escrito como prefijo `<\|speaker:N\|>` (el uso principal en Drama 3) |
+| `--reference_speaker` | ID de hablante (0–15) de cada audio de referencia, escrito como prefijo <code>&lt;&#124;speaker:N&#124;&gt;</code> (el uso principal en Drama 3) |
 | `--reference_id` | Usa una voz de referencia guardada, por ejemplo `my-speaker` |
 | `--format` | Formato de salida: `wav`, `pcm`, `mp3` u `opus`; por defecto `wav` |
 | `--streaming` | Devuelve el audio en streaming |
@@ -180,8 +180,8 @@ Parámetros habituales:
 | --- | --- | --- |
 | Hardware | GPU / CPU | Solo NVIDIA GPU, sin `--compile` |
 | Texto largo | Dividido según `chunk_length` | Se divide automáticamente en bloques de unos 300 bytes (UTF-8) con un máximo de tres hablantes, cortando al final de frase cuando es posible; el primer bloque y el más reciente se reintroducen como contexto |
-| Límite por pasada | Longitud de contexto | 1024 frames por bloque (unos 47 segundos); 2048 frames (unos 95 segundos) con `single_chunk`; ambos están limitados a 10.240 frames menos la longitud del prompt |
-| Hablantes | El orden de las referencias decide el papel | Las etiquetas `<\|speaker:0\|>`–`<\|speaker:15\|>` deciden el papel; el orden de las referencias no importa |
+| Límite por pasada | 1024 frames por lote por defecto; `max_new_tokens=0` genera hasta la longitud de contexto | 1024 frames (unos 47 segundos) por bloque por defecto, que con `single_chunk` cubren todo el texto; `max_new_tokens=0` significa 600 frames por bloque, o 2048 (unos 95 segundos) con `single_chunk`; siempre limitado a 10.240 frames menos la longitud del prompt |
+| Hablantes | El orden de las referencias decide el papel | Las etiquetas <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> deciden el papel; el orden de las referencias no importa |
 | `chunk_length` | Surte efecto | No surte efecto |
 | Muestreo por defecto | temperature 0.7, top-p 0.7, top-k 30 | Igual |
 | `repetition_penalty` | Ignorado | Ignorado |

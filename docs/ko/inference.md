@@ -156,7 +156,7 @@ python tools/api_client.py \
 | 파라미터 | 설명 |
 | --- | --- |
 | `--reference_audio` / `--reference_text` | 참조 오디오와 그 전사 텍스트. 둘의 개수는 같아야 합니다 |
-| `--reference_speaker` | 참조 오디오별 화자 ID(0–15). `<\|speaker:N\|>` 접두사로 기록(Drama 3의 주요 사용법) |
+| `--reference_speaker` | 참조 오디오별 화자 ID(0–15). <code>&lt;&#124;speaker:N&#124;&gt;</code> 접두사로 기록(Drama 3의 주요 사용법) |
 | `--reference_id` | 저장된 참조 음성 사용(예: `my-speaker`) |
 | `--format` | 출력 형식: `wav`, `pcm`, `mp3`, `opus`(기본값 `wav`) |
 | `--streaming` | 오디오를 스트리밍으로 반환 |
@@ -180,8 +180,8 @@ python tools/api_client.py \
 | --- | --- | --- |
 | 하드웨어 | GPU / CPU | NVIDIA GPU 전용, `--compile` 미지원 |
 | 긴 텍스트 | `chunk_length`로 분할 | 약 300바이트(UTF-8), 청크당 최대 3화자로 자동 분할하고 가능한 문장 끝에서 절단. 첫 청크와 최신 청크를 컨텍스트로 재투입 |
-| 1회 길이 상한 | 컨텍스트 길이 | 청크당 1024프레임(약 47초). `single_chunk`는 2048프레임(약 95초). 모두 "10,240프레임 − 프롬프트 길이"가 상한 |
-| 화자 | 참조 순서가 역할을 결정 | `<\|speaker:0\|>`–`<\|speaker:15\|>` 태그가 역할을 결정하며 참조 순서는 무관 |
+| 1회 길이 상한 | 기본값은 배치당 1024프레임. `max_new_tokens=0`이면 컨텍스트 길이까지 생성 | 기본값은 청크당 1024프레임(약 47초)이며, `single_chunk`일 때는 전체 텍스트가 1024프레임. `max_new_tokens=0`이면 청크당 600프레임, `single_chunk`일 때 2048프레임(약 95초). 모두 "10,240프레임 − 프롬프트 길이"가 상한 |
+| 화자 | 참조 순서가 역할을 결정 | <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> 태그가 역할을 결정하며 참조 순서는 무관 |
 | `chunk_length` | 동작 | 동작하지 않음 |
 | 샘플링 기본값 | temperature 0.7, top-p 0.7, top-k 30 | 동일 |
 | `repetition_penalty` | 무시 | 무시 |

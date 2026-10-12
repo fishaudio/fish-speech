@@ -156,7 +156,7 @@ python tools/api_client.py \
 | パラメータ | 説明 |
 | --- | --- |
 | `--reference_audio` / `--reference_text` | リファレンス音声とその書き起こし。両者の数は一致させる必要があります |
-| `--reference_speaker` | 各リファレンス音声の話者 ID（0–15）。`<\|speaker:N\|>` プレフィックスとして付与（Drama 3 の主な使い方） |
+| `--reference_speaker` | 各リファレンス音声の話者 ID（0–15）。<code>&lt;&#124;speaker:N&#124;&gt;</code> プレフィックスとして付与（Drama 3 の主な使い方） |
 | `--reference_id` | 保存済みのリファレンス音声を使用（例：`my-speaker`） |
 | `--format` | 出力形式：`wav`、`pcm`、`mp3`、`opus`（既定値 `wav`） |
 | `--streaming` | 音声をストリームで返す |
@@ -180,8 +180,8 @@ python tools/api_client.py \
 | --- | --- | --- |
 | ハードウェア | GPU / CPU | NVIDIA GPU のみ、`--compile` 非対応 |
 | 長文 | `chunk_length` で分割 | 約 300 バイト（UTF-8）・最大 3 話者のチャンクに自動分割し、可能な限り文末で切断。最初と最新のチャンクをコンテキストとして再入力 |
-| 1 回あたりの長さ上限 | コンテキスト長 | チャンクごとに 1024 フレーム（約 47 秒）。`single_chunk` 時は 2048 フレーム（約 95 秒）。いずれも「10,240 フレーム − プロンプト長」が上限 |
-| 話者 | リファレンスの順序が役割を決める | `<\|speaker:0\|>`–`<\|speaker:15\|>` タグが役割を決め、リファレンスの順序は無関係 |
+| 1 回あたりの長さ上限 | デフォルトはバッチごとに 1024 フレーム。`max_new_tokens=0` でコンテキスト長まで生成 | デフォルトはチャンクごとに 1024 フレーム（約 47 秒）で、`single_chunk` 時はテキスト全体で 1024 フレーム。`max_new_tokens=0` ではチャンクごとに 600 フレーム、`single_chunk` 時は 2048 フレーム（約 95 秒）。いずれも「10,240 フレーム − プロンプト長」が上限 |
+| 話者 | リファレンスの順序が役割を決める | <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> タグが役割を決め、リファレンスの順序は無関係 |
 | `chunk_length` | 有効 | 無効 |
 | サンプリング既定値 | temperature 0.7、top-p 0.7、top-k 30 | 同じ |
 | `repetition_penalty` | 無視 | 無視 |
