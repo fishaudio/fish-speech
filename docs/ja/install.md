@@ -2,13 +2,13 @@
 
 | モデル | GPU メモリ | GPU |
 | --- | --- | --- |
-| Drama 3 | 32 GB 以上 | NVIDIA GPU のみ（CPU、Apple MPS、AMD ROCm は非対応、`--compile` も非対応） |
+| Drama 3 | 48 GB 以上（FP8） | NVIDIA GPU のみ（CPU、Apple MPS、AMD ROCm は非対応、`--compile` も非対応） |
 | S2-Pro | 24 GB 以上 | NVIDIA GPU または CPU |
 
 - システム：Linux、WSL
 
 !!! note
-    Drama 3 の実測ピークメモリは H20 1 枚で約 41 GB です。余裕を持たせてください。V100 など SM80 より前の GPU には bfloat16 がないため、Drama 3 は float16 に切り替わります（残差ストリームは fp32 のまま）。
+    V100 など SM80 より前の GPU には bfloat16 がないため、Drama 3 は float16 に切り替わります（残差ストリームは fp32 のまま）。
 
 ## システムセットアップ
 
@@ -109,7 +109,7 @@ GPU（デフォルト CUDA126）および CPU 向けの API サーバーイメ�
 
 - Docker と Docker Compose がインストール済み
 - （GPU の場合）NVIDIA Docker runtime がインストール済み（Drama 3 では必須）
-- GPU メモリ：Drama 3 は 32 GB 以上、S2-Pro は 24 GB 以上を推奨
+- GPU メモリ：Drama 3 は 48 GB 以上（FP8）、S2-Pro は 24 GB 以上を推奨
 
 ### ビルド済みイメージの実行
 

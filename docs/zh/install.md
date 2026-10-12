@@ -2,7 +2,7 @@
 
 | 模型 | GPU 显存 | 显卡 |
 | --- | --- | --- |
-| Drama 3 | 至少 32 GB | 仅 NVIDIA GPU，不支持 CPU、Apple MPS、AMD ROCm，也不支持 `--compile` |
+| Drama 3 | 至少 48 GB（FP8） | 仅 NVIDIA GPU，不支持 CPU、Apple MPS、AMD ROCm，也不支持 `--compile` |
 | S2-Pro | 至少 24 GB | NVIDIA GPU 或 CPU |
 
 - 系统：Linux、WSL
@@ -106,7 +106,7 @@ Drama 3 与 S2-Pro 提供多种 Docker 部署方式，适配不同场景。你�
 
 - 已安装 Docker 和 Docker Compose
 - （GPU 场景）已安装 NVIDIA Docker runtime（Drama 3 必须）
-- 显存：Drama 3 至少 32 GB，S2-Pro 建议至少 24 GB
+- 显存：Drama 3 至少 48 GB（FP8），S2-Pro 建议至少 24 GB
 
 ### 运行预构建镜像
 

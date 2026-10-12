@@ -2,13 +2,13 @@
 
 | النموذج | ذاكرة GPU | GPU |
 | --- | --- | --- |
-| Drama 3 | 32 GB على الأقل | NVIDIA GPU فقط: لا يدعم CPU أو Apple MPS أو AMD ROCm، ولا يدعم `--compile` |
+| Drama 3 | 48 GB على الأقل (FP8) | NVIDIA GPU فقط: لا يدعم CPU أو Apple MPS أو AMD ROCm، ولا يدعم `--compile` |
 | S2-Pro | 24 GB على الأقل | NVIDIA GPU أو CPU |
 
 - النظام: Linux، WSL
 
 !!! note
-    ذروة استهلاك الذاكرة المقاسة لـ Drama 3 على بطاقة H20 واحدة تبلغ نحو 41 GB، لذا اترك بعض الهامش. بطاقات مثل V100 والأقدم من SM80 لا تدعم bfloat16، فيتحول Drama 3 إلى float16 (مع إبقاء التيار المتبقي fp32).
+    بطاقات مثل V100 والأقدم من SM80 لا تدعم bfloat16، فيتحول Drama 3 إلى float16 (مع إبقاء التيار المتبقي fp32).
 
 ## إعداد النظام
 
@@ -109,7 +109,7 @@ hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
 
 - تثبيت Docker و Docker Compose
 - (لـ GPU) تثبيت NVIDIA Docker runtime (إلزامي لـ Drama 3)
-- ذاكرة GPU: 32 GB على الأقل لـ Drama 3، ويفضّل 24 GB لـ S2-Pro
+- ذاكرة GPU: 48 GB على الأقل لـ Drama 3 (FP8)، ويفضّل 24 GB لـ S2-Pro
 
 ### تشغيل الصورة الجاهزة
 

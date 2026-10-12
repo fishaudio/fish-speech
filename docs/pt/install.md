@@ -2,13 +2,13 @@
 
 | Modelo | Memória GPU | GPU |
 | --- | --- | --- |
-| Drama 3 | pelo menos 32 GB | apenas NVIDIA GPU: sem CPU, Apple MPS ou AMD ROCm e sem `--compile` |
+| Drama 3 | pelo menos 48 GB (FP8) | apenas NVIDIA GPU: sem CPU, Apple MPS ou AMD ROCm e sem `--compile` |
 | S2-Pro | pelo menos 24 GB | NVIDIA GPU ou CPU |
 
 - Sistema: Linux, WSL
 
 !!! note
-    O pico de memória medido do Drama 3 num único H20 é cerca de 41 GB, por isso deixe alguma margem. A V100 e outras GPUs anteriores a SM80 não têm bfloat16, pelo que o Drama 3 passa a float16 (mantendo o fluxo residual em fp32).
+    A V100 e outras GPUs anteriores a SM80 não têm bfloat16, pelo que o Drama 3 passa a float16 (mantendo o fluxo residual em fp32).
 
 ## Configuração do Sistema
 
@@ -109,7 +109,7 @@ Fornecemos imagens do servidor API para GPU (CUDA126 por predefinição) e CPU. 
 
 - Docker e Docker Compose instalados
 - (Para GPU) NVIDIA Docker runtime instalado (obrigatório para o Drama 3)
-- Memória GPU: pelo menos 32 GB para o Drama 3, 24 GB recomendados para o S2-Pro
+- Memória GPU: pelo menos 48 GB para o Drama 3 (FP8), 24 GB recomendados para o S2-Pro
 
 ### Executar a imagem pré-construída
 

@@ -5,12 +5,12 @@
 --decoder-config-name modded_dac_vq
 
 # Drama 3 (CUDA only; uses the S2-Pro codec; --compile unsupported)
-# SM89+ (L40 / H100 / H20): experts stay FP8 (~41 GB) + CUDA-graph decode, one GPU:
+# SM89+ (L40 / H100 / H20): experts stay FP8 (48 GB) + CUDA-graph decode, one GPU:
 # --listen 0.0.0.0:8080 \
 # --llama-checkpoint-path "checkpoints/drama-3" \
 # --decoder-checkpoint-path "checkpoints/s2-pro/codec.pth" \
 # --device cuda:0
-# Older GPUs (V100 / A100): experts dequantized (~70 GB), spread over several:
+# Older GPUs (V100 / A100): experts dequantized, spread over several:
 # --device cuda:0,cuda:1,cuda:2,cuda:3
 # Env: FISH_DRAMA3_FP8_EXPERTS=0/1 forces dequantized / FP8 experts,
 #      FISH_DRAMA3_CUDA_GRAPH=0 disables CUDA-graph decode.

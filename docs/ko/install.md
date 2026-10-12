@@ -2,13 +2,13 @@
 
 | 모델 | GPU 메모리 | GPU |
 | --- | --- | --- |
-| Drama 3 | 32 GB 이상 | NVIDIA GPU 전용(CPU, Apple MPS, AMD ROCm 미지원, `--compile` 미지원) |
+| Drama 3 | 48 GB 이상(FP8) | NVIDIA GPU 전용(CPU, Apple MPS, AMD ROCm 미지원, `--compile` 미지원) |
 | S2-Pro | 24 GB 이상 | NVIDIA GPU 또는 CPU |
 
 - 시스템: Linux, WSL
 
 !!! note
-    Drama 3의 H20 단일 카드 실측 피크 메모리는 약 41 GB이므로 여유를 두세요. V100 등 SM80 이전 GPU에는 bfloat16이 없어 Drama 3는 float16으로 전환됩니다(잔차 스트림은 fp32 유지).
+    V100 등 SM80 이전 GPU에는 bfloat16이 없어 Drama 3는 float16으로 전환됩니다(잔차 스트림은 fp32 유지).
 
 ## 시스템 설정
 
@@ -109,7 +109,7 @@ GPU(기본 CUDA126) 및 CPU용 API 서버 이미지를 제공합니다. 이미�
 
 - Docker 및 Docker Compose 설치됨
 - (GPU 사용 시) NVIDIA Docker runtime 설치됨(Drama 3는 필수)
-- GPU 메모리: Drama 3는 32 GB 이상, S2-Pro는 24 GB 이상 권장
+- GPU 메모리: Drama 3는 48 GB 이상(FP8), S2-Pro는 24 GB 이상 권장
 
 ### 사전 빌드 이미지 실행
 
