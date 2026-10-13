@@ -36,7 +36,7 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+    <a target="_blank" href="./assets/Fish_Audio_Drama_3_Technical_Report.pdf">
         <img alt="Paper | Informe Técnico" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -57,7 +57,7 @@
 - [Inferencia](https://speech.fish.audio/inference/): línea de comandos, servidor API, WebUI
 
 > [!IMPORTANT]
-> **Recomendamos especialmente SGLang-Omni a quienes busquen eficiencia; consulta el [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
+> **Recomendamos especialmente SGLang-Omni a quienes busquen eficiencia; consulta el [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_drama_3/README.md).**
 
 ### Para Agentes LLM
 
@@ -107,6 +107,8 @@ Al igual que la serie S2, Drama 3 admite varios hablantes, clonación de voz y c
 ### Resultados
 
 Drama 3 da un salto claro respecto a S2 en bancos de pruebas públicos: clonación de voz multilingüe (MiniMax Multilingual Testset), edición de voz de forma libre (Ming-Freeform) y revisión emocional en varios turnos (Step-Audio-Edit), donde supera a la generación anterior en precisión de control, tasas de error multilingües (CER / WER) y precisión de estilo.
+
+Consulta el [informe técnico](./assets/Fish_Audio_Drama_3_Technical_Report.pdf) para la arquitectura, la receta de entrenamiento y los resultados completos de la evaluación.
 
 ---
 
@@ -173,5 +175,13 @@ En Seed-TTS Eval, S2 logra el WER más bajo de todos los modelos evaluados, incl
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2603.08823}, 
+}
+
+@misc{fishaudio2026drama3,
+      title={Fish Audio Drama 3 Technical Report},
+      author={Fish Audio Team},
+      year={2026},
+      howpublished={Technical report},
+      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
 }
 ```

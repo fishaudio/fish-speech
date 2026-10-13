@@ -36,7 +36,7 @@
     <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
         <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
-    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+    <a target="_blank" href="../assets/Fish_Audio_Drama_3_Technical_Report.pdf">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -55,7 +55,7 @@
 - [推理](https://speech.fish.audio/zh/inference/)：命令行推理、API Server、WebUI 推理
 
 > [!IMPORTANT]
-> **我们强烈建议追求效率的用户使用 SGLang-Omni 进行推理，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。**
+> **我们强烈建议追求效率的用户使用 SGLang-Omni 进行推理，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_drama_3/README.md)。**
 
 ### LLM Agent 指南
 
@@ -105,6 +105,8 @@ Drama 3 与 S2 系列一样支持多说话人、声音克隆和自然语言控�
 ### 效果
 
 在公开基准上相对 S2 有显著跃升：多语言声音克隆（MiniMax Multilingual Testset）、自由形式语音编辑（Ming-Freeform）、多轮情绪修正（Step-Audio-Edit）三项上，控制精度、多语言错误率（CER / WER）与风格准确度全面超越前代。
+
+完整架构、训练方案与评测结果见[技术报告](../assets/Fish_Audio_Drama_3_Technical_Report.pdf)。
 
 ---
 
@@ -173,5 +175,13 @@ Drama 3 与 S2 系列一样支持多说话人、声音克隆和自然语言控�
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2603.08823}, 
+}
+
+@misc{fishaudio2026drama3,
+      title={Fish Audio Drama 3 Technical Report},
+      author={Fish Audio Team},
+      year={2026},
+      howpublished={Technical report},
+      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
 }
 ```
