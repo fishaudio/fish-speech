@@ -45,7 +45,7 @@
 </div>
 
 !!! info "تنبيه الترخيص"
-    يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها بموجب رخصة **FISH AUDIO RESEARCH LICENSE**. يرجى الرجوع إلى [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) لمزيد من التفاصيل.
+    يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها بموجب رخصة **FISH AUDIO COMMUNITY LICENSE**. تظل أوزان S2-Pro خاضعة لترخيص Fish Audio Research License. يرجى الرجوع إلى [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) لمزيد من التفاصيل.
 
 !!! warning "إخلاء المسؤولية القانونية"
     نحن لا نتحمل أي مسؤولية عن أي استخدام غير قانوني لقاعدة الأكواد. يرجى مراجعة القوانين المحلية المتعلقة بـ DMCA والقوانين الأخرى ذات الصلة.

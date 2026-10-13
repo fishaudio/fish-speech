@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **ライセンス注意事項**
-> このコードベースおよび関連するモデルウェイトは **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** の下でリリースされています。詳細については [LICENSE](../LICENSE) をご参照ください。
+> このコードベースおよび関連するモデルウェイトは **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)** の下でリリースされています。S2-Pro のモデルウェイトは引き続き Fish Audio Research License が適用されます。詳細については [LICENSE](../LICENSE) をご参照ください。
 
 
 > [!WARNING]

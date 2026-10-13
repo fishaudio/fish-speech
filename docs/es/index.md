@@ -43,7 +43,7 @@
 </div>
 
 !!! info "Aviso de Licencia"
-Este código y sus pesos de modelo asociados se publican bajo **FISH AUDIO RESEARCH LICENSE**. Por favor, consulta [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para más detalles. Tomaremos acciones contra cualquier violación de la licencia.
+Este código y sus pesos de modelo asociados se publican bajo **FISH AUDIO COMMUNITY LICENSE**. Los pesos de S2-Pro siguen bajo la Fish Audio Research License. Por favor, consulta [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para más detalles. Tomaremos acciones contra cualquier violación de la licencia.
 
 !!! warning "Aviso Legal"
 No asumimos ninguna responsabilidad por el uso ilegal de este código. Por favor, consulta las leyes locales sobre DMCA y otras leyes relacionadas.

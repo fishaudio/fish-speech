@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **Aviso de Licença**
-> Este repositório de código e seus pesos de modelo associados são lançados sob a **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. Consulte [LICENSE](../LICENSE) para obter mais detalhes.
+> Este repositório de código e seus pesos de modelo associados são lançados sob a **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)**. Os pesos do S2-Pro continuam sob a Fish Audio Research License. Consulte [LICENSE](../LICENSE) para obter mais detalhes.
 
 
 > [!WARNING]

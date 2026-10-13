@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **라이선스 고지**
-> 이 코드베이스 및 관련 모델 가중치는 **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** 에 따라 배포됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하십시오.
+> 이 코드베이스 및 관련 모델 가중치는 **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)** 에 따라 배포됩니다. S2-Pro 가중치는 계속해서 Fish Audio Research License가 적용됩니다. 자세한 내용은 [LICENSE](../LICENSE)를 참조하십시오.
 
 
 > [!WARNING]

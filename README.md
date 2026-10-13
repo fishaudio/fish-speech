@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **License Notice**  
-> This codebase and its associated model weights are released under **[FISH AUDIO RESEARCH LICENSE](LICENSE)**. Please refer to [LICENSE](LICENSE) for more details. We will take action against any violation of the license.
+> This codebase and its associated model weights are released under **[FISH AUDIO COMMUNITY LICENSE](LICENSE)**. The S2-Pro weights remain under the Fish Audio Research License. Please refer to [LICENSE](LICENSE) for more details. We will take action against any violation of the license.
 
 > [!WARNING]
 > **Legal Disclaimer**  

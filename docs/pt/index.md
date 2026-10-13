@@ -45,7 +45,7 @@
 </div>
 
 !!! info "Aviso de Licença"
-    Este repositório e todos os pesos de modelo associados são lançados sob a **FISH AUDIO RESEARCH LICENSE**. Consulte [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para mais detalhes.
+    Este repositório e todos os pesos de modelo associados são lançados sob a **FISH AUDIO COMMUNITY LICENSE**. Os pesos do S2-Pro continuam sob a Fish Audio Research License. Consulte [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) para mais detalhes.
 
 !!! warning "Isenção de Responsabilidade Legal"
     Não nos responsabilizamos por qualquer uso ilegal da base de códigos. Consulte as regulamentações locais sobre DMCA e outras leis relacionadas.

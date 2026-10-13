@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **إشعار الترخيص**
-> يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها تحت **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. يرجى الرجوع إلى ملف [LICENSE](../LICENSE) لمزيد من التفاصيل.
+> يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها تحت **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)**. تظل أوزان S2-Pro خاضعة لترخيص Fish Audio Research License. يرجى الرجوع إلى ملف [LICENSE](../LICENSE) لمزيد من التفاصيل.
 
 
 > [!WARNING]

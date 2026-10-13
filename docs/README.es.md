@@ -43,7 +43,7 @@
 
 > [!IMPORTANT]
 > **Aviso de Licencia**
-> Este código y los pesos de modelo asociados se publican bajo la **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. Consulta [LICENSE](../LICENSE) para más detalles. Se tomarán acciones ante cualquier violación de la licencia.
+> Este código y los pesos de modelo asociados se publican bajo la **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)**. Los pesos de S2-Pro siguen bajo la Fish Audio Research License. Consulta [LICENSE](../LICENSE) para más detalles. Se tomarán acciones ante cualquier violación de la licencia.
 
 > [!WARNING]
 > **Descargo de Responsabilidad Legal**

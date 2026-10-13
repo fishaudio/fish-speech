@@ -45,7 +45,7 @@
 </div>
 
 !!! info "License Notice"
-    This codebase and its associated model weights are released under **FISH AUDIO RESEARCH LICENSE**. Please refer to [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) for more details. We will take action against any violation of the license.
+    This codebase and its associated model weights are released under **FISH AUDIO COMMUNITY LICENSE**. The S2-Pro weights remain under the Fish Audio Research License. Please refer to [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) for more details. We will take action against any violation of the license.
 
 !!! warning "Legal Disclaimer"
     We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.

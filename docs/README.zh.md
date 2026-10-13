@@ -46,7 +46,7 @@
 
 > [!IMPORTANT]
 > **许可证声明**
-> 此代码库及其相关的模型权重均在 **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** 下发布。更多详情请参考 [LICENSE](../LICENSE)。
+> 此代码库及其相关的模型权重均在 **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)** 下发布。S2-Pro 权重仍适用 Fish Audio Research License。更多详情请参考 [LICENSE](../LICENSE)。
 
 
 > [!WARNING]
