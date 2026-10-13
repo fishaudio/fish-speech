@@ -47,7 +47,9 @@ class ModelManager:
         if self.model_family == "drama3":
             # The codec lives with the tower (last device), in the model's dtype.
             devices, tower_device = resolve_drama3_devices(device)
-            self.precision = resolve_drama3_dtype(self.precision, [*devices, tower_device])
+            self.precision = resolve_drama3_dtype(
+                self.precision, [*devices, tower_device]
+            )
             self.device = tower_device
             logger.info(
                 f"Drama 3 checkpoint: backbone on {devices}, tower + codec on "

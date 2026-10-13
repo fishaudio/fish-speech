@@ -917,7 +917,9 @@ def generate_long_drama3(
     requested = max_new_tokens
     if requested <= 0:
         requested = (
-            DRAMA3_DEFAULT_MAX_NEW_TOKENS if single_chunk else DRAMA3_CHUNK_MAX_NEW_TOKENS
+            DRAMA3_DEFAULT_MAX_NEW_TOKENS
+            if single_chunk
+            else DRAMA3_CHUNK_MAX_NEW_TOKENS
         )
     logger.info(
         f"Drama 3: {len(chunks)} chunk(s), {len(prompt_tokens)} reference(s), "

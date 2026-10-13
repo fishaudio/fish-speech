@@ -330,14 +330,18 @@ class Drama3DecodeGraphs:
         self.graphs: dict[int, torch.cuda.CUDAGraph] = {}
         self.pool = torch.cuda.graph_pool_handle()
         capacity = self.graph_capacity(model)
-        self.buckets = tuple(sorted({min(b, capacity) for b in DRAMA3_GRAPH_KV_BUCKETS}))
+        self.buckets = tuple(
+            sorted({min(b, capacity) for b in DRAMA3_GRAPH_KV_BUCKETS})
+        )
 
     @staticmethod
     def graph_capacity(model: FishOmniModel) -> int:
         return min(DRAMA3_GRAPH_CAPACITY, model.config.text.max_position_embeddings)
 
     @classmethod
-    def for_model(cls, model: FishOmniModel, capacity: int) -> "Drama3DecodeGraphs | None":
+    def for_model(
+        cls, model: FishOmniModel, capacity: int
+    ) -> "Drama3DecodeGraphs | None":
         """The model's graphs (captured on first use), or None to decode eagerly."""
         if os.environ.get("FISH_DRAMA3_CUDA_GRAPH", "1") == "0":
             return None

@@ -219,7 +219,9 @@ class Drama3PromptTest(unittest.TestCase):
             torch.zeros(3, 2),
         ):
             with self.assertRaises(ValueError):
-                build_drama3_prompt("hi", RecordingTokenizer(), config, ["ref"], [codes])
+                build_drama3_prompt(
+                    "hi", RecordingTokenizer(), config, ["ref"], [codes]
+                )
         with self.assertRaisesRegex(ValueError, "transcript and codes"):
             build_drama3_prompt("hi", RecordingTokenizer(), config, ["ref"], [])
         config.eos_token_id = 1
@@ -478,7 +480,9 @@ class Drama3GenerationTest(unittest.TestCase):
                 patch.object(
                     self.model.audio_decoder, "decode_step", return_value=eos_frame
                 ),
-                patch.object(inference, "generate_drama3", wraps=generate_drama3) as run,
+                patch.object(
+                    inference, "generate_drama3", wraps=generate_drama3
+                ) as run,
             ):
                 list(
                     generate_long(
@@ -498,7 +502,9 @@ class Drama3GenerationTest(unittest.TestCase):
         tokenizer, config = self.model.tokenizer, self.model.config
         codes = torch.tensor([[1, 2], [3, 4], [5, 6]])
         plain = build_drama3_prompt("now", tokenizer, config)
-        prompt = build_drama3_prompt("now", tokenizer, config, history=[("before", codes)])
+        prompt = build_drama3_prompt(
+            "now", tokenizer, config, history=[("before", codes)]
+        )
         self.assertEqual(
             tokenizer.parts[-9:],
             [
@@ -531,7 +537,9 @@ class Drama3GenerationTest(unittest.TestCase):
                 "decode_step",
                 side_effect=[frame, eos] * len(chunks),
             ),
-            patch.object(inference, "build_drama3_prompt", wraps=build_drama3_prompt) as build,
+            patch.object(
+                inference, "build_drama3_prompt", wraps=build_drama3_prompt
+            ) as build,
             patch.object(inference, "generate_drama3", wraps=generate_drama3) as run,
         ):
             responses = list(
@@ -591,7 +599,8 @@ class Drama3DispatchTest(unittest.TestCase):
     def test_device_layout(self) -> None:
         with patch("torch.cuda.device_count", return_value=8):
             self.assertEqual(
-                resolve_drama3_devices("cuda"), (["cuda:0", "cuda:1", "cuda:2"], "cuda:3")
+                resolve_drama3_devices("cuda"),
+                (["cuda:0", "cuda:1", "cuda:2"], "cuda:3"),
             )
             self.assertEqual(resolve_drama3_devices("cuda:5"), (["cuda:5"], "cuda:5"))
             self.assertEqual(
@@ -630,7 +639,9 @@ class Drama3DispatchTest(unittest.TestCase):
             (s2 / "codec.pth").write_bytes(b"")
             self.assertEqual(resolve_codec_path(drama3), s2 / "codec.pth")
             self.assertEqual(resolve_codec_path(s2), s2 / "codec.pth")
-            self.assertEqual(resolve_codec_path(drama3, s2 / "codec.pth"), s2 / "codec.pth")
+            self.assertEqual(
+                resolve_codec_path(drama3, s2 / "codec.pth"), s2 / "codec.pth"
+            )
             # A fine-tuned S2-Pro directory without its own codec uses the sibling one.
             finetuned = Path(root, "my-s2-finetune")
             finetuned.mkdir()
@@ -650,7 +661,9 @@ class Drama3DispatchTest(unittest.TestCase):
                     "resolve_drama3_devices",
                     return_value=(["cuda:0"], "cuda:1"),
                 ),
-                patch.object(inference, "resolve_drama3_dtype", return_value=torch.float16),
+                patch.object(
+                    inference, "resolve_drama3_dtype", return_value=torch.float16
+                ),
                 patch.object(
                     FishOmniModel, "from_pretrained", return_value=sentinel
                 ) as load,

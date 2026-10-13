@@ -72,7 +72,11 @@ class SamplingDefaultsTest(unittest.TestCase):
     def test_defaults_for_clients(self):
         self.assertEqual(
             make_engine("drama3").sampling_defaults(),
-            {"model_family": "drama3", "chunk_length": 200, **SAMPLING_DEFAULTS["drama3"]},
+            {
+                "model_family": "drama3",
+                "chunk_length": 200,
+                **SAMPLING_DEFAULTS["drama3"],
+            },
         )
         self.assertEqual(make_engine("s2").sampling_defaults()["model_family"], "s2")
 
@@ -187,7 +191,9 @@ class ErrorMappingTest(unittest.TestCase):
             ),
             400,
         )
-        self.assertEqual(self.status_code_for(Drama3PromptTooLongError("too long")), 400)
+        self.assertEqual(
+            self.status_code_for(Drama3PromptTooLongError("too long")), 400
+        )
         # Other ValueErrors are internal failures, not the client's fault.
         self.assertEqual(
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
