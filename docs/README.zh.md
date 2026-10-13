@@ -30,20 +30,23 @@
 </div>
 
 <div align="center">
+    <a target="_blank" href="https://huggingface.co/fishaudio/drama-3">
+        <img alt="HuggingFace Drama 3" src="https://img.shields.io/badge/🤗%20-Drama%203-orange"/>
+    </a>
     <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
-        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+        <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+    <a target="_blank" href="./assets/Fish_Audio_Drama_3_Technical_Report.pdf">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
 > [!IMPORTANT]
 > **许可证声明**
-> 此代码库及其相关的模型权重均在 **[FISH AUDIO RESEARCH LICENSE](../LICENSE)** 下发布。更多详情请参考 [LICENSE](../LICENSE)。
+> 此代码库及其相关的模型权重均在 **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)** 下发布。S2-Pro 权重仍适用 Fish Audio Research License。更多详情请参考 [LICENSE](../LICENSE)。
 
 
 > [!WARNING]
@@ -54,43 +57,79 @@
 
 ### 文档入口
 
-这里是 Fish Audio S2 的官方文档，请按照说明轻松入门。
-
-- [安装](https://speech.fish.audio/zh/install/)
-- [命令行推理](https://speech.fish.audio/zh/inference/)
-- [WebUI 推理](https://speech.fish.audio/zh/inference/)
-- [服务端推理](https://speech.fish.audio/zh/server/)
-- [Docker 部署](https://speech.fish.audio/zh/install/)
+- [安装](https://speech.fish.audio/zh/install/)：环境配置、下载权重、Docker 部署
+- [推理](https://speech.fish.audio/zh/inference/)：命令行推理、API Server、WebUI 推理
 
 > [!IMPORTANT]
-> **如需使用 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md)。**
->
-> **如需使用 vLLM Omni Server，请参考 [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md) 和[用户指南](https://github.com/vllm-project/vllm-omni/blob/main/docs/user_guide/examples/online_serving/text_to_speech.md#fish-speech-s2-pro)。**
+> **我们强烈建议追求效率的用户使用 SGLang-Omni 进行推理，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_drama_3/README.md)。**
 
 ### LLM Agent 指南
 
 ```
-请先阅读 https://speech.fish.audio/zh/install/ ，并按文档安装和配置 Fish Audio S2。
+请先阅读 https://speech.fish.audio/zh/install/ ，并按文档安装和配置 Fish Audio Drama 3（或 S2-Pro）。
 ```
 
-## Fish Audio S2 Pro
-**行业顶尖的多语言文本转语音 (TTS) 系统，重新定义声音生成的边界。**
+## 模型
 
-Fish Audio S2 Pro 是 [Fish Audio](https://fish.audio/) 开发的最先进的多模态模型。S2 Pro 训练自超过 **1000 万小时** 的海量音频数据，覆盖全球 **80 多种语言**。通过创新的 **双自回归 (Dual-AR)** 架构与强化学习 (RL) 对齐技术，S2 Pro 能生成极具自然感、真实感且情感饱满的语音，在开源与闭源竞争中均处于领先地位。
+| 模型 | 大小 | 权重 | 说明 |
+|------|------|------|------|
+| **Drama 3** | 35B-A3B（每 token 激活 3B） | [HuggingFace](https://huggingface.co/fishaudio/drama-3) | 新一代旗舰模型，面向多角色场景与长内容，可多轮修正与局部编辑 |
+| S2-Pro | 4B 参数 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 前一代旗舰模型，有更快的推理速度 |
 
-S2 Pro 的杀手锏在于支持通过自然语言标签（如 `[whisper]`、`[excited]`、`[angry]`）对韵律与情绪进行 **亚词级（Sub-word Level）** 的极细粒度行内控制，同时原生支持多说话人与超长上下文的多轮对话生成。
+模型类型由权重目录中的 `config.json` 自动识别，两者共用同一套命令行与 API Server。
 
-立即访问 [Fish Audio 官网](https://fish.audio/) 体验在线演示，或阅读我们的[技术报告](https://arxiv.org/abs/2603.08823)与[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)深入了解。
+---
 
-### 模型变体
+## Fish Audio Drama 3
 
-| 模型 | 大小 | 可用性 | 描述 |
-|------|------|-------------|-------------|
-| S2-Pro | 4B 参数 | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 功能齐全的旗舰模型，具有最高质量和稳定性 |
+**S2-Pro 基础上全方位升级的新一代语音生成模型。**
 
-有关模型的更多详情，请参见[技术报告](https://arxiv.org/abs/2411.01156)。
+Drama 3 与 S2 系列一样支持多说话人、声音克隆和自然语言控制，但在长音频处理、交互方式和可编辑性上有明显突破。
 
-## 基准测试结果
+### 主要特性
+
+- **多轮导演修正**：对前一轮的生成结果直接进行指导（"再温和一点、更伤感一些"），模型结合上下文重新生成，不用从头再来。
+- **语音填空与精准编辑**：像改文本一样改语音，进行「把周三换成周四」这类局部替换，同时前后音色与过渡保持自然。
+- **剧本式多角色场景**：按剧本描述一次性配出含多个角色的完整场景，并支持流式长文本合成。
+- **长对话与长语音**：面向长录音、长效会话设计，长内容中角色与音色保持稳定。
+- **表现力更强**：笑声、哭腔、耳语、戏剧化情绪不再受reference影响，情感张力更接近真人。
+- **多语言声音克隆**：跨语言音色克隆的错误率（CER / WER）取得了新层次的SOTA。
+- **自然语言标签控制**：沿用 `[whisper]`、`[angry]`、`[laughing]` 等行内标签控制情绪与韵律。
+
+### 相比 S2-Pro 的能力变化
+
+| 能力 | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| 多说话人 | 支持 | 支持，剧本式多角色场景 |
+| 声音克隆 | 支持 | 支持，多语言错误率更低 |
+| 行内自然语言指令 | 支持 | 支持 |
+| 局部修改 / 语音填空 | 不支持 | 支持 |
+| 多轮导演修正 | 不支持 | 支持 |
+| 长内容 | 分块生成 | 长对话与长语音，支持流式 |
+| 强情绪表现（笑声、哭腔、耳语） | 一般 | 更强 |
+
+### 效果
+
+在公开基准上相对 S2 有显著跃升：多语言声音克隆（MiniMax Multilingual Testset）、自由形式语音编辑（Ming-Freeform）、多轮情绪修正（Step-Audio-Edit）三项上，控制精度、多语言错误率（CER / WER）与风格准确度全面超越前代。
+
+完整架构、训练方案与评测结果见[技术报告](./assets/Fish_Audio_Drama_3_Technical_Report.pdf)。
+
+---
+
+## Fish Audio S2-Pro
+
+我们的上一代旗舰模型，具有自然语言可控与富有情绪化的语音生成能力，支持近百种语言，且大小可供消费级GPU部署。
+
+- **行内自然语言指令**：用 `[pause]`、`[excited]`、`[whisper]` 等标签在文本任意位置控制韵律与情绪。
+- **原生多说话人生成**：一段文本里用说话人 ID 区分角色，无需为每个角色单独生成后拼接。
+- **快速语音克隆**：10–30 秒参考音频即可复刻音色。
+- **单次生成**：可以一次性流式地生成长音频。
+- **生产级流式**：单张 H200 上 RTF 0.195、首音频延迟约 100 ms。
+
+体验在线演示请访问 [Fish Audio 网站](https://fish.audio/)，更多细节见[博客文章](https://fish.audio/blog/fish-audio-open-sources-s2/)与[技术报告](https://arxiv.org/abs/2603.08823)。
+
+<details>
+<summary><b>S2-Pro 基准测试结果（点击展开）</b></summary>
 
 | 基准 | Fish Audio S2 |
 |------|------|
@@ -103,66 +142,11 @@ S2 Pro 的杀手锏在于支持通过自然语言标签（如 `[whisper]`、`[ex
 | 多语言（MiniMax Testset）— 最佳 WER | **24** 种语言中的 **11** 种 |
 | 多语言（MiniMax Testset）— 最佳 SIM | **24** 种语言中的 **17** 种 |
 
-在 Seed-TTS Eval 上，S2 在所有已评估模型（包括闭源系统）中实现了最低 WER：Qwen3-TTS（0.77/1.24）、MiniMax Speech-02（0.99/1.90）、Seed-TTS（1.12/2.25）。在 Audio Turing Test 上，S2 的 0.515 相比 Seed-TTS（0.417）提升 24%，相比 MiniMax-Speech（0.387）提升 33%。在 EmergentTTS-Eval 中，S2 在副语言学（91.61% 胜率）、疑问句（84.41%）和句法复杂度（83.39%）等维度表现尤为突出。
-
-## 亮点
+在 Seed-TTS Eval 上，S2 在所有已评估模型（包括闭源系统）中实现了最低 WER：Qwen3-TTS（0.77/1.24）、MiniMax Speech-02（0.99/1.90）、Seed-TTS（1.12/2.25）。在 Audio Turing Test 上，0.515 相比 Seed-TTS（0.417）提升 24%，相比 MiniMax-Speech（0.387）提升 33%。在 EmergentTTS-Eval 中，S2 在副语言学（91.61% 胜率）、疑问句（84.41%）和句法复杂度（83.39%）等维度表现尤为突出。
 
 <img src="./assets/totalability.png" width=200%>
 
-### 通过自然语言进行极细粒度行内控制
-
-S2 Pro 赋予了语音前所未有的“灵性”。通过简单的 `[tag]` 语法，你可以在文本的任何位置精准嵌入情感指令。
-- **15,000+ 独特标签支持**：不局限于固定的预设，支持 **自由格式的文本描述**。你可以尝试 `[whisper in small voice]` (低声耳语), `[professional broadcast tone]` (专业播音腔), 或 `[pitch up]` (提高音调)。
-- **丰富的情绪库**：
-  `[pause]` `[emphasis]` `[laughing]` `[inhale]` `[chuckle]` `[tsk]` `[singing]` `[excited]` `[laughing tone]` `[interrupting]` `[chuckling]` `[excited tone]` `[volume up]` `[echo]` `[angry]` `[low volume]` `[sigh]` `[low voice]` `[whisper]` `[screaming]` `[shouting]` `[loud]` `[surprised]` `[short pause]` `[exhale]` `[delight]` `[panting]` `[audience laughter]` `[with strong accent]` `[volume down]` `[clearing throat]` `[sad]` `[moaning]` `[shocked]`
-
-### 创新的双自回归 (Dual-Autoregressive) 架构
-
-S2 Pro 采用了主从式 Dual-AR 架构，由 Decoder-only Transformer 与 RVQ 音频编解码器（10 个码本，约 21 Hz 帧率）组成：
-
-- **Slow AR (4B 参数)**：沿时间轴工作，预测核心的语义码本。
-- **Fast AR (400M 参数)**：在每个时间步生成剩余 9 个残差码本，细腻还原极致的音频细节。
-
-这种非对称设计在保证音频极致保真度的同时，大幅提升了推理速度。
-
-### 强化学习对齐 (RL Alignment)
-
-S2 Pro 采用了 **Group Relative Policy Optimization (GRPO)** 技术进行后训练对齐。我们将用于数据清洗与标注的同一套模型直接作为奖励模型 (Reward Model)，完美解决了预训练数据分布与后训练目标之间的不匹配问题。
-- **多维奖励信号**：综合评估语义准确性、指令遵循能力、声学偏好评分以及音色相似度，确保生成的每一秒语音都符合人类直觉。
-
-### 极致的流式推理性能 (基于 SGLang)
-
-由于 Dual-AR 架构与标准 LLM 结构同构，S2 Pro 原生支持 SGLang 的所有推理加速特性，包括连续批处理 (Continuous Batching)、分页 KV Cache、CUDA Graph 与基于 RadixAttention 的前缀缓存。
-
-**单张 NVIDIA H200 GPU 性能表现：**
-- **实时因子 (RTF)**：0.195
-- **首音延迟 (TTFA)**：约 100 ms
-- **极速吞吐**：在保持 RTF < 0.5 时，吞吐量达到 3,000+ acoustic tokens/s
-
-### 强大的多语言支持
-
-S2 Pro 支持 80 多种语言，无需音素或特定语言的处理即可实现高质量合成：
-
-- **第一梯队 (Tier 1)**：日语 (ja), 英语 (en), 中文 (zh)
-- **第二梯队 (Tier 2)**：韩语 (ko), 西班牙语 (es), 葡萄牙语 (pt), 阿拉伯语 (ar), 俄语 (ru), 法语 (fr), 德语 (de)
-- **全球覆盖**：sv, it, tr, no, nl, cy, eu, ca, da, gl, ta, hu, fi, pl, et, hi, la, ur, th, vi, jw, bn, yo, xsl, cs, sw, nn, he, ms, uk, id, kk, bg, lv, my, tl, sk, ne, fa, af, el, bo, hr, ro, sn, mi, yi, am, be, km, is, az, sd, br, sq, ps, mn, ht, ml, sr, sa, te, ka, bs, pa, lt, kn, si, hy, mr, as, gu, fo 等。
-
-### 原生多说话人生成
-
-<img src="./assets/chattemplate.png" width=200%>
-
-Fish Audio S2 允许用户上传包含多个说话人的参考音频，模型将通过 `<|speaker:i|>` 令牌处理每个说话人的特征。之后您可以通过说话人 ID 令牌控制模型的表现，从而实现一次生成中包含多个说话人。再也不需要像以前那样针对每个说话人都单独上传参考音频与生成语音了。
-
-### 多轮对话生成
-
-得益于模型上下文的扩展，我们的模型现在可以借助上文的信息提高后续生成内容的表现力，从而提升内容的自然度。
-
-### 快速语音克隆
-
-Fish Audio S2 支持使用短参考样本（通常为 10-30 秒）进行准确的语音克隆。模型可以捕捉音色、说话风格和情感倾向，无需额外微调即可生成逼真且一致的克隆语音。
-如需使用 SGLang Server，请参考 [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) 。
-
----
+</details>
 
 ## 致谢
 
@@ -195,5 +179,13 @@ Fish Audio S2 支持使用短参考样本（通常为 10-30 秒）进行准确�
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2603.08823}, 
+}
+
+@misc{fishaudio2026drama3,
+      title={Fish Audio Drama 3 Technical Report},
+      author={Fish Audio Team},
+      year={2026},
+      howpublished={Technical report},
+      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
 }
 ```

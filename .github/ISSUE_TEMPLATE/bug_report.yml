@@ -36,7 +36,7 @@ body:
     attributes:
       label: Environment Details
       description: "Provide details such as OS, Python version, and any relevant software or dependencies."
-      placeholder: e.g., macOS 13.5, Python 3.10, torch==2.4.1, Gradio 4.44.0
+      placeholder: e.g., Ubuntu 24.04, Python 3.12, torch==2.8.0, CUDA 12.9
     validations:
       required: true
   - type: textarea

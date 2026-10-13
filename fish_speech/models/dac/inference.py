@@ -61,7 +61,7 @@ def load_model(config_name, checkpoint_path, device="cuda"):
 @click.option("--config-name", default="modded_dac_vq")
 @click.option(
     "--checkpoint-path",
-    default="checkpoints/openaudio-s1-mini/codec.pth",
+    default="checkpoints/s2-pro/codec.pth",
 )
 @click.option(
     "--device",

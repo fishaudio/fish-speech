@@ -71,16 +71,12 @@ def batch_vqgan_decode(model, features):
     ).to(model.device)
 
     # If bs too large, we do micro batch decode
-    audios, audio_lengths = [], []
+    audios = []
     for i in range(0, padded.shape[0], MICRO_BATCH_SIZE):
-        audio, audio_length = model.decode(
-            padded[i : i + MICRO_BATCH_SIZE],
-            feature_lengths=lengths[i : i + MICRO_BATCH_SIZE],
-        )
-        audios.append(audio)
-        audio_lengths.append(audio_length)
-    audios = torch.cat(audios, dim=0)
-    audio_lengths = torch.cat(audio_lengths, dim=0)
-    audios, audio_lengths = audios.cpu(), audio_lengths.cpu()
+        audios.append(model.from_indices(padded[i : i + MICRO_BATCH_SIZE]).float())
+    audios = torch.cat(audios, dim=0).cpu()
+    # Each code frame decodes to frame_length samples (the codec is causal,
+    # so the zero padding on the right does not affect the kept part).
+    audio_lengths = (lengths * model.frame_length).cpu()
 
     return [audio[..., :length].numpy() for audio, length in zip(audios, audio_lengths)]

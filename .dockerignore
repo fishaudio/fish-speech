@@ -156,3 +156,6 @@ azure-pipelines.yml
 # /data_server/target
 # checkpoints
 # .venv
+
+# Built inside the image (webui-build stage)
+**/node_modules

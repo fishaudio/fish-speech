@@ -1,6 +1,6 @@
 import gc
 import queue
-from typing import Generator
+from typing import Generator, Literal
 
 import numpy as np
 import torch
@@ -10,13 +10,41 @@ from fish_speech.inference_engine.reference_loader import ReferenceLoader
 from fish_speech.inference_engine.utils import InferenceResult, wav_chunk_header
 from fish_speech.inference_engine.vq_manager import VQManager
 from fish_speech.models.dac.modded_dac import DAC
+from fish_speech.models.text2semantic.fish_omni.generate import (
+    SPEAKER_TAG_PATTERN,
+    UNICODE_WHITE_SPACE,
+)
 from fish_speech.models.text2semantic.inference import (
     GenerateRequest,
     GenerateResponse,
     WrappedGenerateResponse,
 )
+from fish_speech.models.text2semantic.sampling import (
+    DEFAULT_MAX_NEW_TOKENS,
+    DEFAULT_REPETITION_PENALTY,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+)
 from fish_speech.utils import autocast_exclude_mps, set_seed
 from fish_speech.utils.schema import ServeTTSRequest
+
+ModelFamily = Literal["s2", "drama3"]
+
+# Used for every sampling field a request leaves unset (None): the official Fish
+# Audio SDK's defaults, the same for both families. max_new_tokens applies to
+# each text chunk.
+_SDK_DEFAULTS = dict(
+    max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
+    top_p=DEFAULT_TOP_P,
+    top_k=DEFAULT_TOP_K,
+    repetition_penalty=DEFAULT_REPETITION_PENALTY,
+    temperature=DEFAULT_TEMPERATURE,
+)
+SAMPLING_DEFAULTS: dict[ModelFamily, dict[str, int | float]] = {
+    "s2": dict(_SDK_DEFAULTS),
+    "drama3": dict(_SDK_DEFAULTS),
+}
 
 
 class TTSInferenceEngine(ReferenceLoader, VQManager):
@@ -27,14 +55,45 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         decoder_model: DAC,
         precision: torch.dtype,
         compile: bool,
+        model_family: ModelFamily = "s2",
     ) -> None:
 
         super().__init__()
+
+        if model_family not in SAMPLING_DEFAULTS:
+            raise ValueError(f"Unknown model family: {model_family!r}")
 
         self.llama_queue = llama_queue
         self.decoder_model = decoder_model
         self.precision = precision
         self.compile = compile
+        self.model_family = model_family
+
+    def load_references(self, req: ServeTTSRequest) -> tuple[list, list[str]]:
+        """Reference codes and transcripts, by reference_id or else by the uploaded
+        references, whose speaker field tags their transcripts."""
+        if req.reference_id is not None:
+            return self.load_by_id(req.reference_id, req.use_memory_cache)
+        if not req.references:
+            return [], []
+        prompt_tokens, prompt_texts = self.load_by_hash(
+            req.references, req.use_memory_cache
+        )
+        prompt_texts = [
+            self.tag_reference_text(text, ref.speaker)
+            for ref, text in zip(req.references, prompt_texts)
+        ]
+        return prompt_tokens, prompt_texts
+
+    def tag_reference_text(self, text: str, speaker: int | None) -> str:
+        """Prefix <|speaker:N|> unless speaker is None or a tag already leads text."""
+        if speaker is None or SPEAKER_TAG_PATTERN.match(
+            text.lstrip(UNICODE_WHITE_SPACE)
+        ):
+            return text
+        # The models' own formats: Drama 3 puts a space after the tag, S2-Pro does not.
+        separator = " " if self.model_family == "drama3" else ""
+        return f"<|speaker:{speaker}|>{separator}{text}"
 
     @torch.inference_mode()
     def inference(self, req: ServeTTSRequest) -> Generator[InferenceResult, None, None]:
@@ -45,16 +104,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         - Decodes the VQ tokens to audio.
         """
 
-        ref_id: str | None = req.reference_id
-        prompt_tokens, prompt_texts = [], []
-        # Load the reference audio and text based on id or hash
-        if ref_id is not None:
-            prompt_tokens, prompt_texts = self.load_by_id(ref_id, req.use_memory_cache)
-
-        elif req.references:
-            prompt_tokens, prompt_texts = self.load_by_hash(
-                req.references, req.use_memory_cache
-            )
+        prompt_tokens, prompt_texts = self.load_references(req)
 
         # Set the random seed if provided
         if req.seed is not None:
@@ -76,7 +126,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
                 code="header",
                 audio=(
                     sample_rate,
-                    np.array(wav_chunk_header(sample_rate=sample_rate)),
+                    np.frombuffer(wav_chunk_header(sample_rate), dtype=np.uint8),
                 ),
                 error=None,
             )
@@ -151,16 +201,14 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         # Prepare the request
         request = dict(
             device=self.decoder_model.device,
-            max_new_tokens=req.max_new_tokens,
             text=req.text,
-            top_p=req.top_p,
-            repetition_penalty=req.repetition_penalty,
-            temperature=req.temperature,
             compile=self.compile,
             iterative_prompt=req.chunk_length > 0,
             chunk_length=req.chunk_length,
+            single_chunk=req.single_chunk,
             prompt_tokens=prompt_tokens,
             prompt_text=prompt_texts,
+            **self.resolve_sampling(req),
         )
 
         # Create a queue to get the response
@@ -175,6 +223,31 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         )
 
         return response_queue
+
+    def sampling_defaults(self) -> dict[str, str | int | float]:
+        """What a request that leaves the sampling fields unset gets, for clients."""
+        return {
+            "model_family": self.model_family,
+            "chunk_length": ServeTTSRequest.model_fields["chunk_length"].default,
+            **SAMPLING_DEFAULTS[self.model_family],
+        }
+
+    def resolve_sampling(self, req: ServeTTSRequest) -> dict[str, int | float]:
+        """Request sampling fields, falling back to the model family's defaults."""
+        params = dict(SAMPLING_DEFAULTS[self.model_family])
+        for name in ("max_new_tokens", "top_p", "repetition_penalty", "temperature"):
+            value = getattr(req, name)
+            if value is not None:
+                params[name] = value
+
+        # Neither model applies it. The SDK always sends its default, so only warn
+        # about a value someone chose.
+        if req.repetition_penalty not in (None, 1.0, DEFAULT_REPETITION_PENALTY):
+            logger.warning(
+                "repetition_penalty is ignored: S2-Pro and Drama 3 use repetition-aware "
+                "sampling instead"
+            )
+        return params
 
     def get_audio_segment(self, result: GenerateResponse) -> np.ndarray:
         """

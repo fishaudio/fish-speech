@@ -1,14 +1,21 @@
 ## 必要条件
 
-- GPUメモリ: 24GB (推論時)
-- システム: Linux, WSL
+| モデル | GPU メモリ | GPU |
+| --- | --- | --- |
+| Drama 3 | 48 GB 以上（FP8） | NVIDIA GPU のみ（CPU、Apple MPS、AMD ROCm は非対応、`--compile` も非対応） |
+| S2-Pro | 24 GB 以上 | NVIDIA GPU または CPU |
+
+- システム：Linux、WSL
+
+!!! note
+    V100 など SM80 より前の GPU には bfloat16 がないため、Drama 3 は float16 に切り替わります（残差ストリームは fp32 のまま）。
 
 ## システムセットアップ
 
-Fish Audio S2は複数のインストール方法をサポートしています。ご自身の開発環境に最も適した方法をお選びください。
+Fish Audio Drama 3 と S2-Pro は同じインストール方法を共有しています。開発環境に最も適した方法を選んでください。
 
-**前提条件**: 音声処理のためのシステム依存関係をインストールします:
-``` bash
+**前提条件**：音声処理に必要なシステム依存関係をインストールします：
+```bash
 apt install portaudio19-dev libsox-dev ffmpeg
 ```
 
@@ -35,7 +42,7 @@ pip install -e .
 
 ### UV
 
-UVはより高速な依存関係の解決とインストールを実現します:
+UV は依存関係の解決とインストールがより高速です：
 
 ```bash
 # GPU版のインストール (CUDAバージョンを選択: cu126, cu128, cu129)
@@ -44,9 +51,10 @@ uv sync --python 3.12 --extra cu129
 # CPU版のみのインストール
 uv sync --python 3.12 --extra cpu
 ```
+
 ### Intel Arc XPU サポート
 
-Intel Arc GPUユーザーは、以下の手順でXPUサポートをインストールしてください:
+Intel Arc GPU を使用する場合は、XPU サポート付きでインストールします（S2-Pro のみ。Drama 3 は NVIDIA GPU が必要です）：
 
 ```bash
 conda create -n fish-speech python=3.12
@@ -63,76 +71,110 @@ pip install -e .
 ```
 
 !!! warning
-    `compile`オプションはWindowsとmacOSではサポートされていません。コンパイルを有効にして実行したい場合は、ご自身でTritonをインストールする必要があります。
+    `compile` オプションは Windows と macOS ではサポートされていません。compile を使用する場合は、Triton を手動でインストールしてください。
 
+## 重みのダウンロード
+
+両モデルは同じコマンドラインと API サーバーを共有し、モデル種別は重みディレクトリの `config.json` から自動判定されます。同じ `checkpoints` ディレクトリに配置してください。
+
+ダウンロードには Hugging Face の CLI が必要です：
+
+```bash
+pip install -U "huggingface_hub[cli]"
+```
+
+### Drama 3
+
+```bash
+hf download fishaudio/drama-3 --local-dir checkpoints/drama-3
+```
+
+重みディレクトリに `codec.pth` がない場合、`checkpoints/s2-pro/codec.pth` の S2-Pro codec が使われるため、S2-Pro も併せてダウンロードしてください。
+
+### S2-Pro
+
+```bash
+hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
+```
+
+重みのダウンロードが終わったら、[推論](inference.md)を参照してください。
 
 ## Dockerセットアップ
 
-Fish Audio S2シリーズモデルは、さまざまなニーズに応えるため複数のDockerデプロイメントオプションを提供しています。Docker Hubのビルド済みイメージを使用するか、Docker Composeでローカルビルドするか、手動でカスタムイメージをビルドすることができます。
+Drama 3 と S2-Pro は、用途に応じて複数の Docker デプロイ方法を提供しています。Docker Hub のビルド済みイメージを使う、Docker Compose でローカルビルドする、手動でカスタムイメージをビルドする、いずれも可能です。
 
-WebUIとAPIサーバーの両方について、GPU（デフォルトはCUDA 12.6）版とCPU版のDockerイメージを提供しています。Docker Hubのビルド済みイメージを使用するか、Docker Composeでローカルビルドするか、手動でカスタムイメージをビルドするかを選択できます。ローカルでビルドする場合は、以下の手順に従ってください。ビルド済みイメージを使用するだけの場合は、[推論ガイド](inference.md)を直接参照してください。
+GPU（デフォルト CUDA126）および CPU 向けの API サーバーイメージを提供しています。イメージには WebUI が組み込まれており、コンテナ起動後に `http://localhost:8080/ui` を開くだけで利用できます。GPU イメージは両モデルを実行でき、CPU イメージは S2-Pro のみ対応です。
 
 ### 前提条件
 
-- DockerとDocker Composeがインストール済みであること
-- NVIDIA Dockerランタイムがインストール済みであること（GPUサポート用）
-- CUDAによる推論のために、少なくとも24GBのGPUメモリがあること
+- Docker と Docker Compose がインストール済み
+- （GPU の場合）NVIDIA Docker runtime がインストール済み（Drama 3 では必須）
+- GPU メモリ：Drama 3 は 48 GB 以上（FP8）、S2-Pro は 24 GB 以上を推奨
+
+### ビルド済みイメージの実行
+
+Drama 3：SM89 以上のカードでは以下のように 1 枚だけを公開します。古いカードでは `--gpus all` を使用してください：
+
+```bash
+docker run --gpus device=0 \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
+
+S2-Pro：
+
+```bash
+docker run --gpus all \
+    -v ./checkpoints:/app/checkpoints \
+    -e LLAMA_CHECKPOINT_PATH=checkpoints/s2-pro \
+    -e DECODER_CHECKPOINT_PATH=checkpoints/s2-pro/codec.pth \
+    -p 8080:8080 \
+    fishaudio/fish-speech:server-cuda
+```
 
 ### Docker Composeの使用
 
-開発やカスタマイズのために、Docker Composeを使用してローカルでビルド・実行できます:
+開発やカスタマイズを行う場合は、Docker Compose でローカルにビルドして実行することを推奨します：
 
 ```bash
 # まず、リポジトリをクローンします
 git clone https://github.com/fishaudio/fish-speech.git
 cd fish-speech
 
-# CUDAでWebUIを起動
-docker compose --profile webui up
-
-# コンパイル最適化を有効にしてWebUIを起動
-COMPILE=1 docker compose --profile webui up
-
-# APIサーバーを起動
+# APIサーバーを起動（デフォルトは checkpoints/s2-pro）
 docker compose --profile server up
 
-# コンパイル最適化を有効にしてAPIサーバーを起動
+# Drama 3 を読み込み、DEVICE で 1 枚のカードに固定（未設定なら最大 4 枚）
+LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 DEVICE=cuda:0 docker compose --profile server up
+
+# コンパイル最適化を有効にしてAPIサーバーを起動（S2-Pro のみ）
 COMPILE=1 docker compose --profile server up
 
-# CPUのみでのデプロイ
-BACKEND=cpu docker compose --profile webui up
+# CPUのみでのデプロイ（S2-Pro のみ）
+BACKEND=cpu docker compose --profile server up
 ```
 
 #### Docker Compose 環境変数
 
-環境変数を使用してデプロイメントをカスタマイズできます:
+環境変数でデプロイをカスタマイズできます：
 
 ```bash
 # .env ファイルの例
 BACKEND=cuda              # または cpu
 COMPILE=1                 # コンパイル最適化を有効化
-GRADIO_PORT=7860         # WebUIのポート
-API_PORT=8080            # APIサーバーのポート
-UV_VERSION=0.8.15        # UVパッケージマネージャーのバージョン
+API_PORT=8080             # APIサーバーのポート
+UV_VERSION=0.8.15         # UV パッケージマネージャのバージョン
 ```
 
-このコマンドはイメージをビルドし、コンテナを実行します。WebUIには`http://localhost:7860`で、APIサーバーには`http://localhost:8080`でアクセスできます。
+コマンドを実行するとイメージがビルドされ、コンテナが起動します。API サーバーは `http://localhost:8080`、WebUI は `http://localhost:8080/ui` でアクセスできます。
 
 ### 手動でのDockerビルド
 
-ビルドプロセスをカスタマイズしたい上級者向け:
+より細かくビルドを制御したい場合：
 
 ```bash
-# CUDAサポート付きのWebUIイメージをビルド
-docker build \
-    --platform linux/amd64 \
-    -f docker/Dockerfile \
-    --build-arg BACKEND=cuda \
-    --build-arg CUDA_VER=12.6.0 \
-    --build-arg UV_EXTRA=cu126 \
-    --target webui \
-    -t fish-speech-webui:cuda .
-
 # CUDAサポート付きのAPIサーバーイメージをビルド
 docker build \
     --platform linux/amd64 \
@@ -148,8 +190,8 @@ docker build \
     --platform linux/amd64,linux/arm64 \
     -f docker/Dockerfile \
     --build-arg BACKEND=cpu \
-    --target webui \
-    -t fish-speech-webui:cpu .
+    --target server \
+    -t fish-speech-server:cpu .
 
 # 開発用イメージをビルド
 docker build \
@@ -162,29 +204,32 @@ docker build \
 
 #### ビルド引数
 
-- `BACKEND`: `cuda` または `cpu` (デフォルト: `cuda`)
-- `CUDA_VER`: CUDAバージョン (デフォルト: `12.6.0`)
-- `UV_EXTRA`: CUDA用のUV追加パッケージ (デフォルト: `cu126`)
-- `UBUNTU_VER`: Ubuntuバージョン (デフォルト: `24.04`)
-- `PY_VER`: Pythonバージョン (デフォルト: `3.12`)
+- `BACKEND`：`cuda` または `cpu`（デフォルト：`cuda`）
+- `CUDA_VER`：CUDA バージョン（デフォルト：`12.6.0`）
+- `UV_EXTRA`：CUDA 用の UV 拡張（デフォルト：`cu126`）
+- `UBUNTU_VER`：Ubuntu バージョン（デフォルト：`24.04`）
+- `PY_VER`：Python バージョン（デフォルト：`3.12`）
 
 ### ボリュームマウント
 
-どちらの方法でも、以下のディレクトリをマウントする必要があります:
+どちらの方法でも以下のディレクトリのマウントが必要です：
 
-- `./checkpoints:/app/checkpoints` - モデルの重みファイル用ディレクトリ
-- `./references:/app/references` - 参照音声ファイル用ディレクトリ
+- `./checkpoints:/app/checkpoints` - モデル weights ディレクトリ
+- `./references:/app/references` - リファレンス音声ディレクトリ
 
 ### 環境変数
 
-- `COMPILE=1` - `torch.compile`を有効にして推論を高速化（約10倍）
-- `GRADIO_SERVER_NAME=0.0.0.0` - WebUIサーバーのホスト
-- `GRADIO_SERVER_PORT=7860` - WebUIサーバーのポート
-- `API_SERVER_NAME=0.0.0.0` - APIサーバーのホスト
-- `API_SERVER_PORT=8080` - APIサーバーのポート
+- `COMPILE=1` - `torch.compile` を有効化（約 10 倍高速化）
+- `LLAMA_CHECKPOINT_PATH` - メインモデルの重みパス（例：`checkpoints/drama-3`、`checkpoints/s2-pro`）
+- `DECODER_CHECKPOINT_PATH` - codec の重みパス。空欄の場合はサーバーが重みディレクトリから解決します
+- `DEVICE` - 推論デバイス（例：`cuda:0`）。Drama 3 は設定した 1 枚のみを使用し、未設定なら最大 4 枚
+- `FISH_DRAMA3_FP8_EXPERTS=0` または `1` - Drama 3 の専門家を逆量子化 / FP8 に強制（デフォルトは GPU から自動選択）
+- `FISH_DRAMA3_CUDA_GRAPH=0` - Drama 3 の CUDA graph デコードを無効化
+- `API_SERVER_NAME=0.0.0.0` - API サーバーのホスト
+- `API_SERVER_PORT=8080` - API サーバーのポート
 
 !!! note
-    Dockerコンテナは、モデルの重みが`/app/checkpoints`にマウントされることを想定しています。コンテナを起動する前に、必要なモデルの重みをダウンロードしてください。
+    Docker コンテナは `/app/checkpoints` からモデルの重みを読み込みます。コンテナを起動する前に、必要な重みをダウンロードしておいてください。
 
 !!! warning
-    GPUサポートにはNVIDIA Dockerランタイムが必要です。CPUのみでデプロイする場合は、`--gpus all`フラグを削除し、CPU用のイメージを使用してください。
+    GPU サポートには NVIDIA Docker runtime が必要です。CPU のみの場合は `--gpus all` を外し、CPU イメージを使用してください。
