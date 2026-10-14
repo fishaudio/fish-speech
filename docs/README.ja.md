@@ -39,7 +39,7 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="./assets/Fish_Audio_Drama_3_Technical_Report.pdf">
+    <a target="_blank" href="https://arxiv.org/abs/2610.18010">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -112,7 +112,7 @@ Drama 3 は S2 シリーズと同様にマルチ話者・音声クローン・�
 
 公開ベンチマークで S2 から大きく飛躍しています：多言語音声クローン（MiniMax Multilingual Testset）、自由形式の音声編集（Ming-Freeform）、マルチターン感情修正（Step-Audio-Edit）の 3 領域において、制御精度、多言語エラー率（CER / WER）、スタイル正確性のすべてで前世代を上回ります。
 
-アーキテクチャ、学習レシピ、詳細な評価結果は[技術レポート](./assets/Fish_Audio_Drama_3_Technical_Report.pdf)をご覧ください。
+アーキテクチャ、学習レシピ、詳細な評価結果は[技術レポート](https://arxiv.org/abs/2610.18010)をご覧ください。
 
 ---
 
@@ -181,11 +181,13 @@ Seed-TTS Eval では、S2 は評価対象（クローズドソースを含む）
       url={https://arxiv.org/abs/2603.08823}, 
 }
 
-@misc{fishaudio2026drama3,
-      title={Fish Audio Drama 3 Technical Report},
-      author={Fish Audio Team},
+@misc{liao2026fishaudiodrama3technical,
+      title={Fish Audio Drama 3 Technical Report}, 
+      author={Dawei Han and Shidong Li and Shijia Liao and Jiahua Liu and Songting Liu and Qingzheng Wang and Yuxuan Wang and Xin Chen and Yifan Cheng and Tianyu Li and Gangin Park and Xuehao Yang and Chang Zeng and Haoyang Zhang and Ruoyi Zhang and Xiangyu Zhang},
       year={2026},
-      howpublished={Technical report},
-      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
+      eprint={2610.18010},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2610.18010}, 
 }
 ```

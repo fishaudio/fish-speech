@@ -36,7 +36,7 @@
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="./assets/Fish_Audio_Drama_3_Technical_Report.pdf">
+    <a target="_blank" href="https://arxiv.org/abs/2610.18010">
         <img alt="Paper | Informe Técnico" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -108,7 +108,7 @@ Al igual que la serie S2, Drama 3 admite varios hablantes, clonación de voz y c
 
 Drama 3 da un salto claro respecto a S2 en bancos de pruebas públicos: clonación de voz multilingüe (MiniMax Multilingual Testset), edición de voz de forma libre (Ming-Freeform) y revisión emocional en varios turnos (Step-Audio-Edit), donde supera a la generación anterior en precisión de control, tasas de error multilingües (CER / WER) y precisión de estilo.
 
-Consulta el [informe técnico](./assets/Fish_Audio_Drama_3_Technical_Report.pdf) para la arquitectura, la receta de entrenamiento y los resultados completos de la evaluación.
+Consulta el [informe técnico](https://arxiv.org/abs/2610.18010) para la arquitectura, la receta de entrenamiento y los resultados completos de la evaluación.
 
 ---
 
@@ -177,11 +177,13 @@ En Seed-TTS Eval, S2 logra el WER más bajo de todos los modelos evaluados, incl
       url={https://arxiv.org/abs/2603.08823}, 
 }
 
-@misc{fishaudio2026drama3,
-      title={Fish Audio Drama 3 Technical Report},
-      author={Fish Audio Team},
+@misc{liao2026fishaudiodrama3technical,
+      title={Fish Audio Drama 3 Technical Report}, 
+      author={Dawei Han and Shidong Li and Shijia Liao and Jiahua Liu and Songting Liu and Qingzheng Wang and Yuxuan Wang and Xin Chen and Yifan Cheng and Tianyu Li and Gangin Park and Xuehao Yang and Chang Zeng and Haoyang Zhang and Ruoyi Zhang and Xiangyu Zhang},
       year={2026},
-      howpublished={Technical report},
-      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
+      eprint={2610.18010},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2610.18010}, 
 }
 ```
