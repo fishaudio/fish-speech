@@ -36,7 +36,7 @@
     <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
         <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
-    <a target="_blank" href="../assets/Fish_Audio_Drama_3_Technical_Report.pdf">
+    <a target="_blank" href="https://arxiv.org/abs/2610.18010">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
@@ -106,7 +106,7 @@ Drama 3 与 S2 系列一样支持多说话人、声音克隆和自然语言控�
 
 在公开基准上相对 S2 有显著跃升：多语言声音克隆（MiniMax Multilingual Testset）、自由形式语音编辑（Ming-Freeform）、多轮情绪修正（Step-Audio-Edit）三项上，控制精度、多语言错误率（CER / WER）与风格准确度全面超越前代。
 
-完整架构、训练方案与评测结果见[技术报告](../assets/Fish_Audio_Drama_3_Technical_Report.pdf)。
+完整架构、训练方案与评测结果见[技术报告](https://arxiv.org/abs/2610.18010)。
 
 ---
 
@@ -177,11 +177,13 @@ Drama 3 与 S2 系列一样支持多说话人、声音克隆和自然语言控�
       url={https://arxiv.org/abs/2603.08823}, 
 }
 
-@misc{fishaudio2026drama3,
-      title={Fish Audio Drama 3 Technical Report},
-      author={Fish Audio Team},
+@misc{liao2026fishaudiodrama3technical,
+      title={Fish Audio Drama 3 Technical Report}, 
+      author={Dawei Han and Shidong Li and Shijia Liao and Jiahua Liu and Songting Liu and Qingzheng Wang and Yuxuan Wang and Xin Chen and Yifan Cheng and Tianyu Li and Gangin Park and Xuehao Yang and Chang Zeng and Haoyang Zhang and Ruoyi Zhang and Xiangyu Zhang},
       year={2026},
-      howpublished={Technical report},
-      url={https://github.com/fishaudio/fish-speech/blob/main/docs/assets/Fish_Audio_Drama_3_Technical_Report.pdf},
+      eprint={2610.18010},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2610.18010}, 
 }
 ```
