@@ -112,3 +112,4 @@ ffprobe.exe
 # ----------
 /*.test.sh
 asr-label*
+outputs/

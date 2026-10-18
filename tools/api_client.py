@@ -62,6 +62,15 @@ def parse_args():
         help="Reference text for voice synthesis",
     )
     parser.add_argument(
+        "--reference_speaker",
+        "-rs",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Speaker ID (0-15) of each reference audio, written as <|speaker:N|> "
+        "before reference texts that do not start with a speaker tag",
+    )
+    parser.add_argument(
         "--output",
         "-o",
         type=str,
@@ -84,26 +93,38 @@ def parse_args():
         choices=["normal", "balanced"],
         help="Used in api.fish.audio/v1/tts",
     )
+    # Sampling: unset means the server uses the loaded model family's defaults.
     parser.add_argument(
         "--max_new_tokens",
         type=int,
-        default=1024,
-        help="Maximum new tokens to generate. \n0 means no limit.",
+        default=None,
+        help="Maximum new tokens to generate per text chunk. Unset uses the "
+        "server's default, 1024; 0 means the model's own cap (S2-Pro: the context "
+        "length; Drama 3: 600 per chunk, 2048 with --single_chunk).",
     )
     parser.add_argument(
-        "--chunk_length", type=int, default=300, help="Chunk length for synthesis"
+        "--single_chunk",
+        action="store_true",
+        help="Drama 3 only: generate the whole text in one pass instead of chunks",
     )
     parser.add_argument(
-        "--top_p", type=float, default=0.8, help="Top-p sampling for synthesis"
+        "--chunk_length",
+        type=int,
+        default=200,
+        help="Chunk length for synthesis (S2-Pro only; Drama 3 uses ~300-byte chunks)",
+    )
+    parser.add_argument(
+        "--top_p", type=float, default=None, help="Top-p sampling for synthesis"
     )
     parser.add_argument(
         "--repetition_penalty",
         type=float,
-        default=1.1,
-        help="Repetition penalty for synthesis",
+        default=None,
+        help="Accepted for compatibility; S2-Pro and Drama 3 ignore it and use "
+        "repetition-aware sampling",
     )
     parser.add_argument(
-        "--temperature", type=float, default=0.8, help="Temperature for sampling"
+        "--temperature", type=float, default=None, help="Temperature for sampling"
     )
 
     # parser.add_argument("--streaming", type=bool, default=False, help="Enable streaming response")
@@ -160,22 +181,32 @@ if __name__ == "__main__":
             byte_audios.append(audio_bytes)
 
         ref_texts = [read_ref_text(ref_text) for ref_text in ref_texts]
+        ref_speakers = args.reference_speaker or [None] * len(ref_audios)
+        if len(ref_speakers) != len(ref_audios):
+            raise SystemExit(
+                "--reference_speaker must be given once per --reference_audio, got "
+                f"{len(ref_speakers)} speaker(s) and {len(ref_audios)} audio(s)."
+            )
     else:
         byte_audios = []
         ref_texts = []
+        ref_speakers = []
         pass  # in api.py
 
     data = {
         "text": args.text,
         "references": [
-            ServeReferenceAudio(audio=ref_audio, text=ref_text)
-            for ref_text, ref_audio in zip(ref_texts, byte_audios)
+            ServeReferenceAudio(audio=ref_audio, text=ref_text, speaker=speaker)
+            for ref_text, ref_audio, speaker in zip(
+                ref_texts, byte_audios, ref_speakers
+            )
         ],
         "reference_id": idstr,
         "format": args.format,
         "latency": args.latency,
         "max_new_tokens": args.max_new_tokens,
         "chunk_length": args.chunk_length,
+        "single_chunk": args.single_chunk,
         "top_p": args.top_p,
         "repetition_penalty": args.repetition_penalty,
         "temperature": args.temperature,
@@ -191,7 +222,9 @@ if __name__ == "__main__":
     response = requests.post(
         args.url,
         params={"format": "msgpack"},
-        data=ormsgpack.packb(pydantic_data, option=ormsgpack.OPT_SERIALIZE_PYDANTIC),
+        # Unset (None) fields are left out so servers that predate optional sampling
+        # fields fall back to their own defaults instead of rejecting null.
+        data=ormsgpack.packb(pydantic_data.model_dump(exclude_none=True)),
         stream=args.streaming,
         headers={
             "authorization": f"Bearer {args.api_key}",
@@ -215,9 +248,18 @@ if __name__ == "__main__":
             wf.setframerate(args.rate)
 
             stream_stopped_flag = False
+            # The server opens the stream with a 44-byte WAV header (older ones
+            # did not); only the samples after it are played and saved.
+            header = b""
 
             try:
                 for chunk in response.iter_content(chunk_size=1024):
+                    if header is not None:
+                        header += chunk
+                        if len(header) < 44:
+                            continue
+                        chunk = header[44:] if header.startswith(b"RIFF") else header
+                        header = None
                     if chunk:
                         stream.write(chunk)
                         wf.writeframesraw(chunk)
@@ -235,7 +277,18 @@ if __name__ == "__main__":
             with open(audio_path, "wb") as audio_file:
                 audio_file.write(audio_content)
 
-            audio = AudioSegment.from_file(audio_path, format=args.format)
+            if args.format == "pcm":  # headerless 16-bit mono
+                audio = AudioSegment.from_file(
+                    audio_path,
+                    format="raw",
+                    sample_width=2,
+                    frame_rate=args.rate,
+                    channels=1,
+                )
+            else:  # opus comes in an Ogg container
+                audio = AudioSegment.from_file(
+                    audio_path, format="ogg" if args.format == "opus" else args.format
+                )
             if args.play:
                 play(audio)
             print(f"Audio has been saved to '{audio_path}'.")

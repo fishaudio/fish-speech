@@ -1,9 +1,8 @@
 # DGX Spark setup
 
-This fork adds a native Linux ARM64 installation for the DGX Spark's GB10 GPU.
-The model and inference code are unchanged. Dependency resolution has been
-checked for Linux ARM64 / Python 3.12; installation, audio decoding, GPU kernels,
-and end-to-end speech generation still need validation on an actual Spark.
+This fork tracks Fish Speech 3.0, including S2-Pro and Drama-3. CUDA 13 is
+opt-in and isolated from upstream's default PyTorch 2.8 installation. GPU kernels,
+audio decoding, and end-to-end generation need validation on an actual Spark.
 
 ## Selected dependencies
 
@@ -41,19 +40,32 @@ nvidia-smi                     # must detect the GB10
 sudo apt-get update
 sudo apt-get install -y build-essential python3-dev portaudio19-dev libsox-dev libsndfile1 ffmpeg
 
-uv sync --locked --python 3.12 --extra cu130
+uv sync --project environments/dgx-spark --locked --python 3.12 --extra cu130
 ```
 
-This creates/updates the project's `.venv`, not your global Python environment.
-Keep `--extra cu130` on subsequent `uv run` and `uv sync` commands; otherwise uv
-can switch back to a different Torch build. Do not combine it with `stable`,
-`cpu`, `cu126`, `cu128`, or `cu129`, and do not use `--all-extras`.
+Or run `./install-dgx-spark.sh`, which checks the host, installs the Ubuntu
+system dependencies, and runs the same locked uv command.
 
-Use uv for this setup: pip does not read `[tool.uv.sources]`, the extra conflicts,
-or the existing protobuf override. A plain `pip install -e '.[cu130]'` does not
-reproduce the locked environment. The older backend extras remain pinned to
-Torch 2.8.0; `stable` explicitly selects the upstream 2.8 stack. A bare install
-without an extra is not the Spark setup.
+The environment lives in `environments/dgx-spark/.venv`. Keep both
+`--project environments/dgx-spark` and `--extra cu130` on manual uv commands;
+the launch scripts supply them for you. An existing root `.venv` is not reused.
+Model checkpoints and saved references stay in the repository root.
+
+### Why a separate project?
+
+The root `pyproject.toml` retains upstream's exact Torch/TorchAudio 2.8.0 pins,
+`stable`, `cpu`, `cu126`, `cu128`, and `cu129` extras, indexes, and conflicts.
+A bare `pip install -e .` or `uv sync` therefore still selects 2.8.0.
+An extra adds requirements; it cannot replace a mandatory 2.8.0 requirement with
+2.10.0. The Spark project scopes uv overrides to an explicit `cu130` environment
+and installs the root package editably. It has its own checked-in lockfile.
+
+Use uv for the Spark environment. Pip does not honor uv overrides or sources;
+`pip install -e '.[cu130]'` is not supported, and `--extra-index-url` alone
+cannot resolve contradictory Torch pins. Root pip installation instructions
+remain unchanged. This implements the compatibility goal of
+[the upstream review](https://github.com/fishaudio/fish-speech/pull/1348#issuecomment-6095246512)
+using a separate project rather than a root extra.
 
 ## Verify CUDA and reference-audio decoding
 
@@ -62,7 +74,7 @@ CUDA operations, and decodes a generated WAV from both a path and memory using
 the same TorchAudio API used by Fish Speech. It needs no checkpoints.
 
 ```bash
-uv run --locked --extra cu130 python - <<'PY'
+uv run --project environments/dgx-spark --locked --extra cu130 python - <<'PY'
 import io
 import platform
 import tempfile
@@ -109,61 +121,55 @@ PY
 
 ## Download and run
 
-```bash
-uv run --locked --extra cu130 hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
-uv run --locked --extra cu130 python tools/run_webui.py --device cuda
-```
-
-Open the local URL printed by Gradio (normally `http://127.0.0.1:7860`).
-For a remote Spark, forward port 7860 over SSH from your desktop, for example
-`ssh -L 7860:127.0.0.1:7860 spark@YOUR_SPARK`, then open that URL locally.
-
-First generate speech without reference audio; then try a short WAV reference
-and its transcript. The first command deliberately omits `--compile` so that
-basic GPU execution is checked before Triton compilation. After both succeed,
-you can try:
+For S2-Pro:
 
 ```bash
-uv run --locked --extra cu130 python tools/run_webui.py --device cuda --compile
-```
-
-Compilation is a separate, unverified step and may have GB10/Triton-specific
-issues. If only compilation fails, omit `--compile` while investigating it.
-
-### Start script (LAN access, compiled inference)
-
-After setup and downloading the checkpoints, run:
-
-```bash
-./start-webui.sh
-```
-
-The script enables `--compile`, listens on `0.0.0.0`, and disables public Gradio
-sharing, including any inherited `GRADIO_SHARE=True` setting. Open
-`http://<SPARK_LOCAL_IP>:7860` from another device on your local network; use
-`hostname -I` on the Spark to find its address. Stop the server with Ctrl+C.
-
-The compilation cache defaults to `$HOME/.cache/fish-speech/inductor` and can be
-overridden with `TORCHINDUCTOR_CACHE_DIR`. Cached artifacts can reduce subsequent
-startup time; warm-up and recompilation may still occur. The script can be
-launched from another directory and forwards extra WebUI arguments unchanged.
-
-For the API instead of Gradio:
-
-```bash
+uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
 ./start-api.sh
 ```
 
-The API listens on `http://<SPARK_LOCAL_IP>:8080` with compilation and the same
-persistent compilation cache. Extra arguments are forwarded, for example:
+For Drama-3, download its weights as described in the
+[upstream installation guide](install.md#download-weights), then run:
 
 ```bash
-./start-api.sh --listen 127.0.0.1:8080
+./start-api.sh --llama-checkpoint-path checkpoints/drama-3 --device cuda:0
 ```
 
-The old `start.sh` is now `start-webui.sh`. Both launchers require downloaded
-checkpoints. Run the API or WebUI as needed; each process loads its own model.
-See [the Python API client guide](local-api-client.md) for all endpoint wrappers.
+Drama-3 requires at least 48 GB of GPU memory according to upstream and does
+not support `--compile`. GB10 execution has not been tested here. S2-Pro remains
+the default checkpoint. To enable compilation explicitly for S2-Pro:
+
+```bash
+./start-api.sh --compile
+```
+
+The compilation cache defaults to `$HOME/.cache/fish-speech/inductor`; override
+it with `TORCHINDUCTOR_CACHE_DIR`. First test generation with and without a WAV
+reference before enabling compilation.
+
+### WebUI
+
+Upstream removed the Gradio launcher. The API now serves Awesome WebUI at `/ui`.
+Build it once with Node.js and npm, and rebuild after frontend updates:
+
+```bash
+(cd awesome_webui && npm ci && npm run build)
+./start-webui.sh
+```
+
+Open `http://<SPARK_LOCAL_IP>:8080/ui`. Both launchers start the same API server;
+run only one for a given port/model. They bind to `0.0.0.0:8080` for LAN access,
+forward arguments unchanged, and work when launched from another directory.
+For loopback-only access or an SSH tunnel:
+
+```bash
+./start-webui.sh --listen 127.0.0.1:8080
+# On your desktop:
+ssh -L 8080:127.0.0.1:8080 spark@YOUR_SPARK
+```
+
+Then open `http://127.0.0.1:8080/ui`. There is no Gradio public share tunnel.
+See [the Python API client guide](local-api-client.md) for the standalone client.
 
 ## If anything fails
 

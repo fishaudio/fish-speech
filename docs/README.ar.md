@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Fish Speech</h1>
 
-[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | **العربية** | [Español](docs/README.es.md)  <br>
+[English](../README.md) | [简体中文](README.zh.md) | [Portuguese](README.pt-BR.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | **العربية** | [Español](README.es.md)  <br>
 
 <a href="https://www.producthunt.com/products/fish-speech?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-fish&#0045;audio&#0045;s1" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1023740&theme=light&period=daily&t=1761164814710" alt="Fish&#0032;Audio&#0032;S1 - Expressive&#0032;Voice&#0032;Cloning&#0032;and&#0032;Text&#0045;to&#0045;Speech | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 <a href="https://trendshift.io/repositories/7014" target="_blank">
@@ -30,20 +30,23 @@
 </div>
 
 <div align="center">
+    <a target="_blank" href="https://huggingface.co/fishaudio/drama-3">
+        <img alt="HuggingFace Drama 3" src="https://img.shields.io/badge/🤗%20-Drama%203-orange"/>
+    </a>
     <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
-        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+        <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+    <a target="_blank" href="https://arxiv.org/abs/2610.18010">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
 > [!IMPORTANT]
 > **إشعار الترخيص**
-> يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها تحت **[FISH AUDIO RESEARCH LICENSE](../LICENSE)**. يرجى الرجوع إلى ملف [LICENSE](../LICENSE) لمزيد من التفاصيل.
+> يتم إصدار قاعدة الأكواد هذه وأوزان النماذج المرتبطة بها تحت **[FISH AUDIO COMMUNITY LICENSE](../LICENSE)**. تظل أوزان S2-Pro خاضعة لترخيص Fish Audio Research License. يرجى الرجوع إلى ملف [LICENSE](../LICENSE) لمزيد من التفاصيل.
 
 
 > [!WARNING]
@@ -52,117 +55,98 @@
 
 ## البداية السريعة
 
-### روابط التوثيق
+### الوثائق
 
-هذا هو التوثيق الرسمي لـ Fish Audio S2، يرجى اتباع التعليمات للبدء بسهولة.
-
-- [التثبيت](https://speech.fish.audio/ar/install/)
-- [الاستدلال عبر خط الأوامر](https://speech.fish.audio/ar/inference/)
-- [الاستدلال عبر واجهة الويب](https://speech.fish.audio/ar/inference/)
-- [استدلال الخادم](https://speech.fish.audio/ar/server/)
-- [نشر Docker](https://speech.fish.audio/ar/install/)
+- [التثبيت](https://speech.fish.audio/ar/install/): إعداد البيئة، تحميل الأوزان، النشر باستخدام Docker
+- [الاستنتاج](https://speech.fish.audio/ar/inference/): سطر الأوامر، خادم API، واجهة WebUI
 
 > [!IMPORTANT]
-> **إذا كنت ترغب في استخدام خادم SGLang، فيرجى الرجوع إلى [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).**
->
-> **إذا كنت ترغب في استخدام خادم vLLM Omni، فيرجى الرجوع إلى [vLLM-Omni Fish Speech S2 Pro Recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/fishaudio/Fish-Speech-S2-Pro.md) و[دليل المستخدم](https://github.com/vllm-project/vllm-omni/blob/main/docs/user_guide/examples/online_serving/text_to_speech.md#fish-speech-s2-pro).**
+> **نوصي بشدة من يبحث عن الكفاءة باستخدام SGLang-Omni؛ راجع [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_drama_3/README.md).**
 
-### دليل وكيل LLM
+### لوكيل LLM
 
 ```
-يرجى قراءة https://speech.fish.audio/ar/install/ أولاً، وتثبيت وتكوين Fish Audio S2 وفقاً للوثائق.
+اقرأ https://speech.fish.audio/ar/install/ أولاً، واتبع الوثائق لتثبيت وإعداد Fish Audio Drama 3 (أو S2-Pro).
 ```
 
-## Fish Audio S2 Pro
-**نظام تحويل النص إلى كلام (TTS) متعدد اللغات الرائد في الصناعة، والذي يعيد تعريف حدود توليد الصوت.**
+## النماذج
 
-Fish Audio S2 Pro هو أحدث طراز متعدد الوسائط تم تطويره بواسطة [Fish Audio](https://fish.audio/). تم تدريبه على أكثر من **10 ملايين ساعة** من البيانات الصوتية الهائلة، التي تغطي أكثر من **80 لغة** حول العالم. من خلال بنية **ثنائية الانحدار الذاتي (Dual-AR)** المبتكرة وتقنية توافق التعلم التعزيزي (RL)، يمكن لـ S2 Pro توليد كلام يتمتع بإحساس طبيعي وواقعي وعمق عاطفي كبير، مما يجعله رائداً في المنافسة بين الأنظمة المفتوحة والمغلقة المصدر.
+| النموذج | الحجم | الأوزان | الوصف |
+|------|------|------|------|
+| **Drama 3** | 35B-A3B (يُنشَّط منها 3B لكل رمز) | [HuggingFace](https://huggingface.co/fishaudio/drama-3) | النموذج الرائد من الجيل الجديد، مخصص للمشاهد متعددة الشخصيات والمحتوى الطويل، مع المراجعة متعددة الأدوار والتحرير الموضعي |
+| S2-Pro | 4B معامل | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | النموذج الرائد من الجيل السابق، باستنتاج أسرع |
 
-تكمن القوة الضاربة لـ S2 Pro في دعمه للتحكم الدقيق للغاية في النبرة والعاطفة على مستوى **ما دون الكلمة (Sub-word Level)** من خلال وسوم اللغة الطبيعية (مثل `[whisper]` و `[excited]` و `[angry]`) ، مع دعم أصلي لتوليد متحدثين متعددين وحوارات متعددة الجولات بسياق طويل جداً.
+يُستنتج نوع النموذج من ملف `config.json` في مجلد الأوزان، ويتشارك النموذجان في نفس سطر الأوامر وخادم API.
 
-تفضل بزيارة [موقع Fish Audio الرسمي](https://fish.audio/) الآن لتجربة العرض المباشر، أو اقرأ [تقريرنا الفني](https://arxiv.org/abs/2603.08823) و[مقال المدونة](https://fish.audio/blog/fish-audio-open-sources-s2/) للتعرف على المزيد.
+---
 
-### متغيرات النموذج
+## Fish Audio Drama 3
 
-| النموذج | الحجم | التوفر | الوصف |
-|------|------|-------------|-------------|
-| S2-Pro | 4 مليار معلمة | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | النموذج الرائد كامل الميزات، مع أعلى جودة واستقرار |
+**نموذج صوتي من الجيل الجديد، يرتقي عن S2-Pro من جميع الجوانب.**
 
-لمزيد من التفاصيل حول النماذج، يرجى مراجعة [التقرير الفني](https://arxiv.org/abs/2411.01156).
+يدعم Drama 3، كما في سلسلة S2، تعدد المتحدثين واستنساخ الصوت والتحكم باللغة الطبيعية، لكنه يحقق قفزة واضحة في التعامل مع الصوت الطويل وفي طريقة التفاعل وقابلية التحرير.
 
-## نتائج الاختبارات المرجعية (Benchmarks)
+### المميزات الرئيسية
 
-| الاختبار | Fish Audio S2 |
+- **المراجعة متعددة الأدوار (إخراج)**: وجّه اللقطة السابقة مباشرة ("أكثر هدوءً، وأكثر حزنًا قليلًا")، فيعيد النموذج التوليد مع أخذ هذا السياق في الاعتبار دون البدء من الصفر.
+- **الإقحام (Infilling) والتحرير الدقيق**: حرّر الصوت كما تحرّر النص، فتبدّل كلمة واحدة (من "الأربعاء" إلى "الخميس") مع بقاء لون الصوت والانتقالات قبلها وبعدها طبيعية.
+- **مشاهد متعددة الشخصيات**: من وصف النص المسرحي، يمكنك تسجيل مشهد كامل يضم عدة شخصيات دفعة واحدة، مع دعم التدفق للنصوص الطويلة.
+- **حوارات طويلة وصوت طويل**: صُمم للتسجيلات الطويلة والجلسات الممتدة، مع الحفاظ على ثبات الشخصيات ولون الصوت في المحتوى الطويل.
+- **تعبير أقوى**: الضحك والبكاء والهمس والمشاعر الدرامية لم تعد تُسطّح بسبب المرجع، فصار الأداء أقرب إلى أداء بشري حقيقي.
+- **استنساخ صوتي متعدد اللغات**: يحقق مستوى جديدًا من SOTA في معدلات الخطأ (CER / WER) لاستنساخ لون الصوت عبر اللغات.
+- **التحكم بوسوم اللغة الطبيعية**: وسوم داخلية مثل `[whisper]` و `[angry]` و `[laughing]` تتحكم في المشاعر والنغم.
+
+### ما تغيّر مقارنةً بـ S2-Pro
+
+| القدرة | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| تعدد المتحدثين | مدعوم | مدعوم، كمشاهد متعددة الشخصيات |
+| استنساخ الصوت | مدعوم | مدعوم، بمعدلات خطأ أقل عبر اللغات |
+| تعليمات اللغة الطبيعية الداخلية | مدعومة | مدعومة |
+| التحرير الموضعي / الإقحام | غير مدعوم | مدعوم |
+| المراجعة متعددة الأدوار | غير مدعومة | مدعومة |
+| المحتوى الطويل | توليد على مقاطع | حوارات طويلة وصوت طويل، مع التدفق |
+| المشاعر القوية (الضحك، البكاء، الهمس) | متوسطة | أقوى |
+
+### النتائج
+
+يحقق Drama 3 قفزة واضحة على S2 في المعايير العامة: الاستنساخ الصوتي متعدد اللغات (MiniMax Multilingual Testset)، وتحرير الكلام بالشكل الحر (Ming-Freeform)، والمراجعة العاطفية متعددة الأدوار (Step-Audio-Edit)، حيث يتجاوز الجيل السابق في دقة التحكم ومعدلات الخطأ متعددة اللغات (CER / WER) ودقة الأسلوب.
+
+راجع [التقرير التقني](https://arxiv.org/abs/2610.18010) للاطّلاع على البنية المعمارية وطريقة التدريب ونتائج التقييم الكاملة.
+
+---
+
+## Fish Audio S2-Pro
+
+نموذجنا الرائد من الجيل السابق: كلام قابل للتحكم باللغة الطبيعية وغني بالمشاعر، يدعم نحو مئة لغة، وبحجم يمكن نشره على بطاقة GPU للمستهلكين.
+
+- **تعليمات اللغة الطبيعية الداخلية**: وسوم مثل `[pause]` و `[excited]` و `[whisper]` تتحكم في النغم والمشاعر في أي موضع من النص.
+- **توليد أصلي متعدد المتحدثين**: تفصل معرّفات المتحدثين بين الشخصيات داخل نص واحد، فلا حاجة إلى توليد كل متحدث ثم وصل المقاطع.
+- **استنساخ صوتي سريع**: يكفي 10–30 ثانية من الصوت المرجعي لإعادة إنتاج لون الصوت.
+- **توليد بدفعة واحدة**: يمكن توليد صوت طويل متدفقًا دفعة واحدة.
+- **تدفق بمستوى الإنتاج**: RTF 0.195 على بطاقة H200 واحدة، وزمن نحو 100 مللي ثانية حتى أول صوت.
+
+جرّب العرض المباشر على [موقع Fish Audio](https://fish.audio/)، واقرأ [تدوينة المدونة](https://fish.audio/blog/fish-audio-open-sources-s2/) و[التقرير التقني](https://arxiv.org/abs/2603.08823) لمزيد من التفاصيل.
+
+<details>
+<summary><b>نتائج قياس S2-Pro (انقر للتوسيع)</b></summary>
+
+| المعيار | Fish Audio S2 |
 |------|------|
-| Seed-TTS Eval — WER (الصينية) | **0.54%** (الأفضل إجمالاً) |
-| Seed-TTS Eval — WER (الإنجليزية) | **0.99%** (الأفضل إجمالاً) |
-| Audio Turing Test (مع التعليمات) | **0.515** متوسط خلفي (Posterior mean) |
-| EmergentTTS-Eval — معدل الفوز | **81.88%** (الأعلى إجمالاً) |
+| Seed-TTS Eval — WER (الصينية) | **0.54%** (الأفضل إجمالًا) |
+| Seed-TTS Eval — WER (الإنجليزية) | **0.99%** (الأفضل إجمالًا) |
+| Audio Turing Test (مع تعليمات) | **0.515** متوسط لاحق |
+| EmergentTTS-Eval — معدل الفوز | **81.88%** (الأعلى إجمالًا) |
 | Fish Instruction Benchmark — TAR | **93.3%** |
 | Fish Instruction Benchmark — الجودة | **4.51 / 5.0** |
-| متعدد اللغات (MiniMax Testset) — أفضل WER | **11** لغة من أصل **24** |
-| متعدد اللغات (MiniMax Testset) — أفضل SIM | **17** لغة من أصل **24** |
+| متعدد اللغات (MiniMax Testset) — أفضل WER | **11 من 24** لغة |
+| متعدد اللغات (MiniMax Testset) — أفضل SIM | **17 من 24** لغة |
 
-في تقييم Seed-TTS، حقق S2 أقل معدل خطأ في الكلمات (WER) بين جميع النماذج التي تم تقييمها (بما في ذلك الأنظمة مغلقة المصدر): Qwen3-TTS (0.77/1.24)، و MiniMax Speech-02 (0.99/1.90)، و Seed-TTS (1.12/2.25). وفي اختبار Audio Turing Test، سجل S2 قيمة 0.515 بزيادة قدرها 24% مقارنة بـ Seed-TTS (0.417) و 33% مقارنة بـ MiniMax-Speech (0.387). وفي EmergentTTS-Eval، تميز S2 بشكل خاص في أبعاد مثل اللغويات المصاحبة (معدل فوز 91.61%)، والجمل الاستفهامية (84.41%)، والتعقيد النحوي (83.39%).
-
-## أبرز المميزات
+في Seed-TTS Eval، حقق S2 أقل WER بين جميع النماذج المقيَّمة بما فيها الأنظمة مغلقة المصدر: Qwen3-TTS (0.77/1.24)، MiniMax Speech-02 (0.99/1.90)، Seed-TTS (1.12/2.25). وفي Audio Turing Test، يتفوق 0.515 على Seed-TTS (0.417) بنسبة 24% وعلى MiniMax-Speech (0.387) بنسبة 33%. وفي EmergentTTS-Eval، يبرز S2 خصوصًا في علم اللغة الموازي (معدل فوز 91.61%) والأسئلة (84.41%) والتعقيد النحوي (83.39%).
 
 <img src="./assets/totalability.png" width=200%>
 
-### تحكم دقيق للغاية عبر اللغة الطبيعية
-
-يمنح S2 Pro الصوت "روحاً" لا مثيل لها. من خلال صيغة `[tag]` البسيطة، يمكنك تضمين تعليمات عاطفية بدقة في أي موضع من النص.
-- **دعم أكثر من 15,000 وسم فريد**: لا يقتصر على الإعدادات المسبقة الثابتة، بل يدعم **أوصاف النص الحر**. يمكنك تجربة `[whisper in small voice]` (همس بصوت منخفض)، أو `[professional broadcast tone]` (نبرة إذاعية احترافية)، أو `[pitch up]` (رفع طبقة الصوت).
-- **مكتبة عواطف غنية**:
-  `[pause]` `[emphasis]` `[laughing]` `[inhale]` `[chuckle]` `[tsk]` `[singing]` `[excited]` `[laughing tone]` `[interrupting]` `[chuckling]` `[excited tone]` `[volume up]` `[echo]` `[angry]` `[low volume]` `[sigh]` `[low voice]` `[whisper]` `[screaming]` `[shouting]` `[loud]` `[surprised]` `[short pause]` `[exhale]` `[delight]` `[panting]` `[audience laughter]` `[with strong accent]` `[volume down]` `[clearing throat]` `[sad]` `[moaning]` `[shocked]`
-
-### بنية مبتكرة ثنائية الانحدار الذاتي (Dual-Autoregressive)
-
-يعتمد S2 Pro بنية Dual-AR بنظام "رئيسي-تابع"، تتكون من Decoder-only Transformer وترميز صوتي RVQ (10 قواميس أكواد، بمعدل إطارات يبلغ حوالي 21 هرتز):
-
-- **Slow AR (4 مليار معلمة)**: يعمل على طول المحور الزمني، ويتنبأ بقاموس الأكواد الدلالي الأساسي.
-- **Fast AR (400 مليون معلمة)**: يولد الـ 9 قواميس المتبقية في كل خطوة زمنية، لاستعادة أدق التفاصيل الصوتية ببراعة.
-
-يحقق هذا التصغير غير المتماثل أقصى درجات الدقة الصوتية مع زيادة سرعة الاستدلال بشكل كبير.
-
-### توافق التعلم التعزيزي (RL Alignment)
-
-يستخدم S2 Pro تقنية **Group Relative Policy Optimization (GRPO)** للتوافق بعد التدريب. نستخدم نفس مجموعة النماذج المستخدمة في تنظيف البيانات وتصنيفها مباشرة كنماذج مكافأة (Reward Model)، مما يحل بشكل مثالي مشكلة عدم التطابق بين توزيع بيانات ما قبل التدريب وأهداف ما بعد التدريب.
-- **إشارات مكافأة متعددة الأبعاد**: تقييم شامل للدقة الدلالية، والقدرة على اتباع التعليمات، وتسجيل التفضيل الصوتي، وتماثل نبرة الصوت، لضمان أن كل ثانية من الكلام المولد تتوافق مع الحدس البشري.
-
-### أداء استدلال تدفقي فائق (يعتمد على SGLang)
-
-نظراً لأن بنية Dual-AR تتماثل هيكلياً مع بنية LLM القياسية، فإن S2 Pro يدعم أصلاً جميع ميزات تسريع الاستدلال في SGLang، بما في ذلك الدفعات المستمرة (Continuous Batching)، و Paged KV Cache، و CUDA Graph، والتخزين المؤقت للبادئة القائم على RadixAttention.
-
-**أداء وحدة معالجة رسومات NVIDIA H200 واحدة:**
-- **عامل الوقت الحقيقي (RTF)**: 0.195
-- **تأخر الصوت الأول (TTFA)**: حوالي 100 مللي ثانية
-- **إنتاجية فائقة السرعة**: تصل إلى 3000+ وسم صوتي/ثانية مع الحفاظ على RTF < 0.5
-
-### دعم قوي للغات المتعددة
-
-يدعم S2 Pro أكثر من 80 لغة، مما يتيح تركيباً عالياً الجودة دون الحاجة إلى وحدات صوتية (phonemes) أو معالجة محددة لكل لغة:
-
-- **المستوى الأول (Tier 1)**: اليابانية (ja)، الإنجليزية (en)، الصينية (zh)
-- **المستوى الثاني (Tier 2)**: الكورية (ko)، الإسبانية (es)، البرتغالية (pt)، العربية (ar)، الروسية (ru)، الفرنسية (fr)، الألمانية (de)
-- **تغطية عالمية**: sv, it, tr, no, nl, cy, eu, ca, da, gl, ta, hu, fi, pl, et, hi, la, ur, th, vi, jw, bn, yo, xsl, cs, sw, nn, he, ms, uk, id, kk, bg, lv, my, tl, sk, ne, fa, af, el, bo, hr, ro, sn, mi, yi, am, be, km, is, az, sd, br, sq, ps, mn, ht, ml, sr, sa, te, ka, bs, pa, lt, kn, si, hy, mr, as, gu, fo والمزيد.
-
-### توليد متحدثين متعددين أصلي
-
-<img src="./assets/chattemplate.png" width=200%>
-
-يسمح Fish Audio S2 للمستخدمين بتحميل عينة مرجعية تحتوي على متحدثين متعددين، وسيقوم النموذج بمعالجة ميزات كل متحدث عبر وسم `<|speaker:i|>`. بعد ذلك، يمكنك التحكم في أداء النموذج عبر وسم معرف المتحدث، مما يتيح لتوليد واحد أن يتضمن متحدثين متعددين. لم تعد هناك حاجة لتحميل عينة مرجعية منفصلة وتوليد صوت لكل متحدث على حدة كما كان في السابق.
-
-### توليد حوارات متعددة الجولات
-
-بفضل توسيع سياق النموذج، يمكن لنموذجنا الآن الاستفادة من المعلومات السابقة لتحسين التعبير في المحتوى المولد لاحقاً، مما يعزز من طبيعية المحتوى.
-
-### استنساخ الصوت السريع
-
-يدعم Fish Audio S2 استنساخاً دقيقاً للصوت باستخدام عينات مرجعية قصيرة (عادةً 10-30 ثانية). يلتقط النموذج نبرة الصوت وأسلوب الكلام والميول العاطفية، مما يولد أصواتاً مستنسخة واقعية ومتسقة دون الحاجة إلى ضبط دقيق إضافي.
-لاستخدام خادم SGLang، يرجى الرجوع إلى [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md).
-
----
+</details>
 
 ## شكر وتقدير
 
@@ -195,5 +179,15 @@ Fish Audio S2 Pro هو أحدث طراز متعدد الوسائط تم تطوي
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2603.08823}, 
+}
+
+@misc{liao2026fishaudiodrama3technical,
+      title={Fish Audio Drama 3 Technical Report}, 
+      author={Dawei Han and Shidong Li and Shijia Liao and Jiahua Liu and Songting Liu and Qingzheng Wang and Yuxuan Wang and Xin Chen and Yifan Cheng and Tianyu Li and Gangin Park and Xuehao Yang and Chang Zeng and Haoyang Zhang and Ruoyi Zhang and Xiangyu Zhang},
+      year={2026},
+      eprint={2610.18010},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2610.18010}, 
 }
 ```

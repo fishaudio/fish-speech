@@ -9,6 +9,7 @@ from torch.nn import functional as F
 from fish_speech.models.text2semantic.inference import (
     decode_one_token_ar,
     generate,
+    generated_codes,
 )
 from fish_speech.models.text2semantic.llama import (
     Attention,
@@ -61,7 +62,6 @@ def _base_args(**overrides) -> dict:
         "num_codebooks": 2,
         "semantic_begin_id": 4,
         "semantic_end_id": 11,
-        "use_gradient_checkpointing": False,
     }
     args.update(overrides)
     return args
@@ -355,6 +355,37 @@ class ActiveKVAutoregressiveDecodeTest(unittest.TestCase):
             )
 
         torch.testing.assert_close(active_output, full_output, rtol=0, atol=0)
+
+    def test_generated_codes_drop_only_a_closing_im_end(self) -> None:
+        im_end = 9
+        prompt = torch.zeros((3, 2), dtype=torch.long)
+        for tail, frames in (([[5, im_end]], 1), ([[5, 6]], 2), ([[im_end]], 0)):
+            main = torch.tensor(tail)
+            y = torch.cat((prompt, torch.cat((main, main + 1, main + 2))), dim=1)
+            codes = generated_codes(y, prompt_length=2, im_end_id=im_end)
+            self.assertEqual(codes.shape, (2, frames))
+            torch.testing.assert_close(codes, y[1:, 2 : 2 + frames])
+
+    def test_max_new_tokens_one_and_unbounded(self) -> None:
+        def run(max_new_tokens: int) -> torch.Tensor:
+            with patch(
+                "fish_speech.models.text2semantic.inference.tqdm",
+                side_effect=lambda values, **_kwargs: values,
+            ):
+                return generate(
+                    model=self._model(),
+                    prompt=self._prompt(),
+                    max_new_tokens=max_new_tokens,
+                    audio_masks=None,
+                    audio_parts=None,
+                    temperature=0.8,
+                    top_p=0.8,
+                    top_k=1,
+                )
+
+        self.assertEqual(run(1).shape[1], PROMPT_LENGTH + 1)
+        # Negative means no limit, like 0.
+        torch.testing.assert_close(run(-1), run(0), rtol=0, atol=0)
 
     def test_legacy_decode_callback_remains_supported(self) -> None:
         model = self._model()

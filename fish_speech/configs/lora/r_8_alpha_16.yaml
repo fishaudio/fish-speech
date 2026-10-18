@@ -1,4 +1,0 @@
-_target_: fish_speech.models.text2semantic.lora.LoraConfig
-r: 8
-lora_alpha: 16
-lora_dropout: 0.01

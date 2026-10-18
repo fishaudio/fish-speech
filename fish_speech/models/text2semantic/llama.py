@@ -13,9 +13,6 @@ from loguru import logger
 from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
-from torch.utils.checkpoint import checkpoint
-
-from fish_speech.models.text2semantic.lora import LoraConfig, setup_lora
 
 
 def find_multiple(n: int, k: int) -> int:
@@ -50,9 +47,6 @@ class BaseModelArgs:
 
     semantic_begin_id: int = 0
     semantic_end_id: int = 0
-
-    # Gradient checkpointing
-    use_gradient_checkpointing: bool = True
 
     # Initialize the model
     initializer_range: float = 0.02
@@ -119,7 +113,6 @@ class BaseModelArgs:
             attention_qkv_bias=tc.get("attention_qkv_bias", False),
             attention_o_bias=tc.get("attention_o_bias", False),
             attention_qk_norm=tc.get("attention_qk_norm", False),
-            use_gradient_checkpointing=tc.get("use_gradient_checkpointing", True),
             initializer_range=tc.get("initializer_range", 0.02),
             semantic_begin_id=data.get("semantic_start_token_id", 0),
             semantic_end_id=data.get("semantic_end_token_id", 0),
@@ -323,70 +316,6 @@ class BaseTransformer(nn.Module):
                 dtype=dtype,
             )
 
-    def embed(self, inp: Tensor) -> Tensor:
-        embeds = []
-
-        for i in range(self.config.num_codebooks):
-            emb = self.codebook_embeddings(
-                inp[:, i + 1] + i * self.config.codebook_size
-            )
-            embeds.append(emb)
-
-        vq_embeds_sum = torch.stack(embeds, dim=1).sum(dim=1)
-
-        is_semantic = (inp[:, 0] >= self.config.semantic_begin_id) & (
-            inp[:, 0] <= self.config.semantic_end_id
-        )
-
-        vq_embeds_sum[~is_semantic] = 0
-
-        x = self.embeddings(inp[:, 0]) + vq_embeds_sum
-
-        return x
-
-    def forward(
-        self,
-        inp: Tensor,
-        key_padding_mask: Optional[Tensor] = None,
-    ) -> BaseTransformerForwardResult:
-        seq_len = inp.size(2)
-
-        # Here we want to merge the embeddings of the codebooks
-        x = self.embed(inp)
-
-        freqs_cis = self.freqs_cis[:seq_len]
-
-        mask = None
-        if key_padding_mask is not None:
-            causal = self.causal_mask[:seq_len, :seq_len]
-            causal = rearrange(causal, "q k -> 1 1 q k")
-
-            atten_mask = rearrange(key_padding_mask, "b s -> b 1 1 s")
-            atten_mask = atten_mask.logical_not()
-            mask = causal & atten_mask
-
-        for layer in self.layers:
-            if self.config.use_gradient_checkpointing and self.training:
-                x = checkpoint(layer, x, freqs_cis, mask, use_reentrant=True)
-            else:
-                x = layer(x, freqs_cis, mask)
-
-        slow_out = self.norm(x)
-
-        if self.config.tie_word_embeddings:
-            token_logits = F.linear(slow_out, self.embeddings.weight)
-        else:
-            token_logits = self.output(slow_out)
-
-        hidden_out = (
-            slow_out if getattr(self.config, "norm_fastlayer_input", False) else x
-        )
-
-        return BaseTransformerForwardResult(
-            logits=token_logits,
-            hidden_states=hidden_out,
-        )
-
     def forward_generate(
         self,
         inp: Tensor,
@@ -501,7 +430,6 @@ class BaseTransformer(nn.Module):
         path: str,
         load_weights: bool = False,
         max_length: int | None = None,
-        lora_config: LoraConfig | None = None,
         rope_base: int | None = None,
     ) -> "BaseTransformer":
         # Import wrapper locally to avoid circular dependency or global import issues
@@ -546,23 +474,6 @@ class BaseTransformer(nn.Module):
         if load_weights is False:
             logger.info("Randomly initialized model")
         else:
-            if "int8" in str(Path(path)):
-                logger.info("Using int8 weight-only quantization!")
-                from tools.llama.quantize import WeightOnlyInt8QuantHandler
-
-                simple_quantizer = WeightOnlyInt8QuantHandler(model)
-                model = simple_quantizer.convert_for_runtime()
-
-            if "int4" in str(Path(path)):
-                logger.info("Using int4 quantization!")
-                path_comps = path.name.split("-")
-                assert path_comps[-2].startswith("g")
-                groupsize = int(path_comps[-2][1:])
-                from tools.llama.quantize import WeightOnlyInt4QuantHandler
-
-                simple_quantizer = WeightOnlyInt4QuantHandler(model, groupsize)
-                model = simple_quantizer.convert_for_runtime()
-
             path_obj = Path(path)
             index_json = path_obj / "model.safetensors.index.json"
             single_st = path_obj / "model.safetensors"
@@ -607,28 +518,7 @@ class BaseTransformer(nn.Module):
             err = model.load_state_dict(weights, strict=False, assign=True)
             logger.info(f"Model weights loaded - Status: {err}")
 
-        if lora_config is not None:
-            setup_lora(model, lora_config)
-            logger.info(f"LoRA setup: {lora_config}")
-
         return model
-
-    def save_pretrained(self, path: str, drop_lora: bool = False):
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-
-        self.config.save(path / "config.json")
-        state_dict = self.state_dict()
-
-        if drop_lora:
-            for key in list(state_dict.keys()):
-                if "lora" not in key:
-                    continue
-                state_dict.pop(key)
-
-        torch.save(state_dict, path / "model.pth")
-        if hasattr(self, "tokenizer"):
-            self.tokenizer.save_pretrained(path)
 
 
 class NaiveTransformer(BaseTransformer):
@@ -658,17 +548,6 @@ class NaiveTransformer(BaseTransformer):
             token_logits=token_logits,
             codebook_logits=codebook_logits,
         )
-
-    def forward(
-        self,
-        inp: Tensor,
-        key_padding_mask: Optional[Tensor] = None,
-    ) -> TransformerForwardResult:
-        result = super().forward(
-            inp=inp,
-            key_padding_mask=key_padding_mask,
-        )
-        return self.decode(result)
 
     def forward_generate(
         self,
@@ -743,81 +622,6 @@ class DualARTransformer(BaseTransformer):
                 self.config.fast_head_dim,
                 dtype=dtype,
             )
-
-    def forward(
-        self,
-        inp: Tensor,
-        labels: Optional[Tensor] = None,
-        key_padding_mask: Optional[Tensor] = None,
-        vq_parts: Optional[Tensor] = None,
-        vq_masks: Optional[Tensor] = None,
-        vq_require_losses: Optional[Tensor] = None,
-        mel_parts: Optional[Tensor] = None,
-        mel_masks: Optional[Tensor] = None,
-    ) -> TransformerForwardResult:
-        parent_result = super().forward(
-            inp=inp,
-            key_padding_mask=key_padding_mask,
-        )
-        token_logits = parent_result.logits
-        x = parent_result.hidden_states
-
-        # Fast transformer
-        fast_seq_len = self.config.num_codebooks
-        fast_mask = self.causal_mask[
-            None, None, :fast_seq_len, :fast_seq_len
-        ]  # (B, N, Q, K)
-        fast_freqs_cis = self.fast_freqs_cis[:fast_seq_len]
-
-        # Extract corresponding parts with labels
-        token_labels = labels[:, 0]
-
-        # [MODIFIED] Use config instead of tokenizer
-        codebook_mask = (token_labels >= self.config.semantic_begin_id) & (
-            token_labels <= self.config.semantic_end_id
-        )
-
-        # This gives where input token is <|semantic|>
-        x = x[codebook_mask]
-
-        if x.shape[0] == 0:
-            # Use dummy input when no vq is required
-            x = torch.zeros(
-                (4, self.config.dim),
-                device=x.device,
-                dtype=x.dtype,
-            )
-            codebooks = torch.zeros(
-                (x.shape[0], self.config.num_codebooks - 1),
-                device=x.device,
-                dtype=torch.int,
-            )
-        else:
-            all_codebooks = labels[:, 1:, :]
-            all_codebooks_permuted = all_codebooks.permute(0, 2, 1)
-            semantic_codebooks = all_codebooks_permuted[codebook_mask]
-            codebooks = semantic_codebooks[:, :-1]
-
-        x = self.fast_project_in(x)
-        codebook_embeddings = self.fast_embeddings(codebooks)
-        x = torch.cat([x[:, None], codebook_embeddings], dim=1)
-
-        for layer in self.fast_layers:
-            if self.config.use_gradient_checkpointing and self.training:
-                x = checkpoint(layer, x, fast_freqs_cis, fast_mask, use_reentrant=True)
-            else:
-                x = layer(x, fast_freqs_cis, fast_mask)
-
-        # unflatten the batch and num_codebooks
-        fast_out = self.fast_norm(x)
-        codebook_logits = self.fast_output(fast_out)
-
-        assert codebook_logits.shape[1] == self.config.num_codebooks
-
-        return TransformerForwardResult(
-            token_logits=token_logits,
-            codebook_logits=codebook_logits,
-        )
 
     def forward_generate_fast(
         self, x: Tensor, input_pos: Optional[Tensor] = None

@@ -119,10 +119,11 @@ class ReferenceLoader:
                 self.ref_by_hash[audio_hashes[i]] = (prompt_tokens[-1], ref.text)
 
             else:
-                # Reuse already encoded references
-                cached_token, cached_text = self.ref_by_hash[audio_hashes[i]]
+                # Reuse the encoded audio; the transcript always comes from this
+                # request, since the cache is keyed by audio only.
+                cached_token, _ = self.ref_by_hash[audio_hashes[i]]
                 prompt_tokens.append(cached_token)
-                prompt_texts.append(cached_text)
+                prompt_texts.append(ref.text)
                 cache_used = True
 
         if cache_used:
