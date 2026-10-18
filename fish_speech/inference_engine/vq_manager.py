@@ -17,6 +17,8 @@ class VQManager:
         logger.info(f"VQ features: {codes.shape}")
 
         if isinstance(self.decoder_model, DAC):
+            # Drama 3 hands over its codes on the CPU.
+            codes = codes.to(self.decoder_model.device)
             return self.decoder_model.from_indices(codes[None])[0].squeeze()
 
         raise ValueError(f"Unknown model type: {type(self.decoder_model)}")
@@ -31,7 +33,8 @@ class VQManager:
             reference_audio_content = self.load_audio(reference_audio, sample_rate)
 
             audios = torch.from_numpy(reference_audio_content).to(
-                self.decoder_model.device
+                device=self.decoder_model.device,
+                dtype=next(self.decoder_model.parameters()).dtype,
             )[None, None, :]
             audio_lengths = torch.tensor(
                 [audios.shape[2]], device=self.decoder_model.device, dtype=torch.long

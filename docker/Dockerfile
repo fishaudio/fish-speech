@@ -7,34 +7,16 @@
 #       --platform linux/amd64 \
 #       -f docker/Dockerfile \
 #       --build-arg BACKEND=[cuda, cpu] \
-#       --target [webui, server] \
-#       -t fish-speech-[webui, server]:[cuda, cpu] .
-
-# e.g. for building the webui:
-#   docker build \
-#       --platform linux/amd64 \
-#       -f docker/Dockerfile \
-#       --build-arg BACKEND=cuda \
-#       --target webui \
-#       -t fish-speech-webui:cuda .
-
-# e.g. for building the server:
-#   docker build \
-#       --platform linux/amd64 \
-#       -f docker/Dockerfile \
-#       --build-arg BACKEND=cuda \
 #       --target server \
-#       -t fish-speech-server:cuda .
-
-
+#       -t fish-speech-server:[cuda, cpu] .
 
 # Multi-platform build:
 #   docker buildx build \
 #       --platform linux/amd64,linux/arm64 \
 #       -f docker/Dockerfile \
 #       --build-arg BACKEND=cpu \
-#       --target webui \
-#       -t fish-speech-webui:cpu .
+#       --target server \
+#       -t fish-speech-server:cpu .
 
 
 # Running the image interactively:
@@ -42,20 +24,21 @@
 #       --gpus all \
 #       -v /path/to/fish-speech/checkpoints:/app/checkpoints \
 #       -e COMPILE=1 \ ... or -e COMPILE=0 \
-#       -it fish-speech-[webui, server]:[cuda, cpu]
+#       -it fish-speech-server:[cuda, cpu]
 
-# E.g. running the webui:
+# E.g. running the server with S2-Pro:
 #   docker run \
 #       --gpus all \
 #       -v ./checkpoints:/app/checkpoints \
-#       -e COMPILE=1 \
-#       -p 7860:7860 \
-#       fish-speech-webui:cuda
+#       -p 8080:8080 \
+#       -it fish-speech-server:cuda
 
-# E.g. running the server:
+# E.g. running the server with Drama 3 (CUDA only, COMPILE must stay 0; expose
+# one GPU on SM89+ cards for the single-GPU FP8 mode, several on older ones):
 #   docker run \
-#       --gpus all \
+#       --gpus device=0 \
 #       -v ./checkpoints:/app/checkpoints \
+#       -e LLAMA_CHECKPOINT_PATH=checkpoints/drama-3 \
 #       -p 8080:8080 \
 #       -it fish-speech-server:cuda
 
@@ -69,6 +52,7 @@ ARG BACKEND=cuda
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
 ARG UV_VERSION=0.8.15
+ARG NODE_VER=22
 
 # Create non-root user early for security
 ARG USERNAME=fish
@@ -124,6 +108,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 ARG UV_VERSION
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
+
+# Awesome WebUI, built into a single index.html that the server serves at /ui
+ARG NODE_VER
+FROM node:${NODE_VER}-slim AS webui-build
+WORKDIR /webui
+COPY awesome_webui/package.json awesome_webui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY awesome_webui/ ./
+RUN npm run build
 
 ##############################################################
 # Shared app base stage
@@ -218,6 +211,10 @@ COPY --chown=${USER_UID}:${USER_GID} . .
 # Install the local package after copying source code
 RUN uv sync --extra ${UV_EXTRA} --frozen
 
+# The environment was synced with --extra ${UV_EXTRA}. A plain `uv run` would
+# re-sync it to the default extras and download another torch at every start.
+ENV UV_NO_SYNC=1
+
 # Create common entrypoint script
 RUN printf '%s\n' \
     '#!/bin/bash' \
@@ -247,9 +244,11 @@ RUN printf '%s\n' \
     '    fi' \
     '}' \
     '' \
-    '# Build device arguments' \
+    '# Build device arguments: DEVICE (e.g. cuda:0, or cuda:0,cuda:1) wins' \
     'build_device_args() {' \
-    '    if [ "${BACKEND:-}" = "cpu" ]; then' \
+    '    if [ -n "${DEVICE:-}" ]; then' \
+    '        echo "--device ${DEVICE}"' \
+    '    elif [ "${BACKEND:-}" = "cpu" ]; then' \
     '        echo "--device cpu"' \
     '    fi' \
     '}' \
@@ -265,7 +264,7 @@ RUN printf '%s\n' \
     '' \
     '# Health check function' \
     'health_check() {' \
-    '    local port=${1:-7860}' \
+    '    local port=${1:-8080}' \
     '    local endpoint=${2:-/health}' \
     '    curl -f http://localhost:${port}${endpoint} 2>/dev/null || exit 1' \
     '}' \
@@ -275,63 +274,19 @@ RUN printf '%s\n' \
 # App stages
 ##############################################################
 
-# Gradio WebUI
-FROM app-base AS webui
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-
-ARG GRADIO_SERVER_NAME="0.0.0.0"
-ARG GRADIO_SERVER_PORT=7860
-ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
-ARG DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"
-ARG DECODER_CONFIG_NAME="modded_dac_vq"
-
-
-# Expose port
-EXPOSE ${GRADIO_SERVER_PORT}
-
-# Set environment variables
-ENV GRADIO_SERVER_NAME=${GRADIO_SERVER_NAME}
-ENV GRADIO_SERVER_PORT=${GRADIO_SERVER_PORT}
-ENV LLAMA_CHECKPOINT_PATH=${LLAMA_CHECKPOINT_PATH}
-ENV DECODER_CHECKPOINT_PATH=${DECODER_CHECKPOINT_PATH}
-ENV DECODER_CONFIG_NAME=${DECODER_CONFIG_NAME}
-
-# Create webui entrypoint
-RUN printf '%s\n' \
-    '#!/bin/bash' \
-    'source /app/common.sh' \
-    '' \
-    'log "Starting Fish Speech WebUI..."' \
-    'validate_env' \
-    '' \
-    'DEVICE_ARGS=$(build_device_args)' \
-    'COMPILE_ARGS=$(build_compile_args "$@")' \
-    '' \
-    'log "Device args: ${DEVICE_ARGS:-none}"' \
-    'log "Compile args: ${COMPILE_ARGS}"' \
-    'log "Server: ${GRADIO_SERVER_NAME}:${GRADIO_SERVER_PORT}"' \
-    '' \
-    'exec uv run tools/run_webui.py \' \
-    '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
-    '  --decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}" \' \
-    '  --decoder-config-name "${DECODER_CONFIG_NAME}" \' \
-    '  ${DEVICE_ARGS} ${COMPILE_ARGS}' \
-    > /app/start_webui.sh && chmod +x /app/start_webui.sh
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${GRADIO_SERVER_PORT}/health || exit 1
-
-ENTRYPOINT ["/app/start_webui.sh"]
-
 # API Server
 FROM app-base AS server
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
+ARG USER_UID
+ARG USER_GID
+COPY --from=webui-build --chown=${USER_UID}:${USER_GID} /webui/dist /app/awesome_webui/dist
+
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080
 ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
-ARG DECODER_CHECKPOINT_PATH="checkpoints/s2-pro/codec.pth"
+# Empty: <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth
+ARG DECODER_CHECKPOINT_PATH=""
 ARG DECODER_CONFIG_NAME="modded_dac_vq"
 
 # Expose port
@@ -354,6 +309,10 @@ RUN printf '%s\n' \
     '' \
     'DEVICE_ARGS=$(build_device_args)' \
     'COMPILE_ARGS=$(build_compile_args "$@")' \
+    'DECODER_ARGS=()' \
+    'if [ -n "${DECODER_CHECKPOINT_PATH:-}" ]; then' \
+    '    DECODER_ARGS=(--decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}")' \
+    'fi' \
     '' \
     'log "Device args: ${DEVICE_ARGS:-none}"' \
     'log "Compile args: ${COMPILE_ARGS}"' \
@@ -362,13 +321,14 @@ RUN printf '%s\n' \
     'exec uv run tools/api_server.py \' \
     '  --listen "${API_SERVER_NAME}:${API_SERVER_PORT}" \' \
     '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
-    '  --decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}" \' \
+    '  "${DECODER_ARGS[@]}" \' \
     '  --decoder-config-name "${DECODER_CONFIG_NAME}" \' \
     '  ${DEVICE_ARGS} ${COMPILE_ARGS}' \
     > /app/start_server.sh && chmod +x /app/start_server.sh
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Drama 3 takes several minutes to load and capture its CUDA graphs.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=600s --retries=3 \
     CMD curl -f http://localhost:${API_SERVER_PORT}/v1/health || exit 1
 
 ENTRYPOINT ["/app/start_server.sh"]

@@ -27,18 +27,6 @@ class ServeAudioPart(BaseModel):
     audio: bytes
 
 
-class ServeRequest(BaseModel):
-    # Raw content sequence dict that we can use with ContentSequence(**content)
-    content: dict
-    max_new_tokens: int = 600
-    top_p: float = 0.7
-    repetition_penalty: float = 1.2
-    temperature: float = 0.7
-    streaming: bool = False
-    num_samples: int = 1
-    early_stop_threshold: float = 1.0
-
-
 class ServeVQGANEncodeRequest(BaseModel):
     # The audio here should be in wav, mp3, etc
     audios: list[bytes]
@@ -60,6 +48,10 @@ class ServeVQGANDecodeResponse(BaseModel):
 class ServeReferenceAudio(BaseModel):
     audio: bytes
     text: str
+    # The speaker this reference voices. A transcript that does not start with a
+    # <|speaker:N|> tag gets this one; None keeps the model's default (S2-Pro: the
+    # reference's position, Drama 3: speaker 0).
+    speaker: Annotated[int, Field(ge=0, le=15, strict=True)] | None = None
 
     @model_validator(mode="before")
     def decode_audio(cls, values):
@@ -75,12 +67,17 @@ class ServeReferenceAudio(BaseModel):
         return values
 
     def __repr__(self) -> str:
-        return f"ServeReferenceAudio(text={self.text!r}, audio_size={len(self.audio)})"
+        return (
+            f"ServeReferenceAudio(text={self.text!r}, speaker={self.speaker}, "
+            f"audio_size={len(self.audio)})"
+        )
 
 
 class ServeTTSRequest(BaseModel):
     text: str
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
+    # Drama 3 only: generate the whole text in one pass instead of ~300-byte chunks.
+    single_chunk: bool = False
     # Audio format
     format: Literal["wav", "pcm", "mp3", "opus"] = "wav"
     # Latency mode (used by api.fish.audio; "normal" or "balanced")
@@ -97,10 +94,18 @@ class ServeTTSRequest(BaseModel):
     normalize: bool = True
     # not usually used below
     streaming: bool = False
-    max_new_tokens: int = 1024
-    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
-    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] = 1.1
-    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] = 0.8
+    # Sampling: None takes the official Fish Audio SDK's default (max_new_tokens
+    # 1024 per text chunk; top_p 0.7; repetition_penalty 1.2; temperature 0.7).
+    # max_new_tokens <= 0 means the model's own cap (S2-Pro: the context length;
+    # Drama 3: 600 frames per chunk, or 2048 with single_chunk). repetition_penalty is
+    # accepted for compatibility and ignored: both models use repetition-aware
+    # sampling.
+    max_new_tokens: int | None = None
+    top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
+    repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] | None = (
+        None
+    )
+    temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
 
     class Config:
         # Allow arbitrary types for pytorch related types

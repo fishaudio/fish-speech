@@ -60,7 +60,7 @@ class API(ExceptionHandler):
             Info(
                 {
                     "title": "Fish Speech API",
-                    "version": "1.5.0",
+                    "version": "3.0.0",
                 }
             ),
         ).routes

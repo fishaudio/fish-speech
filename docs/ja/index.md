@@ -30,133 +30,120 @@
 </div>
 
 <div align="center">
-    <a target="_blank" href="https://huggingface.co/fishaudio/s2">
-        <img alt="HuggingFace Model" src="https://img.shields.io/badge/🤗%20-models-orange"/>
+    <a target="_blank" href="https://huggingface.co/fishaudio/drama-3">
+        <img alt="HuggingFace Drama 3" src="https://img.shields.io/badge/🤗%20-Drama%203-orange"/>
+    </a>
+    <a target="_blank" href="https://huggingface.co/fishaudio/s2-pro">
+        <img alt="HuggingFace S2-Pro" src="https://img.shields.io/badge/🤗%20-S2--Pro-orange"/>
     </a>
     <a target="_blank" href="https://fish.audio/blog/fish-audio-open-sources-s2/">
         <img alt="Fish Audio Blog" src="https://img.shields.io/badge/Blog-Fish_Audio_S2-1f7a8c?style=flat-square&logo=readme&logoColor=white"/>
     </a>
-    <a target="_blank" href="https://arxiv.org/abs/2603.08823">
+    <a target="_blank" href="https://arxiv.org/abs/2610.18010">
         <img alt="Paper | Technical Report" src="https://img.shields.io/badge/Paper-Technical_Report-b31b1b?style=flat-square"/>
     </a>
 </div>
 
 !!! info "ライセンス通知"
-    このコードベースおよび関連するモデルの重みは **FISH AUDIO RESEARCH LICENSE** の下でリリースされています。詳細は [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) を参照してください。
+    このコードベースおよび関連するモデルの重みは **FISH AUDIO COMMUNITY LICENSE** の下でリリースされています。S2-Pro のモデルウェイトは引き続き Fish Audio Research License が適用されます。詳細は [LICENSE](https://github.com/fishaudio/fish-speech/blob/main/LICENSE) を参照してください。
 
 !!! warning "法的免責事項"
     私たちは、コードベースのいかなる違法な使用に対しても責任を負いません。DMCA およびその他の関連法に関する現地の規制を参照してください。
 
 ## クイックスタート
 
-### まずはドキュメントから
+### ドキュメント
 
-Fish Audio S2 の公式ドキュメントです。以下からすぐに始められます。
-
-- [インストール](https://speech.fish.audio/ja/install/)
-- [コマンドライン推論](https://speech.fish.audio/ja/inference/)
-- [WebUI 推論](https://speech.fish.audio/ja/inference/)
-- [サーバー推論](https://speech.fish.audio/ja/server/)
-- [Docker セットアップ](https://speech.fish.audio/ja/install/)
+- [インストール](https://speech.fish.audio/ja/install/)：環境構築、重みのダウンロード、Docker デプロイ
+- [推論](https://speech.fish.audio/ja/inference/)：コマンドライン推論、API サーバー、WebUI 推論
 
 > [!IMPORTANT]
-> **SGLang サーバーについては [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) を参照してください。**
+> **効率を重視する方には SGLang-Omni の利用を強く推奨します。[SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_drama_3/README.md) を参照してください。**
 
-### LLM Agent 向け
+### LLM エージェント向け
 
 ```
-https://speech.fish.audio/ja/install/ の手順に従って、Fish Audio S2 をインストール・設定してください。
+まず https://speech.fish.audio/ja/install/ を読み、ドキュメントに従って Fish Audio Drama 3（または S2-Pro）をインストール・設定してください。
 ```
 
-## Fish Audio S2
-**オープンソースおよびクローズドソースの中で最も優れたテキスト読み上げシステム**
+## モデル
 
-Fish Audio S2 は [Fish Audio](https://fish.audio/) が開発した最新モデルです。約 50 言語・1,000 万時間超の音声データで学習され、強化学習アラインメントと Dual-Autoregressive アーキテクチャを組み合わせることで、自然でリアルかつ感情表現豊かな音声を生成します。
+| モデル | サイズ | 重み | 説明 |
+|------|------|------|------|
+| **Drama 3** | 35B-A3B（トークンあたり 3B が活性化） | [HuggingFace](https://huggingface.co/fishaudio/drama-3) | 新世代のフラッグシップ。複数キャラクターのシーンと長尺コンテンツ向けで、マルチターン修正と部分編集に対応 |
+| S2-Pro | 4B パラメータ | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 前世代のフラッグシップ。より高速な推論 |
 
-S2 は `[laugh]`、`[whispers]`、`[super happy]` といった自然言語タグで、韻律や感情を文中の任意位置で細かく制御できます。さらに、マルチスピーカー生成とマルチターン生成にもネイティブ対応しています。
+モデル種別は重みディレクトリの `config.json` から自動判定され、両者は同じコマンドラインと API サーバーを共有します。
 
-ライブデモは [Fish Audio ウェブサイト](https://fish.audio/) から、詳細は [ブログ記事](https://fish.audio/blog/fish-audio-open-sources-s2/) と [技術レポート](https://arxiv.org/abs/2603.08823) をご覧ください。
+---
 
-### モデルバリアント
+## Fish Audio Drama 3
 
-| モデル | サイズ | 利用可能性 | 説明 |
-|------|------|-------------|-------------|
-| S2-Pro | 4B パラメータ | [HuggingFace](https://huggingface.co/fishaudio/s2-pro) | 品質と安定性を最大化したフル機能のフラッグシップモデル |
+**S2-Pro を全面的にアップグレードした新世代の音声生成モデル。**
 
-モデルの詳細は[技術レポート](https://arxiv.org/abs/2411.01156)をご参照ください。
+Drama 3 は S2 シリーズと同様にマルチ話者・音声クローン・自然言語制御に対応しつつ、長尺音声の扱い、対話の仕方、編集性で明確な進化を遂げています。
 
-## ベンチマーク結果
+### 主な特徴
+
+- **マルチターンディレクター修正**：直前のテイクに対して直接指示を出し（「もう少し穏やかに、もう少し悲しく」）、モデルがコンテキストを踏まえて再生成します。最初からやり直す必要はありません。
+- **インフィル（音声の穴埋め）と精密編集**：テキストを編集するように音声を編集し、「水曜日」を「木曜日」に差し替えるような部分置換ができます。前後の音色とつなぎ目は自然に保たれます。
+- **シーン形式のマルチキャラクター生成**：脚本の記述から、複数のキャラクターを含むシーンを一度に収録できます。長文のストリーミング合成にも対応します。
+- **長い対話と長尺音声**：長時間の録音や長期セッション向けに設計されており、長尺でもキャラクターと音色が安定します。
+- **表現力の強化**：笑い声、泣き声、ささやき、劇的な感情がリファレンスに引きずられなくなり、人間に近い表現の張りを得られます。
+- **多言語音声クローン**：言語をまたぐ音色クローンのエラー率（CER / WER）で新たな水準の SOTA を達成しました。
+- **自然言語タグ制御**：`[whisper]`、`[angry]`、`[laughing]` などのインラインタグで感情と韻律を制御します。
+
+### S2-Pro からの変化
+
+| 機能 | S2-Pro | Drama 3 |
+| --- | --- | --- |
+| マルチ話者 | 対応 | 対応、シーン形式のマルチキャラクター生成 |
+| 音声クローン | 対応 | 対応、多言語エラー率がより低い |
+| インライン自然言語指示 | 対応 | 対応 |
+| 部分編集 / インフィル | 非対応 | 対応 |
+| マルチターンディレクター修正 | 非対応 | 対応 |
+| 長尺コンテンツ | チャンク分割で生成 | 長い対話と長尺音声、ストリーミング対応 |
+| 強い感情表現（笑い・泣き・ささやき） | 普通 | より強い |
+
+### 効果
+
+公開ベンチマークで S2 から大きく飛躍しています：多言語音声クローン（MiniMax Multilingual Testset）、自由形式の音声編集（Ming-Freeform）、マルチターン感情修正（Step-Audio-Eval）の 3 領域において、制御精度、多言語エラー率（CER / WER）、スタイル正確性のすべてで前世代を上回ります。
+
+アーキテクチャ、学習レシピ、詳細な評価結果は[技術レポート](https://arxiv.org/abs/2610.18010)をご覧ください。
+
+---
+
+## Fish Audio S2-Pro
+
+自然言語による制御と感情表現に優れた前世代のフラッグシップモデルです。約 100 言語に対応し、コンシューマ向け GPU にも収まるサイズです。
+
+- **インライン自然言語指示**：`[pause]`、`[excited]`、`[whisper]` などのタグで、テキストの任意の位置の韻律と感情を制御します。
+- **ネイティブなマルチ話者生成**：1 つのテキスト内で話者 ID によりキャラクターを区別でき、話者ごとに生成して連結する必要はありません。
+- **高速な音声クローン**：10〜30 秒のリファレンス音声で音色を再現できます。
+- **一括生成**：長尺音声を一度にストリーミング生成できます。
+- **本番運用のストリーミング**：H200 1 枚で RTF 0.195、初回音声まで約 100 ms。
+
+オンラインデモは [Fish Audio ウェブサイト](https://fish.audio/)で体験できます。詳細は[ブログ記事](https://fish.audio/blog/fish-audio-open-sources-s2/)と[技術レポート](https://arxiv.org/abs/2603.08823)を参照してください。
+
+<details>
+<summary><b>S2-Pro のベンチマーク結果（クリックで展開）</b></summary>
 
 | ベンチマーク | Fish Audio S2 |
 |------|------|
-| Seed-TTS Eval — WER（中国語） | **0.54%**（全体最良） |
-| Seed-TTS Eval — WER（英語） | **0.99%**（全体最良） |
-| Audio Turing Test（指示あり） | **0.515** 事後平均値 |
-| EmergentTTS-Eval — 勝率 | **81.88%**（全体最高） |
+| Seed-TTS Eval — WER（中国語） | **0.54%**（全体で最高） |
+| Seed-TTS Eval — WER（英語） | **0.99%**（全体で最高） |
+| Audio Turing Test（指示あり） | **0.515** 事後平均 |
+| EmergentTTS-Eval — 勝率 | **81.88%**（全体で最高） |
 | Fish Instruction Benchmark — TAR | **93.3%** |
 | Fish Instruction Benchmark — 品質 | **4.51 / 5.0** |
-| 多言語（MiniMax Testset）— 最良 WER | **24 言語中 11 言語** |
-| 多言語（MiniMax Testset）— 最良 SIM | **24 言語中 17 言語** |
+| 多言語（MiniMax Testset）— 最高 WER | **24** 言語中 **11** 言語 |
+| 多言語（MiniMax Testset）— 最高 SIM | **24** 言語中 **17** 言語 |
 
-Seed-TTS Eval では、S2 はクローズドソースを含む全評価モデルの中で最小 WER を達成しました：Qwen3-TTS（0.77/1.24）、MiniMax Speech-02（0.99/1.90）、Seed-TTS（1.12/2.25）。Audio Turing Test では 0.515 を記録し、Seed-TTS（0.417）比で 24%、MiniMax-Speech（0.387）比で 33% 上回りました。EmergentTTS-Eval では、副言語情報（91.61%）、疑問文（84.41%）、統語的複雑性（83.39%）で特に高い成績を示しています。
-
-## ハイライト
+Seed-TTS Eval では、S2 は評価対象（クローズドソースを含む）の中で最低の WER を達成しています：Qwen3-TTS（0.77/1.24）、MiniMax Speech-02（0.99/1.90）、Seed-TTS（1.12/2.25）。Audio Turing Test では 0.515 が Seed-TTS（0.417）を 24%、MiniMax-Speech（0.387）を 33% 上回ります。EmergentTTS-Eval では、副言語学的特徴（勝率 91.61%）、疑問文（84.41%）、統語的複雑さ（83.39%）で特に強い結果を示しています。
 
 <img src="../assets/totalability.png" width=200%>
 
-### 自然言語による細粒度インライン制御
-
-Fish Audio S2 では、テキスト内の特定の単語やフレーズ位置に自然言語の指示を直接埋め込むことで、音声生成を局所的に制御できます。固定の事前定義タグに依存するのではなく、S2 は [whisper in small voice]、[professional broadcast tone]、[pitch up] のような自由形式のテキスト記述を受け付け、単語レベルで表現をオープンエンドに制御できます。
-
-### 二重自己回帰（Dual-Autoregressive）アーキテクチャ
-
-S2 はデコーダー専用 Transformer と RVQ ベースの音声コーデック（10 codebooks、約 21 Hz）を組み合わせています。Dual-AR は生成を 2 段階に分割します。
-
-- **Slow AR** は時間軸方向に動作し、主となる semantic codebook を予測。
-- **Fast AR** は各時刻で残り 9 個の residual codebook を生成し、細かな音響ディテールを復元。
-
-この非対称設計（時間軸 4B パラメータ、深さ軸 400M パラメータ）により、音質を保ちながら推論効率を高めています。
-
-### 強化学習アラインメント
-
-S2 は後学習アラインメントに Group Relative Policy Optimization（GRPO）を採用しています。学習データのフィルタリングとアノテーションに使った同一モデル群を、そのまま RL の報酬モデルとして再利用することで、事前学習データ分布と事後学習目的のミスマッチを抑制しています。報酬信号には、意味的正確性、指示追従性、音響的選好スコア、音色類似度が含まれます。
-
-### SGLang による本番向けストリーミング
-
-Dual-AR は構造的に標準的な自己回帰 LLM と同型のため、S2 は SGLang の LLM 向け最適化をそのまま活用できます。たとえば continuous batching、paged KV cache、CUDA graph replay、RadixAttention ベースの prefix caching です。
-
-単一の NVIDIA H200 GPU での実測:
-
-- **RTF（Real-Time Factor）:** 0.195
-- **初回音声出力までの時間:** 約 100 ms
-- **スループット:** RTF 0.5 未満を維持しつつ 3,000+ acoustic tokens/s
-
-### 多言語サポート
-
-Fish Audio S2 は、音素や言語固有の前処理を必要とせずに、高品質な多言語テキスト読み上げをサポートします。以下を含みます：
-
-**英語、中国語、日本語、韓国語、アラビア語、ドイツ語、フランス語...**
-
-**さらに多く！**
-
-リストは常に拡大しています。最新のリリースについては [Fish Audio](https://fish.audio/) を確認してください。
-
-### ネイティブなマルチスピーカー生成
-
-<img src="../assets/chattemplate.png" width=200%>
-
-Fish Audio S2 では、ユーザーが複数のスピーカーを含む参照オーディオをアップロードでき、モデルは `<|speaker:i|>` トークンを介して各スピーカーの特徴を処理します。その後、スピーカーIDトークンを使用してモデルのパフォーマンスを制御し、1回の生成で複数のスピーカーを含めることができます。以前のように各スピーカーに対して個別に参照オーディオをアップロードして音声を生成する必要はもうありません。
-
-### マルチターン対話生成
-
-モデルのコンテキストの拡張により、以前の情報を使用して後続の生成されたコンテンツの表現力を向上させ、コンテンツの自然さを高めることができるようになりました。
-
-### 高速音声クローニング
-
-Fish Audio S2 は、短い参照サンプル（通常10〜30秒）を使用した正確な音声クローニングをサポートしています。モデルは音色、話し方、感情的な傾向を捉え、追加の微調整なしでリアルで一貫したクローン音声を生成します。
-SGLang サーバーの利用については [SGLang-Omni README](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/models/fishaudio_s2_pro/README.md) を参照してください。
-
----
+</details>
 
 ## クレジット
 
@@ -188,5 +175,15 @@ SGLang サーバーの利用については [SGLang-Omni README](https://github.
       archivePrefix={arXiv},
       primaryClass={cs.SD},
       url={https://arxiv.org/abs/2603.08823}, 
+}
+
+@misc{liao2026fishaudiodrama3technical,
+      title={Fish Audio Drama 3 Technical Report}, 
+      author={Dawei Han and Shidong Li and Shijia Liao and Jiahua Liu and Songting Liu and Qingzheng Wang and Yuxuan Wang and Xin Chen and Yifan Cheng and Tianyu Li and Gangin Park and Xuehao Yang and Chang Zeng and Haoyang Zhang and Ruoyi Zhang and Xiangyu Zhang},
+      year={2026},
+      eprint={2610.18010},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2610.18010}, 
 }
 ```

@@ -5,16 +5,20 @@ import re
 import threading
 import time
 import traceback
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Optional, Tuple, Union
+from typing import Callable, Literal
 
 import click
 import numpy as np
 import torch
 import torch._inductor.config
+from hydra.utils import instantiate
 from loguru import logger
+from omegaconf import OmegaConf
+from torch.nn.utils.parametrize import is_parametrized, remove_parametrizations
 from tqdm import tqdm
 
 from fish_speech.content_sequence import (
@@ -22,6 +26,33 @@ from fish_speech.content_sequence import (
     VQPart,
 )
 from fish_speech.conversation import Conversation, Message
+from fish_speech.models.text2semantic.errors import InvalidInputError
+from fish_speech.models.text2semantic.fish_omni.chunking import (
+    DRAMA3_CHUNK_MAX_NEW_TOKENS,
+    Drama3History,
+    split_drama3_text,
+)
+from fish_speech.models.text2semantic.fish_omni.generate import (
+    DRAMA3_DEFAULT_MAX_NEW_TOKENS,
+    Drama3DecodeGraphs,
+    Drama3PromptTooLongError,
+    build_drama3_prompt,
+    generate_drama3,
+    resolve_drama3_devices,
+    resolve_drama3_dtype,
+)
+from fish_speech.models.text2semantic.fish_omni.model import (
+    FishOmniModel,
+    is_fish_omni_checkpoint,
+)
+from fish_speech.models.text2semantic.sampling import (
+    DEFAULT_CHUNK_LENGTH,
+    DEFAULT_MAX_NEW_TOKENS,
+    DEFAULT_REPETITION_PENALTY,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+)
 from fish_speech.tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -83,7 +114,7 @@ def sample(
     temperature: torch.Tensor,
     top_p: torch.Tensor,
     top_k: int,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     probs = logits_to_probs(
         logits=logits[0, -1],
         temperature=temperature,
@@ -104,8 +135,8 @@ def decode_one_token_ar(
     semantic_logit_bias: torch.Tensor,
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
-    previous_tokens: Optional[torch.Tensor] = None,
-    kv_len: Optional[int] = None,
+    previous_tokens: torch.Tensor | None = None,
+    kv_len: int | None = None,
 ) -> torch.Tensor:
     forward_result = model.forward_generate(
         x,
@@ -196,7 +227,7 @@ def decode_n_tokens(
     audio_masks: torch.Tensor,
     audio_parts: torch.Tensor,
     decode_one_token=decode_one_token_ar,
-    kv_start_pos: Optional[int] = None,
+    kv_start_pos: int | None = None,
 ):
     if kv_start_pos is None:
         # Compatibility fallback for direct callers. The production generation
@@ -252,9 +283,21 @@ def decode_n_tokens(
         if cur_token[0, 0, -1] == im_end_id:
             break
 
+    if not new_tokens:  # num_new_tokens <= 0
+        return cur_token.new_empty((model.config.num_codebooks + 1, 0))
+
     del cur_token
 
     return torch.cat(new_tokens, dim=1)
+
+
+def generated_codes(
+    y: torch.Tensor, prompt_length: int, im_end_id: int
+) -> torch.Tensor:
+    """The codebook rows after the prompt, without the closing <|im_end|> frame;
+    a batch that ran out of max_new_tokens has none, so its last frame is audio."""
+    end = y.size(1) - int(y[0, -1].item() == im_end_id)
+    return y[1:, prompt_length:end].clone()
 
 
 @torch.no_grad()
@@ -279,11 +322,12 @@ def generate(
     prompt = prompt[None].repeat(num_samples, 1, 1)
 
     if T >= model.config.max_seq_len:
-        raise ValueError(
+        raise InvalidInputError(
             f"Input sequence length {T} exceeds max_seq_len {model.config.max_seq_len}"
         )
 
-    if max_new_tokens:
+    # max_new_tokens <= 0 means up to the context length.
+    if max_new_tokens > 0:
         if T + max_new_tokens > model.config.max_seq_len:
             max_new_tokens = model.config.max_seq_len - T
 
@@ -317,9 +361,9 @@ def generate(
     empty[:, :T] = prompt
     seq = empty
 
-    temp_val = sampling_kwargs.get("temperature", 1.0)
-    top_p_val = sampling_kwargs.get("top_p", 0.9)
-    top_k_val = sampling_kwargs.get("top_k", 30)
+    temp_val = sampling_kwargs.get("temperature", DEFAULT_TEMPERATURE)
+    top_p_val = sampling_kwargs.get("top_p", DEFAULT_TOP_P)
+    top_k_val = sampling_kwargs.get("top_k", DEFAULT_TOP_K)
 
     temperature = torch.tensor(temp_val, device=device, dtype=dtype)
     top_p = torch.tensor(top_p_val, device=device, dtype=dtype)
@@ -381,6 +425,20 @@ def generate(
 
 
 def init_model(checkpoint_path, device, precision, compile=False):
+    if is_fish_omni_checkpoint(checkpoint_path):
+        if compile:
+            raise ValueError("--compile is not supported for Drama 3 checkpoints")
+        devices, tower_device = resolve_drama3_devices(device)
+        dtype = resolve_drama3_dtype(precision, [*devices, tower_device])
+        logger.info(
+            f"Using FishOmniModel (Drama 3): backbone on {devices}, "
+            f"tower on {tower_device}, {dtype}"
+        )
+        model = FishOmniModel.from_pretrained(
+            checkpoint_path, devices=devices, tower_device=tower_device, dtype=dtype
+        )
+        return model, None
+
     model = DualARTransformer.from_pretrained(checkpoint_path, load_weights=True)
 
     model = model.to(device=device, dtype=precision)
@@ -392,11 +450,6 @@ def init_model(checkpoint_path, device, precision, compile=False):
         logger.info("Using DualARTransformer")
     else:
         raise ValueError("Unsupported model type")
-
-    # Pre-create fixed parameter tensors to avoid runtime creation
-    model.fixed_temperature = torch.tensor(0.7, device=device, dtype=torch.float)
-    model.fixed_top_p = torch.tensor(0.7, device=device, dtype=torch.float)
-    model.fixed_repetition_penalty = torch.tensor(1.5, device=device, dtype=torch.float)
 
     # Mark whether cache has been initialized
     model._cache_setup_done = False
@@ -414,17 +467,47 @@ def init_model(checkpoint_path, device, precision, compile=False):
     return model.eval(), decode_one_token
 
 
+def resolve_codec_path(
+    checkpoint_path: str | Path, codec_path: str | Path | None = None
+) -> Path:
+    """codec_path, else <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth.
+
+    Drama 3 uses the S2-Pro codec, and fine-tuned S2-Pro directories may not carry one.
+    """
+    if codec_path is not None:
+        codec_path = Path(codec_path)
+        if not codec_path.is_file():
+            raise FileNotFoundError(f"codec checkpoint does not exist: {codec_path}")
+        return codec_path
+    checkpoint_path = Path(checkpoint_path)
+    candidate = checkpoint_path / "codec.pth"
+    if candidate.is_file():
+        return candidate
+    fallback = checkpoint_path.parent / "s2-pro" / "codec.pth"
+    if fallback.is_file():
+        logger.info(
+            f"{checkpoint_path} has no codec.pth; using the S2-Pro codec {fallback}"
+        )
+        return fallback
+    raise FileNotFoundError(
+        f"no codec.pth in {checkpoint_path} or {fallback.parent}; pass the codec "
+        "path (--codec-path for the CLI, --decoder-checkpoint-path for the server)"
+    )
+
+
 @torch.inference_mode()
 def load_codec_model(codec_checkpoint_path, device, precision=torch.bfloat16):
-    """Load the DAC codec model for audio encoding/decoding."""
-    from hydra.utils import instantiate
-    from omegaconf import OmegaConf
+    """Load the DAC codec model for audio encoding/decoding.
 
+    Weight norm is folded in fp32 before the cast, which keeps FP16 exact enough.
+    """
     config_path = Path(__file__).parent.parent.parent / "configs" / "modded_dac_vq.yaml"
     cfg = OmegaConf.load(str(config_path))
     codec = instantiate(cfg)
 
-    state_dict = torch.load(codec_checkpoint_path, map_location="cpu")
+    state_dict = torch.load(
+        codec_checkpoint_path, map_location="cpu", mmap=True, weights_only=True
+    )
     if "state_dict" in state_dict:
         state_dict = state_dict["state_dict"]
     if any("generator" in k for k in state_dict):
@@ -433,9 +516,21 @@ def load_codec_model(codec_checkpoint_path, device, precision=torch.bfloat16):
             for k, v in state_dict.items()
             if "generator." in k
         }
-    codec.load_state_dict(state_dict, strict=False)
+    rebuilt_buffers = {
+        f"{name}.{buffer}" if name else buffer
+        for name, module in codec.named_modules()
+        for buffer in module._non_persistent_buffers_set
+    }
+    state_dict = {k: v for k, v in state_dict.items() if k not in rebuilt_buffers}
+    codec.load_state_dict(state_dict, strict=True)
     codec.eval()
+    for module in list(codec.modules()):
+        if is_parametrized(module, "weight"):
+            remove_parametrizations(module, "weight", leave_parametrized=True)
+        elif hasattr(module, "weight_g"):
+            torch.nn.utils.remove_weight_norm(module)
     codec.to(device=device, dtype=precision)
+    logger.info(f"Loaded codec {codec_checkpoint_path} on {device} ({precision})")
     return codec
 
 
@@ -469,8 +564,8 @@ def decode_to_audio(codes, codec):
 @dataclass
 class GenerateResponse:
     action: Literal["sample", "next"]
-    codes: Optional[torch.Tensor] = None
-    text: Optional[str] = None
+    codes: torch.Tensor | None = None
+    text: str | None = None
 
 
 def split_text_by_speaker(text: str) -> list[str]:
@@ -545,23 +640,41 @@ def group_turns_into_batches(
 def generate_long(
     *,
     model,
-    device: Union[str, torch.device],
+    device: str | torch.device,
     decode_one_token: Callable,
     text: str,
     num_samples: int = 1,
-    max_new_tokens: int = 0,
-    top_p: float = 0.9,
-    top_k: int = 30,
-    repetition_penalty: float = 1.1,
-    temperature: float = 1.0,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+    top_p: float = DEFAULT_TOP_P,
+    top_k: int = DEFAULT_TOP_K,
+    # Accepted for API compatibility and ignored: decoding uses repetition-aware
+    # sampling (RAS) instead.
+    repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
+    temperature: float = DEFAULT_TEMPERATURE,
     compile: bool = False,
     iterative_prompt: bool = True,
-    chunk_length: int = 512,
-    prompt_text: Optional[Union[str, list[str]]] = None,
-    prompt_tokens: Optional[Union[torch.Tensor, list[torch.Tensor]]] = None,
+    chunk_length: int = DEFAULT_CHUNK_LENGTH,
+    prompt_text: str | list[str] | None = None,
+    prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
+    single_chunk: bool = False,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
+
+    if isinstance(model, FishOmniModel):
+        yield from generate_long_drama3(
+            model=model,
+            text=text,
+            num_samples=num_samples,
+            max_new_tokens=max_new_tokens,
+            top_p=top_p,
+            top_k=top_k,
+            temperature=temperature,
+            prompt_text=prompt_text,
+            prompt_tokens=prompt_tokens,
+            single_chunk=single_chunk,
+        )
+        return
 
     use_prompt = bool(prompt_text) and bool(prompt_tokens)
     if use_prompt and isinstance(prompt_text, str):
@@ -690,7 +803,7 @@ def generate_long(
                 )
 
             if encoded.size(1) > max_length - 2048:
-                raise ValueError(
+                raise InvalidInputError(
                     f"Prompt is too long: {encoded.size(1)} > {max_length - 2048}"
                 )
 
@@ -726,23 +839,31 @@ def generate_long(
                 f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
             )
 
-            # Extract generated codes
-            codes = y[1:, prompt_length:-1].clone()
-            assert (codes >= 0).all(), f"Negative code found: {codes}"
-
-            # Add assistant message with generated codes back to conversation
-            conversation.append(
-                Message(
-                    role="assistant",
-                    parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
-                    cal_loss=False,
-                    modality="voice",
-                    add_im_start=True,
-                    add_im_end=True,
-                )
+            codes = generated_codes(
+                y, prompt_length, tokenizer.get_token_id(IM_END_TOKEN)
             )
+            assert (codes >= 0).all(), f"Negative code found: {codes}"
+            if codes.size(1) == y.size(1) - prompt_length:
+                logger.warning(
+                    "Reached max_new_tokens before EOS; audio may be truncated"
+                )
 
-            yield GenerateResponse(action="sample", codes=codes, text=batch_text)
+            if codes.size(1) == 0:
+                logger.warning("The model emitted EOS before any audio frame")
+                conversation.messages.pop()  # this batch's unanswered user turn
+            else:
+                # Add assistant message with generated codes back to conversation
+                conversation.append(
+                    Message(
+                        role="assistant",
+                        parts=[VQPart(codes=codes.cpu(), cal_loss=False)],
+                        cal_loss=False,
+                        modality="voice",
+                        add_im_start=True,
+                        add_im_end=True,
+                    )
+                )
+                yield GenerateResponse(action="sample", codes=codes, text=batch_text)
 
             # Cleanup
             del y, encoded
@@ -755,10 +876,141 @@ def generate_long(
         yield GenerateResponse(action="next")
 
 
+def generate_long_drama3(
+    *,
+    model: FishOmniModel,
+    text: str,
+    num_samples: int = 1,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+    top_p: float = DEFAULT_TOP_P,
+    top_k: int = DEFAULT_TOP_K,
+    temperature: float = DEFAULT_TEMPERATURE,
+    prompt_text: str | list[str] | None = None,
+    prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
+    single_chunk: bool = False,
+) -> Iterator[GenerateResponse]:
+    """Drama 3 counterpart of generate_long, chunked like the hosted server.
+
+    The text is split by split_drama3_text and the chunks are generated one after
+    another, each yielded as soon as it is done; the first chunk and the latest one
+    go back into the next prompt as history. single_chunk generates the whole text
+    in one pass instead. max_new_tokens <= 0 means 600 frames per chunk (2048 with
+    single_chunk); every request is clamped so prompt rows plus max_new_tokens stay
+    within the CUDA-graph capacity.
+    """
+    if isinstance(prompt_text, str):
+        prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
+    prompt_text = list(prompt_text or [])
+    prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
+    chunks = [text] if single_chunk else split_drama3_text(text) or [text]
+    # Reject bad text in any chunk before generating: failing at a later chunk
+    # would waste the earlier ones, and cut a stream short after it started.
+    capacity = Drama3DecodeGraphs.graph_capacity(model)
+    for chunk in chunks:
+        rows = len(
+            build_drama3_prompt(
+                chunk, model.tokenizer, model.config, prompt_text, prompt_tokens
+            )
+        )
+        if rows >= capacity:
+            raise InvalidInputError(f"prompt has {rows} rows; no room left to generate")
+    requested = max_new_tokens
+    if requested <= 0:
+        requested = (
+            DRAMA3_DEFAULT_MAX_NEW_TOKENS
+            if single_chunk
+            else DRAMA3_CHUNK_MAX_NEW_TOKENS
+        )
+    logger.info(
+        f"Drama 3: {len(chunks)} chunk(s), {len(prompt_tokens)} reference(s), "
+        f"max_new_tokens={requested} per chunk"
+    )
+    devices = {p.device for p in model.backbone.parameters()} | {model.device}
+    devices = sorted((d for d in devices if d.type == "cuda"), key=str)
+
+    for sample_idx in range(num_samples):
+        history = Drama3History()
+        for chunk_idx, chunk in enumerate(chunks):
+            prompt = build_drama3_chunk_prompt(
+                model, chunk, prompt_text, prompt_tokens, history
+            )
+            # The caches grow to fit a request and never shrink, and growing them
+            # drops the captured CUDA graphs, so no request may exceed this.
+            limit = capacity - len(prompt)
+            if limit < 1:
+                raise InvalidInputError(
+                    f"prompt has {len(prompt)} rows; no room left to generate"
+                )
+            if max_new_tokens > limit:
+                logger.warning(
+                    f"max_new_tokens={max_new_tokens} exceeds the {limit} frames left "
+                    f"after the {len(prompt)}-row prompt; clamping"
+                )
+            budget = min(requested, limit)
+
+            for device in devices:
+                torch.cuda.reset_peak_memory_stats(device)
+            t0 = time.perf_counter()
+            frames, finish_reason = generate_drama3(
+                model,
+                prompt,
+                max_new_tokens=budget,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+            )
+            elapsed = time.perf_counter() - t0
+            logger.info(
+                f"Sample {sample_idx}, chunk {chunk_idx + 1}/{len(chunks)}: "
+                f"{len(prompt)}-row prompt, {len(frames)} frames in {elapsed:.2f}s "
+                f"({len(frames) / elapsed:.2f} frames/s), finish={finish_reason}"
+            )
+            peaks = (
+                f"{d}: {torch.cuda.max_memory_allocated(d) / 2**30:.1f} GiB"
+                for d in devices
+            )
+            logger.info(f"Peak GPU memory: {', '.join(peaks)}")
+            if finish_reason != "eos":
+                logger.warning(
+                    "Reached max_new_tokens before EOS; audio may be truncated"
+                )
+            if len(frames):
+                codes = frames[:, 1:].T.contiguous()
+                yield GenerateResponse(action="sample", codes=codes, text=chunk)
+                history.push(chunk, codes.cpu())
+            else:
+                logger.warning("The model emitted EOS before any audio frame")
+        yield GenerateResponse(action="next")
+
+
+def build_drama3_chunk_prompt(
+    model: FishOmniModel,
+    text: str,
+    prompt_text: list[str],
+    prompt_tokens: list[torch.Tensor],
+    history: Drama3History,
+) -> torch.Tensor:
+    """The prompt for one chunk with as much history as fits DRAMA3_MAX_PROMPT_ROWS."""
+    error = None
+    for turns in history.candidates():
+        try:
+            return build_drama3_prompt(
+                text,
+                model.tokenizer,
+                model.config,
+                prompt_text,
+                prompt_tokens,
+                history=turns,
+            )
+        except Drama3PromptTooLongError as too_long:
+            error = too_long
+    raise error
+
+
 @dataclass
 class WrappedGenerateResponse:
     status: Literal["success", "error"]
-    response: Optional[Union[GenerateResponse, Exception]] = None
+    response: GenerateResponse | Exception | None = None
 
 
 @dataclass
@@ -775,18 +1027,27 @@ def launch_thread_safe_queue(
 ):
     input_queue = queue.Queue()
     init_event = threading.Event()
+    init_errors: list[Exception] = []
 
     def worker():
-        model, decode_one_token = init_model(
-            checkpoint_path, device, precision, compile=compile
-        )
-        with torch.device(device):
-            model.setup_caches(
-                max_batch_size=1,
-                max_seq_len=model.config.max_seq_len,
-                dtype=next(model.parameters()).dtype,
+        try:
+            model, decode_one_token = init_model(
+                checkpoint_path, device, precision, compile=compile
             )
-        init_event.set()
+            # Drama 3 sizes its caches per request (prompt rows + max_new_tokens).
+            if not isinstance(model, FishOmniModel):
+                with torch.device(device):
+                    model.setup_caches(
+                        max_batch_size=1,
+                        max_seq_len=model.config.max_seq_len,
+                        dtype=next(model.parameters()).dtype,
+                    )
+        except Exception as e:
+            # Re-raised by the caller, which would otherwise wait forever.
+            init_errors.append(e)
+            return
+        finally:
+            init_event.set()
 
         while True:
             item: GenerateRequest | None = input_queue.get()
@@ -817,6 +1078,8 @@ def launch_thread_safe_queue(
 
     threading.Thread(target=worker, daemon=True).start()
     init_event.wait()
+    if init_errors:
+        raise init_errors[0]
 
     return input_queue
 
@@ -842,28 +1105,54 @@ def launch_thread_safe_queue(
 )
 @click.option("--output", type=click.Path(path_type=Path), default=None)
 @click.option("--num-samples", type=int, default=1)
-@click.option("--max-new-tokens", type=int, default=0)
-@click.option("--top-p", type=float, default=0.9)
-@click.option("--top-k", type=int, default=30)
-@click.option("--temperature", type=float, default=1.0)
+@click.option(
+    "--max-new-tokens",
+    type=int,
+    default=DEFAULT_MAX_NEW_TOKENS,
+    help="Per text chunk; 0 means the model's own cap (S2-Pro: the context "
+    "length; Drama 3: 600 per chunk, 2048 with --single-chunk).",
+)
+@click.option("--top-p", type=float, default=DEFAULT_TOP_P)
+@click.option("--top-k", type=int, default=DEFAULT_TOP_K)
+@click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
     default="checkpoints/s2-pro",
 )
-@click.option("--device", type=str, default="cuda")
+@click.option(
+    "--device",
+    type=str,
+    default="cuda",
+    help="Drama 3 accepts a comma-separated list; the last device holds tower + codec.",
+)
+@click.option(
+    "--codec-path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Defaults to <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth.",
+)
 @click.option("--compile/--no-compile", default=False)
 @click.option("--seed", type=int, default=42)
-@click.option("--half/--no-half", default=False)
+@click.option(
+    "--half/--no-half",
+    default=False,
+    help="float16 instead of bfloat16; Drama 3 switches to float16 by itself before SM80.",
+)
 @click.option("--iterative-prompt/--no-iterative-prompt", default=True)
-@click.option("--chunk-length", type=int, default=300)
+@click.option("--chunk-length", type=int, default=DEFAULT_CHUNK_LENGTH)
+@click.option(
+    "--single-chunk/--no-single-chunk",
+    default=False,
+    help="Drama 3: generate the whole text in one pass instead of chunks.",
+)
 @click.option("--output-dir", type=Path, default="output")
 def main(
     text: str,
-    prompt_text: Optional[tuple[str, ...]],
-    prompt_tokens: Optional[tuple[Path, ...]],
-    prompt_audio: Optional[tuple[Path, ...]],
-    output: Optional[Path],
+    prompt_text: tuple[str, ...] | None,
+    prompt_tokens: tuple[Path, ...] | None,
+    prompt_audio: tuple[Path, ...] | None,
+    output: Path | None,
     num_samples: int,
     max_new_tokens: int,
     top_p: float,
@@ -871,11 +1160,13 @@ def main(
     temperature: float,
     checkpoint_path: Path,
     device: str,
+    codec_path: Path | None,
     compile: bool,
     seed: int,
     half: bool,
     iterative_prompt: bool,
     chunk_length: int,
+    single_chunk: bool,
     output_dir: Path,
 ) -> None:
     os.makedirs(output_dir, exist_ok=True)
@@ -899,27 +1190,37 @@ def main(
     model, decode_one_token = init_model(
         checkpoint_path, device, precision, compile=compile
     )
-    with torch.device(device):
-        model.setup_caches(
-            max_batch_size=1,
-            max_seq_len=model.config.max_seq_len,
-            dtype=next(model.parameters()).dtype,
-        )
+    if isinstance(model, FishOmniModel):
+        # The codec shares the tower's device and runs in the model's dtype.
+        codec_device, codec_precision = str(model.device), model.dtype
+    else:
+        codec_device, codec_precision = device, precision
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=1,
+                max_seq_len=model.config.max_seq_len,
+                dtype=next(model.parameters()).dtype,
+            )
     if torch.cuda.is_available():
         torch.cuda.synchronize()
 
     logger.info(f"Time to load model: {time.time() - t0:.02f} seconds")
 
     codec = None
-    codec_checkpoint = checkpoint_path / "codec.pth"
+    # Resolved before generating, so a missing codec fails fast.
+    codec_checkpoint = (
+        resolve_codec_path(checkpoint_path, codec_path)
+        if prompt_audio or output
+        else None
+    )
 
     # Handle prompt: --prompt-audio takes priority over --prompt-tokens
     prompt_tokens_list = None
     if prompt_audio:
         logger.info("Loading codec model for audio encoding...")
-        codec = load_codec_model(codec_checkpoint, device, precision)
+        codec = load_codec_model(codec_checkpoint, codec_device, codec_precision)
         prompt_tokens_list = [
-            encode_audio(p, codec, device).cpu() for p in prompt_audio
+            encode_audio(p, codec, codec_device).cpu() for p in prompt_audio
         ]
         logger.info(f"Encoded {len(prompt_audio)} audio file(s) to VQ codes")
     elif prompt_tokens is not None:
@@ -943,6 +1244,7 @@ def main(
         compile=compile,
         iterative_prompt=iterative_prompt,
         chunk_length=chunk_length,
+        single_chunk=single_chunk,
         prompt_text=list(prompt_text) if prompt_text else None,
         prompt_tokens=prompt_tokens_list,
     )
@@ -965,8 +1267,10 @@ def main(
                 if output:
                     if codec is None:
                         logger.info("Loading codec model for audio decoding...")
-                        codec = load_codec_model(codec_checkpoint, device, precision)
-                    audio = decode_to_audio(merged_codes.to(device), codec)
+                        codec = load_codec_model(
+                            codec_checkpoint, codec_device, codec_precision
+                        )
+                    audio = decode_to_audio(merged_codes.to(codec_device), codec)
                     import soundfile as sf
 
                     out_path = (

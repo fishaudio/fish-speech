@@ -1,6 +1,6 @@
 [project]
 name = "fish-speech"
-version = "2.0.0"
+version = "3.0.0"
 authors = [
     {name = "Fish Audio", email = "oss@fish.audio"},
 ]
@@ -8,35 +8,25 @@ description = "Fish Speech"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["TTS", "Speech"]
-license = {text = "Fish Audio Research License"}
+license = {text = "Fish Audio Community License"}
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
     "numpy",
-    "torch==2.10.0",
-    "torchaudio==2.10.0",
-    "torchcodec==0.10.0",
-    "transformers<=4.57.3",
-    "datasets==2.18.0",
-    "lightning>=2.1.0",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "transformers==5.19.0",
     "hydra-core>=1.3.2",
-    "tensorboard>=2.14.1",
     "natsort>=8.4.0",
     "einops>=0.7.0",
     "librosa>=0.10.1",
-    "rich>=13.5.3",
-    "gradio>5.0.0",
-    "wandb>=0.19.0",
-    "grpcio>=1.58.0",
     "kui>=1.6.0",
     "uvicorn>=0.30.0",
     "loguru>=0.6.0",
-    "loralib>=0.1.2",
     "pyrootutils>=1.0.4",
     "resampy>=0.4.3",
     "einx[torch]==0.2.2",
-    "zstandard>=0.22.0",
     "pydub",
     "pyaudio",
     "modelscope==1.17.1",
@@ -47,27 +37,81 @@ dependencies = [
     "pydantic==2.9.2",
     "cachetools",
     "descript-audio-codec",
-    "safetensors"
+    "safetensors",
+    "tokenizers==0.23.2",
+    "soundfile>=0.12.1",
 ]
 
+[project.optional-dependencies]
+stable = [
+    "torch==2.8.0",
+    "torchaudio",
+]
+cpu = [
+  "torch==2.8.0",
+  "torchaudio",
+]
+cu126 = [
+  "torch==2.8.0",
+  "torchaudio",
+]
+cu128 = [
+  "torch==2.8.0",
+  "torchaudio",
+]
+cu129 = [
+  "torch==2.8.0",
+  "torchaudio",
+]
 
 [tool.uv]
 override-dependencies = [
     # descript-audiotools (transitive via descript-audio-codec) pins protobuf<3.20,
-    # but fish-speech's generated proto code requires >=3.20; cap at <6 for API stability
+    # which is too old for the rest of the stack; cap at <6 for API stability
     "protobuf>=3.20.0,<6.0.0",
 ]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu126" },
+    { extra = "cu128" },
+    { extra = "cu129" },
+  ],
+]
+
 [tool.uv.sources]
-# DGX Spark: resolve the default PyTorch stack from the CUDA 13.0 index.
-torch = { index = "pytorch-cu130" }
-torchaudio = { index = "pytorch-cu130" }
-torchcodec = { index = "pytorch-cu130" }
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu129", extra = "cu129" },
+]
+torchaudio = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu129", extra = "cu129" },
+]
 
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
 
 [build-system]
 requires = ["setuptools", "setuptools-scm"]

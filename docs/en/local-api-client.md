@@ -15,14 +15,17 @@ On the Spark, after setup and downloading checkpoints:
 
 ```bash
 ./start-api.sh
-# Or, for the Gradio interface:
+# Or, after building Awesome WebUI:
 ./start-webui.sh
 ```
 
-Both scripts enable compilation and reuse `$HOME/.cache/fish-speech/inductor`
-(or `TORCHINDUCTOR_CACHE_DIR`). API: port 8080; WebUI: port 7860; both bind to
-`0.0.0.0` for LAN access. WebUI public sharing is disabled. Extra arguments are
-forwarded. Each running server loads its own model.
+Both scripts select the isolated Spark CUDA 13 environment and bind to
+`0.0.0.0:8080` for LAN access. The built WebUI is served at `/ui`; build it with
+`(cd awesome_webui && npm ci && npm run build)`. Run only one launcher per port.
+Extra arguments are forwarded. Compilation is opt-in (`--compile`, S2-Pro only)
+and reuses `$HOME/.cache/fish-speech/inductor` (or `TORCHINDUCTOR_CACHE_DIR`).
+For Drama-3 use `--llama-checkpoint-path checkpoints/drama-3 --device cuda:0`
+without `--compile`. Each running server loads its own model.
 
 API authentication is optional: start with `--api-key YOUR_KEY` and pass the
 same value as `api_key=` to the client. Without it, LAN clients can generate
