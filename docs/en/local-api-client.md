@@ -11,7 +11,7 @@ server uses `/v1/references`. This small wrapper follows the local server.
 
 ## Launch
 
-On the Spark, after setup and downloading checkpoints:
+On the Spark, after setup (model weights download into the shared HF cache on first launch):
 
 ```bash
 ./start-api.sh
@@ -24,7 +24,7 @@ Both scripts select the isolated Spark CUDA 13 environment and bind to
 `(cd awesome_webui && npm ci && npm run build)`. Run only one launcher per port.
 Extra arguments are forwarded. Compilation is opt-in (`--compile`, S2-Pro only)
 and reuses `$HOME/.cache/fish-speech/inductor` (or `TORCHINDUCTOR_CACHE_DIR`).
-For Drama-3 use `--llama-checkpoint-path checkpoints/drama-3 --device cuda:0`
+For Drama-3 use `--model fishaudio/drama-3 --device cuda:0`
 without `--compile`. Each running server loads its own model.
 
 API authentication is optional: start with `--api-key YOUR_KEY` and pass the

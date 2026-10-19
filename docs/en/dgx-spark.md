@@ -49,7 +49,8 @@ system dependencies, and runs the same locked uv command.
 The environment lives in `environments/dgx-spark/.venv`. Keep both
 `--project environments/dgx-spark` and `--extra cu130` on manual uv commands;
 the launch scripts supply them for you. An existing root `.venv` is not reused.
-Model checkpoints and saved references stay in the repository root.
+Models use the shared Hugging Face cache; saved references stay in the repository root.
+See [shared model cache and migration](model-cache.md) to reuse existing weights.
 
 ### Why a separate project?
 
@@ -124,15 +125,14 @@ PY
 For S2-Pro:
 
 ```bash
-uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
+uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro
 ./start-api.sh
 ```
 
-For Drama-3, download its weights as described in the
-[upstream installation guide](install.md#download-weights), then run:
+For Drama-3, select its model ID (downloaded into the shared cache if needed):
 
 ```bash
-./start-api.sh --llama-checkpoint-path checkpoints/drama-3 --device cuda:0
+./start-api.sh --model fishaudio/drama-3 --device cuda:0
 ```
 
 Drama-3 requires at least 48 GB of GPU memory according to upstream and does

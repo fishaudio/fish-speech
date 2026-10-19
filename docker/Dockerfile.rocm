@@ -87,9 +87,8 @@ RUN printf '%s\n' \
     'if [ "${COMPILE:-0}" = "1" ] || [ "${COMPILE:-}" = "true" ]; then ARGS+=(--compile); fi' \
     'exec python tools/api_server.py \' \
     '  --listen 0.0.0.0:8080 \' \
-    '  --llama-checkpoint-path checkpoints/s2-pro \' \
-    '  --decoder-checkpoint-path checkpoints/s2-pro/codec.pth \' \
     '  --decoder-config-name modded_dac_vq "${ARGS[@]}"' \
     > /app/start_server.sh && chmod +x /app/start_server.sh
 
+ENV HF_HUB_CACHE=/hf-cache
 ENTRYPOINT ["/app/start_server.sh"]

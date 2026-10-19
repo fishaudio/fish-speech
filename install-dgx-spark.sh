@@ -32,8 +32,9 @@ echo "Installing the Python 3.12 / CUDA 13 environment with uv..."
 uv sync --project environments/dgx-spark --locked --python 3.12 --extra cu130
 
 cat <<'EOF'
-Installation complete. Download the model weights if you do not have them yet:
-  uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
+Installation complete. Model weights download to the shared HF cache at startup.
+Optional pre-download:
+  uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro
 
 Start the API:
   ./start-api.sh

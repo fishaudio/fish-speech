@@ -1,5 +1,10 @@
 # Inference
 
+This fork defaults to the shared Hugging Face cache. Use `--model fishaudio/s2-pro`
+or `--model fishaudio/drama-3` with the API server or text-to-semantic CLI.
+Existing explicit checkpoint-path commands below remain supported. See
+[model cache and migration](model-cache.md) for revisions and offline mode.
+
 Fish Audio ships two models: **S2-Pro** and **Drama 3**. They share the same command line and API server, and the model type is read from the checkpoint's `config.json`, so every section below is organized as "task → command for each model".
 
 Finish [Installation](install.md) and download the [model weights](install.md#download-weights) first.

@@ -2,6 +2,7 @@
 > for Python 3.12, PyTorch 2.10.0, and CUDA 13 ARM64 wheels. Hardware validation
 > is pending. Upstream defaults remain on PyTorch 2.8; Spark uses a separate
 > opt-in uv environment. The WebUI is now served at port 8080 under `/ui`.
+> Models use the shared [Hugging Face cache](docs/en/model-cache.md), with a verified migration script for existing weights.
 > Launch with `./start-webui.sh` or `./start-api.sh`; see the
 > [standalone Python API client](docs/en/local-api-client.md).
 
