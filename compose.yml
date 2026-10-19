@@ -9,7 +9,10 @@ services:
       target: server
     environment:
       COMPILE: ${COMPILE:-0}
-      LLAMA_CHECKPOINT_PATH: ${LLAMA_CHECKPOINT_PATH:-checkpoints/s2-pro}
+      LLAMA_CHECKPOINT_PATH: ${LLAMA_CHECKPOINT_PATH:-}
+      HF_MODEL: ${HF_MODEL:-fishaudio/s2-pro}
+      HF_REVISION: ${HF_REVISION:-}
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
       DECODER_CHECKPOINT_PATH: ${DECODER_CHECKPOINT_PATH:-}
       # e.g. cuda:0 to keep Drama 3 on one GPU; unset uses up to four
       DEVICE: ${DEVICE:-}

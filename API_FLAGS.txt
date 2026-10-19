@@ -14,3 +14,12 @@
 # --device cuda:0,cuda:1,cuda:2,cuda:3
 # Env: FISH_DRAMA3_FP8_EXPERTS=0/1 forces dequantized / FP8 experts,
 #      FISH_DRAMA3_CUDA_GRAPH=0 disables CUDA-graph decode.
+
+Hugging Face cache (fork):
+  --model MODEL_ID             Default: fishaudio/s2-pro (shared HF cache)
+  --revision REVISION         Model branch, tag, or commit
+  --offline                   Cached files only
+  --codec-model MODEL_ID       Fallback codec repo (default fishaudio/s2-pro)
+  --codec-revision REVISION    Fallback codec revision (independent of model)
+  --llama-checkpoint-path PATH Explicit local model; mutually exclusive with --model
+See docs/en/model-cache.md for verified migration of existing weights.

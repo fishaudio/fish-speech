@@ -7,11 +7,13 @@ services:
         BACKEND: ${BACKEND:-cuda}     # or cpu
         CUDA_VER: ${CUDA_VER:-12.9.0}
         UV_EXTRA: ${UV_EXTRA:-cu129}
-        UV_VERSION: ${UV_VERSION:-0.8.15}
+        UV_VERSION: ${UV_VERSION:-0.12.23}
     volumes:
       - ./checkpoints:/app/checkpoints
       - ./references:/app/references
+      - ${HF_CACHE_DIR:-${HOME}/.cache/huggingface/hub}:/hf-cache
     environment:
+      HF_HUB_CACHE: /hf-cache
       COMPILE: ${COMPILE:-0}
     # GPU (remove this block if CPU-only):
     deploy:

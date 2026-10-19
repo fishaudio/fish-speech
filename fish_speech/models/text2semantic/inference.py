@@ -1115,10 +1115,15 @@ def launch_thread_safe_queue(
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
 @click.option("--top-k", type=int, default=DEFAULT_TOP_K)
 @click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+@click.option("--model", default=None, help="Hub model ID; defaults to fishaudio/s2-pro.")
+@click.option("--revision", default=None)
+@click.option("--offline", is_flag=True, help="Use cached Hub files only.")
+@click.option("--codec-model", default="fishaudio/s2-pro")
+@click.option("--codec-revision", default=None)
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
-    default="checkpoints/s2-pro",
+    default=None,
 )
 @click.option(
     "--device",
@@ -1158,7 +1163,12 @@ def main(
     top_p: float,
     top_k: int,
     temperature: float,
-    checkpoint_path: Path,
+    checkpoint_path: Path | None,
+    model: str | None,
+    revision: str | None,
+    offline: bool,
+    codec_model: str,
+    codec_revision: str | None,
     device: str,
     codec_path: Path | None,
     compile: bool,
@@ -1169,6 +1179,9 @@ def main(
     single_chunk: bool,
     output_dir: Path,
 ) -> None:
+    from fish_speech.model_cache import resolve_model, resolve_codec
+
+    checkpoint_path = resolve_model(model, checkpoint_path, revision, offline)
     os.makedirs(output_dir, exist_ok=True)
     precision = torch.half if half else torch.bfloat16
 
@@ -1209,7 +1222,7 @@ def main(
     codec = None
     # Resolved before generating, so a missing codec fails fast.
     codec_checkpoint = (
-        resolve_codec_path(checkpoint_path, codec_path)
+        resolve_codec(checkpoint_path, codec_path, codec_model, codec_revision, offline)
         if prompt_audio or output
         else None
     )

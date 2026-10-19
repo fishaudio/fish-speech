@@ -51,7 +51,7 @@ ARG BACKEND=cuda
 
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
-ARG UV_VERSION=0.8.15
+ARG UV_VERSION=0.12.23
 ARG NODE_VER=22
 
 # Create non-root user early for security
@@ -230,7 +230,7 @@ RUN printf '%s\n' \
     '# Validate environment' \
     'validate_env() {' \
     '    if [ ! -d "/app/checkpoints" ]; then' \
-    '        log "WARNING: /app/checkpoints directory not found. Please mount your checkpoints."' \
+    '        log "No local checkpoints mounted; model IDs use the Hugging Face cache."' \
     '    fi' \
     '    if [ ! -d "/app/references" ]; then' \
     '        log "WARNING: /app/references directory not found. Please mount your references."' \
@@ -284,7 +284,9 @@ COPY --from=webui-build --chown=${USER_UID}:${USER_GID} /webui/dist /app/awesome
 
 ARG API_SERVER_NAME="0.0.0.0"
 ARG API_SERVER_PORT=8080
-ARG LLAMA_CHECKPOINT_PATH="checkpoints/s2-pro"
+ARG LLAMA_CHECKPOINT_PATH=""
+ENV HF_MODEL=fishaudio/s2-pro
+ENV HF_HUB_CACHE=/hf-cache
 # Empty: <checkpoint>/codec.pth, else the sibling s2-pro/codec.pth
 ARG DECODER_CHECKPOINT_PATH=""
 ARG DECODER_CONFIG_NAME="modded_dac_vq"
@@ -309,6 +311,12 @@ RUN printf '%s\n' \
     '' \
     'DEVICE_ARGS=$(build_device_args)' \
     'COMPILE_ARGS=$(build_compile_args "$@")' \
+    'MODEL_ARGS=(--model "${HF_MODEL:-fishaudio/s2-pro}")' \
+    'if [ -n "${LLAMA_CHECKPOINT_PATH:-}" ]; then' \
+    '    MODEL_ARGS=(--llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}")' \
+    'elif [ -n "${HF_REVISION:-}" ]; then' \
+    '    MODEL_ARGS+=(--revision "${HF_REVISION}")' \
+    'fi' \
     'DECODER_ARGS=()' \
     'if [ -n "${DECODER_CHECKPOINT_PATH:-}" ]; then' \
     '    DECODER_ARGS=(--decoder-checkpoint-path "${DECODER_CHECKPOINT_PATH}")' \
@@ -320,7 +328,7 @@ RUN printf '%s\n' \
     '' \
     'exec uv run tools/api_server.py \' \
     '  --listen "${API_SERVER_NAME}:${API_SERVER_PORT}" \' \
-    '  --llama-checkpoint-path "${LLAMA_CHECKPOINT_PATH}" \' \
+    '  "${MODEL_ARGS[@]}" \' \
     '  "${DECODER_ARGS[@]}" \' \
     '  --decoder-config-name "${DECODER_CONFIG_NAME}" \' \
     '  ${DEVICE_ARGS} ${COMPILE_ARGS}' \
