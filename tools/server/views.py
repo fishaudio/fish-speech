@@ -237,7 +237,9 @@ async def add_reference(
         # validation (reference_loader.add_reference) always saw ".wav" and an uploaded
         # .mp3/.flac was stored mislabeled as sample.wav.
         suffix = Path(audio.filename).suffix if audio.filename else ".wav"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or ".wav") as temp_file:
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=suffix or ".wav"
+        ) as temp_file:
             temp_file.write(audio_content)
             temp_file_path = temp_file.name
 
@@ -403,11 +405,17 @@ async def update_reference(
 
         # Validate ID format per ReferenceLoader rules
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
-        if not re.fullmatch(id_pattern, old_reference_id) or len(old_reference_id) > 255:
+        if (
+            not re.fullmatch(id_pattern, old_reference_id)
+            or len(old_reference_id) > 255
+        ):
             raise ValueError(
                 "Old reference ID contains invalid characters or is too long"
             )
-        if not re.fullmatch(id_pattern, new_reference_id) or len(new_reference_id) > 255:
+        if (
+            not re.fullmatch(id_pattern, new_reference_id)
+            or len(new_reference_id) > 255
+        ):
             raise ValueError(
                 "New reference ID contains invalid characters or is too long"
             )
