@@ -23,7 +23,9 @@ class ReadRefTextTest(unittest.TestCase):
             self.assertEqual(read_ref_text(str(p)), "from file")
 
     def test_short_inline_text_is_returned(self):
-        self.assertEqual(read_ref_text("just a short transcript"), "just a short transcript")
+        self.assertEqual(
+            read_ref_text("just a short transcript"), "just a short transcript"
+        )
 
 
 if __name__ == "__main__":
