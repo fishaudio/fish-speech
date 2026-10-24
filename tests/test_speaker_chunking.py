@@ -27,15 +27,21 @@ class GroupTurnsIntoBatchesTest(unittest.TestCase):
     def test_repeated_speaker_is_not_split_by_speaker_cap(self):
         # One distinct speaker, well under max_bytes -> a single batch.
         turns = ["<|speaker:0|> line"] * 6
-        self.assertEqual(len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 1)
+        self.assertEqual(
+            len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 1
+        )
 
     def test_distinct_speakers_still_respect_the_cap(self):
         turns = [f"<|speaker:{i}|> x" for i in range(6)]
-        self.assertEqual(len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 2)
+        self.assertEqual(
+            len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 2
+        )
 
     def test_byte_limit_still_splits(self):
         turns = ["<|speaker:0|> " + "x" * 200, "<|speaker:0|> " + "y" * 200]
-        self.assertEqual(len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 2)
+        self.assertEqual(
+            len(group_turns_into_batches(turns, max_speakers=5, max_bytes=300)), 2
+        )
 
 
 if __name__ == "__main__":

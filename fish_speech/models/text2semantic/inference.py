@@ -619,6 +619,7 @@ def group_turns_into_batches(
     Returns:
         List of batched text strings
     """
+
     def _speaker_of(turn: str) -> str | None:
         match = re.match(r"<\|speaker:\d+\|>", turn.strip())
         return match.group(0) if match else None
