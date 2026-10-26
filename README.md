@@ -1,10 +1,22 @@
-> **DGX Spark fork:** Start with the [DGX Spark setup guide](docs/en/dgx-spark.md)
-> for Python 3.12, PyTorch 2.10.0, and CUDA 13 ARM64 wheels. Hardware validation
-> is pending. Upstream defaults remain on PyTorch 2.8; Spark uses a separate
-> opt-in uv environment. The WebUI is now served at port 8080 under `/ui`.
-> Models use the shared [Hugging Face cache](docs/en/model-cache.md), with a verified migration script for existing weights.
-> Launch with `./start-webui.sh` or `./start-api.sh`; see the
-> [standalone Python API client](docs/en/local-api-client.md).
+> **DGX Spark fork:** S2-Pro is validated on the GB10 with Python 3.12,
+> PyTorch 2.10.0, and CUDA 13 ARM64 wheels. Start with the
+> [DGX Spark setup guide](docs/en/dgx-spark.md). One command now installs,
+> downloads the model, builds the WebUI, and serves the API:
+>
+> ```bash
+> ./start.sh
+> ```
+>
+> The API and WebUI are at `http://<SPARK_IP>:8080/` and `/ui`. For agent
+> integration use `./start-mcp.sh` (see the [MCP guide](docs/en/mcp.md)).
+> S2-Pro runs at RTF ≈ 1.56 with `--compile` (about 1.5 s of compute per
+> second of audio); the
+> [DGX Spark report](docs/en/dgx-spark-report.md) has the measurements and
+> limitations. Drama 3 is implemented but deferred because its 41.5 GB
+> checkpoint was not cached and the Wi-Fi transfer was too slow.
+> Upstream defaults remain on PyTorch 2.8; the Spark environment is isolated.
+> Models use the shared [Hugging Face cache](docs/en/model-cache.md), with a
+> verified migration script for existing weights.
 
 <div align="center">
 <h1>Fish Speech</h1>

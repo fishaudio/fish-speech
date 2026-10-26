@@ -1,83 +1,132 @@
 # DGX Spark setup
 
-This fork tracks Fish Speech 3.0, including S2-Pro and Drama-3. CUDA 13 is
-opt-in and isolated from upstream's default PyTorch 2.8 installation. GPU kernels,
-audio decoding, and end-to-end generation need validation on an actual Spark.
+This fork runs Fish Speech 3.0 on the NVIDIA DGX Spark (GB10). The validated
+path is **S2-Pro**; Drama 3 is implemented but was not benchmarked here because
+its checkpoint was not available locally. See [Drama 3](#drama-3) for the exact
+resume and validation steps.
 
-## Selected dependencies
+Validated on 2026-10-26 with:
 
-| Package | Version | Source |
+| Component | Version |
+| --- | --- |
+| GPU | NVIDIA GB10, compute capability 12.1, 121 GiB unified memory |
+| Driver | 580.173.02 |
+| CUDA runtime | 13.0 |
+| Python | 3.12.3 |
+| PyTorch | 2.10.0+cu130 |
+| TorchAudio / TorchCodec | 2.10.0 / 0.10.0 |
+| Triton | 3.6.0 |
+| Protobuf | 6.33.6 |
+
+The upstream root project still pins PyTorch 2.8. The Spark environment is a
+separate uv project, `environments/dgx-spark`, with its own lockfile. This keeps
+upstream installs reproducible while allowing CUDA 13 ARM64 wheels here.
+
+## Quick start
+
+```bash
+cd /home/spark/opt/TTS/dgxspark.fish-speech
+./start.sh
+```
+
+On the first run `start.sh`:
+
+1. creates `environments/dgx-spark/.venv` with the locked CUDA 13 environment,
+2. downloads `fishaudio/s2-pro` into the shared Hugging Face cache if needed,
+3. builds the Awesome WebUI once, and
+4. starts the API on `0.0.0.0:8080` with S2-Pro `--compile` enabled.
+
+Open `http://<SPARK_IP>:8080/ui`. The API is at
+`http://<SPARK_IP>:8080/v1/`. Startup takes about 2–2.5 minutes because the
+model is loaded and the decode function is compiled; later requests reuse the
+Inductor cache in `~/.cache/fish-speech/inductor`.
+
+For the MCP server, see [MCP server](mcp.md):
+
+```bash
+./start.sh mcp          # same as ./start-mcp.sh
+```
+
+### Useful environment variables
+
+| Variable | Default | Meaning |
 | --- | --- | --- |
-| Python | 3.12 | System Python or uv-managed Python |
-| torch | 2.10.0 | Official PyTorch cu130 index |
-| torchaudio | 2.10.0 | Official PyTorch cu130 index |
-| torchcodec | 0.10.0 | Official PyTorch cu130 index |
+| `FISH_MODEL` | `fishaudio/s2-pro` | `fishaudio/s2-pro`, `fishaudio/drama-3`, or a local path. |
+| `FISH_COMPILE` | `1` for S2-Pro | Set `0` for eager mode (slower steady state, faster startup). |
+| `FISH_COMPILE_MODE` | `default` | Passed to `torch.compile`; `reduce-overhead` was not stable here. |
+| `FISH_DEVICE` | unset | Example: `cuda:0`; passed as `--device`. |
+| `FISH_LISTEN` | `0.0.0.0:8080` | Example: `127.0.0.1:8080` for loopback only. |
+| `FISH_OFFLINE` | `0` | Set `1` to pass `--offline` and never contact the Hub. |
+| `FISH_SKIP_DOWNLOAD` | `0` | Set `1` to skip the startup cache check. |
+| `FISH_SKIP_WEBUI` | `0` | Set `1` to skip the one-time WebUI build. |
 
-PyTorch 2.9 does provide CUDA 13 ARM64 wheels. However, TorchAudio 2.9+ uses
-TorchCodec for `torchaudio.load`, which Fish Speech uses for reference audio.
-The TorchCodec 0.8/0.9 wheels compatible with PyTorch 2.9 do not include Linux
-ARM64 in the checked PyPI, CPU, cu128, and cu130 indexes. The 2.10/0.10 pair
-provides official ARM64 wheels without a source build or an audio-loader rewrite.
+Examples:
 
-The wheel supplies its CUDA runtime dependencies. The host still needs a working
-NVIDIA driver compatible with CUDA 13. `nvidia-smi` reports driver capability;
-`nvcc --version` reports the separately installed toolkit. Neither alone proves
-that the Python environment has a CUDA-enabled PyTorch build.
+```bash
+# Eager S2-Pro, loopback only
+FISH_COMPILE=0 FISH_LISTEN=127.0.0.1:8080 ./start.sh
 
-Sources: [PyTorch versions](https://pytorch.org/get-started/previous-versions/),
-[TorchCodec compatibility](https://github.com/meta-pytorch/torchcodec#compatibility-with-torch-versions),
-[TorchCodec cu130 wheels](https://download.pytorch.org/whl/cu130/torchcodec/),
-[TorchAudio loading](https://docs.pytorch.org/audio/2.9.0/generated/torchaudio.load.html).
+# Use an explicit local checkpoint (codec defaults to the sibling s2-pro/codec.pth)
+FISH_MODEL=/data/checkpoints/my-s2 ./start.sh
+```
 
-## Install
+The older `./start-api.sh` and `./start-webui.sh` launchers still work and accept
+the same API flags. `start.sh` is the supported one-command path.
 
-Run these commands on the Spark, in this repository. Install
-[uv](https://docs.astral.sh/uv/getting-started/installation/) first if needed.
+## Why PyTorch 2.10 and CUDA 13?
+
+PyTorch 2.9 has CUDA 13 ARM64 wheels, but TorchAudio 2.9+ uses TorchCodec for
+`torchaudio.load`, which Fish Speech uses for reference audio. The TorchCodec
+0.8/0.9 wheels compatible with PyTorch 2.9 did not include Linux ARM64 in the
+indexes checked by the fork. The PyTorch 2.10 / TorchCodec 0.10 pair provides
+official ARM64 wheels without a source build.
+
+The host must still have a working NVIDIA driver compatible with CUDA 13.
+`nvidia-smi` reports the driver; `nvcc --version` reports the separately
+installed toolkit. Neither proves that the Python environment has a CUDA build.
+The diagnostic below checks the Python side.
+
+## Manual install
 
 ```bash
 uname -m                       # expected: aarch64
 nvidia-smi                     # must detect the GB10
 sudo apt-get update
-sudo apt-get install -y build-essential python3-dev portaudio19-dev libsox-dev libsndfile1 ffmpeg
+sudo apt-get install -y build-essential python3-dev portaudio19-dev \
+    libsox-dev libsndfile1 ffmpeg
 
 uv sync --project environments/dgx-spark --locked --python 3.12 --extra cu130
 ```
 
-Or run `./install-dgx-spark.sh`, which checks the host, installs the Ubuntu
-system dependencies, and runs the same locked uv command.
+Or run `./install-dgx-spark.sh`, which performs the same steps.
 
-The environment lives in `environments/dgx-spark/.venv`. Keep both
-`--project environments/dgx-spark` and `--extra cu130` on manual uv commands;
-the launch scripts supply them for you. An existing root `.venv` is not reused.
-Models use the shared Hugging Face cache; saved references stay in the repository root.
-See [shared model cache and migration](model-cache.md) to reuse existing weights.
+The environment lives in `environments/dgx-spark/.venv`. Keep both `--project
+environments/dgx-spark` and `--extra cu130` on manual uv commands. An existing
+root `.venv` is not reused.
 
-### Why a separate project?
+### Protobuf 6 is required on the Spark
 
-The root `pyproject.toml` retains upstream's exact Torch/TorchAudio 2.8.0 pins,
-`stable`, `cpu`, `cu126`, `cu128`, and `cu129` extras, indexes, and conflicts.
-A bare `pip install -e .` or `uv sync` therefore still selects 2.8.0.
-An extra adds requirements; it cannot replace a mandatory 2.8.0 requirement with
-2.10.0. The Spark project scopes uv overrides to an explicit `cu130` environment
-and installs the root package editably. It has its own checked-in lockfile.
+The upstream override caps Protobuf below 6, but the installed TensorBoard
+(transitive through `descript-audiotools`) contains generated code that requires
+Protobuf 6.31 or newer. With Protobuf 5 the API fails at import with
+`Detected incompatible Protobuf Gencode/Runtime versions`. The Spark project
+overrides this to `protobuf>=6.31.1,<7.0.0`; the root project is unchanged.
+The lock currently resolves to 6.33.6.
 
-Use uv for the Spark environment. Pip does not honor uv overrides or sources;
-`pip install -e '.[cu130]'` is not supported, and `--extra-index-url` alone
-cannot resolve contradictory Torch pins. Root pip installation instructions
-remain unchanged. This implements the compatibility goal of
-[the upstream review](https://github.com/fishaudio/fish-speech/pull/1348#issuecomment-6095246512)
-using a separate project rather than a root extra.
+### PyTorch and GB10 compute capability 12.1
+
+PyTorch 2.10’s CUDA 13 wheel advertises support through SM 12.0. The GB10
+reports SM 12.1, so PyTorch prints a warning. In practice BF16 matmul, SDPA, the
+DAC codec, and end-to-end S2-Pro generation all run; the wheel contains
+`compute_120` PTX, which the driver JITs for SM 12.1. Treat this as a
+compatibility risk for less common kernels, not as a blocker for the tested
+S2-Pro path.
 
 ## Verify CUDA and reference-audio decoding
-
-Run this before downloading the model. It prints the environment, runs actual
-CUDA operations, and decodes a generated WAV from both a path and memory using
-the same TorchAudio API used by Fish Speech. It needs no checkpoints.
 
 ```bash
 uv run --project environments/dgx-spark --locked --extra cu130 python - <<'PY'
 import io
-import platform
 import tempfile
 import wave
 from pathlib import Path
@@ -86,8 +135,6 @@ import torch
 import torchaudio
 import torchcodec
 
-print("Architecture:", platform.machine())
-print("Python:", platform.python_version())
 print("Torch:", torch.__version__)
 print("TorchAudio:", torchaudio.__version__)
 print("TorchCodec:", torchcodec.__version__)
@@ -97,12 +144,13 @@ print("GPU:", torch.cuda.get_device_name(0))
 print("Capability:", torch.cuda.get_device_capability(0))
 print("Wheel architectures:", torch.cuda.get_arch_list())
 assert torch.version.cuda == "13.0", "Expected a cu130 Torch build"
+
 x = torch.randn(256, 256, device="cuda", dtype=torch.bfloat16)
-y = x @ x.T
-assert torch.isfinite(y).all().item()
+assert torch.isfinite(x @ x.T).all().item()
 q = torch.randn(1, 2, 64, 64, device="cuda", dtype=torch.bfloat16)
-z = torch.nn.functional.scaled_dot_product_attention(q, q, q)
-assert torch.isfinite(z).all().item()
+assert torch.isfinite(
+    torch.nn.functional.scaled_dot_product_attention(q, q, q)
+).all().item()
 torch.cuda.synchronize()
 print("CUDA BF16 matmul and attention: OK")
 
@@ -120,65 +168,114 @@ print("Reference audio decoding (file and bytes): OK")
 PY
 ```
 
-## Download and run
+## Measured S2-Pro performance
 
-For S2-Pro:
+Measured on the idle GB10 with `tools/benchmark_tts.py`, seed 42, no reference
+audio, 44.1 kHz mono WAV, three runs per case. “RTF” is wall time divided by
+generated audio duration; lower is better, and RTF < 1 is faster than real time.
+
+| Case | Audio | Eager wall / RTF | Compiled wall / RTF |
+| --- | ---: | ---: | ---: |
+| short, 12 chars | 0.98 s | 2.37 s / 2.43 | 1.79 s / 1.84 |
+| medium, 99 chars | 6.36 s | 14.30 s / 2.25 | 9.72 s / 1.57 |
+| long, 250 chars | 16.07 s | 36.72 s / 2.29 | 24.24 s / 1.56 |
+
+Decode throughput rises from about **7.6 to 14.5 tokens/s**; effective bandwidth
+reported by the inference loop rises from about **34.5 to 66 GB/s**. Peak GPU
+memory is about **20–21 GiB**. GPU utilization is 91–94%, power draw 26–39 W,
+and temperature 49–57 °C. Compilation adds roughly 50 s to startup.
+
+S2-Pro therefore runs at **RTF ≈ 1.56** on this GB10 in the tested
+single-request configuration: about 1.5 seconds of compute per second of audio,
+not faster than real time. See the [DGX Spark report](dgx-spark-report.md) for
+the analysis and limitations.
+
+### Interactive streaming
+
+The streaming WAV header arrives in about 20 ms, but audio arrives per text
+chunk. On the 250-character test, the chunking fix reduced first audio from
+21.5 s to **10.0 s** at the default `chunk_length=200`; using
+`chunk_length=100` reduces it to **1.43 s** with essentially the same total RTF
+(1.60 vs 1.56). For interactive use, pass `chunk_length=100` and verify prosody
+at chunk boundaries for your voice.
+
+The benchmarks can be reproduced against a running server:
 
 ```bash
-uv run --project environments/dgx-spark --locked --extra cu130 hf download fishaudio/s2-pro
-./start-api.sh
+python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 --runs 3 \
+    --output benchmarks/s2pro-compiled.json
+python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 --streaming \
+    --chunk-length 100 --runs 1 --output benchmarks/s2pro-streaming-chunk100.json
 ```
 
-For Drama-3, select its model ID (downloaded into the shared cache if needed):
+## Drama 3
+
+Drama 3 is a 35B-A3B model with block-FP8 experts. The checkpoint is about
+**41.5 GB** (eight ~5 GB safetensors shards plus the 1.87 GB codec) and fits in
+the GB10’s 121 GiB unified memory. The fork’s native path keeps the experts in
+FP8 on SM89+ GPUs and captures CUDA graphs for decode.
+
+The checkpoint was **not cached** on this Spark and the available Wi-Fi link was
+too slow and unstable to complete the download, so Drama 3 was deferred. Do not
+treat the native Drama 3 path as hardware-validated here yet.
+
+To finish the validation:
 
 ```bash
-./start-api.sh --model fishaudio/drama-3 --device cuda:0
+# 1. Download into the shared HF cache (41.5 GB; use wired networking).
+uv run --project environments/dgx-spark --locked --extra cu130 \
+    hf download fishaudio/drama-3
+
+# 2. Stop any other model server first: Drama 3 needs most of the memory.
+#    FISH_COMPILE is not passed for Drama 3 (--compile is unsupported).
+FISH_MODEL=fishaudio/drama-3 FISH_LISTEN=127.0.0.1:8080 ./start.sh
+
+# 3. In another terminal, exercise it.
+python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
+    --runs 1 --warmup 1 --output benchmarks/drama3.json
 ```
 
-Drama-3 requires at least 48 GB of GPU memory according to upstream and does
-not support `--compile`. GB10 execution has not been tested here. S2-Pro remains
-the default checkpoint. To enable compilation explicitly for S2-Pro:
+Useful Drama 3 switches:
 
-```bash
-./start-api.sh --compile
-```
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `FISH_DRAMA3_FP8_EXPERTS` | auto (`1` on SM89+) | `0` dequantizes experts to BF16; quality check/fallback, much more memory. |
+| `FISH_DRAMA3_CUDA_GRAPH` | `1` | `0` disables CUDA-graph decode for debugging. |
 
-The compilation cache defaults to `$HOME/.cache/fish-speech/inductor`; override
-it with `TORCHINDUCTOR_CACHE_DIR`. First test generation with and without a WAV
-reference before enabling compilation.
+At startup the log should show `FishOmni experts: block-FP8 W8A8`, the backbone
+placement, and the captured CUDA-graph buckets. Peak memory and generated audio
+duration should be recorded before comparing it with S2-Pro. If CUDA-graph
+capture fails, retry once with `FISH_DRAMA3_CUDA_GRAPH=0` to separate graph
+capture from model/kernel problems.
 
-### WebUI
+## WebUI
 
-Upstream removed the Gradio launcher. The API now serves Awesome WebUI at `/ui`.
-Build it once with Node.js and npm, and rebuild after frontend updates:
+The API serves Awesome WebUI at `/ui`. `start.sh` builds it once if `dist` is
+missing:
 
 ```bash
 (cd awesome_webui && npm ci && npm run build)
-./start-webui.sh
+./start.sh
 ```
 
-Open `http://<SPARK_LOCAL_IP>:8080/ui`. Both launchers start the same API server;
-run only one for a given port/model. They bind to `0.0.0.0:8080` for LAN access,
-forward arguments unchanged, and work when launched from another directory.
-For loopback-only access or an SSH tunnel:
+For loopback-only access:
 
 ```bash
-./start-webui.sh --listen 127.0.0.1:8080
+FISH_LISTEN=127.0.0.1:8080 ./start.sh
 # On your desktop:
 ssh -L 8080:127.0.0.1:8080 spark@YOUR_SPARK
 ```
 
-Then open `http://127.0.0.1:8080/ui`. There is no Gradio public share tunnel.
-See [the Python API client guide](local-api-client.md) for the standalone client.
+Then open `http://127.0.0.1:8080/ui`. There is no Gradio public-share tunnel.
+See the [Python API client](local-api-client.md) and [MCP server](mcp.md).
 
 ## If anything fails
 
-Send the failing command, full traceback, `nvidia-smi` output, and the diagnostic
-output above. For install failures, also include `uv --version`. If TorchCodec
-cannot load its shared libraries, include `ffmpeg -version`; Ubuntu's FFmpeg
-shared libraries must be available. A warning that the TorchAudio `backend`
-argument is ignored is expected with 2.9+; installing SoundFile alone does not
-replace TorchCodec in these versions.
+Include the failing command, full traceback, `nvidia-smi` output, and the
+diagnostic output above. For install failures include `uv --version`; for
+TorchCodec shared-library failures include `ffmpeg -version`. A warning that the
+TorchAudio `backend` argument is ignored is expected with 2.9+.
 
-This guide covers native installation. Existing Docker/Compose defaults still
-describe the upstream CUDA 12 environment and are not a validated Spark path.
+This guide covers the native ARM64 installation. The Docker/Compose defaults
+still describe the upstream CUDA 12 environment and are not a validated Spark
+path.

@@ -69,6 +69,10 @@ class FishAPI:
         with self._open('GET', '/ui', accept='text/html') as response:
             return response.read().decode('utf-8')
 
+    def tts_defaults(self) -> dict:
+        """GET /v1/tts/defaults; model family and sampling defaults."""
+        return self._json('GET', '/v1/tts/defaults')
+
     def generate(self, text: str, *, voice: str | None = None,
                  output: str | Path | None = None, **options) -> bytes:
         """POST /v1/tts; return complete audio bytes and optionally save them.
