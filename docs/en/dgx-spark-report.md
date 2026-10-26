@@ -95,6 +95,11 @@ within five minutes; it was abandoned rather than made a fragile default.
 
 ### 3. One-command launcher and local checkpoint preference
 
+> Historical benchmark setup: the integration fix subsequently removed automatic
+> local checkpoint preference. The launcher now defaults to the shared HF cache;
+> select local weights explicitly with `--llama-checkpoint-path`. See the
+> [current launcher instructions](dgx-spark.md#quick-start).
+
 `start.sh` creates the locked environment if needed, downloads the selected
 model into the shared HF cache, builds the WebUI once, and starts the API.
 If `checkpoints/s2-pro` already contains weights, it uses that local checkpoint

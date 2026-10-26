@@ -32,9 +32,9 @@ cd /home/spark/opt/TTS/dgxspark.fish-speech
 On the first run `start.sh`:
 
 1. creates `environments/dgx-spark/.venv` with the locked CUDA 13 environment,
-2. downloads `fishaudio/s2-pro` into the shared Hugging Face cache if needed,
-3. builds the Awesome WebUI once, and
-4. starts the API on `0.0.0.0:8080` with S2-Pro `--compile` enabled.
+2. builds the Awesome WebUI once, and
+3. starts the API on `0.0.0.0:8080`, resolving `fishaudio/s2-pro` through the shared
+   Hugging Face cache and enabling S2-Pro `--compile`.
 
 Open `http://<SPARK_IP>:8080/ui`. The API is at
 `http://<SPARK_IP>:8080/v1/`. Startup takes about 2–2.5 minutes because the
@@ -57,7 +57,6 @@ For the MCP server, see [MCP server](mcp.md):
 | `FISH_DEVICE` | unset | Example: `cuda:0`; passed as `--device`. |
 | `FISH_LISTEN` | `0.0.0.0:8080` | Example: `127.0.0.1:8080` for loopback only. |
 | `FISH_OFFLINE` | `0` | Set `1` to pass `--offline` and never contact the Hub. |
-| `FISH_SKIP_DOWNLOAD` | `0` | Set `1` to skip the startup cache check. |
 | `FISH_SKIP_WEBUI` | `0` | Set `1` to skip the one-time WebUI build. |
 
 Examples:
@@ -66,9 +65,22 @@ Examples:
 # Eager S2-Pro, loopback only
 FISH_COMPILE=0 FISH_LISTEN=127.0.0.1:8080 ./start.sh
 
-# Use an explicit local checkpoint (codec defaults to the sibling s2-pro/codec.pth)
-FISH_MODEL=/data/checkpoints/my-s2 ./start.sh
+# Select Drama 3 without automatic compilation
+./start.sh --model fishaudio/drama-3
+
+# Use an explicit local checkpoint; let the resolver find the codec
+./start.sh --llama-checkpoint-path /data/checkpoints/my-s2
 ```
+
+CLI model selection overrides `FISH_MODEL`. Existing `checkpoints/` files do not
+override the default shared HF cache. Local checkpoints must be selected explicitly;
+`FISH_MODEL=/data/checkpoints/my-s2` also works. The codec resolver checks the local
+checkpoint, then a sibling `s2-pro/codec.pth`, then the HF cache. Use
+`--decoder-checkpoint-path` to override it.
+
+`--revision` and `--offline` are passed directly to the API resolver. There is no
+separate startup download; `FISH_SKIP_DOWNLOAD` is no longer needed. To prevent
+Hub requests, use `--offline` or `FISH_OFFLINE=1`.
 
 The older `./start-api.sh` and `./start-webui.sh` launchers still work and accept
 the same API flags. `start.sh` is the supported one-command path.

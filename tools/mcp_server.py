@@ -261,7 +261,7 @@ def fish_tts(
     destination = _output_path(text, format, output_name)
     started = time.perf_counter()
     try:
-        audio = _api().generate(text, voice=voice, **options)
+        audio = _api().generate(text, voice=voice, format=format, **options)
     except FishAPIError as exc:
         raise RuntimeError(f"Speech generation failed: {exc}") from exc
     elapsed = time.perf_counter() - started

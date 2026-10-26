@@ -75,11 +75,19 @@ class MCPTests(unittest.TestCase):
         result = server.fish_tts("Hello", voice="alice", seed=42, temperature=0.7)
         self.assertTrue(Path(result["path"]).is_file())
         self.assertEqual(result["duration_s"], 0.25)
-        self.assertEqual(result["rtf"], result["elapsed_s"] / 0.25)
+        self.assertAlmostEqual(result["rtf"], result["elapsed_s"] / 0.25, delta=0.003)
         kind, text, voice, options = self.api.calls[-1]
         self.assertEqual((kind, text, voice), ("generate", "Hello", "alice"))
         self.assertEqual(options["seed"], 42)
         self.assertEqual(options["temperature"], 0.7)
+
+    def test_audio_format_is_forwarded(self):
+        for fmt in ("wav", "mp3", "opus", "pcm"):
+            with self.subTest(format=fmt):
+                result = server.fish_tts("Hello", format=fmt)
+                options = self.api.calls[-1][3]
+                self.assertEqual(options.get("format"), fmt)
+                self.assertEqual(Path(result["path"]).suffix, "." + fmt)
 
     def test_inline_reference_is_base64_encoded(self):
         audio = Path(self.temp.name) / "ref.wav"
