@@ -698,6 +698,7 @@ def generate_long(
             top_p=top_p,
             top_k=top_k,
             temperature=temperature,
+            chunk_length=chunk_length,
             prompt_text=prompt_text,
             prompt_tokens=prompt_tokens,
             single_chunk=single_chunk,
@@ -914,6 +915,7 @@ def generate_long_drama3(
     top_p: float = DEFAULT_TOP_P,
     top_k: int = DEFAULT_TOP_K,
     temperature: float = DEFAULT_TEMPERATURE,
+    chunk_length: int = DEFAULT_CHUNK_LENGTH,
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
@@ -931,7 +933,11 @@ def generate_long_drama3(
         prompt_text, prompt_tokens = [prompt_text], [prompt_tokens]
     prompt_text = list(prompt_text or [])
     prompt_tokens = [codes.cpu() for codes in (prompt_tokens or [])]
-    chunks = [text] if single_chunk else split_drama3_text(text) or [text]
+    chunks = (
+        [text]
+        if single_chunk
+        else split_drama3_text(text, max_bytes=chunk_length) or [text]
+    )
     # Reject bad text in any chunk before generating: failing at a later chunk
     # would waste the earlier ones, and cut a stream short after it started.
     capacity = Drama3DecodeGraphs.graph_capacity(model)

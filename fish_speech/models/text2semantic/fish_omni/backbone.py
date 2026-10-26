@@ -298,6 +298,26 @@ def load_backbone_weights(
     # FP8 checkpoint experts loaded into dense experts: a weight or scale waits here
     # for its partner, then the pair is dequantized on the target's device.
     pending_fp8: dict[tuple[str, int, str], dict[str, Tensor]] = {}
+    # FP8 experts arrive as per-expert tensors. Stacking one layer/projection and
+    # copying it once avoids tens of thousands of tiny CPU-to-GPU copies during
+    # checkpoint load (62k slots on Drama 3).
+    fp8_stacked: dict[tuple[str, str], dict[str, dict[int, Tensor]]] = {}
+
+    def validate_slot(
+        name: str, expert: int, part: str, target: Tensor, tensor: Tensor
+    ) -> None:
+        slot = (name, expert, part)
+        if slot not in expected:
+            raise ValueError(f"no parameter slot {slot}")
+        if slot in loaded:
+            raise ValueError(f"parameter slot {slot} filled twice")
+        if target.shape != tensor.shape:
+            raise ValueError(
+                f"{slot}: checkpoint shape {tuple(tensor.shape)} != "
+                f"{tuple(target.shape)}"
+            )
+        if target.dtype == FP8_DTYPE and tensor.dtype != FP8_DTYPE:
+            raise ValueError(f"{slot}: expected {FP8_DTYPE}, got {tensor.dtype}")
 
     def fill(name: str, expert: int, part: str, target: Tensor, tensor: Tensor) -> None:
         slot = (name, expert, part)
@@ -329,6 +349,52 @@ def load_backbone_weights(
             is_scale = expert_match["kind"] == "weight_scale_inv"
             if not is_scale and experts.fp8 and tensor.dtype != FP8_DTYPE:
                 raise ValueError(f"{checkpoint_name}: expected an FP8 expert weight")
+            if experts.fp8:
+                suffix = "scale_inv" if is_scale else "weight"
+                key = (prefix, suffix)
+                by_part = fp8_stacked.setdefault(key, {})
+                num_experts = experts.num_experts
+                if projection == "down_proj":
+                    full_name = f"{prefix}.w2_{suffix}"
+                    bucket = by_part.setdefault("down", {})
+                    if expert in bucket:
+                        raise ValueError(f"{checkpoint_name} appears twice")
+                    bucket[expert] = tensor
+                    if len(bucket) == num_experts:
+                        target = targets[full_name]
+                        for e in range(num_experts):
+                            validate_slot(
+                                full_name, e, "down", target[e], bucket[e]
+                            )
+                        target.copy_(
+                            torch.stack([bucket[e] for e in range(num_experts)], 0)
+                        )
+                        loaded.update((full_name, e, "down") for e in range(num_experts))
+                        del by_part["down"]
+                        if not by_part:
+                            del fp8_stacked[key]
+                    continue
+                part = "gate" if projection == "gate_proj" else "up"
+                full_name = f"{prefix}.w13_{suffix}"
+                bucket = by_part.setdefault(part, {})
+                if expert in bucket:
+                    raise ValueError(f"{checkpoint_name} appears twice")
+                bucket[expert] = tensor
+                gates = by_part.get("gate", {})
+                ups = by_part.get("up", {})
+                if len(gates) == num_experts and len(ups) == num_experts:
+                    target = targets[full_name]
+                    rows = target.shape[1] // 2
+                    for e in range(num_experts):
+                        validate_slot(full_name, e, "gate", target[e, :rows], gates[e])
+                        validate_slot(full_name, e, "up", target[e, rows:], ups[e])
+                    gate = torch.stack([gates[e] for e in range(num_experts)], 0)
+                    up = torch.stack([ups[e] for e in range(num_experts)], 0)
+                    target.copy_(torch.cat((gate, up), dim=1))
+                    loaded.update((full_name, e, "gate") for e in range(num_experts))
+                    loaded.update((full_name, e, "up") for e in range(num_experts))
+                    del fp8_stacked[key]
+                continue
             if not experts.fp8 and (is_scale or tensor.dtype == FP8_DTYPE):
                 key = (prefix, expert, projection)
                 halves = pending_fp8.setdefault(key, {})

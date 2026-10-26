@@ -1,0 +1,127 @@
+{
+  "timestamp": "2026-10-26T15:44:41.430791+00:00",
+  "api_url": "http://127.0.0.1:8080",
+  "streaming": true,
+  "defaults": {
+    "model_family": "drama3",
+    "chunk_length": 200,
+    "max_new_tokens": 1024,
+    "top_p": 0.7,
+    "top_k": 30,
+    "repetition_penalty": 1.2,
+    "temperature": 0.7
+  },
+  "cases": [
+    {
+      "case": "short",
+      "chars": 12,
+      "samples": [
+        {
+          "wall_s": 1.671,
+          "first_byte_s": 1.585,
+          "bytes": 86060,
+          "rtf": 1.713,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 0.975
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 1.671,
+          "min": 1.671,
+          "max": 1.671
+        },
+        "first_byte_s": {
+          "median": 1.585,
+          "min": 1.585,
+          "max": 1.585
+        },
+        "rtf": {
+          "median": 1.713,
+          "min": 1.713,
+          "max": 1.713
+        },
+        "duration_s": {
+          "median": 0.975,
+          "min": 0.975,
+          "max": 0.975
+        }
+      }
+    },
+    {
+      "case": "medium",
+      "chars": 99,
+      "samples": [
+        {
+          "wall_s": 6.873,
+          "first_byte_s": 6.781,
+          "bytes": 495660,
+          "rtf": 1.223,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 5.619
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 6.873,
+          "min": 6.873,
+          "max": 6.873
+        },
+        "first_byte_s": {
+          "median": 6.781,
+          "min": 6.781,
+          "max": 6.781
+        },
+        "rtf": {
+          "median": 1.223,
+          "min": 1.223,
+          "max": 1.223
+        },
+        "duration_s": {
+          "median": 5.619,
+          "min": 5.619,
+          "max": 5.619
+        }
+      }
+    },
+    {
+      "case": "long",
+      "chars": 250,
+      "samples": [
+        {
+          "wall_s": 17.148,
+          "first_byte_s": 1.354,
+          "bytes": 1138732,
+          "rtf": 1.328,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 12.91
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 17.148,
+          "min": 17.148,
+          "max": 17.148
+        },
+        "first_byte_s": {
+          "median": 1.354,
+          "min": 1.354,
+          "max": 1.354
+        },
+        "rtf": {
+          "median": 1.328,
+          "min": 1.328,
+          "max": 1.328
+        },
+        "duration_s": {
+          "median": 12.91,
+          "min": 12.91,
+          "max": 12.91
+        }
+      }
+    }
+  ]
+}

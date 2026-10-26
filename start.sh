@@ -42,7 +42,7 @@ if command -v nvidia-smi >/dev/null 2>&1; then
     fi
 fi
 
-MODEL="${FISH_MODEL:-fishaudio/s2-pro}"
+MODEL="${FISH_MODEL:-fishaudio/drama-3}"
 IS_S2=0
 case "$MODEL" in
     s2-pro|S2-Pro|fishaudio/s2-pro)

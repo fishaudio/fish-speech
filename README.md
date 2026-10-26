@@ -1,22 +1,24 @@
-> **DGX Spark fork:** S2-Pro is validated on the GB10 with Python 3.12,
-> PyTorch 2.10.0, and CUDA 13 ARM64 wheels. Start with the
-> [DGX Spark setup guide](docs/en/dgx-spark.md). One command now installs,
-> downloads the model, builds the WebUI, and serves the API:
+> **DGX Spark fork:** both **Drama 3** and **S2-Pro** are validated on the GB10
+> with Python 3.12, PyTorch 2.10.0 and CUDA 13 ARM64 wheels. One command
+> installs, downloads the default model, builds the WebUI and serves the API:
 >
 > ```bash
 > ./start.sh
 > ```
 >
-> The API and WebUI are at `http://<SPARK_IP>:8080/` and `/ui`. For agent
-> integration use `./start-mcp.sh` (see the [MCP guide](docs/en/mcp.md)).
-> S2-Pro runs at RTF ≈ 1.56 with `--compile` (about 1.5 s of compute per
-> second of audio); the
-> [DGX Spark report](docs/en/dgx-spark-report.md) has the measurements and
-> limitations. Drama 3 is implemented but deferred because its 41.5 GB
-> checkpoint was not cached and the Wi-Fi transfer was too slow.
-> Upstream defaults remain on PyTorch 2.8; the Spark environment is isolated.
-> Models use the shared [Hugging Face cache](docs/en/model-cache.md), with a
-> verified migration script for existing weights.
+> Drama 3 is the default. The API and WebUI are at `http://<SPARK_IP>:8080/`
+> and `/ui`; agent integration uses `./start-mcp.sh`
+> ([MCP guide](docs/en/mcp.md)).
+>
+> Drama 3 runs at **RTF 1.16–1.22** for medium/long reference-conditioned
+> speech, with 41.3 GiB peak memory and a **67–70 s** cold start. S2-Pro runs at
+> RTF ≈ 1.56 with `--compile` and uses about 21 GiB. Drama 3 needs a reference
+> voice for reliable EOS; without one, some seeds run to the token cap. Use
+> `FISH_MODEL=fishaudio/s2-pro ./start.sh` for the smaller model.
+> The [DGX Spark report](docs/en/dgx-spark-report.md) has the full measurements
+> and limitations. Upstream defaults remain on PyTorch 2.8; the Spark
+> environment is isolated. Models use the shared
+> [Hugging Face cache](docs/en/model-cache.md), with a verified migration script.
 
 <div align="center">
 <h1>Fish Speech</h1>
