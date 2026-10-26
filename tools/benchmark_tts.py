@@ -59,9 +59,7 @@ def wav_info(audio: bytes, *, streaming: bool = False) -> dict:
                     chunk = audio[position : position + 4]
                     size = int.from_bytes(audio[position + 4 : position + 8], "little")
                     if chunk == b"data":
-                        frames = max(0, len(audio) - position - 8) // (
-                            channels * width
-                        )
+                        frames = max(0, len(audio) - position - 8) // (channels * width)
                         break
                     position += 8 + size + (size & 1)
             return {
@@ -138,7 +136,9 @@ def summarize(samples: list[dict]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", default="http://127.0.0.1:8080")
-    parser.add_argument("--text", action="append", help="Text to benchmark (repeatable)")
+    parser.add_argument(
+        "--text", action="append", help="Text to benchmark (repeatable)"
+    )
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
@@ -197,9 +197,7 @@ def main() -> None:
     }
     Path(args.output).write_text(json.dumps(result, indent=2) + "\n")
 
-    print(
-        "| case | chars | audio s | wall s (median) | RTF (median) | first byte s |"
-    )
+    print("| case | chars | audio s | wall s (median) | RTF (median) | first byte s |")
     print("| --- | ---: | ---: | ---: | ---: | ---: |")
     for case in cases:
         summary = case["summary"]

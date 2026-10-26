@@ -24,10 +24,10 @@ from typing_extensions import Annotated
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+from fish_speech.model_cache import resolve_codec, resolve_model
 from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
-from fish_speech.model_cache import resolve_model, resolve_codec
 from tools.server.views import routes
 
 ENV_ARGS_KEY = "FISH_API_SERVER_ARGS"
@@ -94,7 +94,8 @@ class API(ExceptionHandler):
             offline=getattr(self.args, "offline", False),
         )
         codec = resolve_codec(
-            checkpoint, self.args.decoder_checkpoint_path,
+            checkpoint,
+            self.args.decoder_checkpoint_path,
             repo_id=getattr(self.args, "codec_model", "fishaudio/s2-pro"),
             revision=getattr(self.args, "codec_revision", None),
             offline=getattr(self.args, "offline", False),

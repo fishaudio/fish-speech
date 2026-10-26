@@ -72,7 +72,10 @@ def _output_path(text: str, fmt: str, output_name: str | None) -> Path:
     else:
         stem = _safe_stem(text)
     directory = _output_dir()
-    path = directory / f"{time.strftime('%Y%m%d-%H%M%S')}-{stem}-{uuid.uuid4().hex[:8]}{suffix}"
+    path = (
+        directory
+        / f"{time.strftime('%Y%m%d-%H%M%S')}-{stem}-{uuid.uuid4().hex[:8]}{suffix}"
+    )
     if path.exists():  # practically impossible, but never overwrite silently
         path = directory / f"{path.stem}-{uuid.uuid4().hex[:8]}{suffix}"
     return path

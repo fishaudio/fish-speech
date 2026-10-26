@@ -66,7 +66,9 @@ class MCPTests(unittest.TestCase):
 
     def test_health_and_voices(self):
         self.assertTrue(server.fish_health()["ok"])
-        self.assertEqual(server.fish_voices_list(), {"count": 2, "voices": ["alice", "bob"]})
+        self.assertEqual(
+            server.fish_voices_list(), {"count": 2, "voices": ["alice", "bob"]}
+        )
         self.assertEqual(server.fish_defaults()["model_family"], "drama3")
 
     def test_tts_saves_wav_and_passes_options(self):
@@ -104,7 +106,9 @@ class MCPTests(unittest.TestCase):
 
     def test_voice_and_reference_are_mutually_exclusive(self):
         with self.assertRaises(ValueError):
-            server.fish_tts("Hello", voice="alice", reference_audio="x.wav", reference_text="x")
+            server.fish_tts(
+                "Hello", voice="alice", reference_audio="x.wav", reference_text="x"
+            )
 
     def test_output_name_cannot_escape_directory(self):
         result = server.fish_tts("Hello", output_name="../../escape.wav")
