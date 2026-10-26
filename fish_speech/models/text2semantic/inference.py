@@ -30,6 +30,7 @@ from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.chunking import (
     DRAMA3_CHUNK_MAX_NEW_TOKENS,
     Drama3History,
+    split_by_length,
     split_drama3_text,
 )
 from fish_speech.models.text2semantic.fish_omni.generate import (
@@ -455,13 +456,20 @@ def init_model(checkpoint_path, device, precision, compile=False):
     model._cache_setup_done = False
 
     if compile:
-        logger.info("Compiling function...")
+        # "reduce-overhead" enables Inductor CUDA graphs, which cuts the launch
+        # overhead of the many small decode kernels on GB10. Keep "default" as
+        # the conservative choice; both are selectable without editing code.
+        compile_mode = os.environ.get("FISH_COMPILE_MODE", "default")
+        compile_dynamic = os.environ.get("FISH_COMPILE_DYNAMIC", "1") != "0"
+        logger.info(
+            f"Compiling function (mode={compile_mode}, dynamic={compile_dynamic})..."
+        )
         decode_one_token = torch.compile(
             decode_one_token,
             backend="inductor" if torch.cuda.is_available() else "aot_eager",
-            mode="default" if torch.cuda.is_available() else None,
+            mode=compile_mode if torch.cuda.is_available() else None,
             fullgraph=True,
-            dynamic=True,
+            dynamic=compile_dynamic,
         )
 
     return model.eval(), decode_one_token
@@ -599,6 +607,24 @@ def split_text_by_speaker(text: str) -> list[str]:
     return turns
 
 
+def split_s2_text(text: str, chunk_length: int) -> tuple[list[str], list[str]]:
+    """Return (speaker turns, generation batches) for S2-Pro.
+
+    Tagged text is split into speaker turns and grouped. Untagged text used to
+    bypass chunking entirely, which made streaming emit one segment only after
+    the whole request had been generated. Honor chunk_length in both cases.
+    """
+    if re.search(r"<\|speaker:\d+\|>", text):
+        turns = split_text_by_speaker(text)
+        batches = (
+            group_turns_into_batches(turns, max_speakers=5, max_bytes=chunk_length)
+            if turns
+            else [text]
+        )
+        return turns, batches
+    return [], split_by_length(text, chunk_length) or [text]
+
+
 def group_turns_into_batches(
     turns: list[str], max_speakers: int = 3, max_bytes: int = 300
 ) -> list[str]:
@@ -732,16 +758,17 @@ def generate_long(
         )
     )
 
-    # Split text by speaker and group into batches
-    turns = split_text_by_speaker(text)
+    # Split text by speaker, then honor chunk_length for untagged text too.
+    turns, batches = split_s2_text(text, chunk_length)
     if turns:
-        batches = group_turns_into_batches(
-            turns, max_speakers=5, max_bytes=chunk_length
+        logger.info(
+            f"Split into {len(turns)} turns, grouped into {len(batches)} batches"
         )
     else:
-        batches = [text]
-
-    logger.info(f"Split into {len(turns)} turns, grouped into {len(batches)} batches")
+        logger.info(
+            f"Split untagged text into {len(batches)} chunk(s) "
+            f"of at most {chunk_length} bytes"
+        )
 
     for sample_idx in range(num_samples):
         if torch.cuda.is_available():
@@ -1115,7 +1142,9 @@ def launch_thread_safe_queue(
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
 @click.option("--top-k", type=int, default=DEFAULT_TOP_K)
 @click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
-@click.option("--model", default=None, help="Hub model ID; defaults to fishaudio/s2-pro.")
+@click.option(
+    "--model", default=None, help="Hub model ID; defaults to fishaudio/s2-pro."
+)
 @click.option("--revision", default=None)
 @click.option("--offline", is_flag=True, help="Use cached Hub files only.")
 @click.option("--codec-model", default="fishaudio/s2-pro")
@@ -1179,7 +1208,7 @@ def main(
     single_chunk: bool,
     output_dir: Path,
 ) -> None:
-    from fish_speech.model_cache import resolve_model, resolve_codec
+    from fish_speech.model_cache import resolve_codec, resolve_model
 
     checkpoint_path = resolve_model(model, checkpoint_path, revision, offline)
     os.makedirs(output_dir, exist_ok=True)

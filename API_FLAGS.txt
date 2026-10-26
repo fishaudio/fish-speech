@@ -1,8 +1,12 @@
-# S2-Pro
+# S2-Pro (compile is the default via ./start.sh on DGX Spark)
 --listen 0.0.0.0:8080 \
 --llama-checkpoint-path "checkpoints/s2-pro" \
 --decoder-checkpoint-path "checkpoints/s2-pro/codec.pth" \
---decoder-config-name modded_dac_vq
+--decoder-config-name modded_dac_vq \
+--compile
+# Env: FISH_COMPILE_MODE=default (Inductor mode), FISH_COMPILE_DYNAMIC=0/1.
+# ./start.sh selects the local checkpoint and S2-Pro compile automatically;
+# FISH_COMPILE=0 disables compile.
 
 # Drama 3 (CUDA only; uses the S2-Pro codec; --compile unsupported)
 # SM89+ (L40 / H100 / H20): experts stay FP8 (48 GB) + CUDA-graph decode, one GPU:

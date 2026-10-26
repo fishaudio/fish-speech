@@ -72,6 +72,7 @@ on the server's encoder support. Cloud-only controls such as speed are not added
 | `health()` | GET `/v1/health` | Status dictionary |
 | `health(method='POST')` | POST `/v1/health` | Status dictionary |
 | `webui()` | GET `/ui` | HTML string (404 if UI not built) |
+| `tts_defaults()` | GET `/v1/tts/defaults` | Model family and sampling defaults |
 | `generate(text, ...)` | POST `/v1/tts` | Complete audio bytes |
 | `generate_stream(text, ...)` | POST `/v1/tts` | Iterator of WAV stream bytes |
 | `add_voice(id, audio_path, text)` | POST `/v1/references/add` | Result dictionary |
@@ -99,7 +100,9 @@ with closing(api.generate_stream('Hello!', voice='speaker_a')) as chunks:
 Streaming supports WAV only. Chunks are parts of one stream, not independent
 WAV files. The WAV stream header may not contain a finalized duration; use
 non-streaming generation for dataset files. Closing the generator releases its
-connection if the caller stops early.
+connection if the caller stops early. Audio is emitted per text chunk, not per
+frame: set `chunk_length=100` in `generate_stream()` for low first-audio latency
+on untagged text.
 
 Only codec methods need an extra dependency:
 

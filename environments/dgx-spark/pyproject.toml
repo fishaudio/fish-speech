@@ -19,7 +19,9 @@ package = false
 override-dependencies = [
     "torch==2.10.0",
     "torchaudio==2.10.0",
-    "protobuf>=3.20.0,<6.0.0",
+    # tensorboard (transitive through descript-audiotools) ships generated code
+    # that requires protobuf >= 6.31; the root project's <6 cap breaks API import.
+    "protobuf>=6.31.1,<7.0.0",
 ]
 
 [tool.uv.sources]

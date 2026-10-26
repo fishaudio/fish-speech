@@ -19,10 +19,8 @@ from pydantic import BaseModel
 
 from fish_speech.inference_engine import TTSInferenceEngine
 from fish_speech.utils.schema import ServeTTSRequest
-from tools.server.inference import inference_wrapper as inference
-
-
 from tools.server.cli import parse_args
+from tools.server.inference import inference_wrapper as inference
 
 
 class MsgPackRequest(HttpRequest):
