@@ -291,3 +291,19 @@ TorchAudio `backend` argument is ignored is expected with 2.9+.
 This guide covers the native ARM64 installation. The Docker/Compose defaults
 still describe the upstream CUDA 12 environment and are not a validated Spark
 path.
+
+## Drama 3 optimization review
+
+Select Drama 3 explicitly with `./start.sh --model fishaudio/drama-3`; S2-Pro
+remains the default. Prefer a reference voice: the recorded small-sample tests
+found trailing silence and token-cap termination without one.
+
+The FP8 loader batches expert transfers while preserving checkpoint-order
+independence. Drama 3 now honors `chunk_length` (100–1000 bytes), including the
+WebUI slider. Try 100 for shorter initial waits; smaller chunks can alter prosody
+and increase total generation time. `single_chunk=true` bypasses this splitting.
+
+Historical benchmark JSON uses a buffered-read latency measurement. Rerun with
+`tools/benchmark_tts.py --voice narrator --streaming --chunk-length 100 --runs 3`
+to measure `first_audio_s` with the corrected reader. See the performance report
+for evidence limitations; no quality advantage is established by timing alone.

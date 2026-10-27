@@ -75,6 +75,7 @@ class ServeReferenceAudio(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
+    # Text chunk size for S2-Pro and Drama 3; ignored with single_chunk.
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
     # Drama 3 only: generate the whole text in one pass instead of ~300-byte chunks.
     single_chunk: bool = False

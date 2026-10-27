@@ -205,7 +205,7 @@ def fish_tts(
         temperature: Sampling temperature, typically 0.5-0.9.
         top_p: Nucleus sampling probability.
         max_new_tokens: Per-chunk cap; 0 uses the model's own cap.
-        chunk_length: S2-Pro text chunk size in bytes, 100-1000.
+        chunk_length: Text chunk size in bytes for either model, 100-1000.
         single_chunk: Drama 3 only: generate the whole text in one pass.
         normalize: Normalize numbers and punctuation.
         latency: Server latency mode.

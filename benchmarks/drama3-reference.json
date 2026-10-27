@@ -1,0 +1,181 @@
+{
+  "timestamp": "2026-10-26T15:40:56.648431+00:00",
+  "api_url": "http://127.0.0.1:8080",
+  "streaming": false,
+  "defaults": {
+    "model_family": "drama3",
+    "chunk_length": 200,
+    "max_new_tokens": 1024,
+    "top_p": 0.7,
+    "top_k": 30,
+    "repetition_penalty": 1.2,
+    "temperature": 0.7
+  },
+  "cases": [
+    {
+      "case": "short",
+      "chars": 12,
+      "samples": [
+        {
+          "wall_s": 1.781,
+          "first_byte_s": 1.781,
+          "bytes": 81964,
+          "rtf": 1.918,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 0.929
+        },
+        {
+          "wall_s": 1.659,
+          "first_byte_s": 1.659,
+          "bytes": 86060,
+          "rtf": 1.701,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 0.975
+        },
+        {
+          "wall_s": 1.65,
+          "first_byte_s": 1.65,
+          "bytes": 86060,
+          "rtf": 1.692,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 0.975
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 1.659,
+          "min": 1.65,
+          "max": 1.781
+        },
+        "first_byte_s": {
+          "median": 1.659,
+          "min": 1.65,
+          "max": 1.781
+        },
+        "rtf": {
+          "median": 1.701,
+          "min": 1.692,
+          "max": 1.918
+        },
+        "duration_s": {
+          "median": 0.975,
+          "min": 0.929,
+          "max": 0.975
+        }
+      }
+    },
+    {
+      "case": "medium",
+      "chars": 99,
+      "samples": [
+        {
+          "wall_s": 6.845,
+          "first_byte_s": 6.845,
+          "bytes": 495660,
+          "rtf": 1.218,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 5.619
+        },
+        {
+          "wall_s": 6.838,
+          "first_byte_s": 6.837,
+          "bytes": 495660,
+          "rtf": 1.217,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 5.619
+        },
+        {
+          "wall_s": 6.843,
+          "first_byte_s": 6.843,
+          "bytes": 495660,
+          "rtf": 1.218,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 5.619
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 6.843,
+          "min": 6.838,
+          "max": 6.845
+        },
+        "first_byte_s": {
+          "median": 6.843,
+          "min": 6.837,
+          "max": 6.845
+        },
+        "rtf": {
+          "median": 1.218,
+          "min": 1.217,
+          "max": 1.218
+        },
+        "duration_s": {
+          "median": 5.619,
+          "min": 5.619,
+          "max": 5.619
+        }
+      }
+    },
+    {
+      "case": "long",
+      "chars": 250,
+      "samples": [
+        {
+          "wall_s": 16.046,
+          "first_byte_s": 16.045,
+          "bytes": 1220652,
+          "rtf": 1.159,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 13.839
+        },
+        {
+          "wall_s": 16.045,
+          "first_byte_s": 16.044,
+          "bytes": 1220652,
+          "rtf": 1.159,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 13.839
+        },
+        {
+          "wall_s": 16.036,
+          "first_byte_s": 16.035,
+          "bytes": 1220652,
+          "rtf": 1.159,
+          "sample_rate": 44100,
+          "channels": 1,
+          "duration_s": 13.839
+        }
+      ],
+      "summary": {
+        "wall_s": {
+          "median": 16.045,
+          "min": 16.036,
+          "max": 16.046
+        },
+        "first_byte_s": {
+          "median": 16.044,
+          "min": 16.035,
+          "max": 16.045
+        },
+        "rtf": {
+          "median": 1.159,
+          "min": 1.159,
+          "max": 1.159
+        },
+        "duration_s": {
+          "median": 13.839,
+          "min": 13.839,
+          "max": 13.839
+        }
+      }
+    }
+  ]
+}

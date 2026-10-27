@@ -71,6 +71,28 @@ def wav_info(audio: bytes, *, streaming: bool = False) -> dict:
         return {}
 
 
+def has_wav_sample(audio: bytes | bytearray) -> bool:
+    """True only after a PCM WAV data chunk contains a complete sample frame."""
+    if len(audio) < 12 or audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
+        return False
+    position = 12
+    frame_bytes = None
+    while position + 8 <= len(audio):
+        kind = audio[position : position + 4]
+        size = int.from_bytes(audio[position + 4 : position + 8], "little")
+        start = position + 8
+        if kind == b"fmt " and size >= 16 and len(audio) >= start + 16:
+            frame_bytes = int.from_bytes(audio[start + 12 : start + 14], "little")
+        if kind == b"data":
+            return bool(
+                frame_bytes
+                and size >= frame_bytes
+                and len(audio) >= start + frame_bytes
+            )
+        position = start + size + (size & 1)
+    return False
+
+
 def run_once(url: str, text: str, args) -> dict:
     payload = {
         "text": text,
@@ -92,21 +114,25 @@ def run_once(url: str, text: str, args) -> dict:
 
     started = time.perf_counter()
     first_byte = None
+    first_audio = None
     audio = bytearray()
     with post_json(url, payload, args.timeout) as response:
         while True:
-            chunk = response.read(65536)
+            chunk = response.read1(65536)
             if not chunk:
                 break
             if first_byte is None:
                 first_byte = time.perf_counter() - started
             audio.extend(chunk)
+            if first_audio is None and has_wav_sample(audio):
+                first_audio = time.perf_counter() - started
     elapsed = time.perf_counter() - started
     info = wav_info(bytes(audio), streaming=args.streaming)
     duration = info.get("duration_s", 0.0)
     result = {
         "wall_s": round(elapsed, 3),
         "first_byte_s": round(first_byte, 3) if first_byte is not None else None,
+        "first_audio_s": round(first_audio, 3) if first_audio is not None else None,
         "bytes": len(audio),
         "rtf": round(elapsed / duration, 3) if duration else None,
         **{k: round(v, 3) if isinstance(v, float) else v for k, v in info.items()},
@@ -122,7 +148,7 @@ def run_once(url: str, text: str, args) -> dict:
 
 def summarize(samples: list[dict]) -> dict:
     summary = {}
-    for key in ("wall_s", "first_byte_s", "rtf", "duration_s"):
+    for key in ("wall_s", "first_byte_s", "first_audio_s", "rtf", "duration_s"):
         values = [s[key] for s in samples if s.get(key) is not None]
         if values:
             summary[key] = {
@@ -166,10 +192,11 @@ def main() -> None:
     if not texts:
         texts = DEFAULT_TEXTS
 
+    warmup_payload = {"text": "Warm up.", "format": "wav", "seed": args.seed}
+    if args.voice:
+        warmup_payload["reference_id"] = args.voice
     for _ in range(args.warmup):
-        with post_json(
-            url, {"text": "Warm up.", "format": "wav", "seed": args.seed}, args.timeout
-        ) as response:
+        with post_json(url, warmup_payload, args.timeout) as response:
             response.read()
 
     cases = []
@@ -189,6 +216,20 @@ def main() -> None:
         )
 
     result = {
+        "measurement_version": 2,
+        "request_settings": {
+            k: getattr(args, k)
+            for k in (
+                "seed",
+                "voice",
+                "temperature",
+                "top_p",
+                "chunk_length",
+                "single_chunk",
+                "runs",
+                "warmup",
+            )
+        },
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "api_url": args.api_url,
         "streaming": args.streaming,
@@ -197,7 +238,7 @@ def main() -> None:
     }
     Path(args.output).write_text(json.dumps(result, indent=2) + "\n")
 
-    print("| case | chars | audio s | wall s (median) | RTF (median) | first byte s |")
+    print("| case | chars | audio s | wall s (median) | RTF (median) | first audio s |")
     print("| --- | ---: | ---: | ---: | ---: | ---: |")
     for case in cases:
         summary = case["summary"]
@@ -206,7 +247,7 @@ def main() -> None:
             f"{summary.get('duration_s', {}).get('median', '-')} | "
             f"{summary.get('wall_s', {}).get('median', '-')} | "
             f"{summary.get('rtf', {}).get('median', '-')} | "
-            f"{summary.get('first_byte_s', {}).get('median', '-')} |"
+            f"{summary.get('first_audio_s', {}).get('median', '-')} |"
         )
     print(f"\nWrote {Path(args.output).resolve()}")
 
