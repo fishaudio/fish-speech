@@ -3,6 +3,7 @@ import unittest
 import wave
 from types import SimpleNamespace
 from unittest.mock import patch
+
 from tools import benchmark_tts as bench
 
 

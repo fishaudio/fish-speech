@@ -1,5 +1,5 @@
-import re
 import random
+import re
 import unittest
 from unittest.mock import patch
 
