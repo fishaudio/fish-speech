@@ -1,14 +1,23 @@
 """API command-line options, independently usable without the ML stack."""
+
 from argparse import ArgumentParser
 
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--model", help="Hugging Face model ID (default: fishaudio/s2-pro)")
+    parser.add_argument(
+        "--model", help="Hugging Face model ID (default: fishaudio/s2-pro)"
+    )
     parser.add_argument("--revision", help="Hub model branch, tag, or commit")
     parser.add_argument("--offline", action="store_true", help="Use cached files only")
-    parser.add_argument("--codec-model", default="fishaudio/s2-pro", help="Hub fallback codec repository")
-    parser.add_argument("--codec-revision", help="Separate revision for the fallback codec")
+    parser.add_argument(
+        "--codec-model",
+        default="fishaudio/s2-pro",
+        help="Hub fallback codec repository",
+    )
+    parser.add_argument(
+        "--codec-revision", help="Separate revision for the fallback codec"
+    )
     parser.add_argument("--mode", type=str, choices=["tts"], default="tts")
     parser.add_argument(
         "--llama-checkpoint-path",

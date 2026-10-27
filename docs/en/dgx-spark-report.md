@@ -8,14 +8,21 @@ the API, WebUI, MCP server, streaming and cold-load behavior.
 
 ## Executive summary
 
-Both models are validated end to end.
+The source branch reports end-to-end runs of both models on one Spark. These
+hardware results have not been independently reproduced during this review.
+
+**Measurement caveat:** historical `first_byte_s` values below measure completion
+of a buffered 64 KiB read, not arrival of the legacy buffered-read latency sample. Streaming cases
+have only one measured run each. Benchmark version 2 records `first_audio_s` using
+unbuffered-response reads and WAV sample detection; rerun at least three times.
+The archived JSON files are marked `measurement_version: 1` and `legacy_measurement: true`; they retain their original values and measurement semantics.
 
 - **S2-Pro** runs at **RTF ≈ 1.56** for medium/long text with `--compile`,
   compared with RTF ≈ 2.25 eager. It uses about 21 GiB and cold-starts in
   roughly 2–2.5 minutes.
 - **Drama 3** runs at **RTF 1.16–1.22** for medium/long reference-conditioned
   speech, uses **41.3 GiB** peak memory, and now cold-starts in **67–70 s**.
-  It is both faster and higher quality than S2-Pro on this Spark.
+  Its measured generation times are lower in these runs; perceptual quality was not evaluated.
 - Drama 3 without a reference voice is **unreliable**: 5 of 8 tested seeds
   failed to emit EOS and ran to the token cap, appending near-silence. With a
   reference, all four tested seeds stopped naturally at 5.6–5.8 s. Use a
@@ -48,7 +55,7 @@ Two environment blockers were fixed earlier in the fork:
 | TorchAudio / TorchCodec | 2.10.0 / 0.10.0 |
 | Triton | 3.6.0 |
 | Protobuf | 6.33.6 |
-| S2-Pro checkpoint | `checkpoints/s2-pro` (local) |
+| S2-Pro checkpoint | HF cache `fishaudio/s2-pro` |
 | Drama 3 checkpoint | `fishaudio/drama-3` HF snapshot, 41.5 GB |
 
 The upstream root project still pins PyTorch 2.8. The Spark environment is
@@ -67,9 +74,9 @@ Drama 3 rejects `--compile`.
 
 ### 2. One-command launcher, WebUI and MCP
 
-`start.sh` creates the locked environment, downloads the selected model, builds
-the WebUI once and starts the API. Drama 3 is now the default; use
-`FISH_MODEL=fishaudio/s2-pro` for S2-Pro. `start-mcp.sh` runs the MCP server in
+`start.sh` creates the locked environment, builds the WebUI once and starts
+the API, whose resolver downloads missing files into the shared HF cache. S2-Pro remains the default. Select Drama 3 explicitly with
+`./start.sh --model fishaudio/drama-3` and supply a reference voice. `start-mcp.sh` runs the MCP server in
 its own small environment so MCP dependencies cannot alter the CUDA/Pydantic
 stack.
 
@@ -91,7 +98,7 @@ every slot, and performs one bulk transfer. It reduced backbone load from about
 
 `generate_long_drama3()` now passes `chunk_length` to `split_drama3_text()`.
 Previously Drama 3 always used its internal 300-byte default, so requests with a
-smaller chunk length were ignored. This is what makes sub-2-second first audio
+smaller chunk length were ignored. This is what makes sub-2-second legacy buffered-read latency
 possible for long text.
 
 ## Results
@@ -114,7 +121,7 @@ possible for long text.
 
 S2-Pro streaming, 250-character case:
 
-| Configuration | First audio | Total | Audio | RTF |
+| Configuration | Legacy buffered-read latency | Total | Audio | RTF |
 | --- | ---: | ---: | ---: | ---: |
 | Before chunking fix, `chunk_length=200` | 21.5 s | 21.7 s | ~14.4 s | ~1.51 |
 | Fixed, `chunk_length=200` | 10.0 s | 24.3 s | 15.51 s | 1.56 |
@@ -150,12 +157,12 @@ Warm reference-conditioned performance (S2-generated 6.1 s reference
 
 Drama 3 streaming, 250-character case:
 
-| Chunk size | First audio | Total | Audio | RTF |
+| Chunk size | Legacy buffered-read latency | Total | Audio | RTF |
 | --- | ---: | ---: | ---: | ---: |
 | `chunk_length=200` | 7.02 s | 16.39 s | 13.61 s | 1.20 |
 | `chunk_length=100` | **1.35 s** | 17.15 s | 12.91 s | 1.33 |
 
-The smaller chunk gives sub-1.5-second first audio at a small total-time cost.
+The smaller chunk gives sub-1.5-second legacy buffered-read latency at a small total-time cost.
 Raw samples are in `benchmarks/drama3-reference.json`,
 `benchmarks/drama3-streaming-chunk100.json` and
 `benchmarks/drama3-streaming-chunk200.json`.
@@ -184,7 +191,7 @@ lower-precision S2 weights or a different serving engine.
 Drama 3 is a 35B-A3B block-FP8 hybrid-attention model. The FP8 expert path keeps
 the checkpoint at 41.5 GB and the resident footprint at 41.3 GiB, and the
 CUDA-graph decode reaches RTF 1.16 for long reference-conditioned text. That is
-faster than compiled S2-Pro on the same Spark, with better model quality.
+faster than compiled S2-Pro on the same Spark, without establishing a perceptual quality advantage.
 
 The largest avoidable cost was cold load, not decode. Per-expert copies were
 latency-bound on the CPU/GPU submission path, not disk-bound. Bulk stacking
@@ -198,12 +205,11 @@ We keep the reference path as the recommended production mode.
 
 ## Recommendations
 
-- Use **Drama 3 with a reference voice** for the best quality and stable output.
+- Evaluate **Drama 3 with a reference voice**; the small sample suggests better EOS behavior.
   Expect RTF 1.16–1.22 on medium/long text.
-- For interactive first audio, set `chunk_length=100`; first audio is 1.35 s
+- For interactive legacy buffered-read latency, set `chunk_length=100`; legacy buffered-read latency is 1.35 s
   versus 7.02 s at the default 200, with about 5% more total time.
-- Use `FISH_MODEL=fishaudio/s2-pro ./start.sh` when memory, cold-start time or
-  a smaller model matters. Expect RTF ≈ 1.56 with `--compile`.
+- Use `FISH_MODEL=fishaudio/s2-pro ./start.sh` when memory or a smaller model matters. Expect RTF ≈ 1.56 with `--compile`.
 - Keep one model server resident at a time. Drama 3 leaves about 80 GiB of the
   121 GiB pool for the OS, other services and CUDA contexts.
 - Use `FISH_DRAMA3_CUDA_GRAPH=0` only to debug graph capture. Use
@@ -244,7 +250,7 @@ python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
 
 # Streaming, interactive chunk size
 python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
-    --voice narrator --streaming --chunk-length 100 --runs 1 \
+    --voice narrator --streaming --chunk-length 100 --runs 3 \
     --output benchmarks/drama3-streaming-chunk100.json
 ```
 
@@ -252,7 +258,7 @@ python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
 
 | File | Purpose |
 | --- | --- |
-| `start.sh` | One-command environment/model/WebUI/API launcher (Drama 3 default). |
+| `start.sh` | One-command environment/model/WebUI/API launcher (S2-Pro default). |
 | `start-mcp.sh` | Starts the MCP server in its own environment. |
 | `tools/mcp_server.py` | Six MCP tools over the HTTP API. |
 | `tools/benchmark_tts.py` | Reproducible non-streaming/streaming benchmark. |
@@ -266,4 +272,19 @@ python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
 | `benchmarks/drama3-no-reference.json` | No-reference runaway sample for comparison. |
 | `benchmarks/drama3-streaming-chunk100.json` | Drama 3 interactive streaming. |
 | `benchmarks/drama3-streaming-chunk200.json` | Drama 3 default streaming. |
+| `tests/test_fp8_loader_order.py` | Shuffled/interleaved FP8 loader bookkeeping. |
+| `tests/test_benchmark_tts.py` | First-audio WAV reader regression test. |
 | `tests/test_s2_chunking.py` | S2 streaming regression test. |
+
+## Integration review corrections
+
+- Batched FP8 loading preserves pending down projections when gate/up complete.
+  Incoming slots are validated immediately, including duplicates and expert IDs.
+- The branch is based on current main, retaining HF cache selection, offline and
+  revision handling, codec fallback, and MCP format forwarding.
+- Drama 3 chunk length is now available in the WebUI.
+- S2-Pro remains the default; model changes require explicit selection.
+- RTF above 1 means generation is slower than real time. Cross-model comparisons
+  here use different reference conditioning and are not controlled quality tests.
+- New benchmark output includes request settings and measurement version 2.
+  Cold-load figures are reported observations, not independently reproduced logs.

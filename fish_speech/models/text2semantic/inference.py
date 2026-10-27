@@ -617,9 +617,7 @@ def split_s2_text(text: str, chunk_length: int) -> tuple[list[str], list[str]]:
     if re.search(r"<\|speaker:\d+\|>", text):
         turns = split_text_by_speaker(text)
         batches = (
-            group_turns_into_batches(
-                turns, max_speakers=5, max_bytes=chunk_length
-            )
+            group_turns_into_batches(turns, max_speakers=5, max_bytes=chunk_length)
             if turns
             else [text]
         )
@@ -1150,7 +1148,9 @@ def launch_thread_safe_queue(
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
 @click.option("--top-k", type=int, default=DEFAULT_TOP_K)
 @click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
-@click.option("--model", default=None, help="Hub model ID; defaults to fishaudio/s2-pro.")
+@click.option(
+    "--model", default=None, help="Hub model ID; defaults to fishaudio/s2-pro."
+)
 @click.option("--revision", default=None)
 @click.option("--offline", is_flag=True, help="Use cached Hub files only.")
 @click.option("--codec-model", default="fishaudio/s2-pro")
@@ -1214,7 +1214,7 @@ def main(
     single_chunk: bool,
     output_dir: Path,
 ) -> None:
-    from fish_speech.model_cache import resolve_model, resolve_codec
+    from fish_speech.model_cache import resolve_codec, resolve_model
 
     checkpoint_path = resolve_model(model, checkpoint_path, revision, offline)
     os.makedirs(output_dir, exist_ok=True)

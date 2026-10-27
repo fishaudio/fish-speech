@@ -1181,8 +1181,7 @@ function App() {
                   min={100}
                   max={1000}
                   {...defaultState('chunkLength')}
-                  disabled={isDrama3}
-                  hint={isDrama3 ? 'Drama 3 splits long text itself.' : undefined}
+                  hint={isDrama3 ? 'Drama 3: smaller chunks reduce initial wait but may affect prosody.' : undefined}
                   onValueChange={(value) => setSampling('chunkLength', value)}
                 />
                 <SettingSlider

@@ -352,6 +352,26 @@ def load_backbone_weights(
             if experts.fp8:
                 suffix = "scale_inv" if is_scale else "weight"
                 key = (prefix, suffix)
+                full_name = (
+                    f"{prefix}.{'w2' if projection == 'down_proj' else 'w13'}_{suffix}"
+                )
+                part = {"down_proj": "down", "gate_proj": "gate", "up_proj": "up"}[
+                    projection
+                ]
+                target = targets[full_name]
+                rows = target.shape[1] // 2
+                if not 0 <= expert < experts.num_experts:
+                    raise ValueError(f"{checkpoint_name}: invalid expert index")
+                slot_target = (
+                    target[expert]
+                    if part == "down"
+                    else (
+                        target[expert, :rows]
+                        if part == "gate"
+                        else target[expert, rows:]
+                    )
+                )
+                validate_slot(full_name, expert, part, slot_target, tensor)
                 by_part = fp8_stacked.setdefault(key, {})
                 num_experts = experts.num_experts
                 if projection == "down_proj":
@@ -363,13 +383,13 @@ def load_backbone_weights(
                     if len(bucket) == num_experts:
                         target = targets[full_name]
                         for e in range(num_experts):
-                            validate_slot(
-                                full_name, e, "down", target[e], bucket[e]
-                            )
+                            validate_slot(full_name, e, "down", target[e], bucket[e])
                         target.copy_(
                             torch.stack([bucket[e] for e in range(num_experts)], 0)
                         )
-                        loaded.update((full_name, e, "down") for e in range(num_experts))
+                        loaded.update(
+                            (full_name, e, "down") for e in range(num_experts)
+                        )
                         del by_part["down"]
                         if not by_part:
                             del fp8_stacked[key]
@@ -393,7 +413,10 @@ def load_backbone_weights(
                     target.copy_(torch.cat((gate, up), dim=1))
                     loaded.update((full_name, e, "gate") for e in range(num_experts))
                     loaded.update((full_name, e, "up") for e in range(num_experts))
-                    del fp8_stacked[key]
+                    del by_part["gate"]
+                    del by_part["up"]
+                    if not by_part:
+                        del fp8_stacked[key]
                 continue
             if not experts.fp8 and (is_scale or tensor.dtype == FP8_DTYPE):
                 key = (prefix, expert, projection)

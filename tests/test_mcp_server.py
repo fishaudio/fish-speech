@@ -66,18 +66,28 @@ class MCPTests(unittest.TestCase):
 
     def test_health_and_voices(self):
         self.assertTrue(server.fish_health()["ok"])
-        self.assertEqual(server.fish_voices_list(), {"count": 2, "voices": ["alice", "bob"]})
+        self.assertEqual(
+            server.fish_voices_list(), {"count": 2, "voices": ["alice", "bob"]}
+        )
         self.assertEqual(server.fish_defaults()["model_family"], "drama3")
 
     def test_tts_saves_wav_and_passes_options(self):
         result = server.fish_tts("Hello", voice="alice", seed=42, temperature=0.7)
         self.assertTrue(Path(result["path"]).is_file())
         self.assertEqual(result["duration_s"], 0.25)
-        self.assertEqual(result["rtf"], result["elapsed_s"] / 0.25)
+        self.assertAlmostEqual(result["rtf"], result["elapsed_s"] / 0.25, delta=0.003)
         kind, text, voice, options = self.api.calls[-1]
         self.assertEqual((kind, text, voice), ("generate", "Hello", "alice"))
         self.assertEqual(options["seed"], 42)
         self.assertEqual(options["temperature"], 0.7)
+
+    def test_audio_format_is_forwarded(self):
+        for fmt in ("wav", "mp3", "opus", "pcm"):
+            with self.subTest(format=fmt):
+                result = server.fish_tts("Hello", format=fmt)
+                options = self.api.calls[-1][3]
+                self.assertEqual(options.get("format"), fmt)
+                self.assertEqual(Path(result["path"]).suffix, "." + fmt)
 
     def test_inline_reference_is_base64_encoded(self):
         audio = Path(self.temp.name) / "ref.wav"
@@ -104,7 +114,9 @@ class MCPTests(unittest.TestCase):
 
     def test_voice_and_reference_are_mutually_exclusive(self):
         with self.assertRaises(ValueError):
-            server.fish_tts("Hello", voice="alice", reference_audio="x.wav", reference_text="x")
+            server.fish_tts(
+                "Hello", voice="alice", reference_audio="x.wav", reference_text="x"
+            )
 
     def test_output_name_cannot_escape_directory(self):
         result = server.fish_tts("Hello", output_name="../../escape.wav")

@@ -72,7 +72,10 @@ def _output_path(text: str, fmt: str, output_name: str | None) -> Path:
     else:
         stem = _safe_stem(text)
     directory = _output_dir()
-    path = directory / f"{time.strftime('%Y%m%d-%H%M%S')}-{stem}-{uuid.uuid4().hex[:8]}{suffix}"
+    path = (
+        directory
+        / f"{time.strftime('%Y%m%d-%H%M%S')}-{stem}-{uuid.uuid4().hex[:8]}{suffix}"
+    )
     if path.exists():  # practically impossible, but never overwrite silently
         path = directory / f"{path.stem}-{uuid.uuid4().hex[:8]}{suffix}"
     return path
@@ -202,7 +205,7 @@ def fish_tts(
         temperature: Sampling temperature, typically 0.5-0.9.
         top_p: Nucleus sampling probability.
         max_new_tokens: Per-chunk cap; 0 uses the model's own cap.
-        chunk_length: S2-Pro text chunk size in bytes, 100-1000.
+        chunk_length: Text chunk size in bytes for either model, 100-1000.
         single_chunk: Drama 3 only: generate the whole text in one pass.
         normalize: Normalize numbers and punctuation.
         latency: Server latency mode.
@@ -258,7 +261,7 @@ def fish_tts(
     destination = _output_path(text, format, output_name)
     started = time.perf_counter()
     try:
-        audio = _api().generate(text, voice=voice, **options)
+        audio = _api().generate(text, voice=voice, format=format, **options)
     except FishAPIError as exc:
         raise RuntimeError(f"Speech generation failed: {exc}") from exc
     elapsed = time.perf_counter() - started
