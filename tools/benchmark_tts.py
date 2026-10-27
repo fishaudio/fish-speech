@@ -218,17 +218,21 @@ def main() -> None:
     result = {
         "measurement_version": 2,
         "request_settings": {
-            k: getattr(args, k)
-            for k in (
-                "seed",
-                "voice",
-                "temperature",
-                "top_p",
-                "chunk_length",
-                "single_chunk",
-                "runs",
-                "warmup",
-            )
+            "format": "wav",
+            "normalize": True,
+            **{
+                k: getattr(args, k)
+                for k in (
+                    "seed",
+                    "voice",
+                    "temperature",
+                    "top_p",
+                    "chunk_length",
+                    "single_chunk",
+                    "runs",
+                    "warmup",
+                )
+            },
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "api_url": args.api_url,

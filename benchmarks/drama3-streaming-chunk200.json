@@ -1,5 +1,7 @@
 {
   "timestamp": "2026-10-26T15:45:06.449937+00:00",
+  "measurement_version": 1,
+  "legacy_measurement": true,
   "api_url": "http://127.0.0.1:8080",
   "streaming": true,
   "defaults": {

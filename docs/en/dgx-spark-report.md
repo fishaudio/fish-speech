@@ -15,7 +15,7 @@ hardware results have not been independently reproduced during this review.
 of a buffered 64 KiB read, not arrival of the legacy buffered-read latency sample. Streaming cases
 have only one measured run each. Benchmark version 2 records `first_audio_s` using
 unbuffered-response reads and WAV sample detection; rerun at least three times.
-The archived JSON files retain their original values and measurement semantics.
+The archived JSON files are marked `measurement_version: 1` and `legacy_measurement: true`; they retain their original values and measurement semantics.
 
 - **S2-Pro** runs at **RTF ≈ 1.56** for medium/long text with `--compile`,
   compared with RTF ≈ 2.25 eager. It uses about 21 GiB and cold-starts in
@@ -55,7 +55,7 @@ Two environment blockers were fixed earlier in the fork:
 | TorchAudio / TorchCodec | 2.10.0 / 0.10.0 |
 | Triton | 3.6.0 |
 | Protobuf | 6.33.6 |
-| S2-Pro checkpoint | `checkpoints/s2-pro` (local) |
+| S2-Pro checkpoint | HF cache `fishaudio/s2-pro` |
 | Drama 3 checkpoint | `fishaudio/drama-3` HF snapshot, 41.5 GB |
 
 The upstream root project still pins PyTorch 2.8. The Spark environment is
@@ -272,6 +272,8 @@ python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
 | `benchmarks/drama3-no-reference.json` | No-reference runaway sample for comparison. |
 | `benchmarks/drama3-streaming-chunk100.json` | Drama 3 interactive streaming. |
 | `benchmarks/drama3-streaming-chunk200.json` | Drama 3 default streaming. |
+| `tests/test_fp8_loader_order.py` | Shuffled/interleaved FP8 loader bookkeeping. |
+| `tests/test_benchmark_tts.py` | First-audio WAV reader regression test. |
 | `tests/test_s2_chunking.py` | S2 streaming regression test. |
 
 ## Integration review corrections
