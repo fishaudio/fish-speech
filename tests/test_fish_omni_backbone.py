@@ -1,4 +1,5 @@
 import re
+import random
 import unittest
 from unittest.mock import patch
 
@@ -350,6 +351,26 @@ class Fp8CheckpointLoadTest(unittest.TestCase):
             parameter.normal_(0.0, 0.1 if parameter.ndim >= 2 else 0.3)
         config = FishOmniTextConfig.from_dict(hf_config.to_dict())
         checkpoint = fp8_checkpoint(reference.state_dict())
+
+        # Loading must be independent of shard/key order, including down weights
+        # arriving on both sides of a complete gate/up batch.
+        baseline = FishOmniBackbone(
+            config, fp8_experts=True, dtype=torch.float32, device="cpu"
+        )
+        load_backbone_weights(baseline, checkpoint)
+        for seed in range(5):
+            shuffled = list(checkpoint)
+            random.Random(seed).shuffle(shuffled)
+            candidate = FishOmniBackbone(
+                config, fp8_experts=True, dtype=torch.float32, device="cpu"
+            )
+            load_backbone_weights(candidate, shuffled)
+            for name, expected in baseline.state_dict().items():
+                torch.testing.assert_close(
+                    candidate.state_dict()[name].float(), expected.float()
+                )
+        with self.assertRaisesRegex(ValueError, "filled twice"):
+            load_backbone_weights(candidate, checkpoint + [checkpoint[0]])
 
         tokens = torch.randint(0, VOCAB_SIZE, (1, 40))
         logits = {}

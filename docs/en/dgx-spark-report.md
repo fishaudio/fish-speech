@@ -3,321 +3,288 @@
 **Date:** 2026-10-26  
 **Hardware:** NVIDIA DGX Spark, GB10, 121 GiB unified memory  
 **Repository:** `dgxspark.fish-speech` fork of `fishaudio/fish-speech`  
-**Scope:** native Fish Speech 3.0 on the Spark, S2-Pro validated; Drama 3
-deferred because its checkpoint could not be transferred in a reasonable time.
+**Scope:** native Fish Speech 3.0 S2-Pro and Drama 3 on the Spark, including
+the API, WebUI, MCP server, streaming and cold-load behavior.
 
 ## Executive summary
 
-The fork now starts S2-Pro with one command, serves the API and WebUI, and
-exposes an MCP server. Two real blockers were found and fixed:
+The source branch reports end-to-end runs of both models on one Spark. These
+hardware results have not been independently reproduced during this review.
+
+**Measurement caveat:** historical `first_byte_s` values below measure completion
+of a buffered 64 KiB read, not arrival of the legacy buffered-read latency sample. Streaming cases
+have only one measured run each. Benchmark version 2 records `first_audio_s` using
+unbuffered-response reads and WAV sample detection; rerun at least three times.
+The archived JSON files are marked `measurement_version: 1` and `legacy_measurement: true`; they retain their original values and measurement semantics.
+
+- **S2-Pro** runs at **RTF ≈ 1.56** for medium/long text with `--compile`,
+  compared with RTF ≈ 2.25 eager. It uses about 21 GiB and cold-starts in
+  roughly 2–2.5 minutes.
+- **Drama 3** runs at **RTF 1.16–1.22** for medium/long reference-conditioned
+  speech, uses **41.3 GiB** peak memory, and now cold-starts in **67–70 s**.
+  Its measured generation times are lower in these runs; perceptual quality was not evaluated.
+- Drama 3 without a reference voice is **unreliable**: 5 of 8 tested seeds
+  failed to emit EOS and ran to the token cap, appending near-silence. With a
+  reference, all four tested seeds stopped naturally at 5.6–5.8 s. Use a
+  reference for production.
+- The Drama 3 checkpoint loader was the startup bottleneck. Replacing 62,053
+  per-expert copies with per-layer bulk FP8 transfers cut cold load from about
+  **5.5 minutes to 41 s for the backbone** (about 67–70 s total startup).
+
+Two environment blockers were fixed earlier in the fork:
 
 1. The Spark environment pinned Protobuf 5, while TensorBoard’s generated code
    required Protobuf 6.31+. The API failed at import until the Spark override
-   was moved to `protobuf>=6.31.1,<7.0.0` (resolved to 6.33.6).
+   moved to `protobuf>=6.31.1,<7.0.0` (resolved to 6.33.6).
 2. PyTorch 2.10’s CUDA 13 wheel supports through SM 12.0, while the GB10 reports
-   SM 12.1. The tested BF16 kernels, SDPA, DAC codec, and end-to-end generation
-   work through `compute_120` PTX, but the warning and compatibility risk remain.
-
-On S2-Pro, enabling `torch.compile` improves steady-state decode from about
-**7.6 to 14.5 tokens/s** and cuts medium/long-text latency from **RTF ≈ 2.3 to
-RTF ≈ 1.56**. Peak GPU memory is about 20–21 GiB. The GPU is 91–94%
-utilized but draws only 26–39 W, which is consistent with a launch-bound,
-small-batch decode rather than a bandwidth-saturated workload.
-
-Streaming had a separate bug: `chunk_length` was ignored for untagged text, so
-the API generated the whole request before emitting one audio segment. After the
-fix, first audio on the 250-character test drops from **21.5 s to 10.0 s** at
-`chunk_length=200`, and to **1.43 s** at `chunk_length=100`, with total RTF
-essentially unchanged.
-
-S2-Pro is **not faster than real time** on this GB10 in the tested configuration.
-Reaching RTF below 1 will require lower-precision weights, a more specialized
-serving engine, batching, or a combination of those. This report separates what
-was measured from what remains speculative.
+   SM 12.1. The tested BF16 kernels, SDPA, DAC codec, FP8 MoE path and
+   end-to-end generation work through `compute_120` PTX, but the warning and
+   compatibility risk remain.
 
 ## Hardware and software
 
 | Item | Value |
 | --- | --- |
 | GPU | NVIDIA GB10 |
-| Compute capability | 12.1 |
+| Compute capability | 12.1 (SM 121) |
 | Unified memory | 121 GiB |
 | Driver | 580.173.02 |
 | CUDA runtime | 13.0 |
 | Python | 3.12.3 |
 | PyTorch | 2.10.0+cu130 |
-| TorchAudio | 2.10.0 |
-| TorchCodec | 0.10.0 |
+| TorchAudio / TorchCodec | 2.10.0 / 0.10.0 |
 | Triton | 3.6.0 |
 | Protobuf | 6.33.6 |
-| OS | Linux 6.17.0-1029-nvidia, aarch64 |
-| Network used for weights | 2.4 GHz Wi-Fi, ~1.5–4 MB/s observed |
+| S2-Pro checkpoint | HF cache `fishaudio/s2-pro` |
+| Drama 3 checkpoint | `fishaudio/drama-3` HF snapshot, 41.5 GB |
 
 The upstream root project still pins PyTorch 2.8. The Spark environment is
-isolated in `environments/dgx-spark` with its own lockfile; the root project’s
-pins and indexes are unchanged.
+isolated in `environments/dgx-spark` with its own lockfile.
 
 ## What changed
 
-### 1. Protobuf 6 for the Spark environment
+### 1. Protobuf 6 and configurable Inductor mode
 
-The API imports `audiotools`, which imports `torch.utils.tensorboard`, whose
-generated `event_pb2` code requires Protobuf 6.31 or newer. The inherited
-`protobuf<6` override produced:
+The inherited `protobuf<6` override broke API import. The Spark override is now
+`protobuf>=6.31.1,<7.0.0`, resolving to 6.33.6.
 
-```text
-google.protobuf.runtime_version.VersionError: Detected incompatible
-Protobuf Gencode/Runtime versions ... gencode 6.31.1 runtime 5.29.6
-```
+`--compile` honors `FISH_COMPILE_MODE` (`default`) and
+`FISH_COMPILE_DYNAMIC` (`1`). `start.sh` enables compilation for S2-Pro only;
+Drama 3 rejects `--compile`.
 
-The Spark override is now:
+### 2. One-command launcher, WebUI and MCP
 
-```toml
-protobuf>=6.31.1,<7.0.0
-```
+`start.sh` creates the locked environment, builds the WebUI once and starts
+the API, whose resolver downloads missing files into the shared HF cache. S2-Pro remains the default. Select Drama 3 explicitly with
+`./start.sh --model fishaudio/drama-3` and supply a reference voice. `start-mcp.sh` runs the MCP server in
+its own small environment so MCP dependencies cannot alter the CUDA/Pydantic
+stack.
 
-The lock resolves 6.33.6, and `import tools.api_server` succeeds.
+### 3. S2-Pro streaming chunking
 
-### 2. Configurable Inductor mode
+`chunk_length` was ignored for untagged text, so one audio segment was emitted
+only after the whole request had been generated. `split_s2_text()` now applies
+the splitter to untagged text and preserves the tagged-speaker path.
 
-`--compile` now honors two environment variables:
+### 4. Drama 3 batched FP8 loader
 
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `FISH_COMPILE_MODE` | `default` | `torch.compile(mode=...)` |
-| `FISH_COMPILE_DYNAMIC` | `1` | `torch.compile(dynamic=...)` |
+The checkpoint stores experts per expert. The original loader copied 62,053
+tensors individually from the checkpoint into the stacked GPU parameters. The
+new loader accumulates one layer/projection on CPU, stacks it once, validates
+every slot, and performs one bulk transfer. It reduced backbone load from about
+5.5 minutes to 41 s while preserving the existing FP8/dense loader tests.
 
-`start.sh` enables `--compile` for S2-Pro by default and never for Drama 3,
-which rejects it. `FISH_COMPILE=0` restores eager mode.
+### 5. Drama 3 `chunk_length`
 
-`reduce-overhead` (Inductor CUDA graphs) was tested but did not finish compiling
-within five minutes; it was abandoned rather than made a fragile default.
-
-### 3. One-command launcher and local checkpoint preference
-
-> Historical benchmark setup: the integration fix subsequently removed automatic
-> local checkpoint preference. The launcher now defaults to the shared HF cache;
-> select local weights explicitly with `--llama-checkpoint-path`. See the
-> [current launcher instructions](dgx-spark.md#quick-start).
-
-`start.sh` creates the locked environment if needed, downloads the selected
-model into the shared HF cache, builds the WebUI once, and starts the API.
-If `checkpoints/s2-pro` already contains weights, it uses that local checkpoint
-instead of re-downloading the same model into the HF cache.
-
-`start-mcp.sh` creates a separate, small MCP environment. MCP was deliberately
-not installed into the CUDA environment: its dependency set upgraded Pydantic
-from the fork’s pinned 2.9.2 to 2.14.1. The separate environment keeps the
-inference stack on its lockfile.
-
-### 4. MCP server
-
-`tools/mcp_server.py` exposes six tools: health, defaults, voice list/add/delete,
-and TTS. It is a thin HTTP client with no Torch import, so it can run on a
-laptop. Generated files are written on the MCP host, not necessarily the API
-host. Nine unit tests pass without loading a model. A live MCP check registered a
-reference voice, synthesized with an inline reference clip, listed the voice, and
-deleted it successfully.
-
-### 5. Streaming chunking fix
-
-`chunk_length` was effectively ignored for text without `<|speaker:N|>` tags:
-`split_text_by_speaker()` returned an empty turn list, and `generate_long()`
-fell back to `[text]`. The API therefore generated the entire request before
-emitting one audio segment. The WAV header arrived immediately, but first audio
-for the 250-character test took 21.5 s.
-
-`split_s2_text()` now applies `split_by_length()` to untagged text, honoring
-`chunk_length` and preferring sentence boundaries. Tagged text keeps the old
-speaker-turn grouping. Three unit tests cover short text, long untagged text,
-and tagged turns.
-
-## Methodology
-
-The benchmark used `tools/benchmark_tts.py` against a live API. Each request
-used `seed=42`, `format=wav`, `normalize=true`, and no reference audio. Audio
-duration was read from the returned WAV header; for streamed WAVs it was
-computed from the received data bytes because the header has no final size. RTF
-is wall time divided by audio duration, so lower is better and RTF < 1 is faster
-than real time.
-
-| Case | Text length | Audio duration |
-| --- | ---: | ---: |
-| short | 12 chars | ~1.0 s |
-| medium | 99 chars | ~6.4 s |
-| long | 250 chars | ~16.1 s |
-
-Eager numbers are single runs on an otherwise idle GPU. Compiled numbers are
-medians of three runs after one warmup; the raw samples are in
-`benchmarks/s2pro-compiled.json`.
+`generate_long_drama3()` now passes `chunk_length` to `split_drama3_text()`.
+Previously Drama 3 always used its internal 300-byte default, so requests with a
+smaller chunk length were ignored. This is what makes sub-2-second legacy buffered-read latency
+possible for long text.
 
 ## Results
 
-### S2-Pro, eager vs compiled
+### S2-Pro
 
-| Case | Eager wall | Eager RTF | Compiled wall | Compiled RTF |
-| --- | ---: | ---: | ---: | ---: |
-| short | 2.37 s | 2.43 | 1.79 s | 1.84 |
-| medium | 14.30 s | 2.25 | 9.72 s | 1.57 |
-| long | 36.72 s | 2.29 | 24.24 s | 1.56 |
+| Case | Eager wall / RTF | Compiled wall / RTF |
+| --- | ---: | ---: |
+| 12 chars, 0.98 s | 2.37 s / 2.43 | 1.79 s / 1.84 |
+| 99 chars, 6.36 s | 14.30 s / 2.25 | 9.72 s / 1.57 |
+| 250 chars, 16.07 s | 36.72 s / 2.29 | 24.24 s / 1.56 |
 
 | Metric | Eager | Compiled |
 | --- | ---: | ---: |
 | Decode throughput | ~7.6 tokens/s | ~14.5 tokens/s |
-| Effective bandwidth reported by inference loop | ~34.5 GB/s | ~66 GB/s |
+| Reported effective bandwidth | ~34.5 GB/s | ~66 GB/s |
 | Peak GPU memory | ~20.3 GiB | ~21.1 GiB |
 | Startup to ready | ~99 s | ~145–160 s |
-| GPU utilization | ~91% | ~94% |
-| Power draw | ~26 W | ~39 W |
-| Temperature | ~49 °C | ~57 °C |
+| GPU utilization / power | ~91% / 26 W | ~94% / 39 W |
 
-The compiled path is about **34% faster** on the long case in steady state. The shortest case
-benefits less because fixed request overhead is a larger fraction of its wall
-time.
+S2-Pro streaming, 250-character case:
 
-### End-to-end launcher check
-
-`start.sh` was verified with S2-Pro on a local checkpoint:
-
-- `/v1/health` returned HTTP 200,
-- `/ui` returned HTTP 200 and 342,785 bytes of built HTML,
-- `POST /v1/tts` returned HTTP 200, a valid 1.35 s, 44.1 kHz mono WAV,
-- the log showed the expected local checkpoint and codec paths.
-
-### Streaming time-to-first-audio
-
-The 250-character long case, streaming WAV, seed 42. “First audio” is the time
-until the first non-header audio bytes arrived; the WAV header itself arrives in
-about 2–20 ms.
-
-| Configuration | First audio | Total | Audio | RTF |
+| Configuration | Legacy buffered-read latency | Total | Audio | RTF |
 | --- | ---: | ---: | ---: | ---: |
 | Before chunking fix, `chunk_length=200` | 21.5 s | 21.7 s | ~14.4 s | ~1.51 |
 | Fixed, `chunk_length=200` | 10.0 s | 24.3 s | 15.51 s | 1.56 |
 | Fixed, `chunk_length=100` | **1.43 s** | 23.0 s | 14.44 s | 1.60 |
 
-`chunk_length=100` is the useful interactive setting: it gives sub-2-second
-first audio at essentially the same total RTF. The default remains 200 to avoid
-unnecessary chunk boundaries. Smaller chunks are a latency/quality tradeoff;
-check prosody at boundaries for the voice you use. Raw samples are in
+`chunk_length=100` is the interactive setting. Raw samples are in
+`benchmarks/s2pro-compiled.json`, `benchmarks/s2pro-eager.json`,
 `benchmarks/s2pro-streaming-chunk100.json` and
 `benchmarks/s2pro-streaming-chunk200.json`.
 
+### Drama 3
+
+Cold load and footprint:
+
+| Metric | Before loader change | After loader change |
+| --- | ---: | ---: |
+| Backbone weights | ~5.5 min | **41 s** |
+| Total startup to ready | ~7 min | **67–70 s** |
+| Peak GPU memory | — | **41.3 GiB** |
+| Parameter slots loaded | 62,053 | 62,053 |
+
+The tower adds about 13 s and the codec about 3 s. CUDA-graph capture takes
+about 1.5 s.
+
+Warm reference-conditioned performance (S2-generated 6.1 s reference
+`drama-ref`, seed 42, three runs):
+
+| Case | Audio | Wall | RTF |
+| --- | ---: | ---: | ---: |
+| 12 chars | 0.98 s | 1.66 s | 1.70 |
+| 99 chars | 5.62 s | 6.84 s | 1.22 |
+| 250 chars | 13.84 s | 16.05 s | 1.16 |
+
+Drama 3 streaming, 250-character case:
+
+| Chunk size | Legacy buffered-read latency | Total | Audio | RTF |
+| --- | ---: | ---: | ---: | ---: |
+| `chunk_length=200` | 7.02 s | 16.39 s | 13.61 s | 1.20 |
+| `chunk_length=100` | **1.35 s** | 17.15 s | 12.91 s | 1.33 |
+
+The smaller chunk gives sub-1.5-second legacy buffered-read latency at a small total-time cost.
+Raw samples are in `benchmarks/drama3-reference.json`,
+`benchmarks/drama3-streaming-chunk100.json` and
+`benchmarks/drama3-streaming-chunk200.json`.
+
+### Drama 3 EOS reliability
+
+Same 99-character text, `max_new_tokens=400`:
+
+| Condition | Seeds tested | Natural EOS | Hit cap / trailing silence |
+| --- | ---: | ---: | ---: |
+| No reference | 8 | 3 | **5** |
+| With reference | 4 | **4** | 0 |
+
+Natural reference-conditioned clips were 5.6–5.8 s. Capped no-reference clips
+were 18.58 s (or 27.86 s at `max_new_tokens=600`) with a final-2-second RMS
+around `0.0002`, i.e. near-silence. The model is trained for reference
+conditioning; the no-reference path should not be used as a production default.
+
 ## Analysis
 
-The GB10 has roughly 273 GB/s of memory bandwidth. S2-Pro’s decode path reads
-the main 4B model once per audio frame and then runs a 4-layer fast model ten
-times, once per codebook. That is a lot of weight traffic for a batch of one.
-At ~14.5 frames/s the main model alone accounts for on the order of 100 GB/s;
-the loop’s reported 66 GB/s is plausible once cache reuse and the fast model are
-accounted for.
+S2-Pro is a 4B dense model with a 10-codebook fast-AR loop. At batch 1, weight
+traffic and kernel-launch overhead dominate; Inductor reduces the latter by
+about 32%. It remains above real time on GB10, and further gains require
+lower-precision S2 weights or a different serving engine.
 
-The GPU is 94% utilized but at low power. That pattern fits many small kernels
-and a serial codebook loop, not a saturated matrix engine. `torch.compile`
-reduces kernel launches and fuses pointwise work, which explains the 32% gain.
-The failed `reduce-overhead` experiment was aimed at the same overhead via CUDA
-graphs, but its compile time was unacceptable for a default.
+Drama 3 is a 35B-A3B block-FP8 hybrid-attention model. The FP8 expert path keeps
+the checkpoint at 41.5 GB and the resident footprint at 41.3 GiB, and the
+CUDA-graph decode reaches RTF 1.16 for long reference-conditioned text. That is
+faster than compiled S2-Pro on the same Spark, without establishing a perceptual quality advantage.
 
-Simple parameter changes (BF16 vs FP16, larger chunk length, different sampling
-defaults) do not change the fundamental per-frame weight traffic. The credible
-next steps are:
+The largest avoidable cost was cold load, not decode. Per-expert copies were
+latency-bound on the CPU/GPU submission path, not disk-bound. Bulk stacking
+turned 62k transfers into 80 weight transfers plus their scales. The tower remains a
+smaller 13 s load cost.
 
-1. **Lower-precision S2-Pro weights.** FP8 W8A8 could roughly halve weight
-   traffic. The fork already has block-FP8 MoE kernels for Drama 3, but applying
-   them to S2-Pro’s dense layers is a separate change with a quality evaluation.
-2. **A specialized serving engine.** Upstream recommends SGLang-Omni or
-   vLLM-Omni for efficiency. Their ARM64/SM 12.1 support and Fish Speech model
-   integration were not validated in this pass; adopting one would replace much
-   of the native generation path.
-3. **Batching.** Serving multiple requests together amortizes weight reads, but
-   it trades away single-request latency and needs a queue/scheduler.
+Drama 3’s no-reference EOS failure is a model/sampling behavior, not an
+attention-kernel issue: outputs contain real speech followed by near-silence
+until the cap. A reference prompt makes EOS reliable across the tested seeds.
+We keep the reference path as the recommended production mode.
 
-None of these was implemented, so the measured 1.56 RTF is the honest native
-result, not a claim about what a different engine could achieve.
+## Recommendations
 
-## Drama 3 status
+- Evaluate **Drama 3 with a reference voice**; the small sample suggests better EOS behavior.
+  Expect RTF 1.16–1.22 on medium/long text.
+- For interactive legacy buffered-read latency, set `chunk_length=100`; legacy buffered-read latency is 1.35 s
+  versus 7.02 s at the default 200, with about 5% more total time.
+- Use `FISH_MODEL=fishaudio/s2-pro ./start.sh` when memory or a smaller model matters. Expect RTF ≈ 1.56 with `--compile`.
+- Keep one model server resident at a time. Drama 3 leaves about 80 GiB of the
+  121 GiB pool for the OS, other services and CUDA contexts.
+- Use `FISH_DRAMA3_CUDA_GRAPH=0` only to debug graph capture. Use
+  `FISH_DRAMA3_FP8_EXPERTS=0` only as a dequantized fallback; it needs much more
+  memory.
+- Use the MCP server for agent integration; S2 and Drama 3 both use the same
+  six-tool surface.
 
-Drama 3 is implemented in the fork: block-FP8 experts, a 40-layer hybrid
-attention backbone, a 4-layer codebook tower, and CUDA-graph decode. It was not
-validated on this machine.
+## Limitations
 
-The checkpoint is about **41.5 GB**: eight safetensors shards of roughly 5 GB
-each plus a 1.87 GB codec. It was not present in the HF cache. Only S2-Pro’s
-weights were available locally under `checkpoints/s2-pro`. A download over the
-available 2.4 GHz Wi-Fi stalled repeatedly at roughly 1.5–4 MB/s, so the
-checkpoint was left partially downloaded and the benchmark was deferred rather
-than reported from an unvalidated or incomplete model.
+- S2-Pro numbers are single-request, batch-1, no reference audio; they are not a
+  throughput/concurrency benchmark.
+- Drama 3 numbers use one S2-generated reference voice and one language.
+- No formal perceptual quality evaluation was performed. WAVs were checked for
+  format, duration, sample rate, channels and successful decode; listening tests
+  remain for the user.
+- The no-reference Drama 3 path can run to the token cap and append silence. It
+  is documented, not recommended.
+- Smaller chunk sizes can change prosody at boundaries.
+- The SM 12.1 / PyTorch 12.0 warning remains.
+- `nvidia-smi` reports no total memory for GB10; GPU memory figures come from
+  PyTorch’s allocator and per-process accounting.
 
-To finish it:
+## Reproduce
 
 ```bash
-uv run --project environments/dgx-spark --locked --extra cu130 \
-    hf download fishaudio/drama-3
+cd /home/spark/opt/TTS/dgxspark.fish-speech
 
-# Stop other model servers first; Drama 3 needs most of the unified memory.
-FISH_MODEL=fishaudio/drama-3 FISH_LISTEN=127.0.0.1:8080 ./start.sh
+# S2-Pro
+FISH_MODEL=fishaudio/s2-pro ./start.sh
+python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 --runs 3 \
+    --output benchmarks/s2pro-compiled.json
 
+# Drama 3 with a reference voice registered as "narrator"
+FISH_MODEL=fishaudio/drama-3 ./start.sh
 python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
-    --runs 1 --warmup 1 --output benchmarks/drama3.json
+    --voice narrator --runs 3 --output benchmarks/drama3-reference.json
+
+# Streaming, interactive chunk size
+python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
+    --voice narrator --streaming --chunk-length 100 --runs 3 \
+    --output benchmarks/drama3-streaming-chunk100.json
 ```
-
-Watch for `FishOmni experts: block-FP8 W8A8`, backbone placement, and CUDA-graph
-capture in the startup log. If graph capture fails, retry with
-`FISH_DRAMA3_CUDA_GRAPH=0` to isolate graph capture from kernel issues. If FP8
-kernels fail on SM 12.1, `FISH_DRAMA3_FP8_EXPERTS=0` is the dequantized fallback,
-but it needs substantially more memory.
-
-A complete Drama 3 report should add: startup time, peak memory, frames/s,
-time-to-first-segment for streaming, RTF for short/medium/long text, and a
-quality comparison against S2-Pro on the same reference voice.
 
 ## Deliverables
 
 | File | Purpose |
 | --- | --- |
-| `start.sh` | One-command environment/model/WebUI/API launcher. |
+| `start.sh` | One-command environment/model/WebUI/API launcher (S2-Pro default). |
 | `start-mcp.sh` | Starts the MCP server in its own environment. |
 | `tools/mcp_server.py` | Six MCP tools over the HTTP API. |
 | `tools/benchmark_tts.py` | Reproducible non-streaming/streaming benchmark. |
-| `environments/mcp/` | Locked MCP client environment. |
-| `environments/dgx-spark/` | CUDA 13 environment, Protobuf 6 fix, lockfile. |
-| `docs/en/mcp.md` | MCP setup, client config, tool reference. |
-| `docs/en/dgx-spark.md` | Spark installation and operating guide. |
+| `fish_speech/.../backbone.py` | Batched FP8 expert loader. |
+| `fish_speech/.../inference.py` | S2/Drama 3 streaming chunking. |
+| `docs/en/dgx-spark.md` | Operating guide. |
 | `docs/en/dgx-spark-report.md` | This report. |
-| `benchmarks/s2pro-compiled.json` | Raw compiled benchmark samples. |
-| `benchmarks/s2pro-eager.json` | Raw eager benchmark samples. |
-| `benchmarks/s2pro-streaming-chunk100.json` | Streaming, interactive chunk size. |
-| `benchmarks/s2pro-streaming-chunk200.json` | Streaming, default chunk size. |
-| `tests/test_s2_chunking.py` | Regression tests for the streaming chunking fix. |
+| `docs/en/mcp.md` | MCP setup and tool reference. |
+| `benchmarks/s2pro-*.json` | S2 samples. |
+| `benchmarks/drama3-reference.json` | Drama 3 reference-conditioned samples. |
+| `benchmarks/drama3-no-reference.json` | No-reference runaway sample for comparison. |
+| `benchmarks/drama3-streaming-chunk100.json` | Drama 3 interactive streaming. |
+| `benchmarks/drama3-streaming-chunk200.json` | Drama 3 default streaming. |
+| `tests/test_fp8_loader_order.py` | Shuffled/interleaved FP8 loader bookkeeping. |
+| `tests/test_benchmark_tts.py` | First-audio WAV reader regression test. |
+| `tests/test_s2_chunking.py` | S2 streaming regression test. |
 
-## Recommendations
+## Integration review corrections
 
-- Use S2-Pro with the default compiled launcher for the best quality/latency
-  balance currently validated on this Spark. Expect RTF ≈ 1.56 for medium/long
-  text, not sub-real-time.
-- For interactive first audio, set `chunk_length=100`; the 250-character test
-  dropped from 10.0 s to 1.43 s with essentially unchanged total RTF.
-- Keep one model server per Spark. Loading S2-Pro and Drama 3 together is
-  possible in 121 GiB but leaves little headroom and slows both.
-- Use wired networking for the 41.5 GB Drama 3 checkpoint. The Wi-Fi path is
-  the practical blocker, not the model code.
-- If sub-real-time S2-Pro is a requirement, evaluate FP8 S2-Pro or a serving
-  engine as a separate, measured project. Do not assume the H200 RTF figures
-  transfer to GB10.
-- Use the MCP server for agent integrations and the existing HTTP API for
-  applications that need streaming or direct byte handling.
-
-## Limitations
-
-- S2-Pro numbers are single-request, batch-1, no reference audio, and one voice;
-  they are not a throughput or concurrency benchmark.
-- Eager numbers are single runs; compiled numbers are three-run medians. The
-  eager sample is therefore less stable, especially on the short case.
-- No formal perceptual quality evaluation was performed. The generated WAVs
-  were checked for format, duration, and validity; listening tests remain for
-  the user. Smaller chunk sizes can change prosody at boundaries.
-- Drama 3 has no measured numbers here.
-- `nvidia-smi` reports no memory total for GB10; memory figures come from
-  PyTorch’s allocator.
-- The SM 12.1 / PyTorch 12.0 warning remains. The tested path works, but a
-  different kernel could hit a missing architecture.
+- Batched FP8 loading preserves pending down projections when gate/up complete.
+  Incoming slots are validated immediately, including duplicates and expert IDs.
+- The branch is based on current main, retaining HF cache selection, offline and
+  revision handling, codec fallback, and MCP format forwarding.
+- Drama 3 chunk length is now available in the WebUI.
+- S2-Pro remains the default; model changes require explicit selection.
+- RTF above 1 means generation is slower than real time. Cross-model comparisons
+  here use different reference conditioning and are not controlled quality tests.
+- New benchmark output includes request settings and measurement version 2.
+  Cold-load figures are reported observations, not independently reproduced logs.
