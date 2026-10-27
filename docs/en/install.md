@@ -1,5 +1,10 @@
 ## Requirements
 
+**DGX Spark (GB10 / Linux ARM64):** follow the [DGX Spark guide](dgx-spark.md).
+The opt-in CUDA 13 environment uses
+`uv sync --project environments/dgx-spark --locked --python 3.12 --extra cu130`.
+The root defaults and CPU/CUDA 12 extras below remain unchanged.
+
 | Model | GPU memory | GPU |
 | --- | --- | --- |
 | Drama 3 | at least 48 GB (FP8) | NVIDIA GPU only: no CPU, Apple MPS or AMD ROCm, and no `--compile` |
@@ -71,6 +76,14 @@ pip install -e .
 
 !!! warning
     The `compile` option is not supported on Windows and macOS. If you want to run with compile, you need to install Triton manually.
+
+## Shared cache (default for API and inference CLI)
+
+The fork now resolves model IDs through the shared Hugging Face cache. You can
+start `./start-api.sh --model fishaudio/s2-pro` without a repository-local
+checkpoint folder. See [cache configuration and verified migration](model-cache.md)
+for importing existing weights and running offline. The explicit `--local-dir`
+commands below remain available for users who prefer manually managed paths.
 
 ## Download Weights
 
@@ -164,7 +177,7 @@ You can customize the deployment using environment variables:
 BACKEND=cuda              # or cpu
 COMPILE=1                 # Enable compile optimization
 API_PORT=8080            # API server port
-UV_VERSION=0.8.15        # UV package manager version
+UV_VERSION=0.12.23        # UV package manager version
 CUDA_VER=12.9.0          # CUDA base image version (e.g. 12.6.0 for older drivers)
 UV_EXTRA=cu129           # PyTorch CUDA variant (cu126, cu128, cu129) — must match CUDA_VER
 ```

@@ -1,3 +1,28 @@
+> **DGX Spark fork:** both **S2-Pro** and **Drama 3** are validated on the GB10
+> with Python 3.12, PyTorch 2.10.0 and CUDA 13 ARM64 wheels. One command
+> installs, downloads the selected model, builds the WebUI and serves the API:
+>
+> ```bash
+> ./start.sh
+> ```
+>
+> `start.sh` defaults to S2-Pro. Select Drama 3 explicitly:
+>
+> ```bash
+> ./start.sh --model fishaudio/drama-3
+> ```
+>
+> The API and WebUI are at `http://<SPARK_IP>:8080/` and `/ui`; agent
+> integration uses `./start-mcp.sh` ([MCP guide](docs/en/mcp.md)).
+> S2-Pro runs at RTF ≈ 1.56 with `--compile`. Drama 3 runs at **RTF 1.16–1.22**
+> for reference-conditioned medium/long speech, uses **41.3 GiB** peak memory
+> and cold-starts in **67–70 s**. Use a reference voice with Drama 3; without
+> one, some seeds run to the token cap and append silence.
+> The [DGX Spark report](docs/en/dgx-spark-report.md) has the measurements and
+> limitations. Upstream defaults remain on PyTorch 2.8; the Spark environment is
+> isolated. Models use the shared
+> [Hugging Face cache](docs/en/model-cache.md), with a verified migration script.
+
 <div align="center">
 <h1>Fish Speech</h1>
 

@@ -1,0 +1,36 @@
+[project]
+name = "fish-speech-dgx-spark"
+version = "0.1.0"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[project.optional-dependencies]
+cu130 = [
+    "fish-speech",
+    "torch==2.10.0",
+    "torchaudio==2.10.0",
+    "torchcodec==0.10.0",
+]
+
+[tool.uv]
+package = false
+# Overrides are deliberately scoped to this opt-in environment. Root installs
+# and published fish-speech metadata retain upstream's mandatory 2.8.0 pins.
+override-dependencies = [
+    "torch==2.10.0",
+    "torchaudio==2.10.0",
+    # tensorboard (transitive through descript-audiotools) ships generated code
+    # that requires protobuf >= 6.31; the root project's <6 cap breaks API import.
+    "protobuf>=6.31.1,<7.0.0",
+]
+
+[tool.uv.sources]
+fish-speech = { path = "../..", editable = true }
+torch = { index = "pytorch-cu130" }
+torchaudio = { index = "pytorch-cu130" }
+torchcodec = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true

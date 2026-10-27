@@ -58,6 +58,10 @@ nav:
   - Introduction: en/index.md
   - Installation: en/install.md
   - Inference: en/inference.md
+  - DGX Spark: en/dgx-spark.md
+  - DGX Spark report: en/dgx-spark-report.md
+  - MCP server: en/mcp.md
+  - Python API client: en/local-api-client.md
 
 # Plugins
 plugins:

@@ -24,6 +24,7 @@ from typing_extensions import Annotated
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+from fish_speech.model_cache import resolve_codec, resolve_model
 from tools.server.api_utils import MsgPackRequest, parse_args
 from tools.server.exception_handler import ExceptionHandler
 from tools.server.model_manager import ModelManager
@@ -86,13 +87,27 @@ class API(ExceptionHandler):
 
     async def initialize_app(self, app: Kui):
         # Make the ModelManager available to the views
+        checkpoint = resolve_model(
+            model=getattr(self.args, "model", None),
+            checkpoint_path=self.args.llama_checkpoint_path,
+            revision=getattr(self.args, "revision", None),
+            offline=getattr(self.args, "offline", False),
+        )
+        codec = resolve_codec(
+            checkpoint,
+            self.args.decoder_checkpoint_path,
+            repo_id=getattr(self.args, "codec_model", "fishaudio/s2-pro"),
+            revision=getattr(self.args, "codec_revision", None),
+            offline=getattr(self.args, "offline", False),
+        )
+        logger.info(f"Resolved model: {checkpoint}; codec: {codec}")
         app.state.model_manager = ModelManager(
             mode=self.args.mode,
             device=self.args.device,
             half=self.args.half,
             compile=self.args.compile,
-            llama_checkpoint_path=self.args.llama_checkpoint_path,
-            decoder_checkpoint_path=self.args.decoder_checkpoint_path,
+            llama_checkpoint_path=str(checkpoint),
+            decoder_checkpoint_path=str(codec),
             decoder_config_name=self.args.decoder_config_name,
         )
 

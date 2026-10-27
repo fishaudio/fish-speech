@@ -18,7 +18,9 @@ services:
     volumes:
       - ./checkpoints:/app/checkpoints
       - ./references:/app/references
+      - ${HF_CACHE_DIR:-${HOME}/.cache/huggingface/hub}:/hf-cache
     environment:
+      - HF_HUB_CACHE=/hf-cache
       - ROCBLAS_USE_HIPBLASLT=0
       - COMPILE=${COMPILE:-1}
     devices:

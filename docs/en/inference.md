@@ -1,5 +1,10 @@
 # Inference
 
+This fork defaults to the shared Hugging Face cache. Use `--model fishaudio/s2-pro`
+or `--model fishaudio/drama-3` with the API server or text-to-semantic CLI.
+Existing explicit checkpoint-path commands below remain supported. See
+[model cache and migration](model-cache.md) for revisions and offline mode.
+
 Fish Audio ships two models: **S2-Pro** and **Drama 3**. They share the same command line and API server, and the model type is read from the checkpoint's `config.json`, so every section below is organized as "task → command for each model".
 
 Finish [Installation](install.md) and download the [model weights](install.md#download-weights) first.
@@ -161,7 +166,7 @@ Common arguments:
 | `--format` | Output format: `wav`, `pcm`, `mp3` or `opus`; defaults to `wav` |
 | `--streaming` | Stream the audio back |
 | `--single_chunk` | Generate the whole text in one pass, without chunking (Drama 3 only) |
-| `--chunk_length` | Chunk length, 200 by default (S2-Pro only) |
+| `--chunk_length` | Chunk length in bytes, 200 by default (both models) |
 | `--max_new_tokens` | Maximum frames per chunk; unset uses the server default of 1024, 0 uses the model's own cap |
 | `--temperature` / `--top_p` | Sampling; unset uses the model defaults (0.7 / 0.7) |
 | `--seed` | Fix the random seed (it does not fix the timbre) |
@@ -179,10 +184,10 @@ Common arguments:
 | Item | S2-Pro | Drama 3 |
 | --- | --- | --- |
 | Hardware | GPU / CPU | NVIDIA GPU only, no `--compile` |
-| Long text | Chunked by `chunk_length` | Split automatically into chunks of about 300 UTF-8 bytes with at most three speakers, cut at sentence ends where possible; the first chunk and the latest one are fed back as context |
+| Long text | Chunked by `chunk_length` | Split automatically into chunks controlled by `chunk_length` (200 UTF-8 bytes by default) with at most three speakers, cut at sentence ends where possible; the first chunk and the latest one are fed back as context |
 | Length limit per pass | 1024 frames per batch by default; `max_new_tokens=0` runs up to the context length | 1024 frames (about 47 seconds) per chunk by default, which with `single_chunk` covers the whole text; `max_new_tokens=0` means 600 frames per chunk, or 2048 (about 95 seconds) with `single_chunk`; always capped at 10,240 frames minus the prompt length |
 | Speakers | The order of the references decides the role | <code>&lt;&#124;speaker:0&#124;&gt;</code>–<code>&lt;&#124;speaker:15&#124;&gt;</code> tags decide the role; reference order does not matter |
-| `chunk_length` | Takes effect | No effect |
+| `chunk_length` | Takes effect | Takes effect unless `single_chunk` is enabled |
 | Sampling defaults | temperature 0.7, top-p 0.7, top-k 30 | Same |
 | `repetition_penalty` | Ignored | Ignored |
 
