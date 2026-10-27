@@ -1,9 +1,9 @@
 # DGX Spark setup
 
-This fork runs Fish Speech 3.0 on the NVIDIA DGX Spark (GB10). The validated
-path is **S2-Pro**; Drama 3 is implemented but was not benchmarked here because
-its checkpoint was not available locally. See [Drama 3](#drama-3) for the exact
-resume and validation steps.
+This fork runs Fish Speech 3.0 on the NVIDIA DGX Spark (GB10). Both **S2-Pro**
+and **Drama 3** are validated in the native PyTorch path. S2-Pro is the default
+for lighter memory use; Drama 3 is the 35B-A3B flagship and needs a reference
+voice for reliable end-of-speech behavior. See [Drama 3](#drama-3).
 
 Validated on 2026-10-26 with:
 
@@ -222,32 +222,41 @@ python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 --streaming \
 
 ## Drama 3
 
-Drama 3 is a 35B-A3B model with block-FP8 experts. The checkpoint is about
-**41.5 GB** (eight ~5 GB safetensors shards plus the 1.87 GB codec) and fits in
-the GB10’s 121 GiB unified memory. The fork’s native path keeps the experts in
-FP8 on SM89+ GPUs and captures CUDA graphs for decode.
-
-The checkpoint was **not cached** on this Spark and the available Wi-Fi link was
-too slow and unstable to complete the download, so Drama 3 was deferred. Do not
-treat the native Drama 3 path as hardware-validated here yet.
-
-To finish the validation:
+Drama 3 is a 35B-A3B hybrid-attention model with block-FP8 experts, a 4-layer
+codebook tower and CUDA-graph decode. The checkpoint is about **41.5 GB** (eight
+~5 GB shards plus the 1.87 GB codec); peak resident memory is **41.3 GiB**.
+Select it explicitly because S2-Pro remains the default:
 
 ```bash
-# 1. Download into the shared HF cache (41.5 GB; use wired networking).
-uv run --project environments/dgx-spark --locked --extra cu130 \
-    hf download fishaudio/drama-3
-
-# 2. Stop any other model server first: Drama 3 needs most of the memory.
-#    FISH_COMPILE is not passed for Drama 3 (--compile is unsupported).
-FISH_MODEL=fishaudio/drama-3 FISH_LISTEN=127.0.0.1:8080 ./start.sh
-
-# 3. In another terminal, exercise it.
-python3 tools/benchmark_tts.py --api-url http://127.0.0.1:8080 \
-    --runs 1 --warmup 1 --output benchmarks/drama3.json
+./start.sh --model fishaudio/drama-3
 ```
 
-Useful Drama 3 switches:
+Cold start on this Spark is **67–70 s**. The batched FP8 loader replaced 62,053
+per-expert copies with per-layer bulk transfers, reducing backbone load from
+about 5.5 minutes to 41 s.
+
+### Use a reference voice
+
+Drama 3 without a reference is unreliable: in an 8-seed test, 5 seeds failed to
+emit EOS and ran to the token cap, appending near-silence. With a reference, all
+four tested seeds stopped naturally at 5.6–5.8 s. Register one with the API:
+
+```python
+from fishapi import FishAPI
+api = FishAPI('http://127.0.0.1:8080')
+api.add_voice('narrator', 'reference.wav', 'Exact transcript of the reference.')
+```
+
+Then send `reference_id: "narrator"` with each request.
+
+### Streaming and chunk length
+
+Drama 3 honors `chunk_length` (100–1000 bytes), including the WebUI slider.
+`chunk_length=100` cuts first audio on the 250-character test to about **1.4 s**
+versus **7.0 s** at 200, at a small total-time cost. Smaller chunks can change
+prosody. `single_chunk=true` bypasses splitting.
+
+Useful switches:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -255,10 +264,9 @@ Useful Drama 3 switches:
 | `FISH_DRAMA3_CUDA_GRAPH` | `1` | `0` disables CUDA-graph decode for debugging. |
 
 At startup the log should show `FishOmni experts: block-FP8 W8A8`, the backbone
-placement, and the captured CUDA-graph buckets. Peak memory and generated audio
-duration should be recorded before comparing it with S2-Pro. If CUDA-graph
-capture fails, retry once with `FISH_DRAMA3_CUDA_GRAPH=0` to separate graph
-capture from model/kernel problems.
+placement, and the captured CUDA-graph buckets. If capture fails, retry with
+`FISH_DRAMA3_CUDA_GRAPH=0` to separate graph capture from model/kernel problems.
+See the [performance report](dgx-spark-report.md) for measurement caveats.
 
 ## WebUI
 
@@ -291,19 +299,3 @@ TorchAudio `backend` argument is ignored is expected with 2.9+.
 This guide covers the native ARM64 installation. The Docker/Compose defaults
 still describe the upstream CUDA 12 environment and are not a validated Spark
 path.
-
-## Drama 3 optimization review
-
-Select Drama 3 explicitly with `./start.sh --model fishaudio/drama-3`; S2-Pro
-remains the default. Prefer a reference voice: the recorded small-sample tests
-found trailing silence and token-cap termination without one.
-
-The FP8 loader batches expert transfers while preserving checkpoint-order
-independence. Drama 3 now honors `chunk_length` (100–1000 bytes), including the
-WebUI slider. Try 100 for shorter initial waits; smaller chunks can alter prosody
-and increase total generation time. `single_chunk=true` bypasses this splitting.
-
-Historical benchmark JSON uses a buffered-read latency measurement. Rerun with
-`tools/benchmark_tts.py --voice narrator --streaming --chunk-length 100 --runs 3`
-to measure `first_audio_s` with the corrected reader. See the performance report
-for evidence limitations; no quality advantage is established by timing alone.
