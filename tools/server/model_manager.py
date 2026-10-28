@@ -8,6 +8,7 @@ from fish_speech.models.text2semantic.fish_omni.generate import (
     resolve_drama3_dtype,
 )
 from fish_speech.models.text2semantic.fish_omni.model import is_fish_omni_checkpoint
+from fish_speech.models.text2semantic.fish_omni.tower import ReferenceSamplingFallback
 from fish_speech.models.text2semantic.inference import (
     launch_thread_safe_queue,
     load_codec_model,
@@ -29,16 +30,20 @@ class ModelManager:
         llama_checkpoint_path: str,
         decoder_checkpoint_path: str | None,
         decoder_config_name: str,
+        reference_sampling: ReferenceSamplingFallback | None = None,
     ) -> None:
 
         self.mode = mode
         self.device = device
         self.half = half
         self.compile = compile
+        self.reference_sampling = reference_sampling
         self.precision = torch.half if half else torch.bfloat16
         self.model_family: ModelFamily = (
             "drama3" if is_fish_omni_checkpoint(llama_checkpoint_path) else "s2"
         )
+        if reference_sampling is not None and self.model_family != "drama3":
+            raise ValueError("--reference-sampling needs a Drama 3 checkpoint")
 
         decoder_checkpoint_path = resolve_codec_path(
             llama_checkpoint_path, decoder_checkpoint_path
@@ -95,6 +100,7 @@ class ModelManager:
                 device=device,
                 precision=precision,
                 compile=compile,
+                reference_sampling=self.reference_sampling,
             )
         else:
             raise ValueError(f"Invalid mode: {mode}")

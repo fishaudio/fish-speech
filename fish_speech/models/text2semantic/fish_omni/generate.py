@@ -14,6 +14,8 @@ from fish_speech.models.text2semantic.fish_omni.config import FishOmniConfig
 from fish_speech.models.text2semantic.fish_omni.model import FishOmniModel
 from fish_speech.models.text2semantic.fish_omni.tower import (
     RAS_WINDOW_FRAMES,
+    REFERENCE_EPSILON_CUTOFF,
+    ReferenceSamplingFallback,
     TowerAttention,
 )
 from fish_speech.models.text2semantic.sampling import (
@@ -200,18 +202,21 @@ def generate_drama3(
     temperature: float = DEFAULT_TEMPERATURE,
     top_k: int = DEFAULT_TOP_K,
     top_p: float = DEFAULT_TOP_P,
+    epsilon_cutoff: float | None = None,
     prefill_chunk_size: int = DRAMA3_PREFILL_CHUNK_SIZE,
 ) -> tuple[torch.Tensor, FinishReason]:
     """Sample frames after the prompt rows; returns CPU [frames, 1 + N] without EOS.
 
     The tower cache of prompt row p is filled with frame p + 1 as its label; the
     last prompt row has none yet, so the first decode step writes that slot.
+    epsilon_cutoff None leaves it to the tower's sampler (see resolve_epsilon_cutoff).
     """
-    # The sampler keeps the top-ranked token whatever top_k is, so top_k < 1 would
-    # silently turn into greedy decoding.
-    if top_k < 1:
-        raise InvalidInputError(f"top_k must be at least 1; got {top_k}")
     backbone, tower = model.backbone, model.audio_decoder
+    # The default sampler keeps the top-ranked token whatever top_k is, so top_k < 1
+    # would silently turn into greedy decoding; reference sampling reads it as no cap.
+    if top_k < 1 and tower.reference_sampling is None:
+        raise InvalidInputError(f"top_k must be at least 1; got {top_k}")
+    epsilon_cutoff = resolve_epsilon_cutoff(tower.reference_sampling, epsilon_cutoff)
     prompt_rows = len(prompt)
     capacity = prompt_rows + max_new_tokens
     if max_new_tokens < 1 or capacity > model.config.text.max_position_embeddings:
@@ -253,7 +258,13 @@ def generate_drama3(
     produced, finish_reason = 0, "length"
     if graphs is not None:
         graphs.start(
-            hidden, prompt_rows - 1, frames[:prompt_rows], temperature, top_k, top_p
+            hidden,
+            prompt_rows - 1,
+            frames[:prompt_rows],
+            temperature,
+            top_k,
+            top_p,
+            epsilon_cutoff,
         )
     for step in tqdm(range(max_new_tokens)):
         position = prompt_rows - 1 + step
@@ -270,6 +281,7 @@ def generate_drama3(
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
+                epsilon_cutoff=epsilon_cutoff,
             )
             main = sampled[0, 0].item()
         if main == model.config.eos_token_id:
@@ -284,6 +296,27 @@ def generate_drama3(
                 input_pos=positions[position + 1 : position + 2],
             )[0].to(tower.device)
     return frames[prompt_rows : prompt_rows + produced].cpu(), finish_reason
+
+
+def resolve_epsilon_cutoff(
+    reference_sampling: ReferenceSamplingFallback | None,
+    epsilon_cutoff: float | None,
+) -> float:
+    """The main token's epsilon cutoff for a request, in [0, 1).
+
+    Under reference sampling None means REFERENCE_EPSILON_CUTOFF and 0 turns the
+    cutoff off; the default sampler has no cutoff and refuses a non-zero one.
+    """
+    if epsilon_cutoff is not None and not 0.0 <= epsilon_cutoff < 1.0:
+        raise InvalidInputError(f"epsilon_cutoff must be in [0, 1); got {epsilon_cutoff}")
+    if reference_sampling is None:
+        if epsilon_cutoff:
+            raise InvalidInputError(
+                "epsilon_cutoff needs reference sampling; start with "
+                "--reference-sampling"
+            )
+        return 0.0
+    return REFERENCE_EPSILON_CUTOFF if epsilon_cutoff is None else float(epsilon_cutoff)
 
 
 def ensure_drama3_caches(model: FishOmniModel, capacity: int) -> None:
@@ -326,6 +359,9 @@ class Drama3DecodeGraphs:
         self.temperature = torch.zeros((), dtype=torch.float32, device=device)
         self.top_k = torch.zeros((), dtype=torch.long, device=device)
         self.top_p = torch.zeros((), dtype=torch.float32, device=device)
+        self.epsilon_cutoff = torch.zeros((), dtype=torch.float32, device=device)
+        # The sampler is a Python branch of decode_step, frozen into the graphs.
+        self.reference_sampling = tower.reference_sampling
         self.finite = torch.ones((), dtype=torch.bool, device=device)
         self.graphs: dict[int, torch.cuda.CUDAGraph] = {}
         self.pool = torch.cuda.graph_pool_handle()
@@ -351,6 +387,14 @@ class Drama3DecodeGraphs:
         devices.add(model.audio_decoder.device)
         if len(devices) != 1 or next(iter(devices)).type != "cuda":
             return None
+        graphs = model.decode_graphs
+        if (
+            graphs is not None
+            and graphs.reference_sampling != model.audio_decoder.reference_sampling
+        ):
+            # Captured with the other sampler.
+            model.decode_graphs = None
+            torch.cuda.empty_cache()
         if model.decode_graphs is None:
             # Captured before the first request's prefill, which resets the caches.
             ensure_drama3_caches(model, cls.graph_capacity(model))
@@ -384,6 +428,7 @@ class Drama3DecodeGraphs:
             temperature=self.temperature,
             top_k=self.top_k,
             top_p=self.top_p,
+            epsilon_cutoff=self.epsilon_cutoff,
             check_finite=False,
         )
         self.sampled.copy_(sampled)
@@ -421,6 +466,7 @@ class Drama3DecodeGraphs:
         temperature: float,
         top_k: int,
         top_p: float,
+        epsilon_cutoff: float = 0.0,
     ) -> None:
         """Load the state after prefill: last hidden row, its position and frame."""
         self.hidden.copy_(hidden)
@@ -432,6 +478,7 @@ class Drama3DecodeGraphs:
         self.temperature.fill_(temperature)
         self.top_k.fill_(top_k)
         self.top_p.fill_(top_p)
+        self.epsilon_cutoff.fill_(epsilon_cutoff)
 
     def step(self, position: int) -> tuple[torch.Tensor, int]:
         """Sample the frame after position and run the backbone on it.

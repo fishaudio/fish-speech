@@ -56,6 +56,21 @@ def parse_args():
     parser.add_argument(
         "--compile", action="store_true", help="torch.compile (S2-Pro only)."
     )
+    parser.add_argument(
+        "--reference-sampling",
+        action="store_true",
+        help="Drama 3 only: sample with Fish Audio's reference sampling, which reads "
+        "the request's epsilon_cutoff (default 1e-3). Recommended request parameters: "
+        "temperature 1.0, top_p 1.0.",
+    )
+    parser.add_argument(
+        "--reference-sampling-fallback",
+        choices=["argmax", "ras"],
+        default="argmax",
+        help="Under --reference-sampling, what replaces a main token found among the "
+        "last 16: the most probable candidate (argmax) or a draw at temperature 1.0, "
+        "top-p 0.95, top-k 30 (ras).",
+    )
     parser.add_argument("--max-text-length", type=int, default=0)
     parser.add_argument("--listen", type=str, default="127.0.0.1:8080")
     parser.add_argument("--workers", type=int, default=1)

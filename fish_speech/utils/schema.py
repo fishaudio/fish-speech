@@ -106,6 +106,9 @@ class ServeTTSRequest(BaseModel):
         None
     )
     temperature: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
+    # Drama 3 with --reference-sampling only: the main token's epsilon cutoff. None
+    # means 1e-3 and 0 turns it off; a non-zero value without the switch is a 400.
+    epsilon_cutoff: Annotated[float, Field(ge=0.0, lt=1.0, strict=True)] | None = None
 
     class Config:
         # Allow arbitrary types for pytorch related types

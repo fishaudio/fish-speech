@@ -112,6 +112,20 @@ class SamplingDefaultsTest(unittest.TestCase):
         engine.send_Llama_request(ServeTTSRequest(text="hi", single_chunk=True), [], [])
         self.assertTrue(engine.llama_queue.get_nowait().request["single_chunk"])
 
+    def test_epsilon_cutoff_is_forwarded_only_when_set(self):
+        engine = make_engine("drama3")
+        self.assertNotIn(
+            "epsilon_cutoff", engine.resolve_sampling(ServeTTSRequest(text="hi"))
+        )
+        for value in (0.0, 1e-3):
+            params = engine.resolve_sampling(
+                ServeTTSRequest(text="hi", epsilon_cutoff=value)
+            )
+            self.assertEqual(params["epsilon_cutoff"], value)
+        for bad in (1.0, -0.1, "0.1"):
+            with self.assertRaises(ValidationError):
+                ServeTTSRequest(text="hi", epsilon_cutoff=bad)
+
     def test_unknown_family(self):
         with self.assertRaises(ValueError):
             make_engine("s1")

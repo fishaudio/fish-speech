@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--temperature", type=float)
     parser.add_argument("--top-p", type=float)
+    parser.add_argument(
+        "--epsilon-cutoff",
+        type=float,
+        help="needs a server started with --reference-sampling",
+    )
     parser.add_argument("--max-new-tokens", type=int)
     parser.add_argument("--timeout", type=float, default=600)
     return parser.parse_args()
@@ -68,6 +73,7 @@ def main() -> None:
         for key, value in (
             ("temperature", args.temperature),
             ("top_p", args.top_p),
+            ("epsilon_cutoff", args.epsilon_cutoff),
             ("max_new_tokens", args.max_new_tokens),
         )
         if value is not None

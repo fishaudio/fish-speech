@@ -1,5 +1,6 @@
 import math
 from collections.abc import Iterable
+from typing import Literal
 
 import torch
 import torch.nn as nn
@@ -25,6 +26,16 @@ RAS_TEMPERATURE = 1.0
 RAS_TOP_K = 30
 RAS_TOP_P = 0.95
 MIN_TEMPERATURE = 1e-5
+# Reference sampling (Fish Audio's sampler for Drama 3): what replaces a main-token
+# first draw that repeats one of the last RAS_WINDOW_FRAMES main tokens, eos included:
+# the most probable candidate, or a draw with the RAS parameters above.
+ReferenceSamplingFallback = Literal["argmax", "ras"]
+REFERENCE_SAMPLING_FALLBACKS: tuple[ReferenceSamplingFallback, ...] = ("argmax", "ras")
+# The main token's epsilon_cutoff under reference sampling when a request sets none.
+REFERENCE_EPSILON_CUTOFF = 1e-3
+# Codes per residual codebook of the codec (codebook_size in modded_dac_vq.yaml); the
+# codebook heads are wider (the semantic codebook's 4096).
+RESIDUAL_CODEBOOK_SIZE = 1024
 TOWER_CHECKPOINT_PREFIXES = {
     "audio_decoder.codebook_embeddings.": "codebook_embeddings.",
     "audio_decoder_mtp_shared.layers.": "shared_layers.",
@@ -57,6 +68,74 @@ def sample_top_k_top_p(
     dropped = (values.softmax(-1).cumsum(-1) > top_p) | (ranks >= top_k)
     dropped[..., 0] = False
     probabilities = values.masked_fill(dropped, -torch.inf).softmax(-1)
+    noise = torch.empty_like(probabilities).exponential_()
+    choice = (probabilities / noise).argmax(-1, keepdim=True)
+    return ids.gather(-1, choice).squeeze(-1)
+
+
+def per_row(value: float | Tensor) -> float | Tensor:
+    """A per-row [rows] tensor as a column; numbers and 0-dim tensors broadcast as is."""
+    return value.unsqueeze(-1) if isinstance(value, Tensor) and value.ndim == 1 else value
+
+
+def reference_candidates(
+    logits: Tensor,
+    temperature: float | Tensor,
+    top_k: int | Tensor,
+    top_p: float | Tensor,
+    epsilon_cutoff: float | Tensor,
+    legal_column_count: int | None = None,
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Scaled logits sorted in descending order, their ids, and the kept mask in that
+    order, under the reference sampling rules (see reference_sample)."""
+    if isinstance(temperature, Tensor):
+        temperature = temperature.clamp(min=MIN_TEMPERATURE)
+    else:
+        temperature = max(temperature, MIN_TEMPERATURE)
+    top_k, top_p, epsilon_cutoff = map(per_row, (top_k, top_p, epsilon_cutoff))
+    values, ids = torch.sort(
+        logits.float() / per_row(temperature), descending=True, stable=True, dim=-1
+    )
+    probabilities = values.softmax(-1)
+    ranks = torch.arange(values.shape[-1], device=values.device)
+    # All rules read the same probabilities; top_k < 1 and top_p >= 1 turn theirs off.
+    kept = ((ranks < top_k) | (top_k < 1)).expand(values.shape).clone()
+    kept &= (probabilities.cumsum(-1) <= top_p) | (top_p >= 1.0)
+    kept &= probabilities >= epsilon_cutoff
+    if legal_column_count is None:
+        kept[..., 0] = True
+    else:
+        legal = ids < legal_column_count
+        kept &= legal
+        kept.scatter_(-1, legal.int().argmax(-1, keepdim=True), True)
+    return values, ids, kept
+
+
+def reference_sample(
+    logits: Tensor,
+    temperature: float | Tensor,
+    top_k: int | Tensor,
+    top_p: float | Tensor,
+    epsilon_cutoff: float | Tensor,
+    *,
+    legal_column_count: int | None = None,
+    check_finite: bool = True,
+) -> Tensor:
+    """One id per row under Fish Audio's reference sampling for Drama 3.
+
+    Rank r stays when r < top_k and (r == 0 or (cum[r] <= top_p and p[r] >=
+    epsilon_cutoff)) (epsilon sampling, Hewitt et al., 2022); top_k < 1, top_p >= 1
+    and epsilon_cutoff <= 0 turn their rule off. legal_column_count then drops later
+    ids, keeping the most probable legal one. Parameters may be numbers, 0-dim device
+    tensors (CUDA graphs) or per-row tensors; check_finite syncs with the host.
+    """
+    if check_finite and not torch.isfinite(logits).all():
+        raise FloatingPointError("non-finite logits; refusing to sample invalid audio")
+    values, ids, kept = reference_candidates(
+        logits, temperature, top_k, top_p, epsilon_cutoff, legal_column_count
+    )
+    probabilities = values.masked_fill(~kept, -torch.inf).softmax(-1)
+    # The argmax of p / E with E ~ Exp(1) per column is a draw from p.
     noise = torch.empty_like(probabilities).exponential_()
     choice = (probabilities / noise).argmax(-1, keepdim=True)
     return ids.gather(-1, choice).squeeze(-1)
@@ -274,6 +353,9 @@ class FishOmniAudioDecoder(nn.Module):
         # Ids the main token is drawn from (eos + the semantic band), built lazily
         # on the tower's device: creating it inside CUDA-graph capture is illegal.
         self.main_candidates: Tensor | None = None
+        # The fallback of reference sampling, which then replaces the sampler above;
+        # None keeps it. CUDA graphs capture the sampler in use when they are captured.
+        self.reference_sampling: ReferenceSamplingFallback | None = None
 
     @property
     def device(self) -> torch.device:
@@ -344,9 +426,13 @@ class FishOmniAudioDecoder(nn.Module):
         temperature: float | Tensor,
         top_k: int | Tensor,
         top_p: float | Tensor,
+        epsilon_cutoff: float | Tensor = 0.0,
         check_finite: bool = True,
     ) -> Tensor:
-        """Sample the frame after each row; the main token is drawn over eos + semantics."""
+        """Sample the frame after each row; the main token is drawn over eos + semantics.
+
+        Only reference sampling reads epsilon_cutoff.
+        """
         if self.main_candidates is None or self.main_candidates.device != self.device:
             eos = torch.tensor([self.eos_id], device=self.device)
             band = torch.arange(
@@ -355,24 +441,58 @@ class FishOmniAudioDecoder(nn.Module):
             self.main_candidates = torch.cat((eos, band)).sort().values
         candidates = self.main_candidates
         candidate_logits = logits[:, candidates]
-        first = candidates[
-            sample_top_k_top_p(
-                candidate_logits, temperature, top_k, top_p, check_finite=check_finite
-            )
-        ]
-        retry = candidates[
-            sample_top_k_top_p(
-                candidate_logits,
-                RAS_TEMPERATURE,
-                RAS_TOP_K,
-                RAS_TOP_P,
-                check_finite=False,
-            )
-        ]
-        # Only audio tokens are resampled, as in S2: the window starts with prompt rows,
-        # which hold the user turn's eos, and a stop must not be redrawn.
-        repeated = (history[-RAS_WINDOW_FRAMES:] == first[:, None]).any(-1)
-        repeated &= self.is_semantic(first)
+        window = history[-RAS_WINDOW_FRAMES:]
+        fallback = self.reference_sampling
+        if fallback is None:
+            first = candidates[
+                sample_top_k_top_p(
+                    candidate_logits,
+                    temperature,
+                    top_k,
+                    top_p,
+                    check_finite=check_finite,
+                )
+            ]
+            retry = candidates[
+                sample_top_k_top_p(
+                    candidate_logits,
+                    RAS_TEMPERATURE,
+                    RAS_TOP_K,
+                    RAS_TOP_P,
+                    check_finite=False,
+                )
+            ]
+            # Only audio tokens are resampled, as in S2: the window starts with prompt
+            # rows, which hold the user turn's eos, and a stop must not be redrawn.
+            repeated = (window == first[:, None]).any(-1)
+            repeated &= self.is_semantic(first)
+        else:
+            first = candidates[
+                reference_sample(
+                    candidate_logits,
+                    temperature,
+                    top_k,
+                    top_p,
+                    epsilon_cutoff,
+                    check_finite=check_finite,
+                )
+            ]
+            # Neither fallback applies the epsilon cutoff.
+            if fallback == "argmax":
+                retry = candidates[candidate_logits.float().argmax(-1)]
+            else:
+                retry = candidates[
+                    reference_sample(
+                        candidate_logits,
+                        RAS_TEMPERATURE,
+                        RAS_TOP_K,
+                        RAS_TOP_P,
+                        0.0,
+                        check_finite=False,
+                    )
+                ]
+            # Any repeated first draw is replaced, eos included.
+            repeated = (window == first[:, None]).any(-1)
         main = torch.where(repeated, retry, first)
         c0 = (main - self.semantic_begin).clamp(0, self.config.vocab_size - 1)
         semantic = self.is_semantic(main)
@@ -380,11 +500,22 @@ class FishOmniAudioDecoder(nn.Module):
         codes = [c0]
         for layer, head in zip(self.residual_layers, self.codebook_heads):
             hidden = layer(hidden, codes[-1], semantic, positions)
-            codes.append(
-                sample_top_k_top_p(
+            if fallback is None:
+                code = sample_top_k_top_p(
                     head(hidden), temperature, top_k, top_p, check_finite=check_finite
                 )
-            )
+            else:
+                # No epsilon cutoff, and only codes the codec's residual codebooks hold.
+                code = reference_sample(
+                    head(hidden),
+                    temperature,
+                    top_k,
+                    top_p,
+                    0.0,
+                    legal_column_count=RESIDUAL_CODEBOOK_SIZE,
+                    check_finite=check_finite,
+                )
+            codes.append(code)
         return torch.stack((main, *codes), dim=-1)
 
 
