@@ -31,10 +31,17 @@ def audio_to_bytes(file_path):
 
 
 def read_ref_text(ref_text):
-    path = Path(ref_text)
-    if path.exists() and path.is_file():
-        with path.open("r", encoding="utf-8") as file:
-            return file.read()
+    # ref_text may be a path to a transcript file OR an inline transcript. Probing it as
+    # a path can raise (e.g. OSError ENAMETOOLONG when an inline transcript exceeds the
+    # filesystem's name limit, ~255 bytes) -- a normal reference transcript easily does.
+    # Treat any path error as "this is inline text" and return it verbatim.
+    try:
+        path = Path(ref_text)
+        if path.exists() and path.is_file():
+            with path.open("r", encoding="utf-8") as file:
+                return file.read()
+    except OSError:
+        pass
     return ref_text
 
 
