@@ -617,6 +617,12 @@ def split_text_by_speaker(text: str) -> list[str]:
             else:
                 turns.append(part)
                 i += 1
+        elif part:
+            # Text before the first speaker tag (or any untagged fragment) was being
+            # dropped. Assign it to speaker 0 so it is still synthesized, matching
+            # parse_speaker_segments() in fish_omni/chunking.py.
+            turns.append(f"<|speaker:0|>{part}")
+            i += 1
         else:
             i += 1
 
@@ -637,23 +643,37 @@ def group_turns_into_batches(
     Returns:
         List of batched text strings
     """
+
+    def _speaker_of(turn: str) -> str | None:
+        match = re.match(r"<\|speaker:\d+\|>", turn.strip())
+        return match.group(0) if match else None
+
     batches = []
     current_batch = []
+    current_speakers = set()
     current_bytes = 0
 
     for turn in turns:
         turn_bytes = len(turn.encode("utf-8"))
+        speaker = _speaker_of(turn)
 
-        would_exceed_speakers = len(current_batch) >= max_speakers
+        # max_speakers limits DISTINCT speakers per batch (per the docstring), not the
+        # number of turns. Counting len(current_batch) split monologues / repeated
+        # speakers into needless batches; only a new, unseen speaker counts here.
+        adds_speaker = speaker is not None and speaker not in current_speakers
+        would_exceed_speakers = adds_speaker and len(current_speakers) >= max_speakers
         would_exceed_bytes = current_bytes + turn_bytes > max_bytes and current_batch
 
         if would_exceed_speakers or would_exceed_bytes:
             batches.append("\n".join(current_batch))
             current_batch = [turn]
             current_bytes = turn_bytes
+            current_speakers = {speaker} if speaker is not None else set()
         else:
             current_batch.append(turn)
             current_bytes += turn_bytes
+            if speaker is not None:
+                current_speakers.add(speaker)
 
     if current_batch:
         batches.append("\n".join(current_batch))
