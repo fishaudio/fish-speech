@@ -4,10 +4,11 @@ import queue
 import unittest
 from unittest.mock import patch
 
+import httpx
 import numpy as np
 import soundfile as sf
 import torch
-from kui.asgi import HTTPException
+from kui.asgi import HTTPException, Kui
 from pydantic import ValidationError
 
 from fish_speech.inference_engine import SAMPLING_DEFAULTS, TTSInferenceEngine
@@ -17,8 +18,11 @@ from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import Drama3PromptTooLongError
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 from tools.server.api_utils import encode_audio, inference_async
+from tools.server.exception_handler import ExceptionHandler
 from tools.server.inference import inference_wrapper
+from tools.server.model_manager import ModelManager
 from tools.server.model_utils import batch_vqgan_decode
+from tools.server.views import routes
 
 
 class FakeCodec(torch.nn.Module):
@@ -228,6 +232,96 @@ class ErrorMappingTest(unittest.TestCase):
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
+
+
+class SamplingHTTPTest(unittest.IsolatedAsyncioTestCase):
+    def make_app(self, family, fallback=None):
+        # Exercise the real manager validation without loading checkpoint weights.
+        manager = object.__new__(ModelManager)
+        manager.model_family = family
+        manager.reference_sampling = fallback
+        manager.tts_inference_engine = make_engine(family)
+        handlers = ExceptionHandler()
+        app = Kui(
+            routes=routes,
+            exception_handlers={HTTPException: handlers.http_exception_handler},
+        )
+        app.state.model_manager = manager
+        app.state.max_text_length = 0
+        return app, manager.tts_inference_engine
+
+    async def test_incompatible_sampling_is_rejected_before_streaming(self):
+        for family in ("s2", "drama3"):
+            for streaming in (False, True):
+                for params in ({"epsilon_cutoff": 0.001}, {"top_k": 0}):
+                    with self.subTest(
+                        family=family, streaming=streaming, params=params
+                    ):
+                        app, engine = self.make_app(family)
+                        with patch.object(engine, "inference") as generate:
+                            async with httpx.AsyncClient(
+                                transport=httpx.ASGITransport(app=app),
+                                base_url="http://test",
+                            ) as client:
+                                response = await client.post(
+                                    "/v1/tts",
+                                    json={
+                                        "text": "hi",
+                                        "streaming": streaming,
+                                        **params,
+                                    },
+                                )
+                        self.assertEqual(response.status_code, 400)
+                        self.assertIn(next(iter(params)), response.json()["message"])
+                        generate.assert_not_called()
+                        self.assertTrue(engine.llama_queue.empty())
+
+    async def test_compatible_sampling_returns_audio(self):
+        cases = [
+            ("s2", None, {}),
+            ("s2", None, {"epsilon_cutoff": 0, "top_k": 1}),
+            ("drama3", None, {}),
+            ("drama3", None, {"epsilon_cutoff": 0, "top_k": 1}),
+            ("drama3", "argmax", {"epsilon_cutoff": 0.001, "top_k": 0}),
+            ("drama3", "ras", {"epsilon_cutoff": 0, "top_k": 0}),
+        ]
+        for family, fallback, params in cases:
+            for streaming in (False, True):
+                with self.subTest(
+                    family=family, fallback=fallback, streaming=streaming
+                ):
+                    app, engine = self.make_app(family, fallback)
+                    replies = queue.Queue()
+                    replies.put(
+                        inference.WrappedGenerateResponse(
+                            "success",
+                            inference.GenerateResponse("sample", torch.zeros(3, 2)),
+                        )
+                    )
+                    replies.put(
+                        inference.WrappedGenerateResponse(
+                            "success", inference.GenerateResponse("next")
+                        )
+                    )
+                    with (
+                        patch.object(
+                            engine, "send_Llama_request", return_value=replies
+                        ),
+                        patch("fish_speech.inference_engine.vq_manager.DAC", FakeCodec),
+                    ):
+                        async with httpx.AsyncClient(
+                            transport=httpx.ASGITransport(app=app),
+                            base_url="http://test",
+                        ) as client:
+                            response = await client.post(
+                                "/v1/tts",
+                                json={"text": "hi", "streaming": streaming, **params},
+                            )
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.content[:4], b"RIFF")
+                    audio, sample_rate = sf.read(io.BytesIO(response.content))
+                    self.assertEqual(sample_rate, FakeCodec.sample_rate)
+                    self.assertEqual(len(audio), 2 * FakeCodec.frame_length)
 
 
 class StreamingTest(unittest.TestCase):

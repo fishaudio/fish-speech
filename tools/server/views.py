@@ -22,6 +22,7 @@ from kui.asgi import (
 from loguru import logger
 from typing_extensions import Annotated
 
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.utils.schema import (
     AddReferenceRequest,
     AddReferenceResponse,
@@ -161,6 +162,8 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
         engine = model_manager.tts_inference_engine
         sample_rate = engine.decoder_model.sample_rate
 
+        model_manager.validate_sampling(req)
+
         # Check if the text is too long
         if app_state.max_text_length > 0 and len(req.text) > app_state.max_text_length:
             raise HTTPException(
@@ -195,6 +198,8 @@ async def tts(req: Annotated[ServeTTSRequest, Body(exclusive=True)]):
                 },
                 content_type=get_content_type(req.format),
             )
+    except InvalidInputError as e:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, content=str(e)) from e
     except HTTPException:
         # Re-raise HTTP exceptions as they are already properly formatted
         raise

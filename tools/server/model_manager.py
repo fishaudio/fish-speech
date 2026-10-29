@@ -3,9 +3,11 @@ from loguru import logger
 
 from fish_speech.inference_engine import ModelFamily, TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import (
     resolve_drama3_devices,
     resolve_drama3_dtype,
+    resolve_epsilon_cutoff,
 )
 from fish_speech.models.text2semantic.fish_omni.model import is_fish_omni_checkpoint
 from fish_speech.models.text2semantic.fish_omni.tower import ReferenceSamplingFallback
@@ -89,6 +91,19 @@ class ModelManager:
         # Warm up the models
         if self.mode == "tts":
             self.warm_up(self.tts_inference_engine)
+
+    def validate_sampling(self, req: ServeTTSRequest) -> None:
+        """Reject incompatible sampling before HTTP response headers are sent."""
+        if self.model_family == "drama3":
+            resolve_epsilon_cutoff(self.reference_sampling, req.epsilon_cutoff)
+        elif req.epsilon_cutoff:
+            raise InvalidInputError(
+                "epsilon_cutoff applies to Drama 3 reference sampling only"
+            )
+        if req.top_k == 0 and self.reference_sampling is None:
+            raise InvalidInputError(
+                "top_k=0 requires a Drama 3 checkpoint with --reference-sampling"
+            )
 
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
