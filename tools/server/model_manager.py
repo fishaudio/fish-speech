@@ -3,11 +3,14 @@ from loguru import logger
 
 from fish_speech.inference_engine import ModelFamily, TTSInferenceEngine
 from fish_speech.models.dac.inference import load_model as load_decoder_model
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import (
     resolve_drama3_devices,
     resolve_drama3_dtype,
+    resolve_epsilon_cutoff,
 )
 from fish_speech.models.text2semantic.fish_omni.model import is_fish_omni_checkpoint
+from fish_speech.models.text2semantic.fish_omni.tower import ReferenceSamplingFallback
 from fish_speech.models.text2semantic.inference import (
     launch_thread_safe_queue,
     load_codec_model,
@@ -29,16 +32,20 @@ class ModelManager:
         llama_checkpoint_path: str,
         decoder_checkpoint_path: str | None,
         decoder_config_name: str,
+        reference_sampling: ReferenceSamplingFallback | None = None,
     ) -> None:
 
         self.mode = mode
         self.device = device
         self.half = half
         self.compile = compile
+        self.reference_sampling = reference_sampling
         self.precision = torch.half if half else torch.bfloat16
         self.model_family: ModelFamily = (
             "drama3" if is_fish_omni_checkpoint(llama_checkpoint_path) else "s2"
         )
+        if reference_sampling is not None and self.model_family != "drama3":
+            raise ValueError("--reference-sampling needs a Drama 3 checkpoint")
 
         decoder_checkpoint_path = resolve_codec_path(
             llama_checkpoint_path, decoder_checkpoint_path
@@ -85,6 +92,19 @@ class ModelManager:
         if self.mode == "tts":
             self.warm_up(self.tts_inference_engine)
 
+    def validate_sampling(self, req: ServeTTSRequest) -> None:
+        """Reject incompatible sampling before HTTP response headers are sent."""
+        if self.model_family == "drama3":
+            resolve_epsilon_cutoff(self.reference_sampling, req.epsilon_cutoff)
+        elif req.epsilon_cutoff:
+            raise InvalidInputError(
+                "epsilon_cutoff applies to Drama 3 reference sampling only"
+            )
+        if req.top_k == 0 and self.reference_sampling is None:
+            raise InvalidInputError(
+                "top_k=0 requires a Drama 3 checkpoint with --reference-sampling"
+            )
+
     def load_llama_model(
         self, checkpoint_path, device, precision, compile, mode
     ) -> None:
@@ -95,6 +115,7 @@ class ModelManager:
                 device=device,
                 precision=precision,
                 compile=compile,
+                reference_sampling=self.reference_sampling,
             )
         else:
             raise ValueError(f"Invalid mode: {mode}")

@@ -233,9 +233,19 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         }
 
     def resolve_sampling(self, req: ServeTTSRequest) -> dict[str, int | float]:
-        """Request sampling fields, falling back to the model family's defaults."""
+        """Request sampling fields, falling back to the model family's defaults.
+
+        epsilon_cutoff has no default here: an unset one is left to the sampler.
+        """
         params = dict(SAMPLING_DEFAULTS[self.model_family])
-        for name in ("max_new_tokens", "top_p", "repetition_penalty", "temperature"):
+        for name in (
+            "max_new_tokens",
+            "top_p",
+            "top_k",
+            "repetition_penalty",
+            "temperature",
+            "epsilon_cutoff",
+        ):
             value = getattr(req, name)
             if value is not None:
                 params[name] = value

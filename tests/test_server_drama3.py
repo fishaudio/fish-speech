@@ -4,10 +4,11 @@ import queue
 import unittest
 from unittest.mock import patch
 
+import httpx
 import numpy as np
 import soundfile as sf
 import torch
-from kui.asgi import HTTPException
+from kui.asgi import HTTPException, Kui
 from pydantic import ValidationError
 
 from fish_speech.inference_engine import SAMPLING_DEFAULTS, TTSInferenceEngine
@@ -17,8 +18,11 @@ from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.models.text2semantic.fish_omni.generate import Drama3PromptTooLongError
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
 from tools.server.api_utils import encode_audio, inference_async
+from tools.server.exception_handler import ExceptionHandler
 from tools.server.inference import inference_wrapper
+from tools.server.model_manager import ModelManager
 from tools.server.model_utils import batch_vqgan_decode
+from tools.server.views import routes
 
 
 class FakeCodec(torch.nn.Module):
@@ -112,6 +116,35 @@ class SamplingDefaultsTest(unittest.TestCase):
         engine.send_Llama_request(ServeTTSRequest(text="hi", single_chunk=True), [], [])
         self.assertTrue(engine.llama_queue.get_nowait().request["single_chunk"])
 
+    def test_epsilon_cutoff_is_forwarded_only_when_set(self):
+        engine = make_engine("drama3")
+        self.assertNotIn(
+            "epsilon_cutoff", engine.resolve_sampling(ServeTTSRequest(text="hi"))
+        )
+        for value in (0.0, 1e-3):
+            params = engine.resolve_sampling(
+                ServeTTSRequest(text="hi", epsilon_cutoff=value)
+            )
+            self.assertEqual(params["epsilon_cutoff"], value)
+        for bad in (1.0, -0.1, "0.1"):
+            with self.assertRaises(ValidationError):
+                ServeTTSRequest(text="hi", epsilon_cutoff=bad)
+
+    def test_top_k_is_forwarded_to_generation(self):
+        for family in ("s2", "drama3"):
+            for value in (None, 0, 1, 100):
+                with self.subTest(family=family, top_k=value):
+                    engine = make_engine(family)
+                    req = ServeTTSRequest.model_validate({"text": "hi", "top_k": value})
+                    engine.send_Llama_request(req, [], [])
+                    sent = engine.llama_queue.get_nowait().request
+                    self.assertEqual(sent["top_k"], 30 if value is None else value)
+
+    def test_top_k_rejects_invalid_types_and_negative_values(self):
+        for value in (-1, 1.5, "0", True):
+            with self.subTest(top_k=value), self.assertRaises(ValidationError):
+                ServeTTSRequest(text="hi", top_k=value)
+
     def test_unknown_family(self):
         with self.assertRaises(ValueError):
             make_engine("s1")
@@ -199,6 +232,96 @@ class ErrorMappingTest(unittest.TestCase):
             self.status_code_for(ValueError("tokenizer/config mismatch")), 500
         )
         self.assertEqual(self.status_code_for(RuntimeError("cuda")), 500)
+
+
+class SamplingHTTPTest(unittest.IsolatedAsyncioTestCase):
+    def make_app(self, family, fallback=None):
+        # Exercise the real manager validation without loading checkpoint weights.
+        manager = object.__new__(ModelManager)
+        manager.model_family = family
+        manager.reference_sampling = fallback
+        manager.tts_inference_engine = make_engine(family)
+        handlers = ExceptionHandler()
+        app = Kui(
+            routes=routes,
+            exception_handlers={HTTPException: handlers.http_exception_handler},
+        )
+        app.state.model_manager = manager
+        app.state.max_text_length = 0
+        return app, manager.tts_inference_engine
+
+    async def test_incompatible_sampling_is_rejected_before_streaming(self):
+        for family in ("s2", "drama3"):
+            for streaming in (False, True):
+                for params in ({"epsilon_cutoff": 0.001}, {"top_k": 0}):
+                    with self.subTest(
+                        family=family, streaming=streaming, params=params
+                    ):
+                        app, engine = self.make_app(family)
+                        with patch.object(engine, "inference") as generate:
+                            async with httpx.AsyncClient(
+                                transport=httpx.ASGITransport(app=app),
+                                base_url="http://test",
+                            ) as client:
+                                response = await client.post(
+                                    "/v1/tts",
+                                    json={
+                                        "text": "hi",
+                                        "streaming": streaming,
+                                        **params,
+                                    },
+                                )
+                        self.assertEqual(response.status_code, 400)
+                        self.assertIn(next(iter(params)), response.json()["message"])
+                        generate.assert_not_called()
+                        self.assertTrue(engine.llama_queue.empty())
+
+    async def test_compatible_sampling_returns_audio(self):
+        cases = [
+            ("s2", None, {}),
+            ("s2", None, {"epsilon_cutoff": 0, "top_k": 1}),
+            ("drama3", None, {}),
+            ("drama3", None, {"epsilon_cutoff": 0, "top_k": 1}),
+            ("drama3", "argmax", {"epsilon_cutoff": 0.001, "top_k": 0}),
+            ("drama3", "ras", {"epsilon_cutoff": 0, "top_k": 0}),
+        ]
+        for family, fallback, params in cases:
+            for streaming in (False, True):
+                with self.subTest(
+                    family=family, fallback=fallback, streaming=streaming
+                ):
+                    app, engine = self.make_app(family, fallback)
+                    replies = queue.Queue()
+                    replies.put(
+                        inference.WrappedGenerateResponse(
+                            "success",
+                            inference.GenerateResponse("sample", torch.zeros(3, 2)),
+                        )
+                    )
+                    replies.put(
+                        inference.WrappedGenerateResponse(
+                            "success", inference.GenerateResponse("next")
+                        )
+                    )
+                    with (
+                        patch.object(
+                            engine, "send_Llama_request", return_value=replies
+                        ),
+                        patch("fish_speech.inference_engine.vq_manager.DAC", FakeCodec),
+                    ):
+                        async with httpx.AsyncClient(
+                            transport=httpx.ASGITransport(app=app),
+                            base_url="http://test",
+                        ) as client:
+                            response = await client.post(
+                                "/v1/tts",
+                                json={"text": "hi", "streaming": streaming, **params},
+                            )
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.content[:4], b"RIFF")
+                    audio, sample_rate = sf.read(io.BytesIO(response.content))
+                    self.assertEqual(sample_rate, FakeCodec.sample_rate)
+                    self.assertEqual(len(audio), 2 * FakeCodec.frame_length)
 
 
 class StreamingTest(unittest.TestCase):

@@ -45,6 +45,10 @@ from fish_speech.models.text2semantic.fish_omni.model import (
     FishOmniModel,
     is_fish_omni_checkpoint,
 )
+from fish_speech.models.text2semantic.fish_omni.tower import (
+    REFERENCE_SAMPLING_FALLBACKS,
+    ReferenceSamplingFallback,
+)
 from fish_speech.models.text2semantic.sampling import (
     DEFAULT_CHUNK_LENGTH,
     DEFAULT_MAX_NEW_TOKENS,
@@ -424,7 +428,20 @@ def generate(
     return seq
 
 
-def init_model(checkpoint_path, device, precision, compile=False):
+def init_model(
+    checkpoint_path,
+    device,
+    precision,
+    compile=False,
+    reference_sampling: ReferenceSamplingFallback | None = None,
+):
+    """reference_sampling, Drama 3 only: the repetition fallback of Fish Audio's
+    reference sampling, which then replaces the default sampler; None keeps it."""
+    if reference_sampling not in (None, *REFERENCE_SAMPLING_FALLBACKS):
+        raise ValueError(
+            f"reference_sampling must be one of {REFERENCE_SAMPLING_FALLBACKS} or "
+            f"None; got {reference_sampling!r}"
+        )
     if is_fish_omni_checkpoint(checkpoint_path):
         if compile:
             raise ValueError("--compile is not supported for Drama 3 checkpoints")
@@ -437,7 +454,14 @@ def init_model(checkpoint_path, device, precision, compile=False):
         model = FishOmniModel.from_pretrained(
             checkpoint_path, devices=devices, tower_device=tower_device, dtype=dtype
         )
+        if reference_sampling is not None:
+            model.audio_decoder.reference_sampling = reference_sampling
+            logger.info(
+                f"Drama 3 sampling: reference sampling, {reference_sampling} fallback"
+            )
         return model, None
+    if reference_sampling is not None:
+        raise ValueError("reference sampling is supported for Drama 3 checkpoints only")
 
     model = DualARTransformer.from_pretrained(checkpoint_path, load_weights=True)
 
@@ -657,6 +681,8 @@ def generate_long(
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
+    # Drama 3 reference sampling only; None leaves it to the sampler.
+    epsilon_cutoff: float | None = None,
 ):
     assert 0 < top_p <= 1, "top_p must be in (0, 1]"
     assert 0 < temperature < 2, "temperature must be in (0, 2)"
@@ -673,8 +699,15 @@ def generate_long(
             prompt_text=prompt_text,
             prompt_tokens=prompt_tokens,
             single_chunk=single_chunk,
+            epsilon_cutoff=epsilon_cutoff,
         )
         return
+    if epsilon_cutoff:
+        raise InvalidInputError(
+            "epsilon_cutoff applies to Drama 3 reference sampling only"
+        )
+    if top_k < 1:
+        raise InvalidInputError(f"top_k must be at least 1 for S2-Pro; got {top_k}")
 
     use_prompt = bool(prompt_text) and bool(prompt_tokens)
     if use_prompt and isinstance(prompt_text, str):
@@ -888,6 +921,7 @@ def generate_long_drama3(
     prompt_text: str | list[str] | None = None,
     prompt_tokens: torch.Tensor | list[torch.Tensor] | None = None,
     single_chunk: bool = False,
+    epsilon_cutoff: float | None = None,
 ) -> Iterator[GenerateResponse]:
     """Drama 3 counterpart of generate_long, chunked like the hosted server.
 
@@ -958,6 +992,7 @@ def generate_long_drama3(
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
+                epsilon_cutoff=epsilon_cutoff,
             )
             elapsed = time.perf_counter() - t0
             logger.info(
@@ -1024,6 +1059,7 @@ def launch_thread_safe_queue(
     device,
     precision,
     compile: bool = False,
+    reference_sampling: ReferenceSamplingFallback | None = None,
 ):
     input_queue = queue.Queue()
     init_event = threading.Event()
@@ -1032,7 +1068,11 @@ def launch_thread_safe_queue(
     def worker():
         try:
             model, decode_one_token = init_model(
-                checkpoint_path, device, precision, compile=compile
+                checkpoint_path,
+                device,
+                precision,
+                compile=compile,
+                reference_sampling=reference_sampling,
             )
             # Drama 3 sizes its caches per request (prompt rows + max_new_tokens).
             if not isinstance(model, FishOmniModel):
@@ -1113,8 +1153,34 @@ def launch_thread_safe_queue(
     "length; Drama 3: 600 per chunk, 2048 with --single-chunk).",
 )
 @click.option("--top-p", type=float, default=DEFAULT_TOP_P)
-@click.option("--top-k", type=int, default=DEFAULT_TOP_K)
+@click.option(
+    "--top-k",
+    type=int,
+    default=DEFAULT_TOP_K,
+    help="Under --reference-sampling, 0 removes the cap.",
+)
 @click.option("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+@click.option(
+    "--reference-sampling/--no-reference-sampling",
+    default=False,
+    help="Drama 3: sample with Fish Audio's reference sampling (epsilon cutoff on the "
+    "main token, every repeated main token replaced, residual codes kept inside the "
+    "codec's codebooks). Recommended: --temperature 1.0 --top-p 1.0 --top-k 0.",
+)
+@click.option(
+    "--reference-sampling-fallback",
+    type=click.Choice(REFERENCE_SAMPLING_FALLBACKS),
+    default="argmax",
+    help="What replaces a main token found among the last 16: the most probable "
+    "candidate (argmax) or a draw at temperature 1.0, top-p 0.95, top-k 30 (ras).",
+)
+@click.option(
+    "--epsilon-cutoff",
+    type=float,
+    default=None,
+    help="Reference sampling's main-token epsilon cutoff in [0, 1); default 1e-3, 0 "
+    "turns it off.",
+)
 @click.option(
     "--checkpoint-path",
     type=click.Path(path_type=Path, exists=True),
@@ -1158,6 +1224,9 @@ def main(
     top_p: float,
     top_k: int,
     temperature: float,
+    reference_sampling: bool,
+    reference_sampling_fallback: ReferenceSamplingFallback,
+    epsilon_cutoff: float | None,
     checkpoint_path: Path,
     device: str,
     codec_path: Path | None,
@@ -1188,7 +1257,11 @@ def main(
     logger.info("Loading model ...")
     t0 = time.time()
     model, decode_one_token = init_model(
-        checkpoint_path, device, precision, compile=compile
+        checkpoint_path,
+        device,
+        precision,
+        compile=compile,
+        reference_sampling=reference_sampling_fallback if reference_sampling else None,
     )
     if isinstance(model, FishOmniModel):
         # The codec shares the tower's device and runs in the model's dtype.
@@ -1247,6 +1320,7 @@ def main(
         single_chunk=single_chunk,
         prompt_text=list(prompt_text) if prompt_text else None,
         prompt_tokens=prompt_tokens_list,
+        epsilon_cutoff=epsilon_cutoff,
     )
 
     idx = 0

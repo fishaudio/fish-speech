@@ -31,11 +31,15 @@ from fish_speech.models.text2semantic.fish_omni.model import (
     is_fish_omni_checkpoint,
 )
 from fish_speech.models.text2semantic.fish_omni.tower import (
+    RAS_TOP_K,
+    RESIDUAL_CODEBOOK_SIZE,
     TOWER_CHECKPOINT_PREFIXES,
     FishOmniAudioDecoder,
     FP32OutputLinear,
     TowerAttention,
     load_audio_decoder_weights,
+    reference_candidates,
+    reference_sample,
     sample_top_k_top_p,
 )
 from fish_speech.models.text2semantic.inference import (
@@ -46,6 +50,11 @@ from fish_speech.models.text2semantic.inference import (
 
 PROMPT = torch.tensor([[3, 0, 0, 0], [34, 2, 4, 5], [3, 0, 0, 0], [4, 0, 0, 0]])
 SAMPLER = "fish_speech.models.text2semantic.fish_omni.tower.sample_top_k_top_p"
+REFERENCE_SAMPLER = "fish_speech.models.text2semantic.fish_omni.tower.reference_sample"
+# Six columns; descending they are 3, 0, 5, 1, 4, 2 with cumulative sums 0.40, 0.65,
+# 0.80, 0.90, 0.96, 1.00.
+SIX_COLUMN_PROBABILITIES = [0.25, 0.10, 0.04, 0.40, 0.06, 0.15]
+DESCENDING_COLUMNS = [3, 0, 5, 1, 4, 2]
 
 
 def tiny_omni_config() -> FishOmniConfig:
@@ -593,6 +602,267 @@ class Drama3GenerationTest(unittest.TestCase):
             responses, histories, _ = self.run_chunked(["one", "two"])
         self.assertEqual([r.action for r in responses], ["sample", "sample", "next"])
         self.assertEqual(histories, [[], ["one"], []])
+
+
+def kept_columns(logits: torch.Tensor, *rules, legal_column_count=None) -> set[int]:
+    """The columns of a one-row logits tensor the reference rules keep."""
+    _, ids, kept = reference_candidates(
+        logits[None], *rules, legal_column_count=legal_column_count
+    )
+    return set(ids[kept].tolist())
+
+
+class ReferenceSamplingTest(unittest.TestCase):
+    """Fish Audio's reference sampling for Drama 3 (sglang-omni PR 3278)."""
+
+    def setUp(self) -> None:
+        torch.manual_seed(12)
+        self.model = tiny_omni_model()
+        self.tower = self.model.audio_decoder
+
+    def test_the_kept_set_follows_the_keep_rule(self) -> None:
+        logits = torch.tensor(SIX_COLUMN_PROBABILITIES).log()
+        # (temperature, top_k, top_p, epsilon_cutoff) -> kept ranks
+        cases = {
+            (1.0, -1, 1.0, 0.0): 6,
+            (1.0, 0, 1.0, 0.0): 6,  # top_k < 1 is off
+            (1.0, 2, 1.0, 0.0): 2,
+            (1.0, -1, 0.85, 0.0): 3,  # the crossing rank is dropped
+            (1.0, -1, 0.3, 0.0): 1,  # rank 0 always stays
+            (1.0, -1, 1.0, 0.12): 3,
+            (1.0, -1, 1.0, 0.05): 5,
+            (1.0, -1, 1.0, 0.5): 1,
+            (1.0, 3, 0.95, 0.05): 3,
+            # 0.25 would pass 0.3 only if top-k renormalised what it keeps.
+            (1.0, 2, 1.0, 0.3): 1,
+            # At temperature 2 the five most probable columns reach 0.1.
+            (2.0, -1, 1.0, 0.1): 5,
+        }
+        for rules, ranks in cases.items():
+            with self.subTest(rules=rules):
+                self.assertEqual(
+                    kept_columns(logits, *rules), set(DESCENDING_COLUMNS[:ranks])
+                )
+        # 0-dim device-style tensors, as the CUDA graphs pass them, read the same.
+        tensors = (
+            torch.tensor(1.0),
+            torch.tensor(3),
+            torch.tensor(0.95),
+            torch.tensor(0.05),
+        )
+        self.assertEqual(kept_columns(logits, *tensors), set(DESCENDING_COLUMNS[:3]))
+
+    def test_draws_follow_the_renormalised_kept_probabilities(self) -> None:
+        probabilities = torch.tensor(SIX_COLUMN_PROBABILITIES, dtype=torch.float64)
+        rows = 20000
+        draws = reference_sample(
+            probabilities.float().log().expand(rows, -1), 1.0, -1, 1.0, 0.05
+        )
+        expected = probabilities.clone()
+        expected[2] = 0  # 0.04 < 0.05
+        expected /= expected.sum()
+        frequencies = torch.bincount(draws, minlength=6).double() / rows
+        errors = (expected * (1 - expected) / rows).sqrt()
+        self.assertTrue(((frequencies - expected).abs() <= 5 * errors + 1e-9).all())
+        self.assertEqual(frequencies[2].item(), 0)
+
+    def test_every_draw_stays_in_its_rows_kept_set(self) -> None:
+        generator = torch.Generator().manual_seed(5)
+        rows, columns = 2000, 256
+        logits = torch.randn(rows, columns, generator=generator) * (
+            torch.rand(rows, 1, generator=generator) * 4.0
+        )
+
+        def pick(values: list) -> torch.Tensor:
+            index = torch.randint(0, len(values), (rows,), generator=generator)
+            return torch.tensor(values)[index]
+
+        rules = (
+            pick([0.0, 0.5, 1.0, 1.7]),
+            pick([-1, 0, 1, 5, 50, 300]),
+            pick([0.3, 0.8, 0.95, 1.0]),
+            pick([0.0, 1e-3, 1e-2, 0.2]),
+        )
+        for legal_column_count in (None, 100):
+            draws = reference_sample(
+                logits, *rules, legal_column_count=legal_column_count
+            )
+            _, ids, kept = reference_candidates(
+                logits, *rules, legal_column_count=legal_column_count
+            )
+            kept_by_column = torch.zeros_like(kept).scatter_(-1, ids, kept)
+            self.assertTrue(kept_by_column[torch.arange(rows), draws].all())
+
+    def test_residual_codes_stay_inside_the_codec_codebook(self) -> None:
+        def head(probabilities: dict[int, float]) -> torch.Tensor:
+            logits = torch.full((2000, 4096), -30.0)
+            for code, probability in probabilities.items():
+                logits[:, code] = torch.tensor(probability).log()
+            return logits
+
+        def codes(probabilities: dict[int, float], top_k: int, top_p: float) -> set:
+            drawn = reference_sample(
+                head(probabilities),
+                1.0,
+                top_k,
+                top_p,
+                0.0,
+                legal_column_count=RESIDUAL_CODEBOOK_SIZE,
+            )
+            return set(drawn.tolist())
+
+        mixed = {3000: 0.4, 5: 0.3, 7: 0.2, 9: 0.1}
+        illegal_first = {3000: 0.6, 2500: 0.3, 5: 0.06, 7: 0.04}
+        # Illegal codes count toward top-k and top-p before they are dropped.
+        self.assertEqual(codes(mixed, 2, 1.0), {5})
+        self.assertEqual(codes(mixed, -1, 0.95), {5, 7})
+        self.assertEqual(codes(mixed, -1, 1.0), {5, 7, 9})
+        # No legal survivor: the most probable legal code is kept.
+        self.assertEqual(codes(illegal_first, 2, 1.0), {5})
+        self.assertEqual(codes(illegal_first, -1, 0.5), {5})
+
+    def decode(self, fallback: str, first_index: int, history: list[int]) -> tuple:
+        """One reference decode step whose first draw is candidate first_index; the
+        candidates are [eos=2, semantic 32..39] and token 36 is the most probable."""
+        self.tower.reference_sampling = fallback
+        logits = torch.full((1, 64), -5.0)
+        logits[0, 36] = 5.0
+        calls = []
+
+        def sample(logits, temperature, top_k, top_p, epsilon_cutoff, **kwargs):
+            calls.append((logits.shape[-1], epsilon_cutoff, kwargs))
+            if logits.shape[-1] != 9:  # a codebook head
+                return logits.argmax(-1)
+            index = first_index if kwargs.get("check_finite", True) else 7  # 38
+            return torch.full(logits.shape[:-1], index, dtype=torch.long)
+
+        with patch(REFERENCE_SAMPLER, side_effect=sample), patch(SAMPLER) as default:
+            with torch.no_grad():
+                frame = self.tower.decode_step(
+                    logits,
+                    torch.randn(1, 16),
+                    torch.tensor([0]),
+                    torch.zeros(1, 4, dtype=torch.long),
+                    torch.tensor(history),
+                    temperature=1.0,
+                    top_k=0,
+                    top_p=1.0,
+                    epsilon_cutoff=0.01,
+                )
+        default.assert_not_called()
+        return frame[0, 0].item(), calls
+
+    def test_a_repeated_first_draw_takes_the_argmax_eos_included(self) -> None:
+        self.assertEqual(self.decode("argmax", 0, [5, 2])[0], 36)  # eos, repeated
+        self.assertEqual(self.decode("argmax", 3, [34])[0], 36)  # 34, repeated
+        self.assertEqual(self.decode("argmax", 0, [5, 34])[0], 2)
+        # Only the last 16 main tokens count.
+        self.assertEqual(self.decode("argmax", 3, [34] + [5] * 16)[0], 34)
+
+    def test_the_ras_fallback_draws_without_the_cutoff(self) -> None:
+        main, calls = self.decode("ras", 0, [2])
+        self.assertEqual(main, 38)
+        (first, retry), heads = calls[:2], calls[2:]
+        self.assertEqual((first[0], first[1]), (9, 0.01))
+        self.assertEqual(
+            (retry[0], retry[1], retry[2]["check_finite"]), (9, 0.0, False)
+        )
+        self.assertEqual(len(heads), self.model.config.audio_decoder.num_codebooks - 1)
+        for width, cutoff, kwargs in heads:
+            self.assertEqual((width, cutoff), (8, 0.0))
+            self.assertEqual(kwargs["legal_column_count"], RESIDUAL_CODEBOOK_SIZE)
+
+    def test_ras_fallback_parameters(self) -> None:
+        """The ras fallback keeps the top 30 candidates at 1.0 / 0.95 / 30 although
+        all but the top one lie below the request's cutoff."""
+        probabilities = torch.cat((torch.tensor([0.5]), torch.full((40,), 0.5 / 40)))
+        kept = kept_columns(probabilities.log(), 1.0, RAS_TOP_K, 0.95, 0.0)
+        self.assertEqual(len(kept), RAS_TOP_K)
+        self.assertEqual(kept_columns(probabilities.log(), 1.0, -1, 1.0, 0.1), {0})
+
+    def test_generate_resolves_and_forwards_the_cutoff(self) -> None:
+        eos_frame = torch.tensor([[2, 0, 0, 0]])
+
+        def cutoff_of(**kwargs) -> float:
+            with patch.object(
+                self.tower, "decode_step", return_value=eos_frame
+            ) as step:
+                generate_drama3(self.model, PROMPT, max_new_tokens=1, **kwargs)
+            return step.call_args.kwargs["epsilon_cutoff"]
+
+        self.assertEqual(cutoff_of(), 0.0)
+        self.assertEqual(cutoff_of(epsilon_cutoff=0.0), 0.0)
+        with self.assertRaisesRegex(InvalidInputError, "--reference-sampling"):
+            cutoff_of(epsilon_cutoff=1e-3)
+        self.tower.reference_sampling = "argmax"
+        self.assertEqual(cutoff_of(), 1e-3)
+        self.assertEqual(cutoff_of(epsilon_cutoff=0.0), 0.0)
+        self.assertEqual(cutoff_of(epsilon_cutoff=0.02, top_k=0), 0.02)
+        for bad in (1.0, -0.1, float("nan")):
+            with self.assertRaisesRegex(InvalidInputError, "epsilon_cutoff"):
+                cutoff_of(epsilon_cutoff=bad)
+
+    def test_generate_with_reference_sampling_runs_end_to_end(self) -> None:
+        self.tower.reference_sampling = "ras"
+        frames, _ = generate_drama3(
+            self.model, PROMPT, max_new_tokens=4, top_k=0, temperature=1.0, top_p=1.0
+        )
+        self.assertEqual(frames.shape[1], 4)
+
+    def test_s2_refuses_the_cutoff_and_the_switch(self) -> None:
+        with self.assertRaisesRegex(InvalidInputError, "Drama 3"):
+            list(
+                generate_long(
+                    model=object(),
+                    device="cpu",
+                    decode_one_token=None,
+                    text="hi",
+                    epsilon_cutoff=1e-3,
+                )
+            )
+        with tempfile.TemporaryDirectory() as root:
+            Path(root, "config.json").write_text(json.dumps({"model_type": "x"}))
+            with self.assertRaisesRegex(ValueError, "Drama 3"):
+                init_model(root, "cpu", torch.float32, reference_sampling="argmax")
+            with self.assertRaisesRegex(ValueError, "reference_sampling"):
+                init_model(root, "cpu", torch.float32, reference_sampling="greedy")
+
+    def test_non_reference_sampling_refuses_an_uncapped_top_k(self) -> None:
+        with self.assertRaisesRegex(InvalidInputError, "top_k"):
+            generate_drama3(self.model, PROMPT, max_new_tokens=1, top_k=0)
+        with self.assertRaisesRegex(InvalidInputError, "top_k"):
+            list(
+                generate_long(
+                    model=object(),
+                    device="cpu",
+                    decode_one_token=None,
+                    text="hi",
+                    top_k=0,
+                )
+            )
+
+    @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
+    def test_cuda_graphs_follow_the_switch(self) -> None:
+        model = self.model.to("cuda:0")
+        tower = model.audio_decoder
+
+        def run(mode: str) -> torch.Tensor:
+            # top_k 1 keeps one candidate per draw, so the draws are deterministic.
+            with patch.dict("os.environ", {"FISH_DRAMA3_CUDA_GRAPH": mode}):
+                frames, _ = generate_drama3(
+                    model, PROMPT, max_new_tokens=6, top_k=1, epsilon_cutoff=0.01
+                )
+            return frames
+
+        tower.reference_sampling = "argmax"
+        eager = run("0")
+        for _ in range(2):  # captures, then reuses
+            torch.testing.assert_close(run("1"), eager)
+        self.assertEqual(model.decode_graphs.reference_sampling, "argmax")
+        tower.reference_sampling = None
+        with patch(SAMPLER, side_effect=greedy):
+            frames, _ = generate_drama3(model, PROMPT, max_new_tokens=2)
+        self.assertIsNone(model.decode_graphs.reference_sampling)
 
 
 class Drama3DispatchTest(unittest.TestCase):
