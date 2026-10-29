@@ -237,8 +237,14 @@ async def add_reference(
         if not audio_content:
             raise ValueError("Audio file is empty or could not be read")
 
-        # Create a temporary file for the audio data
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+        # Create a temporary file for the audio data, preserving the uploaded file's
+        # real extension. The suffix was hardcoded to ".wav", so the engine's format
+        # validation (reference_loader.add_reference) always saw ".wav" and an uploaded
+        # .mp3/.flac was stored mislabeled as sample.wav.
+        suffix = Path(audio.filename).suffix if audio.filename else ".wav"
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=suffix or ".wav"
+        ) as temp_file:
             temp_file.write(audio_content)
             temp_file_path = temp_file.name
 
@@ -331,7 +337,7 @@ async def delete_reference(reference_id: str = Body(...)):
             raise ValueError("Reference ID cannot be empty")
 
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
-        if not re.match(id_pattern, reference_id) or len(reference_id) > 255:
+        if not re.fullmatch(id_pattern, reference_id) or len(reference_id) > 255:
             raise ValueError("Reference ID contains invalid characters or is too long")
 
         # Get the model manager to access the reference loader
@@ -404,11 +410,17 @@ async def update_reference(
 
         # Validate ID format per ReferenceLoader rules
         id_pattern = r"^[a-zA-Z0-9\-_ ]+$"
-        if not re.match(id_pattern, old_reference_id) or len(old_reference_id) > 255:
+        if (
+            not re.fullmatch(id_pattern, old_reference_id)
+            or len(old_reference_id) > 255
+        ):
             raise ValueError(
                 "Old reference ID contains invalid characters or is too long"
             )
-        if not re.match(id_pattern, new_reference_id) or len(new_reference_id) > 255:
+        if (
+            not re.fullmatch(id_pattern, new_reference_id)
+            or len(new_reference_id) > 255
+        ):
             raise ValueError(
                 "New reference ID contains invalid characters or is too long"
             )
