@@ -102,6 +102,8 @@ class ServeTTSRequest(BaseModel):
     # sampling.
     max_new_tokens: int | None = None
     top_p: Annotated[float, Field(ge=0.1, le=1.0, strict=True)] | None = None
+    # None keeps the default of 30; 0 removes the cap in Drama 3 reference sampling.
+    top_k: Annotated[int, Field(ge=0, strict=True)] | None = None
     repetition_penalty: Annotated[float, Field(ge=0.9, le=2.0, strict=True)] | None = (
         None
     )

@@ -241,6 +241,7 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         for name in (
             "max_new_tokens",
             "top_p",
+            "top_k",
             "repetition_penalty",
             "temperature",
             "epsilon_cutoff",

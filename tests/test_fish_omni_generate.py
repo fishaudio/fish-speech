@@ -827,6 +827,20 @@ class ReferenceSamplingTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "reference_sampling"):
                 init_model(root, "cpu", torch.float32, reference_sampling="greedy")
 
+    def test_non_reference_sampling_refuses_an_uncapped_top_k(self) -> None:
+        with self.assertRaisesRegex(InvalidInputError, "top_k"):
+            generate_drama3(self.model, PROMPT, max_new_tokens=1, top_k=0)
+        with self.assertRaisesRegex(InvalidInputError, "top_k"):
+            list(
+                generate_long(
+                    model=object(),
+                    device="cpu",
+                    decode_one_token=None,
+                    text="hi",
+                    top_k=0,
+                )
+            )
+
     @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
     def test_cuda_graphs_follow_the_switch(self) -> None:
         model = self.model.to("cuda:0")

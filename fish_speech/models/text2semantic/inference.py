@@ -706,6 +706,8 @@ def generate_long(
         raise InvalidInputError(
             "epsilon_cutoff applies to Drama 3 reference sampling only"
         )
+    if top_k < 1:
+        raise InvalidInputError(f"top_k must be at least 1 for S2-Pro; got {top_k}")
 
     use_prompt = bool(prompt_text) and bool(prompt_tokens)
     if use_prompt and isinstance(prompt_text, str):

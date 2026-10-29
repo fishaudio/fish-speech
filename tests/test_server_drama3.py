@@ -126,6 +126,21 @@ class SamplingDefaultsTest(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 ServeTTSRequest(text="hi", epsilon_cutoff=bad)
 
+    def test_top_k_is_forwarded_to_generation(self):
+        for family in ("s2", "drama3"):
+            for value in (None, 0, 1, 100):
+                with self.subTest(family=family, top_k=value):
+                    engine = make_engine(family)
+                    req = ServeTTSRequest.model_validate({"text": "hi", "top_k": value})
+                    engine.send_Llama_request(req, [], [])
+                    sent = engine.llama_queue.get_nowait().request
+                    self.assertEqual(sent["top_k"], 30 if value is None else value)
+
+    def test_top_k_rejects_invalid_types_and_negative_values(self):
+        for value in (-1, 1.5, "0", True):
+            with self.subTest(top_k=value), self.assertRaises(ValidationError):
+                ServeTTSRequest(text="hi", top_k=value)
+
     def test_unknown_family(self):
         with self.assertRaises(ValueError):
             make_engine("s1")
