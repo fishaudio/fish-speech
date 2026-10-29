@@ -132,11 +132,13 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
             )
 
         segments = []
+        errored = False
 
         while True:
             # Get the response from the LLAMA model
             wrapped_result: WrappedGenerateResponse = response_queue.get()
             if wrapped_result.status == "error":
+                errored = True
                 yield InferenceResult(
                     code="error",
                     audio=None,
@@ -172,6 +174,11 @@ class TTSInferenceEngine(ReferenceLoader, VQManager):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             gc.collect()
+
+        # The worker already reported an error above; don't follow it with a second,
+        # generic "no audio" error that would mask the real cause.
+        if errored:
+            return
 
         # Edge case: no audio generated
         if len(segments) == 0:

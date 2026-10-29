@@ -389,3 +389,23 @@ class VQGANDecodeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorkerErrorTest(unittest.TestCase):
+    def test_worker_error_yields_a_single_error_result(self):
+        # When the LLaMA worker reports an error, inference() should surface that one
+        # error and stop -- not follow it with a second, generic "No audio generated"
+        # error (segments is empty on the error path).
+        from fish_speech.models.text2semantic.inference import WrappedGenerateResponse
+
+        engine = make_engine("drama3")
+        error_queue = queue.Queue()
+        error_queue.put(
+            WrappedGenerateResponse(status="error", response=RuntimeError("boom"))
+        )
+        with patch.object(engine, "send_Llama_request", return_value=error_queue):
+            results = list(engine.inference(ServeTTSRequest(text="hi")))
+
+        errors = [r for r in results if r.code == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("boom", str(errors[0].error))
