@@ -20,6 +20,27 @@ from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 
 
+def resolve_model_device(device: str) -> str:
+    """Resolve the device the server runs the models on.
+
+    ``cuda`` is the historical default and the only request that is redirected: to MPS when it is
+    available, otherwise to CPU. An explicit accelerator choice (``npu``, ``xpu``, ``cpu``, ...) is
+    kept as it was requested, so the server does not silently override it.
+    """
+    requested = str(device).split(":", 1)[0].lower()
+    if requested == "cuda":
+        if torch.backends.mps.is_available():
+            logger.info("mps is available, running on mps.")
+            return "mps"
+        if not torch.cuda.is_available():
+            logger.info("CUDA is not available, running on CPU.")
+            return "cpu"
+    elif requested == "mps" and not torch.backends.mps.is_available():
+        logger.info("mps is not available, running on CPU.")
+        return "cpu"
+    return device
+
+
 class ModelManager:
     """Loads one TTS model (S2-Pro or multi-GPU-capable Drama 3) plus the DAC codec."""
 
@@ -62,12 +83,8 @@ class ModelManager:
                 f"Drama 3 checkpoint: backbone on {devices}, tower + codec on "
                 f"{tower_device}, {self.precision}"
             )
-        elif torch.backends.mps.is_available():
-            self.device = "mps"
-            logger.info("mps is available, running on mps.")
-        elif not torch.cuda.is_available():
-            self.device = "cpu"
-            logger.info("CUDA is not available, running on CPU.")
+        else:
+            self.device = resolve_model_device(device)
 
         # Load the TTS models (Drama 3 spreads over the full device list)
         self.load_llama_model(
