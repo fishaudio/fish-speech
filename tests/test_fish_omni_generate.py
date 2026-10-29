@@ -764,7 +764,9 @@ class ReferenceSamplingTest(unittest.TestCase):
         self.assertEqual(main, 38)
         (first, retry), heads = calls[:2], calls[2:]
         self.assertEqual((first[0], first[1]), (9, 0.01))
-        self.assertEqual((retry[0], retry[1], retry[2]["check_finite"]), (9, 0.0, False))
+        self.assertEqual(
+            (retry[0], retry[1], retry[2]["check_finite"]), (9, 0.0, False)
+        )
         self.assertEqual(len(heads), self.model.config.audio_decoder.num_codebooks - 1)
         for width, cutoff, kwargs in heads:
             self.assertEqual((width, cutoff), (8, 0.0))

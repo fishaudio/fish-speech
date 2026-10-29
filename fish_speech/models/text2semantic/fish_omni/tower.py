@@ -75,7 +75,9 @@ def sample_top_k_top_p(
 
 def per_row(value: float | Tensor) -> float | Tensor:
     """A per-row [rows] tensor as a column; numbers and 0-dim tensors broadcast as is."""
-    return value.unsqueeze(-1) if isinstance(value, Tensor) and value.ndim == 1 else value
+    return (
+        value.unsqueeze(-1) if isinstance(value, Tensor) and value.ndim == 1 else value
+    )
 
 
 def reference_candidates(

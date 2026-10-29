@@ -308,7 +308,9 @@ def resolve_epsilon_cutoff(
     cutoff off; the default sampler has no cutoff and refuses a non-zero one.
     """
     if epsilon_cutoff is not None and not 0.0 <= epsilon_cutoff < 1.0:
-        raise InvalidInputError(f"epsilon_cutoff must be in [0, 1); got {epsilon_cutoff}")
+        raise InvalidInputError(
+            f"epsilon_cutoff must be in [0, 1); got {epsilon_cutoff}"
+        )
     if reference_sampling is None:
         if epsilon_cutoff:
             raise InvalidInputError(
