@@ -64,7 +64,7 @@ def list_files(
 
     normalized_extensions = {ext.lower() for ext in extensions}
     globber = path.rglob if recursive else path.glob
-    
+
     if not normalized_extensions:
         files = [file for file in globber("*") if file.is_file()]
     else:
@@ -78,4 +78,3 @@ def list_files(
         files = natsorted(files)
 
     return files
-
