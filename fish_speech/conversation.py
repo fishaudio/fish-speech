@@ -6,7 +6,6 @@ import torch
 from transformers import PreTrainedTokenizerFast
 
 from fish_speech.content_sequence import (
-    AudioPart,
     BasePart,
     ContentSequence,
     EncodedMessage,
@@ -126,24 +125,6 @@ class Conversation:
 
     def append(self: "Conversation", message: Message):
         self.messages.append(message)
-
-    def to_content_sequence(
-        self: "Conversation",
-        metadata: dict | None = None,
-    ) -> ContentSequence:
-        """
-        Convert the Conversation to a ContentSequence.
-
-        This method builds a ContentSequence from all messages,
-        handling cal_loss inheritance from message to part level.
-
-        Args:
-            metadata: Optional metadata to include in the ContentSequence
-
-        Returns:
-            ContentSequence with all messages converted to parts
-        """
-        return self._build_content_sequence(metadata=metadata)
 
 
 if __name__ == "__main__":

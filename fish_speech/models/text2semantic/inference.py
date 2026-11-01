@@ -70,9 +70,7 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from fish_speech.models.text2semantic.llama import (
-    BaseTransformer,
     DualARTransformer,
-    NaiveTransformer,
 )
 
 

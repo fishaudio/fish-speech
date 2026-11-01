@@ -5,7 +5,6 @@ from typing import List, Optional, Union
 
 import numpy as np
 import torch
-from audiotools import AudioSignal
 from audiotools.ml import BaseModel
 from dac.model.base import CodecMixin
 from dac.nn.layers import Snake1d, WNConv1d, WNConvTranspose1d
@@ -165,7 +164,7 @@ class Transformer(nn.Module):
                 mask = self.causal_mask[None, None, input_pos]
                 mask = mask[..., input_pos]
 
-        for i, layer in enumerate(self.layers):
+        for layer in self.layers:
             x = layer(x, input_pos, freqs_cis, mask)
         x = self.norm(x)
         return x

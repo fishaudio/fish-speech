@@ -16,11 +16,6 @@ AUDIO_EXTENSIONS = {
     ".aifc",
 }
 
-VIDEO_EXTENSIONS = {
-    ".mp4",
-    ".avi",
-}
-
 
 def audio_to_bytes(file_path):
     if not file_path or not Path(file_path).exists():

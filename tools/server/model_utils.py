@@ -1,15 +1,11 @@
 import io
-import re
 
 import librosa
 import torch
-import torchaudio
 from cachetools import LRUCache, cached
 
 CACHE_MAXSIZE = 10000
 MICRO_BATCH_SIZE = 8
-ASR_SAMPLE_RATE = 16000
-HUGE_GAP_THRESHOLD = 4000
 
 
 @torch.no_grad()

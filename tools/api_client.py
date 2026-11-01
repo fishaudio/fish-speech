@@ -1,5 +1,4 @@
 import argparse
-import base64
 import time
 import wave
 
