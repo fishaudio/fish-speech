@@ -11,7 +11,6 @@ from kui.asgi import (
     Depends,
     FactoryClass,
     HTTPException,
-    HttpRoute,
     Kui,
     OpenAPI,
     Routes,

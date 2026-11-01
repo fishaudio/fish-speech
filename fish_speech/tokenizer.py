@@ -1,13 +1,8 @@
-import json
 import logging
-from pathlib import Path
-from typing import TYPE_CHECKING, List, Union
+from typing import List, Union
 
 import torch
 from transformers import AutoTokenizer
-
-if TYPE_CHECKING:
-    from transformers import PreTrainedTokenizerFast
 
 logger = logging.getLogger(__name__)
 

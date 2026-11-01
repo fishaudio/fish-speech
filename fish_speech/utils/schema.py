@@ -1,30 +1,9 @@
 import base64
-import os
-import queue
-from dataclasses import dataclass
 from typing import Literal
 
-import torch
 from pydantic import BaseModel, Field, conint, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
-
-from fish_speech.content_sequence import TextPart, VQPart
-
-
-class ServeVQPart(BaseModel):
-    type: Literal["vq"] = "vq"
-    codes: SkipValidation[list[list[int]]]
-
-
-class ServeTextPart(BaseModel):
-    type: Literal["text"] = "text"
-    text: str
-
-
-class ServeAudioPart(BaseModel):
-    type: Literal["audio"] = "audio"
-    audio: bytes
 
 
 class ServeVQGANEncodeRequest(BaseModel):

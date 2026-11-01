@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 import tempfile
 import time
 from http import HTTPStatus
@@ -24,7 +23,6 @@ from typing_extensions import Annotated
 
 from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.utils.schema import (
-    AddReferenceRequest,
     AddReferenceResponse,
     DeleteReferenceResponse,
     ListReferencesResponse,
@@ -48,8 +46,6 @@ from tools.server.model_utils import (
     batch_vqgan_decode,
     cached_vqgan_batch_encode,
 )
-
-MAX_NUM_SAMPLES = int(os.getenv("NUM_SAMPLES", 1))
 
 _WEBUI_HTML = (
     Path(__file__).parent.parent.parent / "awesome_webui" / "dist" / "index.html"
