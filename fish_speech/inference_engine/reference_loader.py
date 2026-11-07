@@ -9,6 +9,7 @@ import torchaudio
 from loguru import logger
 
 from fish_speech.models.dac.modded_dac import DAC
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.utils.file import (
     AUDIO_EXTENSIONS,
     audio_to_bytes,
@@ -68,10 +69,13 @@ class ReferenceLoader:
 
         # Load the references audio and text by id
         ref_folder = Path("references") / id
-        ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(
-            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
+        ref_audios = (
+            list_files(ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False)
+            if ref_folder.is_dir()
+            else []
         )
+        if not ref_audios:
+            raise InvalidInputError(f"Reference ID '{id}' not found")
 
         if use_cache == "off" or id not in self.ref_by_id:
             # If the references are not already loaded, encode them
