@@ -1,7 +1,10 @@
 import asyncio
 import io
+import os
 import queue
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import httpx
@@ -198,6 +201,37 @@ class ReferenceSpeakerTest(unittest.TestCase):
         self.assertIsNone(ServeReferenceAudio(audio=b"a", text="Hello.").speaker)
 
 
+class ReferenceIdTest(unittest.TestCase):
+    def setUp(self) -> None:
+        cwd = os.getcwd()
+        workdir = tempfile.TemporaryDirectory()
+        self.addCleanup(workdir.cleanup)
+        os.chdir(workdir.name)
+        self.addCleanup(os.chdir, cwd)
+
+    def test_unknown_reference_id_is_invalid_input(self):
+        engine = make_engine("drama3")
+        req = ServeTTSRequest(text="hi", reference_id="missing")
+        with self.assertRaises(InvalidInputError):
+            engine.load_references(req)
+        # Looking it up must not create the directory, or adding it later is a 409.
+        self.assertFalse(Path("references/missing").exists())
+
+    def test_known_reference_id_loads(self):
+        ref_dir = Path("references/alice")
+        ref_dir.mkdir(parents=True)
+        (ref_dir / "sample.wav").write_bytes(b"RIFF")
+        (ref_dir / "sample.lab").write_text("Hello.", encoding="utf-8")
+        engine = make_engine("drama3")
+        codes = torch.zeros(2, 3)
+        req = ServeTTSRequest(text="hi", reference_id="alice")
+        with patch.object(engine, "encode_reference", return_value=codes):
+            tokens, texts = engine.load_references(req)
+        self.assertEqual(len(tokens), 1)
+        self.assertIs(tokens[0], codes)
+        self.assertEqual(texts, ["Hello."])
+
+
 class LaunchQueueTest(unittest.TestCase):
     def test_model_load_failure_is_raised_not_hung(self):
         with patch.object(inference, "init_model", side_effect=RuntimeError("boom")):
@@ -275,6 +309,26 @@ class SamplingHTTPTest(unittest.IsolatedAsyncioTestCase):
                         self.assertIn(next(iter(params)), response.json()["message"])
                         generate.assert_not_called()
                         self.assertTrue(engine.llama_queue.empty())
+
+    async def test_unknown_reference_id_is_rejected(self):
+        cwd = os.getcwd()
+        with tempfile.TemporaryDirectory() as workdir:
+            os.chdir(workdir)
+            try:
+                app, engine = self.make_app("drama3")
+                with patch.object(engine, "send_Llama_request") as generate:
+                    async with httpx.AsyncClient(
+                        transport=httpx.ASGITransport(app=app),
+                        base_url="http://test",
+                    ) as client:
+                        response = await client.post(
+                            "/v1/tts", json={"text": "hi", "reference_id": "missing"}
+                        )
+            finally:
+                os.chdir(cwd)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing", response.json()["message"])
+        generate.assert_not_called()
 
     async def test_compatible_sampling_returns_audio(self):
         cases = [
