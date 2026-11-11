@@ -1,0 +1,4 @@
+[submodule "engine/sglang-omni"]
+	path = engine/sglang-omni
+	url = https://github.com/sgl-project/sglang-omni.git
+	branch = main
