@@ -104,10 +104,13 @@ export default defineConfig({
     },
   },
   server: {
+    // The app now calls the configured absolute endpoint directly. These
+    // proxies remain for anyone overriding it with a relative path; 8080 is
+    // engine/torch/server.py's default FISH_PORT.
     proxy: {
-      '/v1': 'http://localhost:8888',
-      '/v2': 'http://localhost:8888',
-      '/health': 'http://localhost:8888',
+      '/v1': 'http://localhost:8080',
+      '/v2': 'http://localhost:8080',
+      '/health': 'http://localhost:8080',
     },
   },
 })

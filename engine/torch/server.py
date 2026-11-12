@@ -32,6 +32,7 @@ import soundfile as sf
 import torch
 import torchaudio
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -387,6 +388,14 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
 
     app = FastAPI(
         title="fish-speech torch engine", version="3.0.0", lifespan=lifespan
+    )
+    # The static web app runs on a different origin (Vite dev server, file://,
+    # or a packaged Tauri window) and calls this endpoint directly.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.state.config = cfg
 

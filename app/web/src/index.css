@@ -1,26 +1,29 @@
 @import "tailwindcss";
 
+/* Class-based dark mode; the OS preference is only the initial fallback. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: 0 0% 96%;
-  --foreground: 240 10% 3.9%;
+  --background: 40 20% 97.5%;
+  --foreground: 24 10% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 24 10% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 72.2% 50.6%;
+  --popover-foreground: 24 10% 10%;
+  --primary: 24 10% 11%;
+  --primary-foreground: 40 20% 98%;
+  --secondary: 40 12% 93%;
+  --secondary-foreground: 24 10% 12%;
+  --muted: 40 12% 93%;
+  --muted-foreground: 30 5% 40%;
+  --accent: 40 12% 92%;
+  --accent-foreground: 24 10% 10%;
+  --destructive: 4 72% 48%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 88%;
-  --input: 240 5.9% 88%;
-  --ring: 240 5% 64.9%;
-  --radius: 0.75rem;
+  --border: 40 9% 87%;
+  --input: 40 9% 85%;
+  --ring: 30 5% 55%;
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -47,6 +50,41 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: 30 6% 7%;
+  --foreground: 40 10% 93%;
+  --card: 30 5% 10%;
+  --card-foreground: 40 10% 93%;
+  --popover: 30 5% 11%;
+  --popover-foreground: 40 10% 93%;
+  --primary: 40 12% 93%;
+  --primary-foreground: 30 6% 8%;
+  --secondary: 30 5% 15%;
+  --secondary-foreground: 40 10% 93%;
+  --muted: 30 5% 15%;
+  --muted-foreground: 35 5% 62%;
+  --accent: 30 5% 17%;
+  --accent-foreground: 40 10% 93%;
+  --destructive: 4 62% 48%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 30 5% 18%;
+  --input: 30 5% 22%;
+  --ring: 35 5% 50%;
+}
+
+.dark audio {
+  color-scheme: dark;
+}
+
+::selection {
+  background: hsl(var(--foreground) / 0.14);
 }
 
 @layer base {
@@ -59,8 +97,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: "Inter", "Avenir Next", "Segoe UI", sans-serif;
+    @apply bg-background font-sans text-foreground antialiased;
   }
 
   button,

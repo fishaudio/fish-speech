@@ -1,33 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  AudioLines,
-  ChevronDown,
-  CircleAlert,
-  Copy,
-  Download,
-  FileText,
-  Info,
-  LoaderCircle,
-  Plus,
-  Settings2,
-  Upload,
-} from 'lucide-react'
+import { Download, LoaderCircle, Moon, Pause, Pencil, Play, Plus, Sun, Trash2, X } from 'lucide-react'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import {
   Dialog,
   DialogContent,
@@ -37,65 +11,77 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn, readTheme, saveTheme, type Theme } from '@/lib/utils'
 
+type ModelId = 's2-pro' | 'drama-3'
+type ModelFamily = 's2' | 'drama3'
 type AudioFormat = 'mp3' | 'wav' | 'pcm' | 'opus'
-type LatencyMode = 'normal' | 'balanced'
+type LatencyMode = 'normal' | 'balanced' | 'low'
 
-const defaultInputText = `[excited, joyful tone] We're going to DISNEY WORLD! [squeal of delight] I've been saving for [emphasis] three years [breathless] and finally, FINALLY we can go! The look on your face right now is worth every extra shift I worked!
-[angry] After everything we've been through [break] I can't believe you would [emphasize] betray me like this. I gave you EVERYTHING! And now I'm left with nothing but memories and broken promises!`
+type ModelSpec = {
+  id: ModelId
+  label: string
+  // What a local server reports as model_family in GET /health.
+  family: ModelFamily
+  note: string
+  // Drama 3 expects a space after a speaker tag, S2-Pro does not.
+  tagSuffix: string
+}
 
+const MODELS: ModelSpec[] = [
+  {
+    id: 's2-pro',
+    label: 'S2-Pro',
+    family: 's2',
+    note: 'Bracketed cues like [whisper] or [laughing] shape the delivery.',
+    tagSuffix: '',
+  },
+  {
+    id: 'drama-3',
+    label: 'Drama 3',
+    family: 'drama3',
+    note: 'Made for scripted dialogue. Long scripts are split by the model itself.',
+    tagSuffix: ' ',
+  },
+]
 
-type ControlsState = {
-  chunkLength: number
-  maxNewTokens: number
-  temperature: number
-  topP: number
-  repetitionPenalty: number
-  normalize: boolean
+const MODEL_MISMATCH = 'model not match'
+
+function getModel(id: ModelId): ModelSpec {
+  return MODELS.find((model) => model.id === id) ?? MODELS[0]
+}
+
+function modelForFamily(family: ModelFamily | null): ModelSpec | null {
+  return MODELS.find((model) => model.family === family) ?? null
+}
+
+const defaultInputText = `[soft] I kept the letter for three years before I opened it. [pause] When I finally did, it said only one thing: "Come home whenever you're ready."`
+
+type OutputSettings = {
   format: AudioFormat
   latency: LatencyMode
-}
-
-type SamplingKey =
-  | 'chunkLength'
-  | 'maxNewTokens'
-  | 'temperature'
-  | 'topP'
-  | 'repetitionPenalty'
-
-// GET /v1/tts/defaults: what the loaded model uses for fields a request leaves out.
-type ServerDefaults = {
-  model_family: 's2' | 'drama3'
-  chunk_length: number
-  max_new_tokens: number
-  temperature: number
-  top_p: number
-  repetition_penalty: number
-}
-
-const samplingFields: Record<SamplingKey, keyof ServerDefaults> = {
-  chunkLength: 'chunk_length',
-  maxNewTokens: 'max_new_tokens',
-  temperature: 'temperature',
-  topP: 'top_p',
-  repetitionPenalty: 'repetition_penalty',
+  normalize: boolean
 }
 
 type Metrics = {
-  textLength: number
-  ttftMs: number
-  receivedKb: number
+  firstByteMs: number
+  bytes: number
+  totalMs: number | null
 }
 
-type StatusState = {
+type Notice = {
   tone: 'error' | 'info'
-  message: string
+  title: string
+  detail?: string
+}
+
+type Result = {
+  url: string
+  fileName: string
+  playable: boolean
 }
 
 type ReferenceItem = {
@@ -116,6 +102,7 @@ type PendingReference = {
   speakerId: number
   referenceId?: number
   name: string
+  mime?: string
   audio?: ArrayBuffer
   text: string
 }
@@ -123,16 +110,121 @@ type PendingReference = {
 // The server accepts <|speaker:0|> to <|speaker:15|>.
 const MAX_SPEAKERS = 16
 
-// Shown until the server's defaults arrive: the official Fish Audio SDK's.
-const initialControls: ControlsState = {
-  chunkLength: 200,
-  maxNewTokens: 1024,
-  temperature: 0.7,
-  topP: 0.7,
-  repetitionPenalty: 1.2,
-  normalize: false,
-  format: 'mp3',
-  latency: 'normal',
+const FISH_AUDIO_ENDPOINT = 'https://api.fish.audio'
+const LOCAL_ENDPOINT_HINT = 'http://127.0.0.1:8080'
+const SETTINGS_STORAGE_KEY = 'fish-speech.connection.v1'
+
+type ConnectionSettings = {
+  endpoint: string
+  apiKey: string
+  model: ModelId
+}
+
+type LocalProbe =
+  | { status: 'offline' }
+  | { status: 'loading' }
+  | { status: 'ready'; family: ModelFamily | null }
+
+type ServerState = LocalProbe | { status: 'checking' }
+
+function normalizeEndpoint(value: string): string {
+  const trimmed = value.trim().replace(/\/+$/, '').replace(/\/v1\/tts$/, '')
+  return trimmed || FISH_AUDIO_ENDPOINT
+}
+
+function isLocalEndpoint(endpoint: string): boolean {
+  return /\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?(?:\/|$)/i.test(endpoint)
+}
+
+function isModelId(value: unknown): value is ModelId {
+  return MODELS.some((model) => model.id === value)
+}
+
+function readConnectionSettings(): ConnectionSettings {
+  const fallback: ConnectionSettings = {
+    endpoint: FISH_AUDIO_ENDPOINT,
+    apiKey: '',
+    model: MODELS[0].id,
+  }
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (!raw) {
+      return fallback
+    }
+    const parsed = JSON.parse(raw) as Partial<ConnectionSettings>
+    return {
+      endpoint: normalizeEndpoint(
+        typeof parsed.endpoint === 'string' ? parsed.endpoint : FISH_AUDIO_ENDPOINT,
+      ),
+      apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey : '',
+      model: isModelId(parsed.model) ? parsed.model : fallback.model,
+    }
+  } catch {
+    return fallback
+  }
+}
+
+function writeConnectionSettings(settings: ConnectionSettings): void {
+  try {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    // Storage can be disabled (private mode); the in-memory setting still works.
+  }
+}
+
+async function probeServer(endpoint: string): Promise<LocalProbe> {
+  try {
+    const response = await fetch(`${endpoint}/health`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) {
+      return { status: 'offline' }
+    }
+    const body = (await response.json()) as { status?: string; model_family?: unknown }
+    if (body.status !== 'ok') {
+      return { status: 'loading' }
+    }
+    const family =
+      body.model_family === 's2' || body.model_family === 'drama3' ? body.model_family : null
+    return { status: 'ready', family }
+  } catch {
+    return { status: 'offline' }
+  }
+}
+
+class NoticeError extends Error {
+  title: string
+
+  constructor(title: string, detail: string) {
+    super(detail)
+    this.title = title
+  }
+}
+
+async function readErrorDetail(response: Response): Promise<string> {
+  try {
+    const data: unknown = await response.json()
+    if (data && typeof data === 'object') {
+      const { detail, message } = data as { detail?: unknown; message?: unknown }
+      if (typeof detail === 'string') {
+        return detail
+      }
+      if (Array.isArray(detail)) {
+        return detail
+          .map((item) =>
+            item && typeof item === 'object' && 'msg' in item ? String(item.msg) : String(item),
+          )
+          .join('; ')
+      }
+      if (typeof message === 'string') {
+        return message
+      }
+    }
+  } catch {
+    // Not JSON.
+  }
+  return response.statusText || 'The server returned an error.'
 }
 
 const formatMimeMap: Record<AudioFormat, string> = {
@@ -156,106 +248,85 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 function createSpeakerGroup(): SpeakerGroup {
-  return {
-    id: createId(),
-    references: [],
-  }
+  return { id: createId(), references: [] }
 }
 
-const initialSpeakerGroup = createSpeakerGroup()
-
-function buildReferencesPayload(
-  speakerGroups: SpeakerGroup[],
-  includeBinaryAudio: boolean,
-) {
+function buildReferencesPayload(speakerGroups: SpeakerGroup[], includeBinaryAudio: boolean) {
   // Speaker N is the Nth group; the server tags transcripts that have no tag.
   return speakerGroups.flatMap((speakerGroup, speaker) =>
     speakerGroup.references.map((reference) => ({
       text: reference.text,
       speaker,
-      audio: includeBinaryAudio
-        ? arrayBufferToBase64(reference.audio)
-        : '<audio binary data>',
+      audio: includeBinaryAudio ? arrayBufferToBase64(reference.audio) : '<audio binary data>',
     })),
   )
 }
 
-// Sampling fields the user has not changed are left out, so the server applies
-// the loaded model's own defaults.
-function buildSamplingPayload(controls: ControlsState, customized: SamplingKey[]) {
-  return Object.fromEntries(
-    customized.map((key) => [samplingFields[key], controls[key]]),
-  )
-}
-
-function buildPreviewPayload(
-  inputText: string,
-  controls: ControlsState,
-  customized: SamplingKey[],
+// Local servers only read text and references; the rest is hosted-API only.
+function buildRequestBody(
+  text: string,
+  local: boolean,
+  output: OutputSettings,
   speakerGroups: SpeakerGroup[],
+  includeBinaryAudio: boolean,
 ) {
+  const references = buildReferencesPayload(speakerGroups, includeBinaryAudio)
+  if (local) {
+    return { text, references }
+  }
   return {
-    text: inputText,
-    format: controls.format,
-    latency: controls.latency,
-    normalize: controls.normalize,
-    references: buildReferencesPayload(speakerGroups, false),
-    ...buildSamplingPayload(controls, customized),
+    text,
+    references,
+    format: output.format,
+    latency: output.latency,
+    normalize: output.normalize,
   }
 }
 
-function buildRequestPayload(
-  inputText: string,
-  controls: ControlsState,
-  customized: SamplingKey[],
-  speakerGroups: SpeakerGroup[],
-) {
-  return {
-    text: inputText,
-    format: controls.format,
-    latency: controls.latency,
-    normalize: controls.normalize,
-    references: buildReferencesPayload(speakerGroups, true),
-    ...buildSamplingPayload(controls, customized),
+function buildRequestHeaders(connection: ConnectionSettings, redactKey: boolean) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    model: connection.model,
   }
-}
-
-// Settings in keep (changed by the user) are left alone.
-function applyDefaults(
-  controls: ControlsState,
-  defaults: ServerDefaults,
-  keep: SamplingKey[] = [],
-): ControlsState {
-  const next = { ...controls }
-  for (const key of Object.keys(samplingFields) as SamplingKey[]) {
-    if (!keep.includes(key)) {
-      next[key] = defaults[samplingFields[key]] as number
-    }
+  if (connection.apiKey) {
+    headers.Authorization = `Bearer ${redactKey ? '<api key>' : connection.apiKey}`
   }
-  return next
+  return headers
 }
 
 function createFileName(inputText: string) {
-  const safePrefix = inputText.trim().replace(/\s+/g, '-').slice(0, 24) || 'tts'
-  return safePrefix
+  return inputText.trim().replace(/\s+/g, '-').slice(0, 24) || 'tts'
 }
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown error'
 }
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatMs(ms: number) {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`
+}
+
+function hostOf(endpoint: string) {
+  try {
+    return new URL(endpoint).host
+  } catch {
+    return endpoint
+  }
+}
+
 function waitForSourceBuffer(sourceBuffer: SourceBuffer) {
   if (!sourceBuffer.updating) {
     return Promise.resolve()
   }
-
   return new Promise<void>((resolve) => {
-    const handleUpdateEnd = () => {
-      sourceBuffer.removeEventListener('updateend', handleUpdateEnd)
-      resolve()
-    }
-
-    sourceBuffer.addEventListener('updateend', handleUpdateEnd)
+    sourceBuffer.addEventListener('updateend', () => resolve(), { once: true })
   })
 }
 
@@ -264,168 +335,238 @@ function canUseStreamingPlayback(format: AudioFormat) {
   return typeof window.MediaSource !== 'undefined' && MediaSource.isTypeSupported(mime)
 }
 
-type SettingSliderProps = {
-  label: string
-  value: number
-  min: number
-  max: number
-  step?: number
-  isDefault?: boolean
-  defaultKnown?: boolean
-  disabled?: boolean
-  hint?: string
-  onValueChange: (value: number) => void
-  formatValue?: (value: number) => string
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
+
+type SegmentedProps<T extends string> = {
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (value: T) => void
+  itemClassName?: string
+  ariaLabel: string
 }
 
-function SettingSlider({
-  label,
+function Segmented<T extends string>({
   value,
-  min,
-  max,
-  step = 1,
-  isDefault = false,
-  defaultKnown = true,
-  disabled = false,
-  hint,
-  onValueChange,
-  formatValue,
-}: SettingSliderProps) {
+  options,
+  onChange,
+  itemClassName,
+  ariaLabel,
+}: SegmentedProps<T>) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-4">
-        <Label>{label}</Label>
-        <span className="text-sm text-muted-foreground">
-          {isDefault && !defaultKnown
-            ? 'model default'
-            : `${formatValue ? formatValue(value) : value}${isDefault ? ' (default)' : ''}`}
-        </span>
-      </div>
-      {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
-      <Slider
-        value={[value]}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        onValueChange={(nextValue) => {
-          const current = nextValue[0]
-          if (typeof current === 'number') {
-            onValueChange(current)
-          }
-        }}
-      />
-    </div>
+    <ToggleGroup
+      type="single"
+      value={value}
+      aria-label={ariaLabel}
+      onValueChange={(next) => {
+        if (next) {
+          onChange(next as T)
+        }
+      }}
+      className="inline-flex gap-0.5 rounded-lg bg-muted p-0.5"
+    >
+      {options.map((option) => (
+        <ToggleGroupItem
+          key={option.value}
+          value={option.value}
+          className={cn(
+            'h-7 rounded-md border-0 bg-transparent px-3 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm',
+            itemClassName,
+          )}
+        >
+          {option.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   )
 }
 
+function IconButton({
+  label,
+  className,
+  ...props
+}: React.ComponentProps<'button'> & { label: string }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+const initialSpeakerGroup = createSpeakerGroup()
+
 function App() {
   const [inputText, setInputText] = useState(defaultInputText)
-  const [controls, setControls] = useState(initialControls)
-  const [customized, setCustomized] = useState<SamplingKey[]>([])
-  const customizedRef = useRef<SamplingKey[]>([])
-  customizedRef.current = customized
-  const [serverDefaults, setServerDefaults] = useState<ServerDefaults | null>(null)
+  const [output, setOutput] = useState<OutputSettings>({
+    format: 'mp3',
+    latency: 'normal',
+    normalize: true,
+  })
   const [speakerGroups, setSpeakerGroups] = useState<SpeakerGroup[]>([initialSpeakerGroup])
   const [pendingReference, setPendingReference] = useState<PendingReference | null>(null)
-  const [openSpeakerIds, setOpenSpeakerIds] = useState<number[]>([initialSpeakerGroup.id])
+  const [playingReferenceId, setPlayingReferenceId] = useState<number | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isStreamingAudio, setIsStreamingAudio] = useState(false)
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const [result, setResult] = useState<Result | null>(null)
+  const [isRequestOpen, setIsRequestOpen] = useState(false)
   const [copyLabel, setCopyLabel] = useState('Copy')
-  const [isRequestPreviewOpen, setIsRequestPreviewOpen] = useState(false)
-  const [statusMessage, setStatusMessage] = useState<StatusState | null>(null)
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
-  const [downloadName, setDownloadName] = useState('generated-audio.mp3')
+  const [connection, setConnection] = useState<ConnectionSettings>(readConnectionSettings)
+  const [serverState, setServerState] = useState<ServerState>({ status: 'checking' })
+  const [probeNonce, setProbeNonce] = useState(0)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [endpointDraft, setEndpointDraft] = useState(connection.endpoint)
+  const [apiKeyDraft, setApiKeyDraft] = useState(connection.apiKey)
+  const [theme, setTheme] = useState<Theme>(readTheme)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const previewPlayerRef = useRef<HTMLAudioElement | null>(null)
   const speakerGroupsRef = useRef<SpeakerGroup[]>([])
   const uploadTargetSpeakerIdRef = useRef<number | null>(null)
-  const downloadUrlRef = useRef<string | null>(null)
+  const resultUrlRef = useRef<string | null>(null)
   const mediaSourceUrlRef = useRef<string | null>(null)
 
   speakerGroupsRef.current = speakerGroups
 
+  const usingLocalServer = isLocalEndpoint(connection.endpoint)
+  const selectedModel = getModel(connection.model)
+  const serverModel =
+    serverState.status === 'ready' ? modelForFamily(serverState.family) : null
+  const modelMismatch =
+    usingLocalServer && serverState.status === 'ready' && serverModel?.id !== selectedModel.id
+  const effectiveFormat: AudioFormat = usingLocalServer ? 'wav' : output.format
+  const hasMultipleSpeakers = speakerGroups.length > 1
+
   useEffect(() => {
-    // Older servers have no such endpoint; requests then still omit unchanged
-    // sampling fields and the server applies its defaults.
-    fetch('/v1/tts/defaults')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((defaults: ServerDefaults | null) => {
-        if (!defaults) {
-          return
-        }
-        setServerDefaults(defaults)
-        // The user may have moved a slider while this request was pending.
-        setControls((current) => applyDefaults(current, defaults, customizedRef.current))
-      })
-      .catch(() => {})
-  }, [])
-
-  const isDrama3 = serverDefaults?.model_family === 'drama3'
-
-  function defaultState(key: SamplingKey) {
-    return { isDefault: !customized.includes(key), defaultKnown: serverDefaults !== null }
-  }
-
-  function setSampling(key: SamplingKey, value: number) {
-    setControls((current) => ({ ...current, [key]: value }))
-    setCustomized((current) => (current.includes(key) ? current : [...current, key]))
-  }
-
-  function resetSampling() {
-    setCustomized([])
-    if (serverDefaults) {
-      setControls((current) => applyDefaults(current, serverDefaults))
+    if (!isLocalEndpoint(connection.endpoint)) {
+      return
     }
-  }
+    let cancelled = false
+    void probeServer(connection.endpoint).then((state) => {
+      if (!cancelled) {
+        setServerState(state)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [connection.endpoint, probeNonce])
 
   useEffect(() => {
     return () => {
+      previewPlayerRef.current?.pause()
       speakerGroupsRef.current.forEach((speakerGroup) => {
         speakerGroup.references.forEach((reference) => {
           URL.revokeObjectURL(reference.previewUrl)
         })
       })
-
-      if (downloadUrlRef.current) {
-        URL.revokeObjectURL(downloadUrlRef.current)
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current)
       }
-
       if (mediaSourceUrlRef.current) {
         URL.revokeObjectURL(mediaSourceUrlRef.current)
       }
     }
   }, [])
 
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      saveTheme(next)
+      return next
+    })
+  }
+
+  function updateConnection(next: ConnectionSettings) {
+    writeConnectionSettings(next)
+    setConnection(next)
+  }
+
+  function selectModel(model: ModelId) {
+    updateConnection({ ...connection, model })
+    if (notice?.title === MODEL_MISMATCH) {
+      setNotice(null)
+    }
+  }
+
+  function openSettings() {
+    setEndpointDraft(connection.endpoint)
+    setApiKeyDraft(connection.apiKey)
+    setIsSettingsOpen(true)
+  }
+
+  function saveSettings() {
+    const next: ConnectionSettings = {
+      ...connection,
+      endpoint: normalizeEndpoint(endpointDraft),
+      apiKey: apiKeyDraft.trim(),
+    }
+    updateConnection(next)
+    if (isLocalEndpoint(next.endpoint)) {
+      setServerState({ status: 'checking' })
+      setProbeNonce((current) => current + 1)
+    }
+    setNotice(null)
+    setIsSettingsOpen(false)
+  }
+
+  function insertSpeakerTag(speakerIndex: number) {
+    const tag = `<|speaker:${speakerIndex}|>${selectedModel.tagSuffix}`
+    const textarea = textareaRef.current
+    const start = textarea?.selectionStart ?? inputText.length
+    const end = textarea?.selectionEnd ?? inputText.length
+    setInputText(inputText.slice(0, start) + tag + inputText.slice(end))
+    window.requestAnimationFrame(() => {
+      if (textarea) {
+        const caret = start + tag.length
+        textarea.focus()
+        textarea.setSelectionRange(caret, caret)
+      }
+    })
+  }
+
   function addSpeaker() {
-    const nextSpeaker = createSpeakerGroup()
-    setSpeakerGroups((current) => [...current, nextSpeaker])
-    setOpenSpeakerIds((current) => [...current, nextSpeaker.id])
+    setSpeakerGroups((current) => [...current, createSpeakerGroup()])
+  }
+
+  function stopPreview() {
+    previewPlayerRef.current?.pause()
+    setPlayingReferenceId(null)
   }
 
   function removeSpeaker(speakerId: number) {
-    setSpeakerGroups((current) => {
-      const targetSpeaker = current.find((speakerGroup) => speakerGroup.id === speakerId)
-      if (targetSpeaker) {
-        targetSpeaker.references.forEach((reference) => {
-          URL.revokeObjectURL(reference.previewUrl)
-        })
-      }
+    const target = speakerGroups.find((speakerGroup) => speakerGroup.id === speakerId)
+    if (target?.references.some((reference) => reference.id === playingReferenceId)) {
+      stopPreview()
+    }
+    target?.references.forEach((reference) => URL.revokeObjectURL(reference.previewUrl))
 
+    setSpeakerGroups((current) => {
       const next = current.filter((speakerGroup) => speakerGroup.id !== speakerId)
       return next.length > 0 ? next : [createSpeakerGroup()]
     })
-    setOpenSpeakerIds((current) => current.filter((currentSpeakerId) => currentSpeakerId !== speakerId))
-
     if (pendingReference?.speakerId === speakerId) {
       setPendingReference(null)
     }
   }
 
-  function addReference(speakerId: number, name: string, audio: ArrayBuffer, text: string) {
-    const previewUrl = URL.createObjectURL(new Blob([audio], { type: formatMimeMap.mp3 }))
-
+  function addReference(
+    speakerId: number,
+    name: string,
+    audio: ArrayBuffer,
+    mime: string,
+    text: string,
+  ) {
+    const previewUrl = URL.createObjectURL(new Blob([audio], { type: mime }))
     setSpeakerGroups((current) =>
       current.map((speakerGroup) =>
         speakerGroup.id === speakerId
@@ -433,13 +574,7 @@ function App() {
               ...speakerGroup,
               references: [
                 ...speakerGroup.references,
-                {
-                  id: createId(),
-                  name,
-                  audio,
-                  text,
-                  previewUrl,
-                },
+                { id: createId(), name, audio, text, previewUrl },
               ],
             }
           : speakerGroup,
@@ -447,25 +582,20 @@ function App() {
     )
   }
 
-  function removeReference(speakerId: number, referenceId: number) {
+  function removeReference(speakerId: number, reference: ReferenceItem) {
+    if (reference.id === playingReferenceId) {
+      stopPreview()
+    }
+    URL.revokeObjectURL(reference.previewUrl)
     setSpeakerGroups((current) =>
-      current.map((speakerGroup) => {
-        if (speakerGroup.id !== speakerId) {
-          return speakerGroup
-        }
-
-        return {
-          ...speakerGroup,
-          references: speakerGroup.references.filter((reference) => {
-            if (reference.id === referenceId) {
-              URL.revokeObjectURL(reference.previewUrl)
-              return false
+      current.map((speakerGroup) =>
+        speakerGroup.id === speakerId
+          ? {
+              ...speakerGroup,
+              references: speakerGroup.references.filter((item) => item.id !== reference.id),
             }
-
-            return true
-          }),
-        }
-      }),
+          : speakerGroup,
+      ),
     )
   }
 
@@ -484,20 +614,26 @@ function App() {
     )
   }
 
-  function clearDownloadUrl() {
-    if (downloadUrlRef.current) {
-      URL.revokeObjectURL(downloadUrlRef.current)
-      downloadUrlRef.current = null
+  function togglePreview(reference: ReferenceItem) {
+    let player = previewPlayerRef.current
+    if (!player) {
+      player = new Audio()
+      player.addEventListener('ended', () => setPlayingReferenceId(null))
+      previewPlayerRef.current = player
     }
-
-    setDownloadUrl(null)
+    if (playingReferenceId === reference.id) {
+      stopPreview()
+      return
+    }
+    player.pause()
+    player.src = reference.previewUrl
+    setPlayingReferenceId(reference.id)
+    void player.play().catch(() => setPlayingReferenceId(null))
   }
 
-  function clearMediaSourceUrl() {
-    if (mediaSourceUrlRef.current) {
-      URL.revokeObjectURL(mediaSourceUrlRef.current)
-      mediaSourceUrlRef.current = null
-    }
+  function pickClip(speakerId: number) {
+    uploadTargetSpeakerIdRef.current = speakerId
+    fileInputRef.current?.click()
   }
 
   async function handleReferenceUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -515,6 +651,7 @@ function App() {
       mode: 'create',
       speakerId,
       name: file.name,
+      mime: file.type || 'audio/mpeg',
       audio,
       text: '',
     })
@@ -524,73 +661,139 @@ function App() {
     if (!pendingReference) {
       return
     }
-
     if (pendingReference.mode === 'create' && pendingReference.audio) {
       addReference(
         pendingReference.speakerId,
         pendingReference.name,
         pendingReference.audio,
-        pendingReference.text,
+        pendingReference.mime ?? 'audio/mpeg',
+        pendingReference.text.trim(),
       )
     }
-
     if (pendingReference.mode === 'edit' && typeof pendingReference.referenceId === 'number') {
       updateReferenceText(
         pendingReference.speakerId,
         pendingReference.referenceId,
-        pendingReference.text,
+        pendingReference.text.trim(),
       )
     }
-
     setPendingReference(null)
-    setStatusMessage(null)
   }
 
-  async function copyRequestPreview() {
-    const requestPreview = JSON.stringify(
-      buildPreviewPayload(inputText, controls, customized, speakerGroups),
+  function clearResult() {
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current)
+      resultUrlRef.current = null
+    }
+    setResult(null)
+  }
+
+  function clearMediaSourceUrl() {
+    if (mediaSourceUrlRef.current) {
+      URL.revokeObjectURL(mediaSourceUrlRef.current)
+      mediaSourceUrlRef.current = null
+    }
+  }
+
+  function buildRequestPreview() {
+    return JSON.stringify(
+      {
+        method: 'POST',
+        url: `${connection.endpoint}/v1/tts`,
+        headers: buildRequestHeaders(connection, true),
+        body: buildRequestBody(inputText.trim(), usingLocalServer, output, speakerGroups, false),
+      },
       null,
       2,
     )
+  }
 
+  async function copyRequestPreview() {
     try {
-      await navigator.clipboard.writeText(requestPreview)
+      await navigator.clipboard.writeText(buildRequestPreview())
       setCopyLabel('Copied')
-      window.setTimeout(() => setCopyLabel('Copy'), 2000)
-    } catch (error) {
-      setStatusMessage({
-        tone: 'error',
-        message: `Failed to copy request preview: ${getErrorMessage(error)}`,
-      })
+    } catch {
+      setCopyLabel('Copy failed')
+    }
+    window.setTimeout(() => setCopyLabel('Copy'), 2000)
+  }
+
+  // A local server runs exactly one model. Refuse to synthesize unless it is
+  // the one selected, so the output never comes from a different model.
+  async function assertServerModel() {
+    const state = await probeServer(connection.endpoint)
+    setServerState(state)
+    if (state.status === 'offline') {
+      throw new NoticeError(
+        'Server unreachable',
+        `Nothing answered at ${connection.endpoint}/health.`,
+      )
+    }
+    if (state.status === 'loading') {
+      throw new NoticeError('Server not ready', 'The model is still loading. Try again shortly.')
+    }
+    const running = modelForFamily(state.family)
+    if (running?.id !== selectedModel.id) {
+      throw new NoticeError(
+        MODEL_MISMATCH,
+        `${selectedModel.label} is selected, but this server is running ${
+          running?.label ?? 'an unrecognised model'
+        }.`,
+      )
     }
   }
 
-  async function handleGenerateAudio() {
+  async function handleGenerate() {
     const audioElement = audioRef.current
-    if (!audioElement) {
+    if (!audioElement || isGenerating) {
       return
     }
 
-    const mime = formatMimeMap[controls.format]
-    const useStreamingPlayback = canUseStreamingPlayback(controls.format)
+    const text = inputText.trim()
+    if (!text) {
+      setNotice({ tone: 'error', title: 'Nothing to read', detail: 'Type or paste some text first.' })
+      return
+    }
+    if (!usingLocalServer && !connection.apiKey) {
+      setNotice({
+        tone: 'error',
+        title: 'API key missing',
+        detail: 'Add your Fish Audio API key under Connection.',
+      })
+      return
+    }
 
-    clearDownloadUrl()
+    const format = effectiveFormat
+    const mime = formatMimeMap[format]
+    const useStreamingPlayback = canUseStreamingPlayback(format)
+
+    audioElement.pause()
+    clearResult()
     clearMediaSourceUrl()
+    setIsStreamingAudio(false)
     setMetrics(null)
-    setStatusMessage(null)
+    setNotice(null)
     setIsGenerating(true)
 
     try {
-      const response = await fetch('/v1/tts', {
+      if (usingLocalServer) {
+        await assertServerModel()
+      }
+
+      const startTime = performance.now()
+      const response = await fetch(`${connection.endpoint}/v1/tts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(buildRequestPayload(inputText, controls, customized, speakerGroups)),
+        headers: buildRequestHeaders(connection, false),
+        body: JSON.stringify(
+          buildRequestBody(text, usingLocalServer, output, speakerGroups, true),
+        ),
       })
 
       if (!response.ok || !response.body) {
-        throw new Error('Failed to generate audio')
+        throw new NoticeError(
+          `Request failed (${response.status})`,
+          await readErrorDetail(response),
+        )
       }
 
       const reader = response.body.getReader()
@@ -601,6 +804,7 @@ function App() {
         const streamUrl = URL.createObjectURL(mediaSource)
         mediaSourceUrlRef.current = streamUrl
         audioElement.src = streamUrl
+        setIsStreamingAudio(true)
       } else {
         audioElement.removeAttribute('src')
         audioElement.load()
@@ -608,30 +812,25 @@ function App() {
 
       const allChunks: ArrayBuffer[] = []
       const playQueue: ArrayBuffer[] = []
-      let sourceBuffer: SourceBuffer | null = null
       let readingDone = false
       let receivedLength = 0
-      let ttftMs = -1
-      const startTime = performance.now()
+      let firstByteMs = -1
 
       if (mediaSource) {
-        const sourceReady = new Promise<void>((resolve, reject) => {
-          mediaSource.addEventListener(
+        const source = mediaSource
+        await new Promise<void>((resolve, reject) => {
+          source.addEventListener(
             'sourceopen',
             () => {
               try {
-                sourceBuffer = mediaSource.addSourceBuffer(mime)
+                const sourceBuffer = source.addSourceBuffer(mime)
 
                 const processQueue = async () => {
-                  if (!sourceBuffer || !mediaSource) {
-                    return
-                  }
-
                   while (true) {
                     if (readingDone && playQueue.length === 0) {
                       await waitForSourceBuffer(sourceBuffer)
-                      if (mediaSource.readyState === 'open') {
-                        mediaSource.endOfStream()
+                      if (source.readyState === 'open') {
+                        source.endOfStream()
                       }
                       break
                     }
@@ -659,8 +858,6 @@ function App() {
             { once: true },
           )
         })
-
-        await sourceReady
       }
 
       while (true) {
@@ -671,16 +868,10 @@ function App() {
         }
 
         receivedLength += value.byteLength
-
-        if (ttftMs < 0) {
-          ttftMs = performance.now() - startTime
+        if (firstByteMs < 0) {
+          firstByteMs = performance.now() - startTime
         }
-
-        setMetrics({
-          textLength: inputText.length,
-          ttftMs,
-          receivedKb: Math.round(receivedLength / 1024),
-        })
+        setMetrics({ firstByteMs, bytes: receivedLength, totalMs: null })
 
         const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
         playQueue.push(chunk)
@@ -691,595 +882,567 @@ function App() {
         }
       }
 
-      const audioBlob = new Blob(allChunks, { type: mime })
-      const nextDownloadUrl = URL.createObjectURL(audioBlob)
-      downloadUrlRef.current = nextDownloadUrl
-      setDownloadUrl(nextDownloadUrl)
-      setDownloadName(`${createFileName(inputText)}.${controls.format}`)
+      const totalMs = performance.now() - startTime
+      setMetrics({ firstByteMs, bytes: receivedLength, totalMs })
 
-      if (!useStreamingPlayback) {
-        audioElement.src = nextDownloadUrl
+      const resultUrl = URL.createObjectURL(new Blob(allChunks, { type: mime }))
+      resultUrlRef.current = resultUrl
+      const playable = format !== 'pcm'
+      setResult({ url: resultUrl, fileName: `${createFileName(text)}.${format}`, playable })
+
+      if (!useStreamingPlayback && playable) {
+        audioElement.src = resultUrl
         audioElement.load()
-        setStatusMessage({
+        void audioElement.play().catch(() => undefined)
+      }
+      if (!playable) {
+        setNotice({
           tone: 'info',
-          message: `Format "${controls.format}" is not supported for in-browser playback. The file is ready to download after generation completes.`,
+          title: 'Ready to download',
+          detail: 'PCM is raw audio, so the browser cannot play it here.',
         })
       }
     } catch (error) {
-      setStatusMessage({
-        tone: 'error',
-        message: `Audio generation failed: ${getErrorMessage(error)}`,
-      })
+      setIsStreamingAudio(false)
+      setNotice(
+        error instanceof NoticeError
+          ? { tone: 'error', title: error.title, detail: error.message }
+          : { tone: 'error', title: 'Generation failed', detail: getErrorMessage(error) },
+      )
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const requestPreview = JSON.stringify(
-    buildPreviewPayload(inputText, controls, customized, speakerGroups),
-    null,
-    2,
-  )
+  const connectionStatus: { tone: 'ok' | 'warn' | 'error' | 'idle'; label: string } = (() => {
+    if (!usingLocalServer) {
+      return connection.apiKey
+        ? { tone: 'ok', label: 'Hosted API' }
+        : { tone: 'warn', label: 'API key needed' }
+    }
+    switch (serverState.status) {
+      case 'checking':
+        return { tone: 'idle', label: 'Checking' }
+      case 'offline':
+        return { tone: 'error', label: 'Offline' }
+      case 'loading':
+        return { tone: 'warn', label: 'Loading model' }
+      case 'ready':
+        return {
+          tone: modelMismatch ? 'warn' : 'ok',
+          label: `Running ${serverModel?.label ?? 'unknown model'}`,
+        }
+    }
+  })()
 
-  const totalReferenceCount = speakerGroups.reduce(
-    (count, speakerGroup) => count + speakerGroup.references.length,
-    0,
-  )
+  const playerVisible = isStreamingAudio || (result?.playable ?? false)
+  const charCount = inputText.trim().length
 
   return (
-    <main className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-[1600px] px-3 py-3 sm:px-4 lg:px-5">
-        <div className="grid gap-4 xl:h-[calc(100vh-1.5rem)] xl:grid-cols-[minmax(0,1fr)_460px]">
-          <section className="grid gap-4 xl:min-h-0 xl:grid-rows-[minmax(0,1fr)_auto]">
-            <Card className="rounded-xl border-zinc-200 bg-white shadow-none xl:min-h-0 xl:flex xl:flex-col">
-              <CardHeader className="space-y-1 border-b border-zinc-100 px-4 py-4">
-                <div className="flex items-center gap-2 text-zinc-700">
-                  <FileText className="size-4" />
-                  <CardTitle>Input</CardTitle>
-                </div>
-                <CardDescription>
-                  Enter the text to synthesize and inspect the outgoing request payload.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 px-4 pt-4 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
-                <div className="space-y-2">
-                  <Label htmlFor="inputText">Input Text</Label>
-                  <Textarea
-                    id="inputText"
-                    value={inputText}
-                    onChange={(event) => setInputText(event.target.value)}
-                    placeholder="Enter text to synthesize"
-                    className="min-h-[220px] resize-y rounded-xl border-zinc-200 bg-white p-3 text-sm shadow-none focus-visible:ring-zinc-300 xl:min-h-[260px]"
-                  />
-                </div>
+    <div className="flex min-h-dvh flex-col lg:h-dvh">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4 sm:px-6">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-[15px] font-semibold tracking-tight">fish speech</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">text to speech</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={openSettings}
+            title="Connection settings"
+            className="flex h-8 min-w-0 items-center gap-2 rounded-md border bg-card px-2.5 text-xs transition-colors hover:bg-accent"
+          >
+            <span
+              className={cn(
+                'size-1.5 shrink-0 rounded-full',
+                connectionStatus.tone === 'ok' && 'bg-emerald-500',
+                connectionStatus.tone === 'warn' && 'bg-amber-500',
+                connectionStatus.tone === 'error' && 'bg-red-500',
+                connectionStatus.tone === 'idle' && 'animate-pulse bg-muted-foreground/50',
+              )}
+            />
+            <span className="max-w-[40vw] truncate font-mono">{hostOf(connection.endpoint)}</span>
+            <span className="hidden text-muted-foreground sm:inline">{connectionStatus.label}</span>
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          >
+            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+        </div>
+      </header>
 
-                <Collapsible open={isRequestPreviewOpen} onOpenChange={setIsRequestPreviewOpen}>
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50">
-                    <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900">Request Preview</div>
-                        <div className="text-xs text-zinc-500">
-                          Live snapshot of the payload sent to the backend.
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100"
-                          onClick={copyRequestPreview}
-                        >
-                          <Copy className="size-3.5" />
-                          {copyLabel}
-                        </Button>
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100"
-                          >
-                            {isRequestPreviewOpen ? 'Collapse' : 'Expand'}
-                            <ChevronDown
-                              className={`size-4 transition-transform ${
-                                isRequestPreviewOpen ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </Button>
-                        </CollapsibleTrigger>
-                      </div>
-                    </div>
-                    <CollapsibleContent>
-                      <Separator className="bg-zinc-200" />
-                      <div className="p-3 pt-3">
-                        <ScrollArea className="h-56 min-w-0 rounded-lg border border-zinc-200 bg-white">
-                          <pre className="max-w-full whitespace-pre-wrap break-all p-3 text-xs leading-5 text-zinc-700">
-                            {requestPreview}
-                          </pre>
-                        </ScrollArea>
-                      </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
+      <div className="grid flex-1 lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="flex min-w-0 flex-col lg:min-h-0">
+          <div className="flex flex-1 flex-col px-4 pb-4 pt-5 sm:px-8 lg:min-h-0">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <Segmented
+                ariaLabel="Model"
+                value={connection.model}
+                options={MODELS.map((model) => ({ value: model.id, label: model.label }))}
+                onChange={selectModel}
+                itemClassName="h-8 px-4 text-sm"
+              />
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                {charCount} chars
+              </span>
+            </div>
 
-                <div className="space-y-4">
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="h-11 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800"
-                    onClick={handleGenerateAudio}
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <AudioLines className="size-4" />
+            <Textarea
+              ref={textareaRef}
+              id="inputText"
+              aria-label="Text to synthesize"
+              value={inputText}
+              onChange={(event) => setInputText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                  event.preventDefault()
+                  void handleGenerate()
+                }
+              }}
+              placeholder="Write what should be spoken…"
+              spellCheck={false}
+              className="min-h-[260px] flex-1 resize-none rounded-lg bg-card p-5 text-[15px] leading-7 shadow-none lg:min-h-0"
+            />
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              {modelMismatch ? (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  This server is running {serverModel?.label ?? 'an unrecognised model'}, so{' '}
+                  {selectedModel.label} requests will be refused.
+                  {serverModel ? (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        className="font-medium underline underline-offset-2"
+                        onClick={() => selectModel(serverModel.id)}
+                      >
+                        Use {serverModel.label}
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{selectedModel.note}</p>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => setIsRequestOpen(true)}
+                >
+                  View request
+                </Button>
+                <Button
+                  type="button"
+                  className="min-w-32"
+                  onClick={() => void handleGenerate()}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {isGenerating ? 'Generating' : 'Generate'}
+                  {!isGenerating ? (
+                    <kbd className="ml-1 font-sans text-[11px] opacity-50">
+                      {isMac ? '⌘↵' : 'Ctrl ↵'}
+                    </kbd>
+                  ) : null}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t bg-card px-4 py-4 sm:px-8">
+            <div className="flex min-h-12 flex-col justify-center gap-3">
+              {notice ? (
+                <div
+                  role={notice.tone === 'error' ? 'alert' : 'status'}
+                  className={cn(
+                    'border-l-2 pl-3',
+                    notice.tone === 'error' ? 'border-red-500' : 'border-muted-foreground/40',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'text-sm font-medium',
+                      notice.tone === 'error' && 'text-red-600 dark:text-red-400',
                     )}
-                    {isGenerating ? 'Generating Audio...' : 'Generate Audio'}
-                  </Button>
-
-                  {statusMessage ? (
-                    <Alert
-                      variant={statusMessage.tone === 'error' ? 'destructive' : 'warning'}
-                      className="rounded-lg"
-                    >
-                      <div className="flex items-start gap-3">
-                        {statusMessage.tone === 'error' ? (
-                          <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                        ) : (
-                          <Info className="mt-0.5 size-4 shrink-0" />
-                        )}
-                        <div>
-                          <AlertTitle>
-                            {statusMessage.tone === 'error' ? 'Error' : 'Notice'}
-                          </AlertTitle>
-                          <AlertDescription>{statusMessage.message}</AlertDescription>
-                        </div>
-                      </div>
-                    </Alert>
+                  >
+                    {notice.title}
+                  </div>
+                  {notice.detail ? (
+                    <div className="mt-0.5 text-xs text-muted-foreground">{notice.detail}</div>
                   ) : null}
                 </div>
-              </CardContent>
-            </Card>
+              ) : null}
 
-            <Card className="rounded-xl border-zinc-200 bg-white shadow-none">
-              <CardHeader className="space-y-1 border-b border-zinc-100 px-4 py-4">
-                <div className="flex items-center gap-2 text-zinc-700">
-                  <AudioLines className="size-4" />
-                  <CardTitle>Output</CardTitle>
-                </div>
-                <CardDescription>
-                  Stream the result when supported, then preview or download the final file.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 pt-4">
-                <audio
-                  ref={audioRef}
-                  controls
-                  className="w-full rounded-lg border border-zinc-200 bg-white"
-                />
+              <audio
+                ref={audioRef}
+                controls
+                className={cn('h-10 w-full', !playerVisible && 'hidden')}
+              />
 
-                <div className="flex flex-wrap gap-2">
+              {isGenerating && !metrics ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                  {usingLocalServer ? 'Rendering on the local server…' : 'Waiting for audio…'}
+                </p>
+              ) : null}
+
+              {metrics || result ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   {metrics ? (
-                    <>
-                      <Badge variant="outline" className="border-zinc-200 bg-white text-zinc-700">
-                        Text length: {metrics.textLength}
-                      </Badge>
-                      <Badge variant="outline" className="border-zinc-200 bg-white text-zinc-700">
-                        TTFT: {metrics.ttftMs.toFixed(2)} ms
-                      </Badge>
-                      <Badge variant="outline" className="border-zinc-200 bg-white text-zinc-700">
-                        Received: {metrics.receivedKb} KB
-                      </Badge>
-                    </>
+                    <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                      first byte {formatMs(metrics.firstByteMs)} · {formatBytes(metrics.bytes)}
+                      {metrics.totalMs !== null ? ` · total ${formatMs(metrics.totalMs)}` : ''}
+                    </p>
                   ) : (
-                    <Badge variant="outline" className="border-zinc-200 bg-white text-zinc-500">
-                      No output yet
-                    </Badge>
+                    <span />
                   )}
-                </div>
-
-                <div className="flex justify-end">
-                  {downloadUrl ? (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-100"
-                    >
-                      <a href={downloadUrl} download={downloadName}>
-                        <Download className="size-4" />
-                        Download
+                  {result ? (
+                    <Button asChild variant="outline" size="sm">
+                      <a href={result.url} download={result.fileName}>
+                        <Download className="size-3.5" />
+                        Download {effectiveFormat.toUpperCase()}
                       </a>
                     </Button>
                   ) : null}
                 </div>
-              </CardContent>
-            </Card>
-          </section>
+              ) : null}
 
-          <aside className="grid gap-4 xl:min-h-0 xl:grid-rows-[minmax(0,1fr)_auto]">
-            <Card className="rounded-xl border-zinc-200 bg-white shadow-none xl:min-h-0 xl:flex xl:flex-col">
-              <CardHeader className="space-y-1 border-b border-zinc-100 px-4 py-4">
-                <div className="flex items-center gap-2 text-zinc-700">
-                  <Upload className="size-4" />
-                  <CardTitle>Reference Audio</CardTitle>
-                </div>
-                <CardDescription>
-                  Build one or more speaker groups. Each speaker can have multiple reference clips.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 pt-4 xl:min-h-0 xl:flex xl:flex-1 xl:flex-col">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center text-sm text-zinc-500">
-                    {speakerGroups.length} speaker{speakerGroups.length === 1 ? '' : 's'} /{' '}
-                    {totalReferenceCount} reference{totalReferenceCount === 1 ? '' : 's'}
+              {!notice && !isGenerating && !metrics && !result ? (
+                <p className="text-sm text-muted-foreground">
+                  Audio will play here once it's generated.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <aside className="border-t lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+          <div className="px-5 py-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Voices</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-mr-2 text-muted-foreground"
+                onClick={addSpeaker}
+                disabled={speakerGroups.length >= MAX_SPEAKERS}
+              >
+                <Plus className="size-3.5" />
+                Speaker
+              </Button>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              A short clip and its transcript per speaker. Without one, the model picks a voice.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleReferenceUpload}
+            />
+
+            <ol className="mt-4 space-y-3">
+              {speakerGroups.map((speakerGroup, speakerIndex) => (
+                <li key={speakerGroup.id} className="rounded-lg border bg-card">
+                  <div className="flex items-center justify-between gap-2 py-1.5 pl-3 pr-1.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="text-sm font-medium">Speaker {speakerIndex}</span>
+                      {hasMultipleSpeakers ? (
+                        <button
+                          type="button"
+                          title="Insert this tag at the cursor"
+                          className="rounded border px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          onClick={() => insertSpeakerTag(speakerIndex)}
+                        >
+                          {`<|speaker:${speakerIndex}|>`}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center">
+                      <IconButton label="Add clip" onClick={() => pickClip(speakerGroup.id)}>
+                        <Plus className="size-4" />
+                      </IconButton>
+                      {hasMultipleSpeakers ? (
+                        <IconButton
+                          label={`Remove speaker ${speakerIndex}`}
+                          onClick={() => removeSpeaker(speakerGroup.id)}
+                        >
+                          <X className="size-4" />
+                        </IconButton>
+                      ) : null}
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-zinc-200 bg-white hover:bg-zinc-100"
-                    onClick={addSpeaker}
-                    disabled={speakerGroups.length >= MAX_SPEAKERS}
-                  >
-                    <Plus className="size-4" />
-                    Add Speaker
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={handleReferenceUpload}
+
+                  {speakerGroup.references.length > 0 ? (
+                    <ul className="divide-y border-t">
+                      {speakerGroup.references.map((reference) => (
+                        <li key={reference.id} className="flex items-start gap-2.5 py-2.5 pl-3 pr-1.5">
+                          <button
+                            type="button"
+                            aria-label={
+                              playingReferenceId === reference.id ? 'Pause clip' : 'Play clip'
+                            }
+                            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors hover:bg-accent"
+                            onClick={() => togglePreview(reference)}
+                          >
+                            {playingReferenceId === reference.id ? (
+                              <Pause className="size-3" />
+                            ) : (
+                              <Play className="ml-px size-3" />
+                            )}
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[13px] font-medium">{reference.name}</div>
+                            {reference.text ? (
+                              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                {reference.text}
+                              </p>
+                            ) : (
+                              <p className="text-xs leading-5 text-amber-700 dark:text-amber-400">
+                                No transcript
+                              </p>
+                            )}
+                          </div>
+                          <IconButton
+                            label="Edit transcript"
+                            onClick={() =>
+                              setPendingReference({
+                                mode: 'edit',
+                                speakerId: speakerGroup.id,
+                                referenceId: reference.id,
+                                name: reference.name,
+                                text: reference.text,
+                              })
+                            }
+                          >
+                            <Pencil className="size-3.5" />
+                          </IconButton>
+                          <IconButton
+                            label="Remove clip"
+                            onClick={() => removeReference(speakerGroup.id, reference)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </IconButton>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <button
+                      type="button"
+                      className="block w-full border-t border-dashed px-3 py-3 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+                      onClick={() => pickClip(speakerGroup.id)}
+                    >
+                      Add a reference clip
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="border-t px-5 py-5">
+            <h2 className="text-sm font-semibold">Output</h2>
+            {usingLocalServer ? (
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Local servers return 16-bit mono WAV. Format, latency and text normalization
+                apply to the hosted API only.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs font-normal text-muted-foreground">Format</Label>
+                  <Segmented
+                    ariaLabel="Format"
+                    value={output.format}
+                    options={(['mp3', 'wav', 'pcm', 'opus'] as const).map((format) => ({
+                      value: format,
+                      label: format,
+                    }))}
+                    onChange={(format) => setOutput((current) => ({ ...current, format }))}
+                    itemClassName="px-2.5 font-mono"
                   />
                 </div>
-
-                <ScrollArea className="min-h-0 rounded-md xl:h-full xl:flex-1">
-                  <div className="space-y-2">
-                    {speakerGroups.length > 0 ? (
-                      speakerGroups.map((speakerGroup, speakerIndex) => (
-                        <Collapsible
-                          key={speakerGroup.id}
-                          open={openSpeakerIds.includes(speakerGroup.id)}
-                          onOpenChange={(open) => {
-                            setOpenSpeakerIds((current) =>
-                              open
-                                ? [...current, speakerGroup.id]
-                                : current.filter(
-                                    (currentSpeakerId) => currentSpeakerId !== speakerGroup.id,
-                                  ),
-                            )
-                          }}
-                        >
-                          <div className="rounded-lg border border-zinc-200 bg-white">
-                            <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium text-zinc-900">
-                                  Speaker {speakerIndex}
-                                </div>
-                                <div className="text-xs text-zinc-500">
-                                  {speakerGroup.references.length} reference
-                                  {speakerGroup.references.length === 1 ? '' : 's'}
-                                </div>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 border-zinc-200 bg-white px-2.5 hover:bg-zinc-100"
-                                  onClick={() => {
-                                    uploadTargetSpeakerIdRef.current = speakerGroup.id
-                                    fileInputRef.current?.click()
-                                  }}
-                                >
-                                  <Upload className="size-4" />
-                                  Upload
-                                </Button>
-                                {speakerGroups.length > 1 ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                                    onClick={() => removeSpeaker(speakerGroup.id)}
-                                  >
-                                    Remove
-                                  </Button>
-                                ) : null}
-                                <CollapsibleTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                                  >
-                                    <ChevronDown
-                                      className={`size-4 transition-transform ${
-                                        openSpeakerIds.includes(speakerGroup.id) ? 'rotate-180' : ''
-                                      }`}
-                                    />
-                                  </Button>
-                                </CollapsibleTrigger>
-                              </div>
-                            </div>
-
-                            <CollapsibleContent>
-                              <Separator className="bg-zinc-200" />
-                              <div className="space-y-2 px-3 py-2.5">
-                                {speakerGroup.references.length > 0 ? (
-                                  speakerGroup.references.map((reference) => (
-                                    <div
-                                      key={reference.id}
-                                      className="flex flex-col gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-2 sm:flex-row sm:items-center"
-                                    >
-                                      <audio
-                                        controls
-                                        src={reference.previewUrl}
-                                        className="h-9 w-full min-w-0 rounded-md border border-zinc-200 bg-white sm:flex-1"
-                                      />
-                                      <div className="flex gap-2 sm:shrink-0">
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 border border-zinc-200 bg-white px-2.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                                          onClick={() =>
-                                            setPendingReference({
-                                              mode: 'edit',
-                                              speakerId: speakerGroup.id,
-                                              referenceId: reference.id,
-                                              name: reference.name,
-                                              text: reference.text,
-                                            })
-                                          }
-                                        >
-                                          Edit Text
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 border border-zinc-200 bg-white px-2.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                                          onClick={() =>
-                                            removeReference(speakerGroup.id, reference.id)
-                                          }
-                                        >
-                                          Remove
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="px-1 py-3 text-sm text-zinc-500">
-                                    No references yet.
-                                  </div>
-                                )}
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-                      ))
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-500">
-                        No speaker groups configured yet.
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-xl border-zinc-200 bg-white shadow-none">
-              <CardHeader className="space-y-1 border-b border-zinc-100 px-4 py-4">
-                <div className="flex items-center gap-2 text-zinc-700">
-                  <Settings2 className="size-4" />
-                  <CardTitle>Generation Settings</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs font-normal text-muted-foreground">Latency</Label>
+                  <Segmented
+                    ariaLabel="Latency"
+                    value={output.latency}
+                    options={[
+                      { value: 'normal', label: 'Normal' },
+                      { value: 'balanced', label: 'Balanced' },
+                      { value: 'low', label: 'Low' },
+                    ]}
+                    onChange={(latency) => setOutput((current) => ({ ...current, latency }))}
+                    itemClassName="px-2.5"
+                  />
                 </div>
-                <CardDescription>Adjust sampling and output parameters.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 px-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Latency Mode</Label>
-                  <ToggleGroup
-                    type="single"
-                    value={controls.latency}
-                    className="grid grid-cols-2 gap-2"
-                    onValueChange={(value) => {
-                      if (value) {
-                        setControls((current) => ({
-                          ...current,
-                          latency: value as LatencyMode,
-                        }))
-                      }
-                    }}
-                  >
-                    <ToggleGroupItem value="balanced" className="w-full">
-                      balanced
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="normal" className="w-full">
-                      normal
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                  <p className="text-xs text-zinc-500">
-                    Low uses incremental local decode for faster first audio. Normal waits for the
-                    full LLM result, then decodes once.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Format</Label>
-                  <ToggleGroup
-                    type="single"
-                    value={controls.format}
-                    className="grid grid-cols-4 gap-2"
-                    onValueChange={(value) => {
-                      if (value) {
-                        setControls((current) => ({
-                          ...current,
-                          format: value as AudioFormat,
-                        }))
-                      }
-                    }}
-                  >
-                    <ToggleGroupItem value="mp3" className="w-full">
-                      mp3
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="wav" className="w-full">
-                      wav
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="pcm" className="w-full">
-                      pcm
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="opus" className="w-full">
-                      opus
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="normalize">Normalize</Label>
-                    <p className="text-xs text-zinc-500">
-                      Normalize text before synthesis to keep input formatting consistent.
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label htmlFor="normalize" className="text-xs font-normal text-muted-foreground">
+                      Normalize text
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground/80">
+                      Reads numbers, dates and units as words.
                     </p>
                   </div>
                   <Switch
                     id="normalize"
-                    checked={controls.normalize}
-                    onCheckedChange={(checked) =>
-                      setControls((current) => ({
-                        ...current,
-                        normalize: checked,
-                      }))
+                    checked={output.normalize}
+                    onCheckedChange={(normalize) =>
+                      setOutput((current) => ({ ...current, normalize }))
                     }
                   />
                 </div>
-
-                <Separator className="bg-zinc-200" />
-
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-zinc-500">
-                    {serverDefaults
-                      ? `Unchanged settings use the ${serverDefaults.model_family.toUpperCase()} model's defaults.`
-                      : "Unchanged settings use the loaded model's defaults."}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="border-zinc-200 bg-white hover:bg-zinc-100"
-                    onClick={resetSampling}
-                    disabled={customized.length === 0}
-                  >
-                    Reset
-                  </Button>
-                </div>
-                <SettingSlider
-                  label="Chunk Length"
-                  value={controls.chunkLength}
-                  min={100}
-                  max={1000}
-                  {...defaultState('chunkLength')}
-                  disabled={isDrama3}
-                  hint={isDrama3 ? 'Drama 3 splits long text itself.' : undefined}
-                  onValueChange={(value) => setSampling('chunkLength', value)}
-                />
-                <SettingSlider
-                  label="Max New Tokens (per chunk)"
-                  value={controls.maxNewTokens}
-                  min={0}
-                  max={2048}
-                  {...defaultState('maxNewTokens')}
-                  formatValue={(value) => (value === 0 ? 'auto' : String(value))}
-                  onValueChange={(value) => setSampling('maxNewTokens', value)}
-                />
-                <SettingSlider
-                  label="Temperature"
-                  value={controls.temperature}
-                  min={0.1}
-                  max={1}
-                  step={0.01}
-                  {...defaultState('temperature')}
-                  formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) => setSampling('temperature', value)}
-                />
-                <SettingSlider
-                  label="Top P"
-                  value={controls.topP}
-                  min={0.1}
-                  max={1}
-                  step={0.01}
-                  {...defaultState('topP')}
-                  formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) => setSampling('topP', value)}
-                />
-                <SettingSlider
-                  label="Repetition Penalty"
-                  value={controls.repetitionPenalty}
-                  min={0.9}
-                  max={2}
-                  step={0.01}
-                  {...defaultState('repetitionPenalty')}
-                  disabled
-                  hint="Ignored: S2-Pro and Drama 3 use repetition-aware sampling."
-                  formatValue={(value) => value.toFixed(2)}
-                  onValueChange={(value) => setSampling('repetitionPenalty', value)}
-                />
-              </CardContent>
-            </Card>
-          </aside>
-        </div>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
 
-      <Dialog open={pendingReference !== null} onOpenChange={(open) => !open && setPendingReference(null)}>
-        <DialogContent className="border-zinc-200 bg-white">
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {pendingReference?.mode === 'create' ? 'Save Reference Text' : 'Edit Reference Text'}
-            </DialogTitle>
+            <DialogTitle>Connection</DialogTitle>
             <DialogDescription>
-              {pendingReference
-                ? `Speaker ${speakerGroups.findIndex(
-                    (speakerGroup) => speakerGroup.id === pendingReference.speakerId,
-                  )}`
-                : ''}
+              Use Fish Audio's hosted API, or point this page at a server you run yourself.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-zinc-900">{pendingReference?.name}</div>
-            <Textarea
-              value={pendingReference?.text ?? ''}
-              onChange={(event) =>
-                setPendingReference((current) =>
-                  current
-                    ? {
-                        ...current,
-                        text: event.target.value,
-                      }
-                    : current,
-                )
-              }
-              placeholder="Enter reference text"
-              className="min-h-40 rounded-lg border-zinc-200 bg-white shadow-none focus-visible:ring-zinc-300"
-            />
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="endpoint">Endpoint</Label>
+              <input
+                id="endpoint"
+                type="url"
+                spellCheck={false}
+                value={endpointDraft}
+                onChange={(event) => setEndpointDraft(event.target.value)}
+                placeholder={FISH_AUDIO_ENDPOINT}
+                className="w-full rounded-md border bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: 'Fish Audio', value: FISH_AUDIO_ENDPOINT },
+                  { label: 'Local', value: LOCAL_ENDPOINT_HINT },
+                ].map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setEndpointDraft(preset.value)}
+                    className={cn(
+                      'rounded-md border px-2 py-1 text-xs transition-colors hover:bg-accent',
+                      normalizeEndpoint(endpointDraft) === preset.value
+                        ? 'border-foreground/30 text-foreground'
+                        : 'text-muted-foreground',
+                    )}
+                  >
+                    {preset.label}
+                    <span className="ml-1.5 font-mono opacity-60">{hostOf(preset.value)}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Base URL only; <code className="font-mono">/v1/tts</code> is added for you.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">API key</Label>
+              <input
+                id="apiKey"
+                type="password"
+                autoComplete="off"
+                value={apiKeyDraft}
+                onChange={(event) => setApiKeyDraft(event.target.value)}
+                placeholder="Not needed for a local server"
+                className="w-full rounded-md border bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+              />
+              <p className="text-xs text-muted-foreground">Kept in this browser's local storage.</p>
+            </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setPendingReference(null)}>
+            <Button type="button" variant="ghost" onClick={() => setIsSettingsOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-zinc-200 bg-white hover:bg-zinc-100"
-              onClick={savePendingReference}
-            >
+            <Button type="button" onClick={saveSettings}>
               Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+
+      <Dialog open={isRequestOpen} onOpenChange={setIsRequestOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Request</DialogTitle>
+            <DialogDescription>
+              What Generate sends right now. Audio and the API key are left out.
+            </DialogDescription>
+          </DialogHeader>
+          {isRequestOpen ? (
+            <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/50 p-3 font-mono text-xs leading-5">
+              {buildRequestPreview()}
+            </pre>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => void copyRequestPreview()}>
+              {copyLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pendingReference !== null}
+        onOpenChange={(open) => !open && setPendingReference(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transcript</DialogTitle>
+            <DialogDescription className="truncate">
+              {pendingReference
+                ? `Speaker ${speakerGroups.findIndex(
+                    (speakerGroup) => speakerGroup.id === pendingReference.speakerId,
+                  )} · ${pendingReference.name}`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            autoFocus
+            value={pendingReference?.text ?? ''}
+            onChange={(event) =>
+              setPendingReference((current) =>
+                current ? { ...current, text: event.target.value } : current,
+              )
+            }
+            placeholder="Type exactly what is said in the clip."
+            className="min-h-36 bg-card leading-6 shadow-none"
+          />
+          <p className="-mt-2 text-xs text-muted-foreground">
+            An accurate transcript helps the model match the voice.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setPendingReference(null)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={savePendingReference}>
+              {pendingReference?.mode === 'create' ? 'Add clip' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
