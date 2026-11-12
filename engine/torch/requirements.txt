@@ -13,6 +13,6 @@ loguru>=0.6.0
 pydantic==2.9.2
 safetensors
 descript-audio-codec
-protobuf>=3.20.0,<6.0.0
+# protobuf is pinned by the root pyproject's [tool.uv] override-dependencies.
 tqdm
 soundfile>=0.12.1

@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=77.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fish-speech"
+version = "0.1.0"
+description = "Fish Speech app with pluggable inference backends"
+readme = "README.md"
+# sglang-omni requires >=3.11,<3.13; both backends work on 3.11/3.12.
+requires-python = ">=3.11,<3.13"
+dependencies = []
+
+# Install exactly one backend: uv pip install -e '.[torch]' or '.[sglang-omni]'.
+# They are mutually exclusive: the two stacks pin incompatible torch/torchaudio
+# versions and sglang-omni pulls CUDA-only wheels.
+[project.optional-dependencies]
+torch = [
+    # engine/torch: DAC codec + S2-Pro / Drama-3 PyTorch inference + FastAPI server.
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "numpy",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "transformers==5.19.0",
+    "tokenizers==0.23.2",
+    "hydra-core>=1.3.2",  # provides the `hydra` module used by instantiate
+    "omegaconf>=2.3",
+    "einops>=0.7.0",
+    "loguru>=0.6.0",
+    "pydantic==2.9.2",
+    "safetensors",
+    "descript-audio-codec",
+    "tqdm",
+    "soundfile>=0.12.1",
+]
+
+sglang-omni = [
+    # engine/sglang-omni (submodule): CUDA server for Drama-3 and S2-Pro.
+    # The `fishaudio` extra adds the descript DAC codec both models need.
+    "sglang-omni[fishaudio]",
+]
+
+# The MLX path of sglang-omni is a standalone C++ binary built by
+# engine/sglang-omni/sglang_omni_mlx/native/scripts/build_runtime.sh with its
+# own build-tools.lock; it needs no Python packages from this project.
+
+[tool.setuptools]
+packages = [
+    "engine",
+    "engine.torch",
+    "engine.torch.configs",
+    "engine.torch.models",
+    "engine.torch.models.dac",
+    "engine.torch.models.text2semantic",
+    "engine.torch.models.text2semantic.fish_omni",
+]
+
+[tool.setuptools.package-data]
+"engine.torch.configs" = ["*.yaml"]
+
+[tool.uv]
+conflicts = [
+    [{ extra = "torch" }, { extra = "sglang-omni" }],
+]
+# descript-audiotools (transitive via descript-audio-codec) pins protobuf<3.20,
+# which is too old for both stacks. An override beats the pin without adding a
+# runtime dependency that would make the extras unresolvable.
+override-dependencies = [
+    "protobuf>=3.20.0,<6.0.0",
+]
+
+[tool.uv.sources]
+sglang-omni = { path = "engine/sglang-omni", editable = true }
