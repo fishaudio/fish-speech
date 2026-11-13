@@ -2,9 +2,9 @@
 
 Start it with::
 
-    uvicorn engine.torch.server:app --host 127.0.0.1 --port 8080
+    python -m engine.torch.serve
     # or
-    python -m engine.torch.server
+    uvicorn engine.torch.serve.server:app --host 127.0.0.1 --port 8080
 
 The app owns exactly one LLM (S2-Pro or Drama 3, detected from the checkpoint)
 and one DAC codec. Checkpoint/device options come from the environment; see
@@ -62,6 +62,11 @@ from engine.torch.models.text2semantic.sampling import (
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_K,
     DEFAULT_TOP_P,
+)
+from engine.torch.serve.speaker_cache import (
+    cache_references,
+    delete_entry,
+    list_entries,
 )
 
 AMPLITUDE = 32768
@@ -421,9 +426,27 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
             "temperature": DEFAULT_TEMPERATURE,
         }
 
+    @app.get("/v1/speaker-cache")
+    def speaker_cache():
+        return {"entries": list_entries()}
+
+    @app.delete("/v1/speaker-cache/{entry_id}")
+    def delete_speaker_cache(entry_id: str):
+        if not delete_entry(entry_id):
+            raise HTTPException(404, "cache entry not found")
+        return {"status": "ok"}
+
     @app.post("/v1/tts")
     def tts(req: TTSRequest, request: Request):
         runtime: Runtime = request.app.state.runtime
+        # The request carries the reference audio and transcripts; keep a copy
+        # so speakers can be reused after a restart. Never fail synthesis over
+        # a cache write.
+        try:
+            cache_references(req.references)
+        except Exception:
+            logger.exception("Could not cache speaker references")
+
         try:
             prompt_tokens, prompt_text = _encode_references(runtime, req.references)
             generate_request = _build_generate_request(
@@ -461,7 +484,11 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
 app = create_app()
 
 
-if __name__ == "__main__":
+def run() -> None:
     import uvicorn
 
     uvicorn.run(app, host=app.state.config.host, port=app.state.config.port)
+
+
+if __name__ == "__main__":
+    run()

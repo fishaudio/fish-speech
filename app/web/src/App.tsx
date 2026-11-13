@@ -1,5 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, LoaderCircle, Moon, Pause, Pencil, Play, Plus, Sun, Trash2, X } from 'lucide-react'
+import {
+  Bookmark,
+  Download,
+  Library,
+  LoaderCircle,
+  Moon,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Sun,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +28,19 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  arrayBufferToBase64,
+  deleteServerVoice,
+  exportVoices,
+  fetchServerVoiceCache,
+  parseVoiceFile,
+  readVoices,
+  readWorkspace,
+  writeVoices,
+  writeWorkspace,
+  type SavedVoice,
+  type StoredSpeaker,
+} from '@/lib/voice-cache'
 import { cn, readTheme, saveTheme, type Theme } from '@/lib/utils'
 
 type ModelId = 's2-pro' | 'drama-3'
@@ -87,6 +114,7 @@ type Result = {
 type ReferenceItem = {
   id: number
   name: string
+  mime: string
   audio: ArrayBuffer
   text: string
   previewUrl: string
@@ -94,6 +122,7 @@ type ReferenceItem = {
 
 type SpeakerGroup = {
   id: number
+  name: string
   references: ReferenceItem[]
 }
 
@@ -238,17 +267,43 @@ function createId() {
   return Date.now() + Math.floor(Math.random() * 100000)
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
+function createSpeakerGroup(name = ''): SpeakerGroup {
+  return { id: createId(), name, references: [] }
 }
 
-function createSpeakerGroup(): SpeakerGroup {
-  return { id: createId(), references: [] }
+function toStoredSpeaker(speakerGroup: SpeakerGroup): StoredSpeaker {
+  return {
+    name: speakerGroup.name,
+    clips: speakerGroup.references.map((reference) => ({
+      name: reference.name,
+      mime: reference.mime,
+      text: reference.text,
+      audio: reference.audio,
+    })),
+  }
+}
+
+function restoreSpeakerGroups(stored: StoredSpeaker[]): SpeakerGroup[] {
+  return stored.map((speaker) => ({
+    id: createId(),
+    name: speaker.name,
+    references: speaker.clips.map((clip) => ({
+      id: createId(),
+      name: clip.name,
+      mime: clip.mime,
+      text: clip.text,
+      audio: clip.audio,
+      previewUrl: URL.createObjectURL(new Blob([clip.audio], { type: clip.mime })),
+    })),
+  }))
+}
+
+function revokeSpeakerGroups(speakerGroups: SpeakerGroup[]) {
+  speakerGroups.forEach((speakerGroup) => {
+    speakerGroup.references.forEach((reference) => {
+      URL.revokeObjectURL(reference.previewUrl)
+    })
+  })
 }
 
 function buildReferencesPayload(speakerGroups: SpeakerGroup[], includeBinaryAudio: boolean) {
@@ -409,6 +464,15 @@ function App() {
     normalize: true,
   })
   const [speakerGroups, setSpeakerGroups] = useState<SpeakerGroup[]>([initialSpeakerGroup])
+  const [savedVoices, setSavedVoices] = useState<SavedVoice[]>([])
+  const [serverVoices, setServerVoices] = useState<SavedVoice[]>([])
+  const [serverCacheAvailable, setServerCacheAvailable] = useState(false)
+  const [cacheRefreshNonce, setCacheRefreshNonce] = useState(0)
+  const [isCacheReady, setIsCacheReady] = useState(false)
+  const [cacheUnavailable, setCacheUnavailable] = useState(false)
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false)
+  const [saveVoiceFor, setSaveVoiceFor] = useState<number | null>(null)
+  const [voiceNameDraft, setVoiceNameDraft] = useState('')
   const [pendingReference, setPendingReference] = useState<PendingReference | null>(null)
   const [playingReferenceId, setPlayingReferenceId] = useState<number | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
@@ -429,6 +493,7 @@ function App() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null)
   const speakerGroupsRef = useRef<SpeakerGroup[]>([])
   const uploadTargetSpeakerIdRef = useRef<number | null>(null)
@@ -445,6 +510,53 @@ function App() {
     usingLocalServer && serverState.status === 'ready' && serverModel?.id !== selectedModel.id
   const effectiveFormat: AudioFormat = usingLocalServer ? 'wav' : output.format
   const hasMultipleSpeakers = speakerGroups.length > 1
+  const cachedClipCount = speakerGroups.reduce(
+    (count, speakerGroup) => count + speakerGroup.references.length,
+    0,
+  )
+  const activeServerVoices =
+    usingLocalServer && serverState.status === 'ready' ? serverVoices : []
+  const libraryVoices = [...activeServerVoices, ...savedVoices]
+  const serverCacheActive =
+    usingLocalServer && serverState.status === 'ready' && serverCacheAvailable
+
+  // Restore the previous session before the autosave below can write, otherwise
+  // the empty initial state would overwrite the cache on startup.
+  useEffect(() => {
+    let cancelled = false
+
+    void Promise.all([readWorkspace().catch(() => null), readVoices().catch(() => null)]).then(
+      ([workspace, voices]) => {
+        if (cancelled) {
+          return
+        }
+        setCacheUnavailable(workspace === null || voices === null)
+        if (voices) {
+          setSavedVoices(voices)
+        }
+        if (workspace && workspace.length > 0) {
+          setSpeakerGroups(restoreSpeakerGroups(workspace))
+        }
+        setIsCacheReady(true)
+      },
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isCacheReady) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      void writeWorkspace(speakerGroups.map(toStoredSpeaker)).catch(() =>
+        setCacheUnavailable(true),
+      )
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [speakerGroups, isCacheReady])
 
   useEffect(() => {
     if (!isLocalEndpoint(connection.endpoint)) {
@@ -461,14 +573,35 @@ function App() {
     }
   }, [connection.endpoint, probeNonce])
 
+  // The local server captures reference audio/text from /v1/tts into
+  // .app_cache. Load that shared library whenever the server is reachable.
+  useEffect(() => {
+    if (!usingLocalServer || serverState.status !== 'ready') {
+      return
+    }
+    let cancelled = false
+    void fetchServerVoiceCache(connection.endpoint)
+      .then((voices) => {
+        if (!cancelled) {
+          setServerVoices(voices)
+          setServerCacheAvailable(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setServerVoices([])
+          setServerCacheAvailable(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [connection.endpoint, usingLocalServer, serverState.status, cacheRefreshNonce])
+
   useEffect(() => {
     return () => {
       previewPlayerRef.current?.pause()
-      speakerGroupsRef.current.forEach((speakerGroup) => {
-        speakerGroup.references.forEach((reference) => {
-          URL.revokeObjectURL(reference.previewUrl)
-        })
-      })
+      revokeSpeakerGroups(speakerGroupsRef.current)
       if (resultUrlRef.current) {
         URL.revokeObjectURL(resultUrlRef.current)
       }
@@ -574,7 +707,7 @@ function App() {
               ...speakerGroup,
               references: [
                 ...speakerGroup.references,
-                { id: createId(), name, audio, text, previewUrl },
+                { id: createId(), name, mime, audio, text, previewUrl },
               ],
             }
           : speakerGroup,
@@ -678,6 +811,118 @@ function App() {
       )
     }
     setPendingReference(null)
+  }
+
+  function persistVoices(next: SavedVoice[]) {
+    setSavedVoices(next)
+    void writeVoices(next).catch(() => setCacheUnavailable(true))
+  }
+
+  function openSaveVoice(speakerId: number) {
+    const index = speakerGroups.findIndex((speakerGroup) => speakerGroup.id === speakerId)
+    if (index < 0 || speakerGroups[index].references.length === 0) {
+      return
+    }
+    setVoiceNameDraft(speakerGroups[index].name || `Speaker ${index}`)
+    setSaveVoiceFor(speakerId)
+  }
+
+  function confirmSaveVoice() {
+    const speakerGroup = speakerGroups.find((item) => item.id === saveVoiceFor)
+    if (!speakerGroup) {
+      setSaveVoiceFor(null)
+      return
+    }
+    const name = voiceNameDraft.trim() || speakerGroup.name || 'Untitled voice'
+    const voice: SavedVoice = {
+      id: `voice-${createId()}`,
+      name,
+      savedAt: Date.now(),
+      clips: speakerGroup.references.map((reference) => ({
+        name: reference.name,
+        mime: reference.mime,
+        text: reference.text,
+        audio: reference.audio,
+      })),
+    }
+    // Saving under an existing name replaces that entry.
+    persistVoices([voice, ...savedVoices.filter((item) => item.name !== name)])
+    setSpeakerGroups((current) =>
+      current.map((item) => (item.id === speakerGroup.id ? { ...item, name } : item)),
+    )
+    setSaveVoiceFor(null)
+  }
+
+  function loadVoice(voice: SavedVoice) {
+    // Server entries are labelled with a transcript snippet, which is useful in
+    // the library but not as a speaker name in the workspace.
+    const speakerName = voice.source === 'server' ? '' : voice.name
+    const [restored] = restoreSpeakerGroups([{ name: speakerName, clips: voice.clips }])
+    const hasOnlyAnEmptySpeaker =
+      speakerGroups.length === 1 && speakerGroups[0].references.length === 0
+
+    // Speaker indices come from the group order, so fill the untouched first
+    // speaker instead of pushing the voice into slot 1.
+    if (hasOnlyAnEmptySpeaker) {
+      setSpeakerGroups([restored])
+    } else if (speakerGroups.length < MAX_SPEAKERS) {
+      setSpeakerGroups((current) => [...current, restored])
+    } else {
+      revokeSpeakerGroups([restored])
+      setNotice({
+        tone: 'error',
+        title: 'Too many speakers',
+        detail: `The page supports up to ${MAX_SPEAKERS} speakers.`,
+      })
+      return
+    }
+    setIsLibraryOpen(false)
+  }
+
+  function deleteVoice(voice: SavedVoice) {
+    if (voice.source === 'server' && voice.serverId) {
+      void deleteServerVoice(connection.endpoint, voice.serverId)
+        .then(() => setCacheRefreshNonce((current) => current + 1))
+        .catch((error) =>
+          setNotice({ tone: 'error', title: 'Delete failed', detail: getErrorMessage(error) }),
+        )
+      return
+    }
+    persistVoices(savedVoices.filter((item) => item.id !== voice.id))
+  }
+
+  function exportVoiceFile() {
+    if (libraryVoices.length === 0) {
+      return
+    }
+    const url = URL.createObjectURL(
+      new Blob([exportVoices(libraryVoices)], { type: 'application/json' }),
+    )
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'fish-speech-voices.json'
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  async function handleVoiceImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) {
+      return
+    }
+    try {
+      const imported = parseVoiceFile(await file.text())
+      const names = new Set(imported.map((voice) => voice.name))
+      persistVoices([...imported, ...savedVoices.filter((voice) => !names.has(voice.name))])
+      setNotice({
+        tone: 'info',
+        title: `Imported ${imported.length} voice${imported.length === 1 ? '' : 's'}`,
+        detail: 'They are now in the library and saved in this browser.',
+      })
+    } catch (error) {
+      setNotice({ tone: 'error', title: 'Import failed', detail: getErrorMessage(error) })
+    }
   }
 
   function clearResult() {
@@ -901,6 +1146,11 @@ function App() {
           title: 'Ready to download',
           detail: 'PCM is raw audio, so the browser cannot play it here.',
         })
+      }
+      // The server has just captured the references we sent; refresh the
+      // shared library so the new voice shows up without a reload.
+      if (usingLocalServer) {
+        setCacheRefreshNonce((current) => current + 1)
       }
     } catch (error) {
       setIsStreamingAudio(false)
@@ -1129,22 +1379,41 @@ function App() {
 
         <aside className="border-t lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
           <div className="px-5 py-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold">Voices</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="-mr-2 text-muted-foreground"
-                onClick={addSpeaker}
-                disabled={speakerGroups.length >= MAX_SPEAKERS}
-              >
-                <Plus className="size-3.5" />
-                Speaker
-              </Button>
+              <div className="flex items-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="px-2 text-muted-foreground"
+                  onClick={() => setIsLibraryOpen(true)}
+                >
+                  <Library className="size-3.5" />
+                  Saved{libraryVoices.length > 0 ? ` ${libraryVoices.length}` : ''}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="-mr-2 px-2 text-muted-foreground"
+                  onClick={addSpeaker}
+                  disabled={speakerGroups.length >= MAX_SPEAKERS}
+                >
+                  <Plus className="size-3.5" />
+                  Speaker
+                </Button>
+              </div>
             </div>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
               A short clip and its transcript per speaker. Without one, the model picks a voice.
+            </p>
+            <p className="mt-1 text-[11px] leading-4 text-muted-foreground/80">
+              {cacheUnavailable
+                ? 'Browser storage is unavailable — clips will not persist.'
+                : serverCacheActive
+                  ? `${cachedClipCount} clip${cachedClipCount === 1 ? '' : 's'} here · shared voices from .app_cache on the server.`
+                  : `${cachedClipCount} clip${cachedClipCount === 1 ? '' : 's'} kept in this browser.`}
             </p>
             <input
               ref={fileInputRef}
@@ -1153,13 +1422,22 @@ function App() {
               className="hidden"
               onChange={handleReferenceUpload}
             />
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleVoiceImport}
+            />
 
             <ol className="mt-4 space-y-3">
               {speakerGroups.map((speakerGroup, speakerIndex) => (
                 <li key={speakerGroup.id} className="rounded-lg border bg-card">
                   <div className="flex items-center justify-between gap-2 py-1.5 pl-3 pr-1.5">
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="text-sm font-medium">Speaker {speakerIndex}</span>
+                      <span className="truncate text-sm font-medium">
+                        {speakerGroup.name || `Speaker ${speakerIndex}`}
+                      </span>
                       {hasMultipleSpeakers ? (
                         <button
                           type="button"
@@ -1172,6 +1450,13 @@ function App() {
                       ) : null}
                     </div>
                     <div className="flex items-center">
+                      <IconButton
+                        label="Save voice to library"
+                        disabled={speakerGroup.references.length === 0}
+                        onClick={() => openSaveVoice(speakerGroup.id)}
+                      >
+                        <Bookmark className="size-3.5" />
+                      </IconButton>
                       <IconButton label="Add clip" onClick={() => pickClip(speakerGroup.id)}>
                         <Plus className="size-4" />
                       </IconButton>
@@ -1438,6 +1723,126 @@ function App() {
             </Button>
             <Button type="button" onClick={savePendingReference}>
               {pendingReference?.mode === 'create' ? 'Add clip' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Saved voices</DialogTitle>
+            <DialogDescription>
+              Voices captured on the server (.app_cache) and ones saved in this browser. Export
+              a file to move them to another machine.
+            </DialogDescription>
+          </DialogHeader>
+          {libraryVoices.length === 0 ? (
+            <div className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+              Nothing saved yet. Generate once with a reference clip and the server keeps it in
+              .app_cache, or use the bookmark button to save one in this browser.
+            </div>
+          ) : (
+            <ul className="max-h-[50vh] divide-y overflow-y-auto rounded-md border">
+              {libraryVoices.map((voice) => (
+                <li key={voice.id} className="flex items-center gap-2 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{voice.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {voice.source === 'server' ? 'server · ' : 'browser · '}
+                      {voice.clips.length} clip{voice.clips.length === 1 ? '' : 's'} ·{' '}
+                      {formatBytes(
+                        voice.clips.reduce((size, clip) => size + clip.audio.byteLength, 0),
+                      )}{' '}
+                      · {new Date(voice.savedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => loadVoice(voice)}
+                  >
+                    Load
+                  </Button>
+                  <IconButton label={`Delete ${voice.name}`} onClick={() => deleteVoice(voice)}>
+                    <Trash2 className="size-3.5" />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={libraryVoices.length === 0}
+                onClick={exportVoiceFile}
+              >
+                <Download className="size-3.5" />
+                Export
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Upload className="size-3.5" />
+                Import
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsLibraryOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={saveVoiceFor !== null}
+        onOpenChange={(open) => !open && setSaveVoiceFor(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save voice</DialogTitle>
+            <DialogDescription>
+              The clips and transcripts are kept in this browser so they're here next time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="voiceName">Name</Label>
+            <input
+              id="voiceName"
+              autoFocus
+              value={voiceNameDraft}
+              onChange={(event) => setVoiceNameDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  confirmSaveVoice()
+                }
+              }}
+              placeholder="e.g. Narrator"
+              className="w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+            />
+            <p className="text-xs text-muted-foreground">
+              Saving under an existing name replaces that entry.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setSaveVoiceFor(null)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={confirmSaveVoice}>
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

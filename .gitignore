@@ -93,6 +93,9 @@ filelists/
 /.cache/
 /.gradio/
 /.locale/
+# Reference audio/text captured from /v1/tts by engine/torch/speaker_cache.py.
+# Runtime data: keep it out of git unless you want to ship preset voices.
+/.app_cache/
 .pgx.*
 *log
 *.log

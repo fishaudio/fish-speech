@@ -8,7 +8,7 @@ from importlib import import_module
 
 __all__ = ["create_app", "app", "ServerConfig", "TTSRequest", "load_runtime"]
 
-_EXPORTS = {name: ("engine.torch.server", name) for name in __all__}
+_EXPORTS = {name: ("engine.torch.serve.server", name) for name in __all__}
 
 
 def __getattr__(name: str):
