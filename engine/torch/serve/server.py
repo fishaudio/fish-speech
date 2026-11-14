@@ -1,16 +1,4 @@
-"""FastAPI entry point for the PyTorch inference backend.
-
-Start it with::
-
-    python -m engine.torch.serve
-    # or
-    uvicorn engine.torch.serve.server:app --host 127.0.0.1 --port 8080
-
-The app owns exactly one LLM (S2-Pro or Drama 3, detected from the checkpoint)
-and one DAC codec. Checkpoint/device options come from the environment; see
-:class:`ServerConfig`. Generation runs in the LLM's single worker thread, fed by
-``launch_thread_safe_queue``; decoding is done here with the codec directly.
-"""
+"""FastAPI app for the PyTorch backend (S2-Pro or Drama 3)."""
 
 from __future__ import annotations
 
@@ -23,9 +11,10 @@ import queue
 import random
 import struct
 import wave
+from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, nullcontext
 from dataclasses import dataclass
-from typing import AsyncIterator, Iterator, Literal
+from typing import Literal
 
 import numpy as np
 import soundfile as sf
@@ -35,7 +24,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from engine.torch.models.dac.inference import load_model as load_decoder_model
 from engine.torch.models.dac.modded_dac import DAC
@@ -56,17 +44,21 @@ from engine.torch.models.text2semantic.inference import (
     resolve_codec_path,
 )
 from engine.torch.models.text2semantic.sampling import (
-    DEFAULT_CHUNK_LENGTH,
-    DEFAULT_MAX_NEW_TOKENS,
     DEFAULT_REPETITION_PENALTY,
-    DEFAULT_TEMPERATURE,
     DEFAULT_TOP_K,
-    DEFAULT_TOP_P,
+)
+from engine.torch.serve.schema import (
+    IGNORED_FIELDS,
+    LOCAL_EXTENSIONS,
+    SUPPORTED_FORMATS,
+    ResolvedReference,
+    TTSRequest,
 )
 from engine.torch.serve.speaker_cache import (
     cache_references,
     delete_entry,
     list_entries,
+    resolve_references,
 )
 
 AMPLITUDE = 32768
@@ -109,7 +101,7 @@ class ServerConfig:
 class Runtime:
     """Everything the request handlers need, loaded once on startup."""
 
-    llama_queue: queue.Queue
+    llama_queue: queue.Queue[object]
     codec: DAC
     device: torch.device
     sample_rate: int
@@ -172,64 +164,23 @@ def load_runtime(config: ServerConfig) -> Runtime:
     )
 
 
-class ReferenceAudio(BaseModel):
-    audio: str = Field(description="Base64-encoded reference audio")
-    text: str = ""
-    speaker: int | None = Field(default=None, ge=0, le=15)
-
-
-class TTSRequest(BaseModel):
-    text: str = Field(min_length=1)
-    references: list[ReferenceAudio] = Field(default_factory=list)
-    streaming: bool = False
-    chunk_length: int = DEFAULT_CHUNK_LENGTH
-    single_chunk: bool = False
-    max_new_tokens: int | None = None
-    top_p: float | None = None
-    top_k: int | None = None
-    temperature: float | None = None
-    epsilon_cutoff: float | None = None
-    seed: int | None = None
-
-
-def _set_seed(seed: int) -> None:
-    seed = min(abs(seed), 1 << 31)
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    if torch.backends.cudnn.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-
-def _autocast(device_type: str, dtype: torch.dtype):
-    # torch.autocast is unsupported on MPS.
-    return (
-        nullcontext()
-        if torch.backends.mps.is_available()
-        else torch.autocast(device_type, dtype)
-    )
-
-
-def _pcm16(waveform: np.ndarray) -> bytes:
+def pcm16(waveform: np.ndarray) -> bytes:
     # Clip so that 1.0 does not wrap around to -32768.
     samples = np.clip(waveform * AMPLITUDE, -AMPLITUDE, AMPLITUDE - 1)
     return samples.astype("<i2").tobytes()
 
 
-def _wav_bytes(sample_rate: int, waveform: np.ndarray) -> bytes:
+def wav_bytes(sample_rate: int, waveform: np.ndarray) -> bytes:
     buffer = io.BytesIO()
     with wave.open(buffer, "wb") as wav:
         wav.setnchannels(1)
         wav.setsampwidth(2)
         wav.setframerate(sample_rate)
-        wav.writeframes(_pcm16(waveform))
+        wav.writeframes(pcm16(waveform))
     return buffer.getvalue()
 
 
-def _wav_stream_header(sample_rate: int) -> bytes:
+def wav_stream_header(sample_rate: int) -> bytes:
     """A 44-byte WAV header whose length is unknown until the stream ends."""
     buffer = io.BytesIO()
     with wave.open(buffer, "wb") as wav:
@@ -241,7 +192,7 @@ def _wav_stream_header(sample_rate: int) -> bytes:
     return header[:4] + unknown + header[8:40] + unknown
 
 
-def _tag_reference_text(runtime: Runtime, text: str, speaker: int | None) -> str:
+def tag_reference_text(runtime: Runtime, text: str, speaker: int | None) -> str:
     if speaker is None or SPEAKER_TAG_PATTERN.match(
         text.lstrip(UNICODE_WHITE_SPACE)
     ):
@@ -252,8 +203,8 @@ def _tag_reference_text(runtime: Runtime, text: str, speaker: int | None) -> str
 
 
 @torch.inference_mode()
-def _encode_references(
-    runtime: Runtime, references: list[ReferenceAudio]
+def encode_references(
+    runtime: Runtime, references: list[ResolvedReference]
 ) -> tuple[list[torch.Tensor], list[str]]:
     """Encode inline reference audio into VQ prompt codes (no caches or files)."""
     if not references:
@@ -280,28 +231,24 @@ def _encode_references(
         )
         prompt_tokens.append(runtime.codec.encode(audios, audio_lengths)[0][0])
         prompt_text.append(
-            _tag_reference_text(runtime, reference.text, reference.speaker)
+            tag_reference_text(runtime, reference.text, reference.speaker)
         )
     return prompt_tokens, prompt_text
 
 
-def _build_generate_request(
+def build_generate_request(
     runtime: Runtime,
     req: TTSRequest,
     prompt_tokens: list[torch.Tensor],
     prompt_text: list[str],
-) -> dict:
-    params = dict(
-        max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
-        top_p=DEFAULT_TOP_P,
-        top_k=DEFAULT_TOP_K,
-        repetition_penalty=DEFAULT_REPETITION_PENALTY,
-        temperature=DEFAULT_TEMPERATURE,
-    )
-    for name in ("max_new_tokens", "top_p", "top_k", "temperature"):
-        value = getattr(req, name)
-        if value is not None:
-            params[name] = value
+) -> dict[str, object]:
+    params: dict[str, object] = {
+        "max_new_tokens": req.max_new_tokens,
+        "top_p": req.top_p,
+        "top_k": DEFAULT_TOP_K if req.top_k is None else req.top_k,
+        "repetition_penalty": DEFAULT_REPETITION_PENALTY,
+        "temperature": req.temperature,
+    }
 
     if runtime.model_family == "drama3":
         # Validation only: generate_drama3 resolves the value itself.
@@ -317,8 +264,16 @@ def _build_generate_request(
         )
 
     if req.seed is not None:
-        _set_seed(req.seed)
-        logger.info(f"set seed: {req.seed}")
+        seed = min(abs(req.seed), 1 << 31)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        if torch.backends.cudnn.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+        logger.info(f"Set seed: {req.seed}")
 
     return dict(
         device=runtime.device,
@@ -334,9 +289,9 @@ def _build_generate_request(
 
 
 @torch.inference_mode()
-def _iter_segments(runtime: Runtime, generate_request: dict) -> Iterator[np.ndarray]:
+def iter_segments(runtime: Runtime, generate_request: dict[str, object]) -> Iterator[np.ndarray]:
     """Submit one generation request and yield decoded audio chunks in order."""
-    response_queue: queue.Queue = queue.Queue()
+    response_queue: queue.Queue[object] = queue.Queue()
     runtime.llama_queue.put(
         GenerateRequest(request=generate_request, response_queue=response_queue)
     )
@@ -358,33 +313,37 @@ def _iter_segments(runtime: Runtime, generate_request: dict) -> Iterator[np.ndar
 
         codes = result.codes.to(runtime.device)
         logger.info(f"VQ features: {codes.shape}")
-        with _autocast(runtime.device.type, runtime.precision):
+        # torch.autocast is unsupported on MPS.
+        with (
+            nullcontext()
+            if torch.backends.mps.is_available()
+            else torch.autocast(runtime.device.type, runtime.precision)
+        ):
             segment = runtime.codec.from_indices(codes[None])[0].squeeze()
         yield segment.float().cpu().numpy()
 
 
-async def _stream_wav(
-    sample_rate: int, segments: Iterator[np.ndarray]
+async def stream_wav(
+    sample_rate: int, segments: Iterator[np.ndarray], include_header: bool = True
 ) -> AsyncIterator[bytes]:
-    yield _wav_stream_header(sample_rate)
+    if include_header:
+        yield wav_stream_header(sample_rate)
     while True:
         try:
-            # Keep the blocking queue.get() / GPU work off the event loop.
             segment = await asyncio.to_thread(next, segments, _END)
-        except Exception:
-            # Headers are already sent, so only log and end the stream.
+        except Exception:  # noqa: BLE001 - headers are sent; only logging is possible
             logger.exception("Generation failed while streaming")
             return
         if segment is _END:
             return
-        yield _pcm16(segment)
+        yield pcm16(segment)
 
 
 def create_app(config: ServerConfig | None = None) -> FastAPI:
     cfg = config or ServerConfig.from_env()
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.runtime = load_runtime(cfg)
         try:
             yield
@@ -394,8 +353,6 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     app = FastAPI(
         title="fish-speech torch engine", version="3.0.0", lifespan=lifespan
     )
-    # The static web app runs on a different origin (Vite dev server, file://,
-    # or a packaged Tauri window) and calls this endpoint directly.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -405,7 +362,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     app.state.config = cfg
 
     @app.get("/health")
-    def health(request: Request):
+    def health(request: Request) -> dict[str, object]:
         runtime: Runtime | None = getattr(request.app.state, "runtime", None)
         return {
             "status": "ok" if runtime else "loading",
@@ -414,42 +371,51 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/tts/defaults")
-    def defaults(request: Request):
+    def defaults(request: Request) -> dict[str, object]:
         runtime: Runtime | None = getattr(request.app.state, "runtime", None)
         return {
             "model_family": runtime.model_family if runtime else None,
-            "chunk_length": DEFAULT_CHUNK_LENGTH,
-            "max_new_tokens": DEFAULT_MAX_NEW_TOKENS,
-            "top_p": DEFAULT_TOP_P,
-            "top_k": DEFAULT_TOP_K,
-            "repetition_penalty": DEFAULT_REPETITION_PENALTY,
-            "temperature": DEFAULT_TEMPERATURE,
+            "defaults": TTSRequest.model_construct().model_dump(
+                exclude={"text"}, exclude_none=True
+            ),
+            "formats": list(SUPPORTED_FORMATS),
+            "ignored_fields": list(IGNORED_FIELDS),
+            "local_extensions": list(LOCAL_EXTENSIONS),
+            "reference_id_source": ".app_cache",
         }
 
     @app.get("/v1/speaker-cache")
-    def speaker_cache():
+    def speaker_cache() -> dict[str, object]:
         return {"entries": list_entries()}
 
     @app.delete("/v1/speaker-cache/{entry_id}")
-    def delete_speaker_cache(entry_id: str):
+    def delete_speaker_cache(entry_id: str) -> dict[str, str]:
         if not delete_entry(entry_id):
             raise HTTPException(404, "cache entry not found")
         return {"status": "ok"}
 
     @app.post("/v1/tts")
-    def tts(req: TTSRequest, request: Request):
+    def tts(req: TTSRequest, request: Request) -> Response:
         runtime: Runtime = request.app.state.runtime
-        # The request carries the reference audio and transcripts; keep a copy
-        # so speakers can be reused after a restart. Never fail synthesis over
-        # a cache write.
+        if req.format not in SUPPORTED_FORMATS:
+            raise HTTPException(
+                400, f"local server cannot encode {req.format}; use wav or pcm"
+            )
+
         try:
-            cache_references(req.references)
-        except Exception:
+            references = resolve_references(req)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+        # Cache failures must not break synthesis.
+        try:
+            cache_references(references)
+        except OSError:
             logger.exception("Could not cache speaker references")
 
         try:
-            prompt_tokens, prompt_text = _encode_references(runtime, req.references)
-            generate_request = _build_generate_request(
+            prompt_tokens, prompt_text = encode_references(runtime, references)
+            generate_request = build_generate_request(
                 runtime, req, prompt_tokens, prompt_text
             )
         except InvalidInputError as exc:
@@ -458,10 +424,15 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
             logger.exception("Invalid TTS request")
             raise HTTPException(400, str(exc)) from exc
 
-        segments = _iter_segments(runtime, generate_request)
+        segments = iter_segments(runtime, generate_request)
+        raw_pcm = req.format == "pcm"
+        media_type = "audio/pcm" if raw_pcm else "audio/wav"
         if req.streaming:
             return StreamingResponse(
-                _stream_wav(runtime.sample_rate, segments), media_type="audio/wav"
+                stream_wav(
+                    runtime.sample_rate, segments, include_header=not raw_pcm
+                ),
+                media_type=media_type,
             )
 
         try:
@@ -474,21 +445,10 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
         if not parts:
             raise HTTPException(500, "No audio generated, please check the input text.")
         audio = np.concatenate(parts)
-        return Response(
-            content=_wav_bytes(runtime.sample_rate, audio), media_type="audio/wav"
-        )
+        content = pcm16(audio) if raw_pcm else wav_bytes(runtime.sample_rate, audio)
+        return Response(content=content, media_type=media_type)
 
     return app
 
 
 app = create_app()
-
-
-def run() -> None:
-    import uvicorn
-
-    uvicorn.run(app, host=app.state.config.host, port=app.state.config.port)
-
-
-if __name__ == "__main__":
-    run()

@@ -307,17 +307,16 @@ function revokeSpeakerGroups(speakerGroups: SpeakerGroup[]) {
 }
 
 function buildReferencesPayload(speakerGroups: SpeakerGroup[], includeBinaryAudio: boolean) {
-  // Speaker N is the Nth group; the server tags transcripts that have no tag.
-  return speakerGroups.flatMap((speakerGroup, speaker) =>
+  // 2D array: the Nth inner array is speaker N.
+  return speakerGroups.map((speakerGroup) =>
     speakerGroup.references.map((reference) => ({
-      text: reference.text,
-      speaker,
       audio: includeBinaryAudio ? arrayBufferToBase64(reference.audio) : '<audio binary data>',
+      text: reference.text,
     })),
   )
 }
 
-// Local servers only read text and references; the rest is hosted-API only.
+// The local server validates these fields and ignores unsupported ones.
 function buildRequestBody(
   text: string,
   local: boolean,
@@ -325,14 +324,10 @@ function buildRequestBody(
   speakerGroups: SpeakerGroup[],
   includeBinaryAudio: boolean,
 ) {
-  const references = buildReferencesPayload(speakerGroups, includeBinaryAudio)
-  if (local) {
-    return { text, references }
-  }
   return {
     text,
-    references,
-    format: output.format,
+    references: buildReferencesPayload(speakerGroups, includeBinaryAudio),
+    format: local ? 'wav' : output.format,
     latency: output.latency,
     normalize: output.normalize,
   }
@@ -520,8 +515,7 @@ function App() {
   const serverCacheActive =
     usingLocalServer && serverState.status === 'ready' && serverCacheAvailable
 
-  // Restore the previous session before the autosave below can write, otherwise
-  // the empty initial state would overwrite the cache on startup.
+  // Restore before autosave can overwrite the cache with the empty initial state.
   useEffect(() => {
     let cancelled = false
 
@@ -573,8 +567,7 @@ function App() {
     }
   }, [connection.endpoint, probeNonce])
 
-  // The local server captures reference audio/text from /v1/tts into
-  // .app_cache. Load that shared library whenever the server is reachable.
+  // Load the server's shared .app_cache library when reachable.
   useEffect(() => {
     if (!usingLocalServer || serverState.status !== 'ready') {
       return
@@ -854,15 +847,13 @@ function App() {
   }
 
   function loadVoice(voice: SavedVoice) {
-    // Server entries are labelled with a transcript snippet, which is useful in
-    // the library but not as a speaker name in the workspace.
+    // Server entries use a transcript snippet, not a speaker name.
     const speakerName = voice.source === 'server' ? '' : voice.name
     const [restored] = restoreSpeakerGroups([{ name: speakerName, clips: voice.clips }])
     const hasOnlyAnEmptySpeaker =
       speakerGroups.length === 1 && speakerGroups[0].references.length === 0
 
-    // Speaker indices come from the group order, so fill the untouched first
-    // speaker instead of pushing the voice into slot 1.
+    // Fill the empty first speaker instead of adding slot 1.
     if (hasOnlyAnEmptySpeaker) {
       setSpeakerGroups([restored])
     } else if (speakerGroups.length < MAX_SPEAKERS) {
@@ -963,8 +954,7 @@ function App() {
     window.setTimeout(() => setCopyLabel('Copy'), 2000)
   }
 
-  // A local server runs exactly one model. Refuse to synthesize unless it is
-  // the one selected, so the output never comes from a different model.
+  // A local server runs one model; refuse a mismatch.
   async function assertServerModel() {
     const state = await probeServer(connection.endpoint)
     setServerState(state)
@@ -1147,8 +1137,7 @@ function App() {
           detail: 'PCM is raw audio, so the browser cannot play it here.',
         })
       }
-      // The server has just captured the references we sent; refresh the
-      // shared library so the new voice shows up without a reload.
+      // Refresh the server library after it captures these references.
       if (usingLocalServer) {
         setCacheRefreshNonce((current) => current + 1)
       }
@@ -1542,8 +1531,8 @@ function App() {
             <h2 className="text-sm font-semibold">Output</h2>
             {usingLocalServer ? (
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Local servers return 16-bit mono WAV. Format, latency and text normalization
-                apply to the hosted API only.
+                The local server accepts the same fields but only emits WAV/PCM, so format stays
+                WAV here. Latency and text normalization are validated and ignored.
               </p>
             ) : (
               <div className="mt-4 space-y-4">

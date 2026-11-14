@@ -1,7 +1,3 @@
-// Speaker audio + transcripts, kept in this browser. IndexedDB holds the raw
-// bytes (localStorage's quota is too small for audio); JSON import/export is
-// the only way to move a voice to another browser or machine.
-
 const DB_NAME = 'fish-speech.voice-cache'
 const STORE = 'state'
 const WORKSPACE_KEY = 'workspace'
@@ -109,8 +105,6 @@ function isStoredSpeaker(value: unknown): value is StoredSpeaker {
   )
 }
 
-// The current Voices panel is written on every change so reopening the page
-// puts the user back where they left off.
 export async function readWorkspace(): Promise<StoredSpeaker[]> {
   const value: unknown = await withStore('readonly', (store) => store.get(WORKSPACE_KEY))
   if (!Array.isArray(value) || !value.every(isStoredSpeaker)) {
@@ -140,8 +134,7 @@ export async function writeVoices(voices: SavedVoice[]): Promise<void> {
   await withStore('readwrite', (store) => store.put(voices, VOICES_KEY))
 }
 
-// Voices captured by the local server from /v1/tts requests live in the
-// repo's .app_cache directory. They are shared by everyone using that server.
+// Voices captured by the local server into .app_cache.
 type ServerEntry = {
   id: string
   name: string
@@ -227,8 +220,7 @@ export function exportVoices(voices: SavedVoice[]): string {
   )
 }
 
-// Imported files are untrusted; reject anything that isn't a well-formed,
-// reasonably sized voice before it reaches IndexedDB.
+// Validate untrusted import files before writing to IndexedDB.
 export function parseVoiceFile(raw: string): SavedVoice[] {
   let parsed: unknown
   try {
