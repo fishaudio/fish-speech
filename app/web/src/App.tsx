@@ -140,7 +140,9 @@ type PendingReference = {
 const MAX_SPEAKERS = 16
 
 const FISH_AUDIO_ENDPOINT = 'https://api.fish.audio'
-const LOCAL_ENDPOINT_HINT = 'http://127.0.0.1:8080'
+const FISH_AUDIO_HOST = 'api.fish.audio'
+const DEFAULT_LOCAL_HOST = '127.0.0.1'
+const DEFAULT_LOCAL_PORT = '8080'
 const SETTINGS_STORAGE_KEY = 'fish-speech.connection.v1'
 
 type ConnectionSettings = {
@@ -161,8 +163,36 @@ function normalizeEndpoint(value: string): string {
   return trimmed || FISH_AUDIO_ENDPOINT
 }
 
+// Anything other than the hosted API is a server the user runs themselves:
+// localhost, a LAN/container IP, or a same-origin dev proxy path.
 function isLocalEndpoint(endpoint: string): boolean {
-  return /\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?(?:\/|$)/i.test(endpoint)
+  try {
+    return new URL(endpoint, window.location.href).hostname !== FISH_AUDIO_HOST
+  } catch {
+    return false
+  }
+}
+
+function splitEndpoint(endpoint: string): { host: string; port: string } {
+  try {
+    const url = new URL(endpoint, window.location.href)
+    return {
+      host: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? '443' : '80'),
+    }
+  } catch {
+    return { host: DEFAULT_LOCAL_HOST, port: DEFAULT_LOCAL_PORT }
+  }
+}
+
+function buildLocalEndpoint(host: string, port: string): string {
+  const cleanHost = host.trim() || DEFAULT_LOCAL_HOST
+  const numericPort = Number(port.trim())
+  const cleanPort =
+    Number.isInteger(numericPort) && numericPort > 0 && numericPort <= 65535
+      ? String(numericPort)
+      : DEFAULT_LOCAL_PORT
+  return `http://${cleanHost}:${cleanPort}`
 }
 
 function isModelId(value: unknown): value is ModelId {
@@ -483,6 +513,11 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [endpointDraft, setEndpointDraft] = useState(connection.endpoint)
   const [apiKeyDraft, setApiKeyDraft] = useState(connection.apiKey)
+  const [localDraft, setLocalDraft] = useState(() =>
+    isLocalEndpoint(connection.endpoint)
+      ? splitEndpoint(connection.endpoint)
+      : { host: DEFAULT_LOCAL_HOST, port: DEFAULT_LOCAL_PORT },
+  )
   const [theme, setTheme] = useState<Theme>(readTheme)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -498,6 +533,7 @@ function App() {
   speakerGroupsRef.current = speakerGroups
 
   const usingLocalServer = isLocalEndpoint(connection.endpoint)
+  const localDraftActive = isLocalEndpoint(normalizeEndpoint(endpointDraft))
   const selectedModel = getModel(connection.model)
   const serverModel =
     serverState.status === 'ready' ? modelForFamily(serverState.family) : null
@@ -627,17 +663,33 @@ function App() {
   function openSettings() {
     setEndpointDraft(connection.endpoint)
     setApiKeyDraft(connection.apiKey)
+    if (isLocalEndpoint(connection.endpoint)) {
+      setLocalDraft(splitEndpoint(connection.endpoint))
+    }
     setIsSettingsOpen(true)
   }
 
+  function updateLocalHost(host: string) {
+    setLocalDraft((current) => ({ ...current, host }))
+    setEndpointDraft(buildLocalEndpoint(host, localDraft.port))
+  }
+
+  function updateLocalPort(value: string) {
+    const port = value.replace(/\D/g, '').slice(0, 5)
+    setLocalDraft((current) => ({ ...current, port }))
+    setEndpointDraft(buildLocalEndpoint(localDraft.host, port))
+  }
+
   function saveSettings() {
+    const endpoint = normalizeEndpoint(endpointDraft)
     const next: ConnectionSettings = {
       ...connection,
-      endpoint: normalizeEndpoint(endpointDraft),
+      endpoint,
       apiKey: apiKeyDraft.trim(),
     }
     updateConnection(next)
-    if (isLocalEndpoint(next.endpoint)) {
+    if (isLocalEndpoint(endpoint)) {
+      setLocalDraft(splitEndpoint(endpoint))
       setServerState({ status: 'checking' })
       setProbeNonce((current) => current + 1)
     }
@@ -1591,7 +1643,7 @@ function App() {
           <DialogHeader>
             <DialogTitle>Connection</DialogTitle>
             <DialogDescription>
-              Use Fish Audio's hosted API, or point this page at a server you run yourself.
+              Use Fish Audio's hosted API, or set the host/IP and port of a server you run yourself.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
@@ -1609,7 +1661,7 @@ function App() {
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { label: 'Fish Audio', value: FISH_AUDIO_ENDPOINT },
-                  { label: 'Local', value: LOCAL_ENDPOINT_HINT },
+                  { label: 'Local', value: buildLocalEndpoint(localDraft.host, localDraft.port) },
                 ].map((preset) => (
                   <button
                     key={preset.value}
@@ -1627,8 +1679,37 @@ function App() {
                   </button>
                 ))}
               </div>
+              {localDraftActive && (
+                <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="localHost">Host / IP</Label>
+                    <input
+                      id="localHost"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={localDraft.host}
+                      onChange={(event) => updateLocalHost(event.target.value)}
+                      placeholder={DEFAULT_LOCAL_HOST}
+                      className="w-full rounded-md border bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="localPort">Port</Label>
+                    <input
+                      id="localPort"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={localDraft.port}
+                      onChange={(event) => updateLocalPort(event.target.value)}
+                      placeholder={DEFAULT_LOCAL_PORT}
+                      className="w-full rounded-md border bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+                    />
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Base URL only; <code className="font-mono">/v1/tts</code> is added for you.
+                Base URL only; <code className="font-mono">/v1/tts</code> is added for you. Host
+                and port update the endpoint above.
               </p>
             </div>
             <div className="space-y-2">
