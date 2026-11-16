@@ -93,6 +93,8 @@ filelists/
 /.cache/
 /.gradio/
 /.locale/
+# Reference audio/text captured from /v1/tts.
+/.app_cache/
 .pgx.*
 *log
 *.log
@@ -113,3 +115,10 @@ ffprobe.exe
 /*.test.sh
 asr-label*
 outputs/
+
+# Frontend
+# --------
+# The Python-era `lib/` rule above also matches app/web/src/lib/, which holds
+# the React helpers (cn, theme). Keep it tracked.
+!app/web/src/lib/
+!app/web/src/lib/**

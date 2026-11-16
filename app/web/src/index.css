@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Class-based dark mode; the OS preference is only the initial fallback. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: 40 20% 97.5%;
+  --foreground: 24 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 10% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 10% 10%;
+  --primary: 24 10% 11%;
+  --primary-foreground: 40 20% 98%;
+  --secondary: 40 12% 93%;
+  --secondary-foreground: 24 10% 12%;
+  --muted: 40 12% 93%;
+  --muted-foreground: 30 5% 40%;
+  --accent: 40 12% 92%;
+  --accent-foreground: 24 10% 10%;
+  --destructive: 4 72% 48%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 40 9% 87%;
+  --input: 40 9% 85%;
+  --ring: 30 5% 55%;
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: 30 6% 7%;
+  --foreground: 40 10% 93%;
+  --card: 30 5% 10%;
+  --card-foreground: 40 10% 93%;
+  --popover: 30 5% 11%;
+  --popover-foreground: 40 10% 93%;
+  --primary: 40 12% 93%;
+  --primary-foreground: 30 6% 8%;
+  --secondary: 30 5% 15%;
+  --secondary-foreground: 40 10% 93%;
+  --muted: 30 5% 15%;
+  --muted-foreground: 35 5% 62%;
+  --accent: 30 5% 17%;
+  --accent-foreground: 40 10% 93%;
+  --destructive: 4 62% 48%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 30 5% 18%;
+  --input: 30 5% 22%;
+  --ring: 35 5% 50%;
+}
+
+.dark audio {
+  color-scheme: dark;
+}
+
+::selection {
+  background: hsl(var(--foreground) / 0.14);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    min-width: 320px;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
