@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from pydantic import BaseModel, Field, conint, model_validator
+from pydantic import BaseModel, Field, conint, field_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
 
@@ -53,18 +53,14 @@ class ServeReferenceAudio(BaseModel):
     # reference's position, Drama 3: speaker 0).
     speaker: Annotated[int, Field(ge=0, le=15, strict=True)] | None = None
 
-    @model_validator(mode="before")
-    def decode_audio(cls, values):
-        audio = values.get("audio")
-        if (
-            isinstance(audio, str) and len(audio) > 255
-        ):  # Check if audio is a string (Base64)
-            try:
-                values["audio"] = base64.b64decode(audio)
-            except Exception:
-                # If the audio is not a valid base64 string, we will just ignore it and let the server handle it
-                pass
-        return values
+    @field_validator("audio", mode="before")
+    @classmethod
+    def decode_audio(cls, audio):
+        # JSON transports reference audio as Base64; MessagePack uses raw bytes.
+        if isinstance(audio, str):
+            # Preserve support for line-wrapped Base64 while rejecting invalid data.
+            return base64.b64decode("".join(audio.split()), validate=True)
+        return audio
 
     def __repr__(self) -> str:
         return (
