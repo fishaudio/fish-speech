@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from pydantic import BaseModel, Field, conint, model_validator
+from pydantic import BaseModel, Field, conint, field_validator, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
 
@@ -75,6 +75,14 @@ class ServeReferenceAudio(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, text):
+        if not text.strip():
+            raise ValueError("text must contain non-whitespace characters")
+        return text
+
     chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
     # Drama 3 only: generate the whole text in one pass instead of ~300-byte chunks.
     single_chunk: bool = False

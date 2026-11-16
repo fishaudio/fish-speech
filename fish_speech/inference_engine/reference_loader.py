@@ -9,6 +9,7 @@ import torchaudio
 from loguru import logger
 
 from fish_speech.models.dac.modded_dac import DAC
+from fish_speech.models.text2semantic.errors import InvalidInputError
 from fish_speech.utils.file import (
     AUDIO_EXTENSIONS,
     audio_to_bytes,
@@ -53,8 +54,8 @@ class ReferenceLoader:
 
     @staticmethod
     def _validate_id(id: str) -> None:
-        if not _ID_PATTERN.match(id) or len(id) > 255:
-            raise ValueError(
+        if not _ID_PATTERN.fullmatch(id) or len(id) > 255:
+            raise InvalidInputError(
                 "Reference ID contains invalid characters or is too long. "
                 "Only alphanumeric, hyphens, underscores, and spaces are allowed."
             )
@@ -66,14 +67,20 @@ class ReferenceLoader:
     ) -> Tuple:
         self._validate_id(id)
 
-        # Load the references audio and text by id
-        ref_folder = Path("references") / id
-        ref_folder.mkdir(parents=True, exist_ok=True)
-        ref_audios = list_files(
-            ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=False
-        )
-
         if use_cache == "off" or id not in self.ref_by_id:
+            ref_folder = Path("references") / id
+            if not ref_folder.is_dir():
+                raise InvalidInputError(f"Reference ID not found: {id}")
+            ref_audios = list_files(
+                ref_folder, AUDIO_EXTENSIONS, recursive=True, sort=True
+            )
+            if not ref_audios:
+                raise InvalidInputError(f"No reference audio found for: {id}")
+            for ref_audio in ref_audios:
+                if not ref_audio.with_suffix(".lab").is_file():
+                    raise InvalidInputError(
+                        f"Missing transcript for reference audio: {ref_audio.name}"
+                    )
             # If the references are not already loaded, encode them
             prompt_tokens = [
                 self.encode_reference(
@@ -87,7 +94,8 @@ class ReferenceLoader:
                 read_ref_text(str(ref_audio.with_suffix(".lab")))
                 for ref_audio in ref_audios
             ]
-            self.ref_by_id[id] = (prompt_tokens, prompt_texts)
+            if use_cache == "on":
+                self.ref_by_id[id] = (prompt_tokens, prompt_texts)
 
         else:
             # Reuse already encoded references
@@ -102,7 +110,11 @@ class ReferenceLoader:
         use_cache: Literal["on", "off"],
     ) -> Tuple:
         # Load the references audio and text by hash
-        audio_hashes = [sha256(ref.audio).hexdigest() for ref in references]
+        audio_hashes = (
+            [sha256(ref.audio).hexdigest() for ref in references]
+            if use_cache == "on"
+            else []
+        )
 
         cache_used = False
         prompt_tokens, prompt_texts = [], []
@@ -116,7 +128,8 @@ class ReferenceLoader:
                     )
                 )
                 prompt_texts.append(ref.text)
-                self.ref_by_hash[audio_hashes[i]] = (prompt_tokens[-1], ref.text)
+                if use_cache == "on":
+                    self.ref_by_hash[audio_hashes[i]] = (prompt_tokens[-1], ref.text)
 
             else:
                 # Reuse the encoded audio; the transcript always comes from this
@@ -211,7 +224,7 @@ class ReferenceLoader:
 
         # Check if audio file exists
         audio_path = Path(wav_file_path)
-        if not audio_path.exists():
+        if not audio_path.is_file():
             raise FileNotFoundError(f"Audio file not found: {wav_file_path}")
 
         # Validate audio file extension
@@ -220,10 +233,11 @@ class ReferenceLoader:
                 f"Unsupported audio format: {audio_path.suffix}. Supported formats: {', '.join(AUDIO_EXTENSIONS)}"
             )
 
-        try:
-            # Create reference directory
-            ref_dir.mkdir(parents=True, exist_ok=False)
+        # Only clean up a directory that this invocation successfully created.
+        # A competing request may create the ID after the existence check.
+        ref_dir.mkdir(parents=True, exist_ok=False)
 
+        try:
             # Determine the target audio filename with original extension
             target_audio_path = ref_dir / f"sample{audio_path.suffix}"
 
@@ -243,13 +257,13 @@ class ReferenceLoader:
 
             logger.info(f"Successfully added reference voice with ID: {id}")
 
-        except Exception as e:
+        except Exception:
             # Clean up on failure
             if ref_dir.exists():
                 import shutil
 
                 shutil.rmtree(ref_dir)
-            raise e
+            raise
 
     def delete_reference(self, id: str) -> None:
         """
