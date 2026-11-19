@@ -71,6 +71,7 @@ def main() -> None:
     headers = {"Content-Type": "application/msgpack"}
     reference = {"audio": ref_audio.read_bytes(), "text": ref_text}
 
+    failed = False
     for index, text in enumerate(args.text):
         payload = {
             "text": text,
@@ -85,11 +86,18 @@ def main() -> None:
             timeout=args.timeout,
         )
         if response.status_code != 200:
-            print(f"{index}: HTTP {response.status_code}: {response.text[:300]}")
+            print(
+                f"{index}: HTTP {response.status_code}: {response.text[:300]}",
+                file=sys.stderr,
+            )
+            failed = True
             continue
         out_path = out_dir / f"{args.prefix}_{index:02d}.{args.format}"
         out_path.write_bytes(response.content)
         print(f"{out_path}: {len(text)} chars -> {len(response.content)} bytes")
+
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
