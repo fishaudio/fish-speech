@@ -160,22 +160,25 @@ def split_drama3_text(
 
     segments = []
     for speaker, body in parse_speaker_segments(text):
-        for piece in split_by_length(body, max_bytes):
-            segments.append((speaker, f"<|speaker:{speaker}|> {piece}"))
+        tag = f"<|speaker:{speaker}|> "
+        for piece in split_by_length(body, max(1, max_bytes - utf8_len(tag))):
+            segments.append((speaker, tag + piece))
 
     chunks, batch, speakers, size = [], [], [], 0
     for speaker, segment in segments:
         new_speaker = speaker not in speakers
         too_many_speakers = new_speaker and len(speakers) >= max_speakers
-        too_long = bool(batch) and size + utf8_len(segment) > max_bytes
+        separator_size = 1 if batch else 0
+        too_long = bool(batch) and size + separator_size + utf8_len(segment) > max_bytes
         if too_many_speakers or too_long:
             chunks.append("\n".join(batch))
             batch, speakers, size = [], [], 0
             new_speaker = True
+            separator_size = 0
         batch.append(segment)
         if new_speaker:
             speakers.append(speaker)
-        size += utf8_len(segment)
+        size += separator_size + utf8_len(segment)
     if batch:
         chunks.append("\n".join(batch))
     return chunks
