@@ -1,5 +1,5 @@
 import argparse
-import base64
+import sys
 import time
 import wave
 
@@ -293,5 +293,12 @@ if __name__ == "__main__":
                 play(audio)
             print(f"Audio has been saved to '{audio_path}'.")
     else:
-        print(f"Request failed with status code {response.status_code}")
-        print(response.json())
+        print(
+            f"Request failed with status code {response.status_code}", file=sys.stderr
+        )
+        try:
+            detail = response.json()
+        except requests.exceptions.JSONDecodeError:
+            detail = response.text
+        print(detail, file=sys.stderr)
+        sys.exit(1)
