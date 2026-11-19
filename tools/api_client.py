@@ -126,6 +126,18 @@ def parse_args():
     parser.add_argument(
         "--temperature", type=float, default=None, help="Temperature for sampling"
     )
+    parser.add_argument(
+        "--top_k",
+        type=int,
+        default=None,
+        help="Top-k sampling for Drama 3 (0 removes the cap)",
+    )
+    parser.add_argument(
+        "--epsilon_cutoff",
+        type=float,
+        default=None,
+        help="Epsilon cutoff for Drama 3 with reference sampling enabled",
+    )
 
     # parser.add_argument("--streaming", type=bool, default=False, help="Enable streaming response")
     parser.add_argument(
@@ -208,6 +220,8 @@ if __name__ == "__main__":
         "chunk_length": args.chunk_length,
         "single_chunk": args.single_chunk,
         "top_p": args.top_p,
+        "top_k": args.top_k,
+        "epsilon_cutoff": args.epsilon_cutoff,
         "repetition_penalty": args.repetition_penalty,
         "temperature": args.temperature,
         "streaming": args.streaming,
