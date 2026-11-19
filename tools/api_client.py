@@ -4,10 +4,7 @@ import time
 import wave
 
 import ormsgpack
-import pyaudio
 import requests
-from pydub import AudioSegment
-from pydub.playback import play
 
 from fish_speech.utils.file import audio_to_bytes, read_ref_text
 from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
@@ -236,18 +233,23 @@ if __name__ == "__main__":
 
     if response.status_code == 200:
         if args.streaming:
-            p = pyaudio.PyAudio()
-            audio_format = pyaudio.paInt16  # Assuming 16-bit PCM format
-            stream = p.open(
-                format=audio_format, channels=args.channels, rate=args.rate, output=True
-            )
+            p = stream = None
+            if args.play:
+                import pyaudio
+
+                p = pyaudio.PyAudio()
+                stream = p.open(
+                    format=pyaudio.paInt16,
+                    channels=args.channels,
+                    rate=args.rate,
+                    output=True,
+                )
 
             wf = wave.open(f"{args.output}.wav", "wb")
             wf.setnchannels(args.channels)
-            wf.setsampwidth(p.get_sample_size(audio_format))
+            wf.setsampwidth(2)
             wf.setframerate(args.rate)
 
-            stream_stopped_flag = False
             # The server opens the stream with a 44-byte WAV header (older ones
             # did not); only the samples after it are played and saved.
             header = b""
@@ -261,15 +263,14 @@ if __name__ == "__main__":
                         chunk = header[44:] if header.startswith(b"RIFF") else header
                         header = None
                     if chunk:
-                        stream.write(chunk)
+                        if stream is not None:
+                            stream.write(chunk)
                         wf.writeframesraw(chunk)
-                    else:
-                        if not stream_stopped_flag:
-                            stream.stop_stream()
-                            stream_stopped_flag = True
             finally:
-                stream.close()
-                p.terminate()
+                if stream is not None:
+                    stream.close()
+                if p is not None:
+                    p.terminate()
                 wf.close()
         else:
             audio_content = response.content
@@ -277,19 +278,23 @@ if __name__ == "__main__":
             with open(audio_path, "wb") as audio_file:
                 audio_file.write(audio_content)
 
-            if args.format == "pcm":  # headerless 16-bit mono
-                audio = AudioSegment.from_file(
-                    audio_path,
-                    format="raw",
-                    sample_width=2,
-                    frame_rate=args.rate,
-                    channels=1,
-                )
-            else:  # opus comes in an Ogg container
-                audio = AudioSegment.from_file(
-                    audio_path, format="ogg" if args.format == "opus" else args.format
-                )
             if args.play:
+                from pydub import AudioSegment
+                from pydub.playback import play
+
+                if args.format == "pcm":  # headerless 16-bit mono
+                    audio = AudioSegment.from_file(
+                        audio_path,
+                        format="raw",
+                        sample_width=2,
+                        frame_rate=args.rate,
+                        channels=1,
+                    )
+                else:  # opus comes in an Ogg container
+                    audio = AudioSegment.from_file(
+                        audio_path,
+                        format="ogg" if args.format == "opus" else args.format,
+                    )
                 play(audio)
             print(f"Audio has been saved to '{audio_path}'.")
     else:
