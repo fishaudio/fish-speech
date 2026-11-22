@@ -16,6 +16,7 @@ import requests
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", "-u", default="http://127.0.0.1:8080/v1/tts")
+    parser.add_argument("--api-key", help="bearer token for an authenticated server")
     parser.add_argument("--ref-audio", "-r", default="test.wav", help="reference audio")
     parser.add_argument("--ref-text", default=None, help="transcript of the reference")
     parser.add_argument(
@@ -69,6 +70,8 @@ def main() -> None:
         if value is not None
     }
     headers = {"Content-Type": "application/msgpack"}
+    if args.api_key:
+        headers["Authorization"] = f"Bearer {args.api_key}"
     reference = {"audio": ref_audio.read_bytes(), "text": ref_text}
 
     for index, text in enumerate(args.text):
