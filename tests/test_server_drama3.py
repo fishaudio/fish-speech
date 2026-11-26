@@ -145,6 +145,15 @@ class SamplingDefaultsTest(unittest.TestCase):
             with self.subTest(top_k=value), self.assertRaises(ValidationError):
                 ServeTTSRequest(text="hi", top_k=value)
 
+    def test_chunk_length_must_be_an_int_from_100_to_1000(self):
+        for value in (100, 1000):
+            self.assertEqual(
+                ServeTTSRequest(text="hi", chunk_length=value).chunk_length, value
+            )
+        for value in (0, 99, 1001, -5, "200", 200.0, True):
+            with self.subTest(chunk_length=value), self.assertRaises(ValidationError):
+                ServeTTSRequest(text="hi", chunk_length=value)
+
     def test_unknown_family(self):
         with self.assertRaises(ValueError):
             make_engine("s1")
