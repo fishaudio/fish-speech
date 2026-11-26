@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 import torch
-from pydantic import BaseModel, Field, conint, model_validator
+from pydantic import BaseModel, Field, model_validator
 from pydantic.functional_validators import SkipValidation
 from typing_extensions import Annotated
 
@@ -75,7 +75,7 @@ class ServeReferenceAudio(BaseModel):
 
 class ServeTTSRequest(BaseModel):
     text: str
-    chunk_length: Annotated[int, conint(ge=100, le=1000, strict=True)] = 200
+    chunk_length: Annotated[int, Field(ge=100, le=1000, strict=True)] = 200
     # Drama 3 only: generate the whole text in one pass instead of ~300-byte chunks.
     single_chunk: bool = False
     # Audio format
